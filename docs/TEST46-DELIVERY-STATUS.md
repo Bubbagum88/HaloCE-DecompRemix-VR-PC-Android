@@ -31,11 +31,41 @@ public v1.0.18 and all older candidate/release assets unchanged; do not publish.
 
 ## Build and artifact record
 
-This section is completed only after both final APKs are rebuilt from the same
-committed source, checked by `tools/package-quest.py`, and packaged with their
-matching source/build ZIPs. Final source commit, APK sizes and SHA-256 values
-will be recorded here. No APK installation, game launch or public release is
-part of this task.
+Both APKs were built from runtime source commit `e699cf9e` after correcting the
+vehicle-lift helper declaration order caught by the first full compile. The
+flat flavor then rebuilt the full native guest from scratch. `tools/package-quest.py`
+verified both APKs and created matching source/build archives from packaging
+commit `51bffee6`.
+
+| Flavor | Package / version | Size | SHA-256 |
+|---|---|---:|---|
+| Quest / VR | `com.halo.decomp.vr`, code 57, `1.0.27-test46` | 35,953,318 bytes | `7396c0a9a5bb06392a5236683dad8210562dca289dd92ec125dfaef5de559d3b` |
+| Android / flat | `com.halo.decomp`, code 57, `1.0.27-test46` | 33,776,643 bytes | `180047e9ca5cb2dc5e87f920ed982b7c744444ba4456d464abfb4fecea07c2ae` |
+
+The packaging gate verified arm64-v8a, min SDK 28, the established signing
+certificate, APK ZIP integrity, declared microphone permission, embedded
+voice/settings and player-guide markers, matching application classes and
+network payloads (apart from the Quest OpenXR loader), launcher artwork, and
+the required bundled guides. The candidate is **not installed, launched,
+published, or accepted on a device**.
+
+The complete `tools/run-quest-checks.py` suite passed for both flavor builds,
+including voice integration/protocol and permission lifecycle coverage,
+vehicle lift, NPC rescue, NPC/ally interaction, reload, parkour, launcher,
+game-data, network, Android touch and controller checks. `git diff --check`
+and the focused Test46 candidate test passed. The environment uses Clang 18;
+its profile-guided optimization data requires Clang 22, so these builds omit
+PGO.
+
+### Upstream Build 168 review
+
+OpenCE Build 168 (`6a74eab`) was reviewed before finishing this candidate. Its
+official release note and commit diff describe Android touch-control review
+fixes: touch aiming/gyro behavior, touch overlay and layout lifecycle, and
+related touch input/UI handling. It contains no voice-chat or networking
+change. Per the owner's instruction to disregard Build 168 if touch-only, this
+candidate intentionally remains on the Build 157 base with selected Build 167
+compatibility and host-relayed voice changes; Build 168 was not merged.
 
 ## Validation boundary and known limits
 
