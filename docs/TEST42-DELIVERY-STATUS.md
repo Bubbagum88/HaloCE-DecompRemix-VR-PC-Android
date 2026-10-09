@@ -71,8 +71,8 @@ restrictions, `TEST42-OPENCE167-INTEGRATION.md` for upstream boundaries, and
 
 | Edition | APK | Bytes | SHA-256 |
 |---|---|---:|---|
-| Quest / VR | `test42-vr-compact.apk` | 35,527,934 | `eb956b4cafd4f66a3e2302de9e3fc478f773d03c422b35380e8f22298e3184c0` |
-| Android / flat | `test42-flat-compact.apk` | 33,361,071 | `3f4c769a98ae065617abc540b6a2913d3cab200cbd3ba860bb6e46846163547d` |
+| Quest / VR | `HaloCE-Quest-VR-1.0.23-test42.apk` | 35,527,934 | `eb956b4cafd4f66a3e2302de9e3fc478f773d03c422b35380e8f22298e3184c0` |
+| Android / flat | `HaloCE-Android-1.0.23-test42.apk` | 33,361,071 | `3f4c769a98ae065617abc540b6a2913d3cab200cbd3ba860bb6e46846163547d` |
 
 - The installed compiler is clang 18 while the optional PGO profiles were
   produced with clang 22, so the builds completed without PGO. This affects
