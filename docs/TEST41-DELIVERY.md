@@ -11,7 +11,7 @@ Final package directory: `D:\HaloQuest\builds\test41-20261009-v1.0.22-test41`
 
 | APK | Size | SHA-256 |
 |---|---:|---|
-| `HaloCE-Quest-VR-1.0.22-test41.apk` | 54,115,747 bytes | `3A08BDD20FD30788D0E1E6E6D892E089345E21522F4D222B8C946A4656DEBFF9` |
+| `HaloCE-Quest-VR-1.0.22-test41.apk` | 35,528,446 bytes | `695D2D84C1DB88033B72B17AE1804A94A11CB7486C40102BB38A943E10829DDD` |
 | `HaloCE-Android-1.0.22-test41.apk` | 33,353,707 bytes | `4B9CFF71BDC63BE47259D4DEEAFB8B07F15A455FE319C21BCC7918D1F4839F41` |
 
 Both APKs have package names `com.halo.decomp.vr` and `com.halo.decomp`,
@@ -38,6 +38,10 @@ source commit and marks runtime acceptance false.
   exact APK signing certificate matches Test40. Package-time checks additionally
   verify cross-flavor networking parity, APK contents, source archive integrity,
   guide inclusion, and recorded hashes.
+- The first packaging attempt rejected the incremental Quest APK because it
+  contained an unindexed duplicate guest payload. The Quest Gradle outputs were
+  cleaned and the VR APK was rebuilt from the same source; the corrected APK is
+  smaller and must pass the orphaned-ZIP-data check before delivery.
 - No APK was installed or launched on a headset. Quest action acceptance is
   pending the checklist in [TEST41-DEVICE-CHECKLIST.md](TEST41-DEVICE-CHECKLIST.md).
   Host tests and a successful compile do not prove that physical grabs,
