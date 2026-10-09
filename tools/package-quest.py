@@ -588,6 +588,9 @@ def main():
         documents += ["TEST39-DEVICE-CHECKLIST.md", "TEST39-REQUIREMENT-DISPOSITION.md"]
     if candidate_at_least(args.label, 40) and not args.stable:
         documents += ["TEST40-DEVICE-CHECKLIST.md", "TEST40-PROGRESS.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    # Candidate-specific additions above may repeat a shared handoff document.
+    # Keep both the copied folder and build ZIP free of duplicate entries.
+    documents = list(dict.fromkeys(documents))
     for doc in documents:
         shutil.copy2(ROOT / "docs" / doc, output / doc)
     for notice in ["CREDITS.md", "THIRD-PARTY-NOTICES.txt", "LICENSE.md"]:

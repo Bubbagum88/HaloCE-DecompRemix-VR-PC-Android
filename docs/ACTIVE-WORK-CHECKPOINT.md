@@ -2,11 +2,12 @@
 
 ## Active private Test40 candidate (2026-10-08)
 
-Continue on `test39-interaction-completion`; target private **1.0.21-test40 / code51**.
-Finish the four previously deferred interaction items, include haptics for
-vehicle lifting and supported NPC handling, and package both flat Android and
-Quest/VR APKs for private owner testing. Do not publish, install or launch the
-game. PC/Steam Frame stays deferred; public v1.0.18 stays unchanged.
+Source work and private packaging are complete on `test39-interaction-completion`;
+candidate **1.0.21-test40 / code51** is at
+`D:\HaloQuest\builds\test40-20261008-v1.0.21-test40-delivery`. Wait for the
+owner to test both APKs and report device/log results. Do not publish, install
+or launch the game. PC/Steam Frame stays deferred; public v1.0.18 stays
+unchanged.
 
 Read [TEST40-DELIVERY-STATUS.md](TEST40-DELIVERY-STATUS.md),
 [TEST40-REQUIREMENT-DISPOSITION.md](TEST40-REQUIREMENT-DISPOSITION.md),

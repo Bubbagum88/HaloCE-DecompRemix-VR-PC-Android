@@ -30,9 +30,14 @@ private flat Android and Quest VR candidate. Keep PC/Steam Frame deferred.
 - Focused harnesses: passed for rescue, magazine debris, vehicle lifting,
   NPC custom-rig admission, NPC/vehicle weight-feedback routing and retained
   collision-contact haptics.
-- Full Quest/flat regression runner: 87 suites passed, no failures. Cache-format
-  pytest: 127 passed, four optional map-fixture skips. Flat and Quest APK
-  builds plus package/signature verification remain pending.
+- Full Quest and flat regression runners: 87 suites passed each, no failures.
+  Cache-format pytest: 127 passed, four optional map-fixture skips. Both APKs
+  built and passed package/version/ABI/signing checks; networking parity passed.
+- Artifact hashes, sizes, signing fingerprint, source revision, and final
+  package contents are recorded in [TEST40-DELIVERY.md](TEST40-DELIVERY.md)
+  and the package `manifest.json` / `SHA256SUMS.txt`.
+- The local clang 18 toolchain lacks the clang 22 PGO profile match, so PGO was
+  disabled for these builds; no behavior changes were made to compensate.
 - Quest/Android device and co-op acceptance: pending owner testing.
 
 ## Explicit limits

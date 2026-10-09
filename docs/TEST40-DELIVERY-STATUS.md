@@ -36,9 +36,9 @@ vehicle controls, menus and avatar work remains carried forward.
 
 Focused ASan/UBSan harnesses cover magazine pool policy and production hooks,
 vehicle eligibility/velocity limits, custom rig profile admission, and NPC
-rescue dwell/eligibility/lifecycle. Full regression suites, cache-format pytest,
-flat/Quest compilation, signing and package checks are recorded in
-[TEST40-DELIVERY.md](TEST40-DELIVERY.md) after packaging.
+rescue dwell/eligibility/lifecycle. Both APKs, source/build archives, hashes,
+package checks and their exact source/runtime identities are recorded in
+[TEST40-DELIVERY.md](TEST40-DELIVERY.md) and the delivery manifest.
 
 No device, headset, co-op, campaign, performance or representative custom-tag
 acceptance is inferred from host checks. Follow
