@@ -1,21 +1,31 @@
 ## Current release checkpoint — v1.0.18 (2026-10-08)
 
-## Active private Test42 candidate (2026-10-09)
+## Active private Test43 candidate (2026-10-09)
 
-Candidate **1.0.23-test42 / code53** on `test39-interaction-completion` must
-include every project change since public v1.0.18: Tests38-41, the user icon,
-updated bundled guide, Android touch-layout export/import and per-control hide,
-the supplied USA XISO comparison, and selected OpenCE Build167 compatibility fixes. The
-engine base stays Build157/network24. Preserve Test40 and Test41 artifacts and
-all accepted VR, Android, save, network and Safe Geometry behavior. PC/Steam
-Frame remains deferred. Package both APKs for owner testing only; do not publish,
-install or launch the game. Device acceptance remains pending.
+Candidate **1.0.24-test43 / code54** on `test39-interaction-completion` adds
+visible main-launcher selection among installed distinct game-data sets and
+safe deletion of inactive imported copies and ISO/XISO copies stored in the
+import inbox. It carries forward every change since public v1.0.18, including
+Tests38-42, the icon, touch-layout export/import and per-control hide, supplied
+USA image comparison, and selected OpenCE Build167 compatibility fixes. The
+engine base remains Build157/network24. Byte-identical map sets continue to
+deduplicate; the UI does not claim filename-based revision recognition.
 
-See [TEST42-DELIVERY-STATUS.md](TEST42-DELIVERY-STATUS.md),
-[TEST42-REQUIREMENT-DISPOSITION.md](TEST42-REQUIREMENT-DISPOSITION.md),
-[TEST42-OPENCE167-INTEGRATION.md](TEST42-OPENCE167-INTEGRATION.md), and
-[TEST42-DEVICE-CHECKLIST.md](TEST42-DEVICE-CHECKLIST.md). The cumulative feature
-list, safety bounds and evidence limits are recorded there.
+Delete operations must refuse base/existing data, the active imported set,
+malformed selections and paths outside the managed library. Directly selected
+ISO/XISO source files remain at their original location. Deleting an inactive
+managed set removes its maps, that set's config and saves. Switching writes the
+existing atomic `active-data.txt` marker read by launcher and native startup.
+Preserve all previously working VR, Android, saves, network and Safe Geometry
+behavior. PC/Steam Frame remains deferred. Package both APKs and matching
+build/source ZIPs for owner testing only; do not publish, install or launch the
+game. Device acceptance remains pending.
+
+See [TEST43-DELIVERY-STATUS.md](TEST43-DELIVERY-STATUS.md),
+[TEST43-REQUIREMENT-DISPOSITION.md](TEST43-REQUIREMENT-DISPOSITION.md),
+[TEST43-PLAYER-NOTES.md](TEST43-PLAYER-NOTES.md), and
+[TEST43-DEVICE-CHECKLIST.md](TEST43-DEVICE-CHECKLIST.md). Test42 remains
+preserved in its own delivery and requirement records.
 
 ## Superseded private Test39 candidate (2026-10-08)
 

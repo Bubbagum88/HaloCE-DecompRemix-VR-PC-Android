@@ -1,19 +1,26 @@
 # Current development state
 
-## Active private candidate: Test42 (2026-10-09)
+## Active private candidate: Test43 (2026-10-09)
 
-Candidate target is **1.0.23-test42 / Android code53**. It carries forward all
-project changes since public v1.0.18, including Tests38-41, the supplied Halo CE
-Quest icon, Android touch-layout preset export/import and per-control hide,
-the supplied USA XISO comparison, bundled offline guide updates, and selected OpenCE Build167
-compatibility fixes. The engine base remains Build157/network24; Build167 does
-not change the protocol. See [TEST42-REQUIREMENT-DISPOSITION.md](TEST42-REQUIREMENT-DISPOSITION.md)
-for every feature and limitation, [TEST42-OPENCE167-INTEGRATION.md](TEST42-OPENCE167-INTEGRATION.md)
-for the upstream boundary, and [TEST42-DEVICE-CHECKLIST.md](TEST42-DEVICE-CHECKLIST.md)
-for owner acceptance. Build/host tests are not headset acceptance. Public
-v1.0.18 and Test40/Test41 artifacts remain unchanged. Do not publish, install or
-launch the game. PC/Steam Frame remains deferred. Final hashes/checks go in
-[TEST42-DELIVERY.md](TEST42-DELIVERY.md).
+Candidate target is **1.0.24-test43 / Android code54**. It carries forward all
+project changes since public v1.0.18, including Tests38-42, the supplied Halo CE
+Quest icon, touch-layout export/import and per-control hide, supplied USA XISO
+comparison, and selected OpenCE Build167 compatibility fixes. The launcher now
+shows the active data-set choice on the main screen and supports switching
+among distinct imported map sets. Inactive managed copies and ISO/XISO files
+copied to the import inbox can be deleted through guarded controls. Active and
+base/existing data are protected; the original file selected through Android's
+picker stays at its source location. Byte-identical sets remain deduplicated,
+and filename-only revision labels are not treated as verified identities.
+
+The engine base remains Build157/network24. See
+[TEST43-REQUIREMENT-DISPOSITION.md](TEST43-REQUIREMENT-DISPOSITION.md) and
+[TEST43-DEVICE-CHECKLIST.md](TEST43-DEVICE-CHECKLIST.md); Test42 retains the
+upstream boundary and cumulative prior feature record. Automated tests/builds
+are not headset acceptance. Public v1.0.18 and earlier candidate artifacts
+remain unchanged. Do not publish, install or launch the game. PC/Steam Frame
+remains deferred. Final hashes/checks go in
+[TEST43-DELIVERY-STATUS.md](TEST43-DELIVERY-STATUS.md).
 
 ## Superseded private candidate: Test40
 

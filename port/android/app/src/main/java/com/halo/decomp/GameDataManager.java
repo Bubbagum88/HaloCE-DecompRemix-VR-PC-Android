@@ -25,14 +25,35 @@ final class GameDataManager {
         try {
             GameDataLibrary library=new GameDataLibrary(base);List<GameDataLibrary.Profile> profiles=library.list();final AlertDialog[] visible={null};
             LinearLayout rows=new LinearLayout(activity);rows.setOrientation(LinearLayout.VERTICAL);rows.setPadding(24,16,24,16);
-            TextView intro=new TextView(activity);intro.setText("Each distinct map set has separate maps and saves. Byte-identical imports share one profile, even when their disc revision labels differ. New sets copy your current settings once. Switching never replaces the original data. Detection shows actual cache builds and fingerprints; Original/Rev1/Rev2 disc labels remain unverified unless identified from trusted disc hashes.\n\nDrop ISO/XISO files or folders containing maps into:\n"+library.inbox+"\nThen Scan inbox. You can also import directly with Android's file picker.");rows.addView(intro);
+            TextView intro=new TextView(activity);intro.setText("Choose which imported game-data set the next launch will use. Each distinct map set has separate maps and saves; byte-identical imports share one profile because they run the same map bytes, even if their ISO labels differ. You can label distinct sets yourself. Revision names are not inferred from filenames.\n\nImports from Android's file picker copy the maps into managed storage; the source ISO/XISO stays where you selected it. To reclaim space for an image copied into the inbox, delete it below. Managed-set deletion removes that set's maps, settings and local saves only; the active set and existing game data are protected.\n\nDrop ISO/XISO files or folders containing maps into:\n"+library.inbox+"\nThen Scan inbox. You can also import directly with Android's file picker.");rows.addView(intro);
             TextView compatibility=new TextView(activity);compatibility.setText(LauncherHelp.DATA_COMPATIBILITY_NOTE);rows.addView(compatibility);
             File active=GameDataLibrary.activeRoot(base);
             for(GameDataLibrary.Profile p:profiles){
-                Button b=new Button(activity);b.setAllCaps(false);b.setText((p.root.equals(active)?"Selected: ":"Use: ")+p.description());rows.addView(b);
-                b.setOnClickListener(v->{if(busy())return;try{library.select(p.id);if(visible[0]!=null)visible[0].dismiss();changed.run();Toast.makeText(activity,"Selected "+p.label+". Saves remain with this set.",Toast.LENGTH_LONG).show();}catch(Exception e){error(e);}});
-                if(!p.id.isEmpty())add(rows,"Rename "+p.label,()->{EditText name=new EditText(activity);name.setText(p.label);
-                    new GamepadNavigation.Builder(activity).setTitle("Label this set (detected identity is retained)").setView(name).setPositiveButton("Save",(d,w)->{try{library.rename(p,name.getText().toString());if(visible[0]!=null)visible[0].dismiss();show();}catch(Exception e){error(e);}}).setNegativeButton("Cancel",null).show();});
+                boolean selected=p.root.equals(active);
+                TextView heading=new TextView(activity);heading.setText(p.description());heading.setTextSize(14);rows.addView(heading);
+                Button b=new Button(activity);b.setAllCaps(false);b.setText(selected?"Currently selected: "+p.label:"Use this set: "+p.label);b.setEnabled(!selected);rows.addView(b);
+                b.setOnClickListener(v->{if(busy())return;try{library.select(p.id);if(visible[0]!=null)visible[0].dismiss();changed.run();Toast.makeText(activity,"Selected "+p.label+" for the next launch. Its saves stay with this set.",Toast.LENGTH_LONG).show();}catch(Exception e){error(e);}});
+                if(!p.id.isEmpty()){
+                    LinearLayout actions=new LinearLayout(activity);actions.setOrientation(LinearLayout.HORIZONTAL);rows.addView(actions);
+                    Button rename=new Button(activity);rename.setAllCaps(false);rename.setText("Rename");actions.addView(rename,new LinearLayout.LayoutParams(0,LinearLayout.LayoutParams.WRAP_CONTENT,1));
+                    rename.setOnClickListener(v->{if(busy())return;EditText name=new EditText(activity);name.setText(p.label);
+                        new GamepadNavigation.Builder(activity).setTitle("Label this set (detected identity is retained)").setView(name).setPositiveButton("Save",(d,w)->{try{library.rename(p,name.getText().toString());if(visible[0]!=null)visible[0].dismiss();show();}catch(Exception e){error(e);}}).setNegativeButton("Cancel",null).show();});
+                    Button delete=new Button(activity);delete.setAllCaps(false);delete.setText(selected?"Delete (select another set first)":"Delete imported copy");delete.setEnabled(!selected);actions.addView(delete,new LinearLayout.LayoutParams(0,LinearLayout.LayoutParams.WRAP_CONTENT,1));
+                    delete.setOnClickListener(v->{if(busy()||selected)return;
+                        new GamepadNavigation.Builder(activity).setTitle("Delete imported game data?")
+                            .setMessage("Delete '"+p.label+"' ("+p.fingerprint.substring(0,Math.min(12,p.fingerprint.length()))+")? This removes only this inactive managed copy, including its local saves and settings. The active set, existing game data and source ISO/XISO are not deleted.")
+                            .setPositiveButton("Delete",(d,w)->{try{library.delete(p.id);if(visible[0]!=null)visible[0].dismiss();changed.run();Toast.makeText(activity,"Deleted imported copy: "+p.label,Toast.LENGTH_LONG).show();}catch(Exception e){error(e);}})
+                            .setNegativeButton("Cancel",null).show();
+                    });
+                }
+            }
+            List<String> images=library.inboxImages();
+            if(!images.isEmpty()){
+                TextView inboxTitle=new TextView(activity);inboxTitle.setText("ISO/XISO files copied into the import inbox");inboxTitle.setTextSize(16);rows.addView(inboxTitle);
+                for(String image:images)add(rows,"Delete inbox image: "+image,()->new GamepadNavigation.Builder(activity)
+                    .setTitle("Delete inbox image?").setMessage("This permanently removes only the copied file inside game-versions/inbox:\n"+image)
+                    .setPositiveButton("Delete",(d,w)->{try{library.deleteInboxImage(image);if(visible[0]!=null)visible[0].dismiss();show();}catch(Exception e){error(e);}})
+                    .setNegativeButton("Cancel",null).show());
             }
             add(rows,"Import ISO / XISO",()->{visible[0].dismiss();pick(PICK_ISO);});add(rows,"Import / scan a folder",()->{visible[0].dismiss();pick(PICK_FOLDER);});
             add(rows,"Scan inbox",()->{visible[0].dismiss();run("Scanning inbox",()->scanInbox(library));});

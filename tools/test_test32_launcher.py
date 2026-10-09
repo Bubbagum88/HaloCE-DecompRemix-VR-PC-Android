@@ -188,6 +188,14 @@ def main():
                       '"Game data & compatibility"', '"Geometry compatibility"',
                       '"Reset settings to defaults"', 'RunLog.destination()', 'ModInstaller.SPV1']:
         assert essential in main_menu, essential
+    assert 'menuButton(layout, gameDataButtonLabel())' in main_menu
+    data_button = launcher[launcher.index('private String gameDataButtonLabel()'):launcher.index('private void buildMenu()')]
+    assert 'GameDataLibrary.activeRoot(baseRoot())' in data_button and '" sets"' in data_button
+    data_manager = (JAVA / 'GameDataManager.java').read_text()
+    for marker in ['Use this set:', 'Currently selected:', 'Delete imported copy',
+                   'Delete (select another set first)', 'source ISO/XISO are not deleted', 'deleteInboxImage(image)',
+                   'byte-identical imports share one profile']:
+        assert marker.lower() in data_manager.lower(), marker
     assert 'passOnInvite(getIntent())' in launcher and 'writeInvite(intent.getData().toString())' in launcher
     assert 'play.setOnClickListener(v -> startFromMenu())' in main_menu
     assert re.search(r'if \(isInvite\(getIntent\(\)\)\)\s*startGame\(\)', launcher)

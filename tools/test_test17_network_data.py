@@ -166,6 +166,11 @@ public class DataCheck {
   lib.select(q.id);nativeCheck(1);check(!new File(q.root,"save/progress").exists());
   check(new GameDataLibrary(base).list().size()==3);lib.rename(q,"My Rev2 (user label)");check(lib.list().stream().anyMatch(x->x.label.equals("My Rev2 (user label)")));
   reject(()->lib.rename(q,"\n"));reject(()->lib.select("../escape"));
+  reject(()->lib.delete(""));reject(()->lib.delete("../escape"));
+  File inboxImage=new File(lib.inbox,"local-copy.xiso");Files.write(inboxImage.toPath(),new byte[]{1,2,3});
+  check(lib.inboxImages().contains("local-copy.xiso"));reject(()->lib.deleteInboxImage("../local-copy.xiso"));
+  File inboxDirectory=new File(lib.inbox,"directory.xiso");inboxDirectory.mkdir();reject(()->lib.deleteInboxImage("directory.xiso"));inboxDirectory.delete();
+  lib.deleteInboxImage("local-copy.xiso");check(!inboxImage.exists());
   check(lib.withMap("bloodgulch").size()==3);check(lib.withMap("../bloodgulch").isEmpty());check(lib.withMap("missing").isEmpty());
   lib.select("");nativeCheck(0);check(Files.readString(new File(save,"progress").toPath()).equals("original save"));
   check(Files.readString(new File(base,"config.toml").toPath()).equals("original settings"));
@@ -188,13 +193,23 @@ public class DataCheck {
   for(String invalid:new String[]{"../escape", "x".repeat(65),p.id+"\0","p-"+"f".repeat(32)}){
    Files.write(marker.toPath(),invalid.getBytes(StandardCharsets.UTF_8));check(GameDataLibrary.activeRoot(base)==null);nativeCheck(-1);
   }
+  Files.write(marker.toPath(),"../broken".getBytes(StandardCharsets.UTF_8));
+  reject(()->lib.delete(p.id)); // a corrupt active marker makes deletion fail closed
   lib.select(p.id);File ui=new File(p.root,"maps/ui.map");File held=new File(p.root,"maps/ui.held");Files.move(ui.toPath(),held.toPath());
-  check(GameDataLibrary.activeRoot(base)==null);nativeCheck(-1);Files.move(held.toPath(),ui.toPath());lib.select("");
+  reject(()->lib.delete(p.id)); // the selected set cannot be removed
+  check(GameDataLibrary.activeRoot(base)==null);nativeCheck(-1);Files.move(held.toPath(),ui.toPath());
+  File external=new File(base,"outside-profile-data.txt");Files.writeString(external.toPath(),"preserve linked target");
+  Files.createSymbolicLink(new File(p.root,"external-link").toPath(),external.toPath());
+  lib.select(q.id);lib.delete(p.id);check(!p.root.exists());check(q.root.exists());
+  check(Files.readString(external.toPath()).equals("preserve linked target"));
+  check(Files.readString(new File(base,"save/progress").toPath()).equals("original save"));
+  check(Files.readString(new File(base,"config.toml").toPath()).equals("original settings"));
+  lib.select("");
   GameDataLibrary.Profile extracted=extract(lib,iso(false));check(extracted.build.contains("PAL 01.01.14.2342"));check(new File(extracted.root,"maps/ui.map").isFile());
   reject(()->extract(lib,iso(true)));reject(()->extract(lib,java.util.Arrays.copyOf(iso(false),43*2048)));reject(()->extract(lib,new byte[32]));
   Thread.currentThread().interrupt();reject(()->extract(lib,iso(false)));Thread.interrupted();
-  check(lib.list().size()==4);check(GameDataLibrary.activeRoot(base).equals(base));
-  System.out.println("PASS: "+checks+" managed-data checks: Java/native selection agreement, isolated saves/config, fingerprints, deduplication, case normalization, malformed inputs, bounds, cancellation and XDVDFS extraction");
+  check(lib.list().size()==3);check(GameDataLibrary.activeRoot(base).equals(base));
+  System.out.println("PASS: "+checks+" managed-data checks: Java/native selection agreement, safe inactive-profile/inbox deletion, isolated saves/config, fingerprints, deduplication, case normalization, malformed inputs, bounds, cancellation and XDVDFS extraction");
  }
 }
 ''', encoding='utf-8')

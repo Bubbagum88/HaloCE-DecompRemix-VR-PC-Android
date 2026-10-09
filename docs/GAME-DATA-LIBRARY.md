@@ -1,6 +1,8 @@
 # Game files & versions
 
-Open **Game files & versions** in either launcher, including before first import.
+From the main launcher, tap **Selected game data: … — Change** to switch among
+installed sets. Open **Game files & versions** in either launcher for the full
+manager, including before first import.
 
 1. **Import ISO / XISO** accepts one or more locally supplied Xbox disc images.
 2. **Import / scan a folder** uses Android's folder picker. Select a maps folder,
@@ -8,8 +10,19 @@ Open **Game files & versions** in either launcher, including before first import
 3. Alternatively put images or folders containing `maps` in the displayed
    `game-versions/inbox` folder, then choose **Scan inbox**. Scanning is shallow;
    a `maps` folder directly in the inbox also works. Source files are retained.
-4. Select **Use** beside a detected set. **Selected** identifies the active set.
-   **Rename** changes a personal label; it does not change detected identity.
+4. Choose **Use this set** beside a detected set. The active set is marked
+   **Currently selected**; the main launcher also shows the active label and
+   total number of installed sets. **Rename** changes a personal label; it does
+   not change detected identity.
+5. **Delete imported copy** removes an inactive managed set and its maps,
+   config and set-specific saves. The currently selected set must first be
+   switched to another valid set. Existing/base game data cannot be deleted
+   from this control. A confirmation names the set and fingerprint.
+6. ISO/XISO files copied into `game-versions/inbox` can be deleted from the
+   inbox list after import to reclaim that image copy. Images selected directly
+   from Android's file picker are not retained by the launcher; their source
+   remains in its original location. Extracted source folders are also left
+   untouched.
 
 Selection applies at the next game launch. Quit to the launcher before switching.
 Existing data remains selectable as **Existing game data**. There is no need to
@@ -38,7 +51,10 @@ hashes and limits. The original XISO remains the recommended baseline; the
 tested Rev 1 and Rev 2 images are not known to be incompatible, and this
 recommendation does not claim their map data differ. Other regions, repacks,
 modified images and gameplay on every device remain unverified. A filename does
-not authenticate a disc label. You can add your own label while retaining the
+not authenticate a disc label. Identical map bytes intentionally share one
+profile, so importing the verified Original/Rev 1/Rev 2 images does not create
+three selectable runtime sets. Sets with different content fingerprints remain
+independently selectable. You can add your own label while retaining the
 detected build/fingerprint. PAL normalization is automatic in the existing
 engine.
 

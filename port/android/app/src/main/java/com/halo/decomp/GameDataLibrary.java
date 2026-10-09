@@ -10,6 +10,7 @@ import java.util.*;
 final class GameDataLibrary {
     static final int MAX_PROFILES=64, MAX_MAPS=512;
     static final long MAX_BYTES=12L*1024*1024*1024;
+    private static final Object SELECTION_LOCK=new Object();
     final File base, versions, inbox;
     static final class Profile {
         final String id,label,build,fingerprint; final File root;
@@ -132,10 +133,59 @@ final class GameDataLibrary {
         });
     }
     void select(String id) throws IOException {
-        boolean found=false;for(Profile p:list())if(p.id.equals(id)){found=true;break;}
-        if(!found)throw new IOException("Profile is unavailable");
-        File tmp=new File(base,"active-data.txt.tmp");Files.write(tmp.toPath(),id.getBytes(StandardCharsets.UTF_8));
-        Files.move(tmp.toPath(),new File(base,"active-data.txt").toPath(),StandardCopyOption.REPLACE_EXISTING,StandardCopyOption.ATOMIC_MOVE);
+        synchronized(SELECTION_LOCK){
+            boolean found=false;for(Profile p:list())if(p.id.equals(id)){found=true;break;}
+            if(!found)throw new IOException("Profile is unavailable");
+            File tmp=new File(base,"active-data.txt.tmp");Files.write(tmp.toPath(),id.getBytes(StandardCharsets.UTF_8));
+            Files.move(tmp.toPath(),new File(base,"active-data.txt").toPath(),StandardCopyOption.REPLACE_EXISTING,StandardCopyOption.ATOMIC_MOVE);
+        }
+    }
+    /** Delete only an inactive, complete library-owned copy. Original images and base data are never addressed here. */
+    void delete(String id) throws IOException {
+        if(!idValid(id))throw new IOException("Only imported game-data sets can be deleted");
+        synchronized(SELECTION_LOCK){
+            File marker=new File(base,"active-data.txt");String activeId="";
+            if(marker.exists()){
+                if(marker.length()>64)throw new IOException("Cannot safely delete while the selected game-data marker is invalid");
+                activeId=new String(Files.readAllBytes(marker.toPath()),StandardCharsets.UTF_8).trim();
+                if(!activeId.isEmpty()&&!idValid(activeId))throw new IOException("Cannot safely delete while the selected game-data marker is invalid");
+            }
+            if(id.equals(activeId))throw new IOException("Select another complete game-data set before deleting this one");
+            File versionsPath=versions.getAbsoluteFile(),versionsCanonical=versions.getCanonicalFile();
+            if(!versions.isDirectory()||!versionsCanonical.equals(versionsPath))throw new IOException("The managed game-data folder is not a safe local directory");
+            Profile selected=null;for(Profile p:list())if(p.id.equals(id)){selected=p;break;}
+            if(selected==null)throw new IOException("Imported game-data set is unavailable");
+            File target=new File(versions,id).getAbsoluteFile(),canonical=target.getCanonicalFile();
+            if(!canonical.equals(target)||!canonical.getParentFile().equals(versionsCanonical)||canonical.equals(base))
+                throw new IOException("Refusing to delete outside the managed game-data folder");
+            if(!new File(canonical,"profile.properties").isFile()||!new File(canonical,"maps/ui.map").isFile())
+                throw new IOException("Imported game-data set is incomplete; it was not deleted");
+            Files.walkFileTree(canonical.toPath(),new SimpleFileVisitor<Path>(){
+                @Override public FileVisitResult visitFile(Path path,java.nio.file.attribute.BasicFileAttributes attrs)throws IOException{
+                    Files.delete(path);return FileVisitResult.CONTINUE;
+                }
+                @Override public FileVisitResult postVisitDirectory(Path path,IOException error)throws IOException{
+                    if(error!=null)throw error;Files.delete(path);return FileVisitResult.CONTINUE;
+                }
+            });
+        }
+    }
+    /** Images explicitly placed in the import inbox can be removed to reclaim their copied storage. */
+    void deleteInboxImage(String name) throws IOException {
+        if(name==null||name.length()<5||name.length()>255||!name.matches("[A-Za-z0-9][A-Za-z0-9 _().+-]*\\.(?i:iso|xiso)"))
+            throw new IOException("Choose an ISO/XISO file directly inside the import inbox");
+        File inboxPath=inbox.getAbsoluteFile(),inboxCanonical=inbox.getCanonicalFile();
+        File target=new File(inbox,name).getAbsoluteFile(),canonical=target.getCanonicalFile();
+        if(!inbox.isDirectory()||!inboxCanonical.equals(inboxPath)||!canonical.equals(target)||
+            !canonical.getParentFile().equals(inboxCanonical)||!canonical.isFile())
+            throw new IOException("The inbox image is unavailable or not a safe local file");
+        Files.delete(canonical.toPath());
+    }
+    List<String> inboxImages() throws IOException {
+        List<String> names=new ArrayList<>();File[] files=inbox.listFiles();if(files==null)return names;
+        for(File file:files)if(file.isFile()&&file.getCanonicalFile().equals(file.getAbsoluteFile())&&
+            file.getName().matches("(?i).+\\.(iso|xiso)"))names.add(file.getName());
+        Collections.sort(names,String.CASE_INSENSITIVE_ORDER);return names;
     }
     void rename(Profile p,String label) throws IOException {
         if(p.id.isEmpty())throw new IOException("Existing data keeps its original label");

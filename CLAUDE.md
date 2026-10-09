@@ -1,27 +1,30 @@
 # Agent and contributor continuation
 
-## Active private Test42 candidate (2026-10-09)
+## Active private Test43 candidate (2026-10-09)
 
-Continue on `test39-interaction-completion`; target private `1.0.23-test42`,
-Android code53. Carry forward every project change after public v1.0.18,
-including Tests38-41, the custom app icon, Android touch-layout export/import
-and per-control hide, the supplied USA XISO comparison, and selected OpenCE
-Build167 fixes. The engine base stays Build157/network24. Complete source validation and package
-both Quest/VR and flat Android builds. Do not publish, install or launch the
-game. PC/Steam Frame remains deferred.
+Continue on `test39-interaction-completion`; target private `1.0.24-test43`,
+Android code54. Carry forward every project change after public v1.0.18,
+including Tests38-42, the custom app icon, touch-layout export/import and
+per-control hide, supplied USA XISO comparison, and selected OpenCE Build167
+fixes. Test43 makes game-data selection prominent on the main launcher, lets
+users switch among distinct imported map sets, and safely delete inactive
+managed copies and inbox image copies. Exact byte-identical map sets still share
+one profile; the launcher does not infer disc revision from filenames. The
+engine base stays Build157/network24.
 
-Read `docs/TEST42-DELIVERY-STATUS.md`, `docs/TEST42-REQUIREMENT-DISPOSITION.md`,
-`docs/TEST42-DEVICE-CHECKLIST.md`, and `docs/TEST42-OPENCE167-INTEGRATION.md`.
-This is the complete post-v1.0.18 candidate: manual reload, scopes and vehicle
-controls; world/NPC interaction and shake cooling; bounded custom rigs, visual
-magazine debris, vehicle lift and NPC rescue; reach, NPC rig slots, master
-haptics with the holster-only mute, session diagnostics; selected Build167
-compatibility fixes; and the user's icon/guide. Retain all documented limits
-and existing network, VR, mobile, save and Safe Geometry behavior.
+Read `docs/TEST43-DELIVERY-STATUS.md`, `docs/TEST43-REQUIREMENT-DISPOSITION.md`,
+`docs/TEST43-PLAYER-NOTES.md`, and `docs/TEST43-DEVICE-CHECKLIST.md`, plus the
+Test42 OpenCE integration and VR disposition. Build and run the complete
+source checks, then package both Quest/VR and flat Android APKs with matching
+build/source ZIPs. Do not publish, install or launch the game. Preserve all
+existing network, VR, mobile, save and Safe Geometry behavior. PC/Steam Frame
+remains deferred; headset/device acceptance remains pending.
 
-Public v1.0.18 remains accepted. Device acceptance remains pending. Preserve
-Test40/Test41 artifacts and Test39's working network, co-op, VR and Android
-baseline; do not publish, install or launch the game.
+## Superseded private Test42 candidate (2026-10-09)
+
+Test42 was `1.0.23-test42` / Android code53. Its APKs and delivery records are
+preserved. Read `docs/TEST42-DELIVERY-STATUS.md` and
+`docs/TEST42-REQUIREMENT-DISPOSITION.md` for its cumulative scope and limits.
 
 ## Superseded private Test40 candidate (2026-10-08)
 

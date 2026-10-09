@@ -301,6 +301,21 @@ public class LauncherActivity extends Activity {
         return fontToggle;
     }
 
+    private String gameDataButtonLabel() {
+        try {
+            File root=GameDataLibrary.activeRoot(baseRoot());
+            if(root==null)return "Game data needs attention — Select a set";
+            GameDataLibrary library=new GameDataLibrary(baseRoot());
+            java.util.List<GameDataLibrary.Profile> profiles=library.list();
+            for(GameDataLibrary.Profile profile:profiles)if(profile.root.getCanonicalFile().equals(root.getCanonicalFile())){
+                String name=profile.label;
+                if(name.length()>30)name=name.substring(0,27)+"...";
+                return "Selected game data: "+name+(profiles.size()>1?" · "+profiles.size()+" sets":"")+" — Change";
+            }
+        } catch (Exception ignored) {}
+        return "Game data selection needs attention — Manage";
+    }
+
     private void buildMenu() {
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
         LinearLayout layout = new LinearLayout(this);
@@ -323,6 +338,7 @@ public class LauncherActivity extends Activity {
         LauncherFont.keepNormal(updateStatus);
         play = menuButton(layout, "Play");
         play.setOnClickListener(v -> startFromMenu());
+        menuButton(layout, gameDataButtonLabel()).setOnClickListener(v -> {if(!busy)dataManager().show();});
 
         label(layout, "Community directory fallback · live reported populations · compatible versions only can join",
             13, Color.rgb(150, 160, 170));
