@@ -8,6 +8,14 @@ Android builds after working through the prior interaction scope; do not
 publish, install, launch the game, or change the public release. PC/Steam Frame
 remains deferred.
 
+The private pair and matching source/build archives are at
+`D:\HaloQuest\builds\test39-20261008-v1.0.20-test39-final`. The source revision
+used for the APKs is `55805e29`; the manifest records the final docs/source
+archive revision separately. Both APKs passed the signing and package checks.
+All 84 regression suites and cache-format pytest passed as recorded in
+`docs/TEST39-DELIVERY.md`; actual Quest/Android and live-network acceptance is
+still pending.
+
 Read `docs/TEST39-DELIVERY-STATUS.md` for the completed/restricted/unstarted
 ledger, `docs/TEST39-REQUIREMENT-DISPOSITION.md` for every retained request,
 `docs/TEST39-INTERACTION-NETWORK.md` for the compatibility change, and

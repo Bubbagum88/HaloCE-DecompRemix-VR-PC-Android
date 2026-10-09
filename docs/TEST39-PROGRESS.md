@@ -27,10 +27,11 @@ requested multiplayer feature is finished.
 
 ## Build and acceptance status
 
-Source regression, Quest native/Gradle, flat Android native/Gradle, signing,
-APK parity and packaging results are recorded in
-[TEST39-DELIVERY.md](TEST39-DELIVERY.md) after the final candidate build.
-The matching candidate source archive and `manifest.json` travel with the
-private package. Headset, Android device, heat-weapon and live co-op acceptance
-remain the owner's test; no runtime claim should be inferred from compilation
-or host sanitizer fixtures.
+All 84 regression suites passed; cache-format pytest had 127 passes and four
+optional map fixtures skipped. The Quest and flat native/Gradle builds passed,
+and the final package gate verified signatures, build identities, APK contents,
+flavor/network parity and source/build archives. The first Quest compile caught
+and fixed a C89 loop-scope issue before the final build. Exact APK hashes and
+package checks are in [TEST39-DELIVERY.md](TEST39-DELIVERY.md) and the generated
+manifest. Headset, Android-device, heat-weapon and live co-op acceptance remain
+the owner's test; compilation and sanitizer fixtures are not runtime proof.

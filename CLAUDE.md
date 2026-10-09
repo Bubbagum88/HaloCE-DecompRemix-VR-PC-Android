@@ -7,6 +7,13 @@ Android code50. Finish the user's active scope and package both Quest/VR and
 flat Android builds. Do not publish, install or launch the game. PC/Steam Frame
 remains deferred.
 
+The private Test39 artifacts are in
+`D:\HaloQuest\builds\test39-20261008-v1.0.20-test39-final`. APK runtime source
+is `55805e29`; the archive's final documentation source may be a later
+docs-only commit recorded in its manifest. Both flavors built and passed the
+84-suite regression run, cache-format pytest and package gates. Read
+`docs/TEST39-DELIVERY.md` for APK hashes; device/runtime acceptance is pending.
+
 Read `docs/TEST39-DELIVERY-STATUS.md`, `docs/TEST39-REQUIREMENT-DISPOSITION.md`,
 `docs/TEST39-INTERACTION-NETWORK.md` and `docs/TEST39-DEVICE-CHECKLIST.md`.
 SHAKE COOLING is an explicit VR Controls OFF/ON toggle, default OFF, solo-only.

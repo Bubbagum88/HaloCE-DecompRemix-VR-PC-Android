@@ -14,7 +14,10 @@ NPC pose sync remains capped at four, campaign capacity is unchanged, and
 solo-only; persistent thrown magazines, whole-vehicle lifting, generic mission
 NPC rescue and arbitrary custom rigs remain unimplemented. PC/Steam Frame is
 deferred. The pair is for owner testing only; no device acceptance or
-publication is implied.
+publication is implied. Private APK/source/build archives are in
+`D:\HaloQuest\builds\test39-20261008-v1.0.20-test39-final`; hashes and check
+results are in [TEST39-DELIVERY.md](TEST39-DELIVERY.md). Runtime source commit
+for the APK pair is `55805e29`.
 
 ## Current public release: v1.0.18 (2026-10-08)
 

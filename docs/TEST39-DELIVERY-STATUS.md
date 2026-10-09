@@ -60,11 +60,25 @@ compatible.
 
 ## Tests and acceptance
 
-Run the complete `tools/run-quest-checks.py` suite under WSL clang/JDK, both
-Quest and flat native/Gradle builds, and `tools/package-quest.py` gates. Focused
-host-sanitizer tests cover input pacing, the 128-machine negotiation ceiling,
-old-peer confirmation compatibility, NPC gating above four, finite shake math,
-and capped weight feedback. Build/package checks are not headset acceptance.
+Completed before delivery:
+
+- All **84 regression suites** in `tools/run-quest-checks.py` passed under WSL
+  clang/JDK, including a second clean run inside each flavor build.
+- Cache-format pytest: **127 passed, 4 optional real-map fixtures skipped**.
+- Quest and flat Android native/Gradle builds both completed. The first Quest
+  compile caught a C89 loop-scope error in the new module; it was corrected and
+  the final full Quest build then passed. No APK from the failed compile was
+  packaged.
+- `package-quest.py` passed certificate, package/version, arm64, guide and
+  license, OpenXR/touch flavor separation, networking parity, APK ZIP/orphan
+  data, required marker, and source/build archive checks. The two APKs carry
+  the established certificate SHA-256
+  `53d416f7e123cc62b749940983209bc9a400002e033fd5f50900d4ffad8e2aa4`.
+- Focused host-sanitizer tests cover input pacing, the 128-machine negotiation
+  ceiling, old-peer confirmation compatibility, NPC gating above four, finite
+  shake math, capped weight feedback and safe reset behavior.
+
+Build/package checks are not headset acceptance.
 
 No real Quest/Android session, cross-device co-op session, 128-peer simulation,
 long campaign or heat-weapon gameplay test is recorded yet. Keep `runtime_accepted`
