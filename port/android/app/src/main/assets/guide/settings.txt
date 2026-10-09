@@ -1095,7 +1095,7 @@ Optional offline wall jumping. Press jump again while airborne beside a wall to 
 
 vr.parkour_climb [boolean]
 Default: false
-Optional offline grip climbing. Squeeze a controller grip with a free hand near a static wall, pull to climb, and release to launch. GRAB REACH sets hand-to-wall distance; native collision remains authoritative.
+Optional offline grip climbing. Touch a solid vertical world surface with a free tracked hand, then squeeze Grip; pull to climb and release to launch. HAND CONTACT controls the palm collision radius, not reach; native collision remains authoritative.
 
 vr.wallrun_speed [real]
 Default: 1.25
@@ -1205,6 +1205,10 @@ vr.manual_reload [boolean]
 Default: false
 Optional offline physical magazine reload for supported weapons; button reload remains available.
 
+vr.reload_input [string]
+Default: "grip"
+Input for the free hand during optional manual reload only: grip (default) or trigger. Other interaction and firing inputs are unchanged.
+
 vr.dropped_magazines [boolean]
 Default: false
 Keep ejected supported rifle/pistol/sniper magazines as local visual debris until the map changes. The VR menu also enables MANUAL RELOAD; the oldest visual is replaced when the 32-magazine pool fills. No ammo, save, or network state is created.
@@ -1251,8 +1255,8 @@ Optional loose weapon, equipment and movable prop grabbing. Grip close with a fr
 Two hands improve control. Co-op requires a consenting compatible host and peers; competitive multiplayer stays native.
 
 vr.interaction_reach [real]
-Default: 0.25
-Maximum hand-to-surface distance for supported world/NPC grabs, in metres (0.12 to 0.40). Solid geometry and target collision are still checked.
+Default: 0.04
+Tracked palm contact-sphere radius in metres for physical object/NPC grabs and climbing (0.02 to 0.08). Grip only acquires a target while the hand collision sphere overlaps its collision model or solid surface.
 
 vr.vehicle_lift [boolean]
 Default: false

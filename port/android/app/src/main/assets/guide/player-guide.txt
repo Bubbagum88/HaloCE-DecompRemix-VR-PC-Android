@@ -79,7 +79,7 @@ and Java startup. Switching applies to the next launch. See
   in the documented fall/recovery state. Custom scenery uses validated
   collision bounds; it does not enable arbitrary BSP geometry or script-owned
   scenery.
-- **HAND CONTACT:** sets a small palm collision radius (2, 4, 6, or 8 cm), not a reach ray. World objects and NPCs can be grabbed only when the tracked hand volume overlaps their collision model. To climb, touch a solid vertical surface with a free hand, then squeeze Grip. **NPC RIG SLOTS** controls 1-8
+- **HAND CONTACT:** sets the shared palm-collider radius (2, 4, 6, or 8 cm; 4 cm default), not a target-search reach. World objects and NPCs can be grabbed only when the tracked hand volume overlaps their collision model; the co-op host repeats the NPC/object collision check. Manual reload part bounds, virtual pouch points, and optional vehicle-wheel handles use touch-then-press. Magazine insertion is a separate held-object alignment step. To climb, touch a solid vertical surface with a free hand, then squeeze Grip. Aim direction cannot select these targets. **NPC RIG SLOTS** controls 1-8
   mod interaction rigs, not Halo's native corpse count. Source review found no
   native corpse-count slider or fixed simultaneous corpse cap; per-corpse
   settling duration and general object/memory cleanup are separate.
