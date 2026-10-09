@@ -14,6 +14,15 @@ export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$PWD/build/gradle-cache}"
 export TMPDIR="$PWD/build/tmp"
 mkdir -p "$TMPDIR" "$GRADLE_USER_HOME"
 export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Djava.io.tmpdir=$TMPDIR"
+# Candidate APKs must bundle their own release notes, not the stable guide
+# fallback. Derive the TestNN cover from the checked-in default versionName;
+# callers can still explicitly select another candidate/release cover.
+if [[ -z "${HALO_CANDIDATE_GUIDE:-}" && -z "${HALO_RELEASE_GUIDE:-}" ]]; then
+  candidate_guide="$(sed -nE 's/.*"[^"]+-test([0-9]+)[a-z]?".*/\1/p' port/android/app/build.gradle | head -n 1)"
+  if [[ -n "$candidate_guide" ]]; then
+    export HALO_CANDIDATE_GUIDE="$candidate_guide"
+  fi
+fi
 python3 tools/generate-field-guide.py
 # Required for every candidate: includes full menu construction with the guest
 # ABI/allocator and Android input lifecycle, not just compilation or XML parsing.
