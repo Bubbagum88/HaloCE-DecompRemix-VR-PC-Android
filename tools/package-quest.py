@@ -72,12 +72,14 @@ def network_value(name):
 # these platform pieces may differ between the two APKs.
 VR_ONLY_ENTRIES = {"lib/arm64-v8a/libopenxr_loader.so"}
 NETWORK_STRING = re.compile(rb"Internet play|browser: |signalling|UPnP|upnp|STUN|stun\.|tunnel|invite|network\.[a-z_]+|"
-                            rb"halo://join|p2p|lobby|games\.txt|joining|join requested|Multiplayer join")
-# This exact VR startup identity mentions "lobby" in its change summary. It is
-# not a networking path; keep all other runtime/import differences fatal.
+                            rb"halo://join|p2p|lobby|games\.txt|joining|join requested|Multiplayer join|vr: HaloCE Quest")
+# Check every VR startup banner explicitly, even when its summary has no network
+# keyword. Only exact reviewed guest identities are exempt; altered banners and
+# host-library identities remain fatal, independently of Python set ordering.
 VR_BUILD_IDENTITIES = {
     b"vr: HaloCE Quest test37 candidate 1.0.18-test37 code47 (OpenCE Build 157 / network 24; launcher network-version browser and population selector; upstream analog trigger, Custom Edition spawn facing, PC vehicle set and solo lobby start; scope/turret behavior retained; Safe geometry and accepted VR settings retained)",
-    b"vr: HaloCE Quest 1.0.18 release code48 (OpenCE Build 157 / network 24; launcher network-version browser and population selector; upstream analog trigger, Custom Edition spawn facing, PC vehicle set and host-alone lobby start; scope/turret behavior retained; Safe geometry and accepted VR settings retained)"
+    b"vr: HaloCE Quest 1.0.18 release code48 (OpenCE Build 157 / network 24; launcher network-version browser and population selector; upstream analog trigger, Custom Edition spawn facing, PC vehicle set and host-alone lobby start; scope/turret behavior retained; Safe geometry and accepted VR settings retained)",
+    b"vr: HaloCE Quest test38 candidate 1.0.19-test38 code49 (OpenCE Build 157 / network 24; legacy co-op15-24; optional physical interactions and vehicle controls; scope profiles and mounted reticle; device acceptance pending)"
 }
 
 
@@ -220,9 +222,9 @@ def main():
         if f"versionName='{version_name}'" not in badging:
             raise SystemExit("Wrong candidate version: " + str(path))
         version_code = re.search(r"versionCode='(\d+)'", badging)
-        required_candidate_code = 47 if candidate_at_least(args.label, 37) else 46
+        required_candidate_code = 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
         if candidate_at_least(args.label, 36) and (version_code is None or int(version_code[1]) < required_candidate_code):
-            raise SystemExit("Test" + ("37" if required_candidate_code == 47 else "36")
+            raise SystemExit("Test" + ("38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
                              + " Android version code must be at least " + str(required_candidate_code) + ": " + str(path))
         if args.stable and args.label == "1.0.16" and "versionCode='45'" not in badging:
             raise SystemExit("Wrong v1.0.16 Android version code: " + str(path))
@@ -372,8 +374,8 @@ def main():
                                    b"mounted aim selection: role %s", b"turret/gunner aim %s"]:
                         if marker not in guest:
                             raise SystemExit("Test36 VR diagnostic marker missing: " + repr(marker))
-                for marker in [b"Recommended game image: the original Xbox Halo: Combat Evolved XISO",
-                               b"Rev 1 and Rev 2 images can be imported, but are not recommended",
+                for marker in [b"Use a complete original-Xbox Halo: Combat Evolved ISO/XISO",
+                               b"The tested USA Original, Rev 1 and Rev 2 images contain identical game maps",
                                b"Font: Halo (tap for normal)",
                                b"Font: normal (tap for Halo)",
                                b"Need help? DM @MeWhenINameMyself on Discord."]:
@@ -499,8 +501,11 @@ def main():
                 "source_zip": {"file": source.name, "sha256": sha(source)},
                 "native_host_version": network_value("HALO_PORT_NETWORK_VERSION"), "accepted_host_versions": list(range(network_value("HALO_PORT_NETWORK_VERSION_MINIMUM"), network_value("HALO_PORT_NETWORK_VERSION_MAXIMUM")+1)),
                 "client_default_target": 24, "client_all_compatible_target": 0,
-                "campaign_minimum_host_version": 23, "custom_edition_minimum_host_version": 23,
-                "legacy_client_scope": "original Xbox-map PvP; device cross-play validation pending",
+                "campaign_minimum_host_version": 15, "custom_edition_minimum_host_version": 23,
+                "legacy_client_scope": "original Xbox-map PvP11-24; campaign15-24 plus explicit legacy12-14 opt-in; device cross-play validation pending",
+                "legacy_campaign_opt_in_versions": [12, 13, 14],
+                "physical_interaction_protocol": 1,
+                "physical_interaction_host_permission_default": False,
                 "coop": "opence-native", "campaign_runtime_verified": False,
                 "avatar_protocol": 1, "avatar_message_ids": [37, 38], "avatar_prior_owner_report": "Owner confirmed earlier VR body movement was visible on flat Android; Test32 preserves avatar protocol v1 and native action handoff.",
                 "directory": "https://halo.milenko.org/v1/games.txt"}
@@ -521,7 +526,7 @@ def main():
     base_label = re.sub(r"[a-z]$", "", args.label)
     if not args.stable and base_label != args.label:
         edition_docs += [base_label.upper()+"-DELIVERY.md", base_label.upper()+"-PROGRESS.md"]
-    documents = edition_docs+["GAME-DATA-LIBRARY.md", "TEST15-DELIVERY.md", "TEST15-PROGRESS.md", "TEST15-UPSTREAM.md", "DATA-COMPATIBILITY.md", "CURRENT-STATE.md", "PLAYER-GUIDE.md", "CONTROLS-AND-OPTIONS.md", "COOP-COMPATIBILITY-AUDIT.md", "NETWORK-VR-AVATARS.md", "CAMPAIGN-PROTOCOL-WIP.md",
+    documents = edition_docs+["TEST38-DELIVERY-STATUS.md", "TEST38-PLAYER-NOTES.md", "TEST38-DEVICE-CHECKLIST.md", "WORLD-INTERACTION-STATUS.md", "MANUAL-RELOAD.md", "VR-LOOSE-PROPS.md", "VR-PARKOUR.md", "TEST38-INTERACTION-NETWORK.md", "GAME-DATA-LIBRARY.md", "TEST15-DELIVERY.md", "TEST15-PROGRESS.md", "TEST15-UPSTREAM.md", "DATA-COMPATIBILITY.md", "CURRENT-STATE.md", "PLAYER-GUIDE.md", "CONTROLS-AND-OPTIONS.md", "COOP-COMPATIBILITY-AUDIT.md", "NETWORK-VR-AVATARS.md", "CAMPAIGN-PROTOCOL-WIP.md",
                  "ANDROID-TOUCH-CONTROLS.md", "ANDROID-GAMEPAD.md", "COOP-PLAYER-LIMITS.md", "MULTIPLAYER-BROWSER.md"]
     documents = list(dict.fromkeys(documents))
     if candidate_at_least(args.label, 31) and not args.stable:

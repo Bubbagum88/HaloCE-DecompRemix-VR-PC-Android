@@ -27,6 +27,7 @@ struct message_server_machine_accepted;
 struct message_server_game_update;
 
 /* ---------- prototypes/NETWORK_CLIENT_MANAGER.C */
+unsigned int network_game_client_joined_version(void);
 
 void network_game_client_dispose(
 	struct network_game_client *client);

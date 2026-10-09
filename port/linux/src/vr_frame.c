@@ -14,6 +14,7 @@ swapchain images, whose GL texture names work in this context as they are.
 #include "port_config.h"
 #include "vr.h"
 #include "vr_alignment.h"
+#include "vr_scope_profiles.h"
 
 #include "guest_host.h"
 #include "halo_android_abi.h"
@@ -261,7 +262,7 @@ static struct
 	/* test22: the pistol's [0] and the sniper rifle's [1] scope moved
 	(forward, up, right, metres) and sized (a share of scope_size) from
 	their usual place (vr.scope_pistol_*, vr.scope_sniper_*) */
-	float scope_adjust[2][4];
+	float scope_adjust[VR_SCOPE_PROFILE_COUNT][4];
 	/* room-scale (vr.roomscale): the floor's point the player stands on, in
 	LOCAL metres (x, z), after the last tick and the one before (frames
 	blend them as the game's camera is blended); set aside while the player
@@ -868,12 +869,14 @@ void vr_reload_settings(void)
 	}
 	vr.scope_size = (float)config_real("vr.scope_size");
 	{
-		static const char *const kinds[] = { "pistol", "sniper" };
+		#define SCOPE_KEY(key, label, gun) #key,
+		static const char *const kinds[] = { VR_SCOPE_PROFILES(SCOPE_KEY) };
+#undef SCOPE_KEY
 		static const char *const parts[] = { "forward", "up", "right", "scale" };
 		char key[64];
 		int kind, part;
 
-		for (kind = 0; kind < 2; kind++)
+		for (kind = 0; kind < VR_SCOPE_PROFILE_COUNT; kind++)
 		{
 			for (part = 0; part < 4; part++)
 			{
@@ -962,7 +965,7 @@ void vr_initialize(void)
 		return;
 	vr.initialized = 1;
 	config_vr_vehicle_defaults();
-	platform_log("vr: HaloCE Quest 1.0.18 release code48 (OpenCE Build 157 / network 24; launcher network-version browser and population selector; upstream analog trigger, Custom Edition spawn facing, PC vehicle set and host-alone lobby start; scope/turret behavior retained; Safe geometry and accepted VR settings retained)");
+	platform_log("vr: HaloCE Quest test38 candidate 1.0.19-test38 code49 (OpenCE Build 157 / network 24; legacy co-op15-24; optional physical interactions and vehicle controls; scope profiles and mounted reticle; device acceptance pending)");
 	platform_log("vr: retained baseline history: HaloCE Quest test30 candidate 1.0.12 (the menus' face buttons as the Xbox's of the same letter: X deletes a profile; the co-op host's server name; test29: OpenCE build 144 netcode, network 21; the HUD head tap held by the temple, HUD and head tap on the HUD page, wrist HUD on the wrist and movable, moving with a hand while holding the gun in both, glasses FOV and resolution to 200%% (PR #1); test28: co-op games entered in progress keep their camera upright, release checks as OpenCE ships, co-op hosted for 2 to 128 players as OpenCE's Server Setup offers, gyro aim on phones as an option; test27: OpenCE build 138 netcode, network 20, with its co-op for up to 16 players; test26: co-op: death screams no longer stop the second player, cutscene characters placed and animated as on the first; HUD head tap, reticle toggle on the left stick click with crouch on the turning stick held down (or crouch kept on the click: Controls), optional wrist HUD, adjustable head taps; impact melee along the gun with a follow-through; fingers bend smoothly against walls; test25: vehicle seat and recentre diagnostics, first-person horizon option and seat glass, settings rows that fit, vehicle offset reset; test24b: comfort vignette, smooth speed and snap angle, SPV1 compatibility note; test24: co-op cutscenes animate for the second player; test23: remappable Quest buttons with the grenade on X; test22: co-op campaign host crash fixed, steady first-person vehicle view, left-hand ammo display, adjustable scopes, shot diagnostics; test21b: floating hands restored, torso-following arms, neck-pivot full body, auto two-hand lock, horn, online melee off, two-hand gun roll, pistol shots from the hand, reticle converges as shots do, per-gun aim, horn from either stick)");
 	if (!config_boolean("vr.enabled"))
 	{
@@ -1732,6 +1735,46 @@ static void update_hud_tap(int hand, float seconds)
 	}
 }
 
+/* Claims are local input ownership, never network state or weapon inventory. */
+static int interaction_owner[2];
+int vr_interaction_owner(int hand)
+{
+    if (hand < 0 || hand > 1) return VR_INTERACTION_NONE;
+    if (!vr.active || vr.menus_active || !(vr.frame.flags & HALO_XR_FRAME_FOCUSED) ||
+        !(vr.frame.hand_valid[hand] & 1) || (vr.frame.flags & HALO_XR_FRAME_RECENTRED))
+        interaction_owner[hand] = VR_INTERACTION_NONE;
+    return interaction_owner[hand];
+}
+int vr_interaction_grip(int hand, int *pressed, int *released)
+{
+    if (pressed) *pressed = 0;
+    if (released) *released = 0;
+    if (hand < 0 || hand > 1 || !vr.active || vr.menus_active || !(vr.frame.flags & HALO_XR_FRAME_FOCUSED) ||
+        !(vr.frame.hand_valid[hand] & 1)) return 0;
+    if (pressed) *pressed = vr.grip_pressed[hand];
+    if (released) *released = vr.grip_released[hand];
+    return vr.grip_held[hand];
+}
+int vr_interaction_claim(int hand, int owner)
+{
+    int current;
+    if (hand < 0 || hand > 1 || owner <= VR_INTERACTION_NONE || owner >= VR_INTERACTION_COUNT ||
+        !vr_interaction_grip(hand, NULL, NULL) || (vr.frame.flags & HALO_XR_FRAME_RECENTRED)) return 0;
+    current = vr_interaction_owner(hand);
+    if (current != VR_INTERACTION_NONE && current != owner) return 0;
+    interaction_owner[hand] = owner;
+    vr.two_hand_held = vr.two_handed = vr.support_near = 0;
+    vr.support_dwell = 0;
+    if (hand == vr.weapon_hand)
+        vr.actions &= ~(VR_ACTION_SWITCH_WEAPON | VR_ACTION_DROP_WEAPON | VR_ACTION_GRAB_WEAPON);
+    return 1;
+}
+void vr_interaction_release(int hand, int owner)
+{
+    if (hand >= 0 && hand < 2 && interaction_owner[hand] == owner)
+        interaction_owner[hand] = VR_INTERACTION_NONE;
+}
+
 static void update_gestures(void)
 {
 	static const float melee_rearm_seconds = 0.4f;
@@ -1915,7 +1958,7 @@ static void update_gestures(void)
 	shoulder and at each hip, in the frame of the head's heading. The weapon
 	hand coming into one buzzes; with locked weapons its grip there switches
 	weapons (physical weapons: below) */
-	if (vr.holsters && (vr.frame.hand_valid[w] & 1))
+	if (vr.holsters && (vr.frame.hand_valid[w] & 1) && !vr_interaction_owner(w))
 	{
 		int zone = 0, index;
 		float nearest = vr.holster_size;
@@ -1959,7 +2002,7 @@ static void update_gestures(void)
 	  on the controller) stays supported until its first deliberate grip.
 	- An empty hand gripping at a holster draws the weapon there; gripping
 	  by a weapon lying about takes it up (VR_ACTION_GRAB_WEAPON). */
-	if (physical_weapons())
+	if (physical_weapons() && !vr_interaction_owner(w))
 	{
 		const char *holster = vr.holster_zone ? holster_names[vr.holster_zone - 1] : "";
 
@@ -2022,7 +2065,7 @@ static void update_gestures(void)
 
 	/* the off hand's grip: with the palms together, the weapon changes
 	hands; otherwise, within reach of the gun, it holds it in both */
-	if (vr.grip_pressed[o] && both_tracked)
+	if (vr.grip_pressed[o] && both_tracked && !vr_interaction_owner(o) && !vr_interaction_owner(w))
 	{
 		if (hands_apart < 0.2f && !vr.grip_held[w])
 		{
@@ -2046,7 +2089,8 @@ static void update_gestures(void)
 	there as a squeeze would, once the hand has left the grip since the
 	last release */
 	{
-		int near = vr.support_near && vr_pose_time() - vr.support_time < 0.10;
+		int near = !vr_interaction_owner(o) && !vr_interaction_owner(w) &&
+            vr.support_near && vr_pose_time() - vr.support_time < 0.10;
 
 		if (!near)
 			vr.support_rearmed = 1;
@@ -2069,7 +2113,8 @@ static void update_gestures(void)
 	}
 	if (vr.two_hand_held)
 	{
-		int release = !both_tracked || !vr.aiming_last_frame || vr_hand_empty();
+		int release = !both_tracked || !vr.aiming_last_frame || vr_hand_empty() ||
+            vr_interaction_owner(o) || vr_interaction_owner(w);
 		const char *why = "";
 
 		if (!release && vr.two_handed_mode == 1 && !vr.grip_held[o])
@@ -4276,6 +4321,9 @@ void vr_resolve_scope(unsigned int texture, int width, int height, int x, int y,
 /* the scope's layer, held at the gun: its place by the sight's shape
 (the PC mod HaloCEVR's offsets: forward, left and up, metres, from the
 aim), facing back along it, vr.scope_size across */
+#define SCOPE_ENUM(key, label, gun) scope_profile_##key,
+enum { VR_SCOPE_PROFILES(SCOPE_ENUM) };
+#undef SCOPE_ENUM
 static void place_scope(struct halo_xr_layers *layers)
 {
 	static int logged_shape = -1, logged_zoom = -999, logged_weapon_hand = -1;
@@ -4289,10 +4337,15 @@ static void place_scope(struct halo_xr_layers *layers)
 	};
 	const float *offset = offsets[vr.scope_shape >= VR_SCOPE_ROUND && vr.scope_shape <= VR_SCOPE_ROCKET ?
 		vr.scope_shape - VR_SCOPE_ROUND : 0];
-	/* test22: the player's own place and size for the pistol's and the
-	sniper rifle's (none set: exactly the usual) */
-	int kind = vr.scope_shape == VR_SCOPE_SNIPER ? 1 : vr.scope_shape == VR_SCOPE_ROUND ? 0 : -1;
-	const float *adjust = kind >= 0 ? vr.scope_adjust[kind] : NULL;
+	/* Select by weapon, not mask shape: modded guns may reuse another mask. */
+	int kind = scope_profile_other; /* unknown/custom weapon */
+	switch (vr.gun_class)
+	{
+#define SCOPE_CLASS(key, label, gun) case gun: kind = scope_profile_##key; break;
+		VR_SCOPE_PROFILES(SCOPE_CLASS)
+#undef SCOPE_CLASS
+	}
+	const float *adjust = vr.scope_adjust[kind];
 	/* OpenXR's x right, y up, z back; in the left hand, left is the other way */
 	float local[3], turned[3], origin[3], shot_forward[3];
 	int axis;

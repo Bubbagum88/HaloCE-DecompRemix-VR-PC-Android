@@ -1,6 +1,8 @@
 # Game data compatibility and graphics evidence
 
-Updated for test17, 2026-10-03. Disc labels and installed cache formats are different facts.
+Updated 2026-10-08 with the supplied USA image comparison. Disc labels and installed cache formats are different facts.
+
+The supplied USA Original, Rev 1 and Rev 2 XISOs all contain the same 24 map files, verified by full SHA-256, and pass the production Java importer. See [USA image comparison](USA-IMAGE-COMPARISON.md). The historical test17 observations below are retained for context; their statement that no local comparison was available is superseded by this audit.
 
 ## What is established
 

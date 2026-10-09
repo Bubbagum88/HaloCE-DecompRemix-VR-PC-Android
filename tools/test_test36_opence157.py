@@ -134,8 +134,8 @@ assert "logged_two_handed != vr_two_handed()" in scope_window
 help_ui = read("port/android/app/src/main/java/com/halo/decomp/LauncherHelp.java")
 launcher = read("port/android/app/src/main/java/com/halo/decomp/LauncherActivity.java")
 game_data = read("port/android/app/src/main/java/com/halo/decomp/GameDataManager.java")
-assert "original Xbox Halo: Combat Evolved XISO" in help_ui
-assert "Rev 1 and Rev 2 images can be imported, but are not recommended" in help_ui
+assert "original-Xbox Halo: Combat Evolved ISO/XISO" in help_ui
+assert "The tested USA Original, Rev 1 and Rev 2 images contain identical game maps" in help_ui
 assert "LauncherHelp.RECOMMENDED_ISO_NOTE" in function(launcher, "buildMenu")
 assert "LauncherHelp.RECOMMENDED_ISO_NOTE" in function(launcher, "buildInterface")
 assert "LauncherHelp.DATA_COMPATIBILITY_NOTE" in game_data

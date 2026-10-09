@@ -67,10 +67,10 @@ network = int(re.search(r'#define HALO_PORT_NETWORK_VERSION (\d+)\b', limits).gr
 assert network == 24
 assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MINIMUM 11\b', limits)
 assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MAXIMUM 24\b', limits)
-assert re.search(r'#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 23\b', limits)
+assert re.search(r'#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15\b', limits)
 assert re.search(r'#define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23\b', limits)
 assert '#define HALO_PORT_ADVERTISED_IN_PROGRESS_FLAG 0x02' in limits, "OpenCE's in-progress advertisement"
-print('PASS: host protocol %d; compatible PvP client range 11..24; campaign and CE maps require 23+; in-progress advertisement' % network)
+print('PASS: host protocol %d; compatible PvP client range 11..24; campaign15+ and CE maps23+; in-progress advertisement' % network)
 
 # --- 2. upstream's co-op and lobby modules byte for byte
 UPSTREAM_138 = [

@@ -44,6 +44,26 @@ final class NetworkProfile {
         RunLog.line("Network profile selected for next launch: " + version);
     }
 
+    static final String LEGACY_WARNING = "Legacy network 12-14 co-op is optional and OFF by default. "
+        + "These old hosts do not send scripted team allegiance: Marines may show hostile/red reticles and other team behavior can differ. "
+        + "The client preserves the old native behavior rather than inventing host allegiance. Other old-host bugs remain. "
+        + "Prefer network 15-24 for campaign. Network 11 has no campaign co-op. Custom Edition still requires 23 or 24. "
+        + "Enhanced physical interactions stay disabled unless the host and all peers negotiate support. Hosting remains network 24.";
+
+    static boolean legacyCoop(File root) {
+        return "true".equalsIgnoreCase(ConfigSettings.read(root, "network", "legacy_coop", "false"));
+    }
+
+    static boolean campaignCompatible(int version, boolean legacy) {
+        return version >= 15 && version <= 24 || legacy && version >= 12 && version <= 14;
+    }
+
+    static void setLegacyCoop(File root, boolean enabled) throws IOException {
+        if (gameRunning) throw new IOException("Close the game fully before changing legacy co-op compatibility.");
+        ConfigSettings.write(root, "network", Collections.singletonMap("legacy_coop", Boolean.toString(enabled)));
+        RunLog.line("Legacy network 12-14 co-op consent: " + enabled);
+    }
+
     static void prepare(Context context, File root) throws IOException {
         int version = selected(context);
         if (gameRunning) {

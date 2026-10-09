@@ -212,7 +212,10 @@ static void render_nonplayer_frame(
 		/* letterbox bars and split screen dividers: laid out from the
 		viewport, so not centered like the menus on a wide screen */
 		interface_draw_fullscreen_overlays();
-		rasterizer_debug_draw();
+	#ifdef HALO_VR
+    if (!vr_render_vehicle_controls())
+#endif
+	rasterizer_debug_draw();
 		break;
 
 	case 1:
@@ -467,6 +470,9 @@ static void render_window(
 	render_camera_debug_frustum(&render.camera, &render.frustum);
 	render_debug();
 	editor_render();
+#ifdef HALO_VR
+    if (!vr_render_vehicle_controls())
+#endif
 	rasterizer_debug_draw();
 	rasterizer_window_end();
 	profile_render_window_end();

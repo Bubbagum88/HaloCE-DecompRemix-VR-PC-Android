@@ -20,6 +20,7 @@ fixed child counts are required to create a functioning screen.
 
 #include "halo_vr.h"
 #include "../src/vr.h"
+#include "../src/vr_scope_profiles.h"
 #include "../src/port_config.h"
 
 #include <math.h>
@@ -217,6 +218,12 @@ static struct vr_menu_setting const vr_menu_controls[] =
 	{ "TWO HANDS", "vr.two_handed", _vr_setting_string, 3, { { "AUTO LOCK", "auto" }, { "SQUEEZE", "grip" }, { "OFF", "off" } } },
 	{ "WEAPONS", "vr.weapons", _vr_setting_multi, 3, { { "LOCKED", "vr.weapons=locked" }, { "PHYSICAL", "vr.weapons=physical;vr.physical_multiplayer=false" }, { "PHYSICAL + MP", "vr.weapons=physical;vr.physical_multiplayer=true" } } },
 	{ "HOLSTERS", "vr.holsters", _vr_setting_multi, 7, { { "OFF", "vr.holsters=false" }, { "10 CM", "vr.holsters=true;vr.holster_size=0.1" }, { "15 CM", "vr.holsters=true;vr.holster_size=0.15" }, { "20 CM", "vr.holsters=true;vr.holster_size=0.2" }, { "25 CM", "vr.holsters=true;vr.holster_size=0.25" }, { "30 CM", "vr.holsters=true;vr.holster_size=0.3" }, { "40 CM", "vr.holsters=true;vr.holster_size=0.4" } } },
+    { "ACTIVE RAGDOLLS", "vr.npc_max_ragdolls", _vr_setting_multi, 4, { { "1", "vr.npc_max_ragdolls=1" }, { "2", "vr.npc_max_ragdolls=2" }, { "3", "vr.npc_max_ragdolls=3" }, { "4", "vr.npc_max_ragdolls=4" } } },
+    { "NPC GRAB", "vr.npc_interaction", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    { "IMPACT SPEED", "vr.impact_threshold", _vr_setting_real, 4, { { "1 M/S", "1" }, { "2 M/S", "2" }, { "3 M/S", "3" }, { "4 M/S", "4" } } },
+    { "IMPACT CAP", "vr.impact_damage_cap", _vr_setting_real, 4, { { "25%", "0.25" }, { "50%", "0.5" }, { "100%", "1" }, { "150%", "1.5" } } },
+    { "IMPACT DAMAGE", "vr.interaction_damage", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	{ "WORLD GRAB", "vr.world_interaction", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "AIM", "vr.aim", _vr_setting_string, 2, { { "HAND", "hand" }, { "HEAD", "head" } } },
 	{ "CONTROLS", "vr.controls", _vr_setting_string, 2, { { "VR", "vr" }, { "XBOX", "pad" } } },
 	/* test26: the left stick's click: the reticle's toggle or crouch, as before */
@@ -231,6 +238,8 @@ static struct vr_menu_setting const vr_menu_body[] =
 	/* test21: FLOATING is hands with no arms again (test20c); FLOAT + ARMS
 	hangs arms from a floating shoulder */
 	{ "HANDS", "vr.hand_tracking", _vr_setting_multi, 5, { { "BODY IK", "vr.arms=ik;vr.hand_tracking=ik" }, { "FLOATING", "vr.arms=ik;vr.hand_tracking=floating" }, { "FLOAT + ARMS", "vr.arms=ik;vr.hand_tracking=floating_arms" }, { "ANIMATED", "vr.arms=animated;vr.hand_tracking=ik" }, { "GUN ONLY", "vr.arms=hidden;vr.hand_tracking=ik" } } },
+    { "CONTACT VOLUMES", "vr.contact_volumes", _vr_setting_boolean, 2, { { "RAYS", "false" }, { "VOLUMES", "true" } } },
+    { "CONTACT LOG", "vr.contact_debug", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "FINGERS", "vr.fingers", _vr_setting_boolean, 2, { { "OFF", "false" }, { "TRACKED", "true" } } },
 	{ "ROOM-SCALE", "vr.roomscale", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "CROUCH DEPTH", "vr.crouch_height", _vr_setting_real, 9, { { "OFF", "0" }, { "5 CM", "0.05" }, { "10 CM", "0.1" }, { "15 CM", "0.15" }, { "20 CM", "0.2" }, { "25 CM", "0.25" }, { "30 CM", "0.3" }, { "35 CM", "0.35" }, { "40 CM", "0.4" } } },
@@ -247,6 +256,16 @@ static struct vr_menu_setting const vr_menu_vr[] =
 	{ "HAPTICS", "vr.haptics", _vr_setting_real, 11, { { "0%", "0.0" }, { "10%", "0.1" }, { "20%", "0.2" }, { "30%", "0.3" }, { "40%", "0.4" }, { "50%", "0.5" }, { "60%", "0.6" }, { "70%", "0.7" }, { "80%", "0.8" }, { "90%", "0.9" }, { "100%", "1.0" } } },
 	{ "SCOPE", "vr.scope", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "CUTSCENES", "vr.cutscenes", _vr_setting_string, 3, { { "IMMERSIVE", "immersive" }, { "3D SCREEN", "screen" }, { "FLAT", "flat" } } },
+    { "GRAB CONTACT", "vr.grab_contact", _vr_setting_string, 3, { { "AUTO", "auto" }, { "OFF", "off" }, { "ON", "on" } } },
+    { "CONTACT LIMIT", "vr.contact_max_separation", _vr_setting_real, 8, { { "8 CM", "0.08" }, { "10 CM", "0.10" }, { "15 CM", "0.15" }, { "18 CM", "0.18" }, { "20 CM", "0.20" }, { "25 CM", "0.25" }, { "30 CM", "0.30" }, { "40 CM", "0.40" } } },
+    { "BODY RADIUS", "vr.grab_radius", _vr_setting_real, 9, { { "18 CM", "0.18" }, { "20 CM", "0.20" }, { "22 CM", "0.22" }, { "25 CM", "0.25" }, { "30 CM", "0.30" }, { "35 CM", "0.35" }, { "40 CM", "0.40" }, { "50 CM", "0.50" }, { "60 CM", "0.60" } } },
+    { "WALLRUN", "vr.parkour_wallrun", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    { "WALLJUMP", "vr.parkour_walljump", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    { "GRIP CLIMB", "vr.parkour_climb", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    { "WALL SPEED", "vr.wallrun_speed", _vr_setting_real, 5, { { "1X", "1" }, { "1.25X", "1.25" }, { "1.5X", "1.5" }, { "1.75X", "1.75" }, { "2X", "2" } } },
+    { "WALL TIME", "vr.wallrun_duration", _vr_setting_real, 6, { { "0.5 S", "0.5" }, { "1 S", "1" }, { "1.5 S", "1.5" }, { "2 S", "2" }, { "2.5 S", "2.5" }, { "3 S", "3" } } },
+    { "WALL LEAP", "vr.walljump_scale", _vr_setting_real, 5, { { "0.5X", "0.5" }, { "0.75X", "0.75" }, { "1X", "1" }, { "1.25X", "1.25" }, { "1.5X", "1.5" } } },
+    { "CLIMB LAUNCH", "vr.climb_launch_scale", _vr_setting_real, 5, { { "OFF", "0" }, { "0.5X", "0.5" }, { "0.75X", "0.75" }, { "1X", "1" }, { "1.5X", "1.5" } } },
 	{ "CLOSE CONTACT", "vr.close_contact", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 };
 
@@ -291,6 +310,24 @@ static struct vr_menu_setting const vr_menu_vehicles[] =
 	{ "ALL FWD", "vr.vehicle_all_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
 	{ "ALL RIGHT", "vr.vehicle_all_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
 	{ "RESET OFFSETS", "vehicle offsets", _vr_setting_reset_vehicle_offsets, 0, { { NULL, NULL } } },
+    { "PHYSICAL HANDLES", "vr.vehicle_handles", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    { "VIRTUAL WHEEL", "vr.vehicle_wheel_visible", _vr_setting_boolean, 2, { { "HIDDEN", "false" }, { "VISIBLE", "true" } } },
+    { "HOG REACH", "vr.handle_warthog_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
+    { "HOG LEFT", "vr.handle_warthog_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
+    { "HOG HEIGHT", "vr.handle_warthog_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
+    { "HOG SIZE", "vr.handle_warthog_size", _vr_setting_real, 5, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "150%", "1.5" }, { "200%", "2" } } },
+    { "GHOST REACH", "vr.handle_ghost_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
+    { "GHOST LEFT", "vr.handle_ghost_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
+    { "GHOST HEIGHT", "vr.handle_ghost_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
+    { "GHOST SIZE", "vr.handle_ghost_size", _vr_setting_real, 5, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "150%", "1.5" }, { "200%", "2" } } },
+    { "TANK REACH", "vr.handle_scorpion_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
+    { "TANK LEFT", "vr.handle_scorpion_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
+    { "TANK HEIGHT", "vr.handle_scorpion_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
+    { "TANK SIZE", "vr.handle_scorpion_size", _vr_setting_real, 5, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "150%", "1.5" }, { "200%", "2" } } },
+    { "BANSH REACH", "vr.handle_banshee_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
+    { "BANSH LEFT", "vr.handle_banshee_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
+    { "BANSH UP", "vr.handle_banshee_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
+    { "BANSHEE SIZE", "vr.handle_banshee_size", _vr_setting_real, 5, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "150%", "1.5" }, { "200%", "2" } } },
 	{ "HOG GLASS", "vr.vehicle_warthog_hide_glass", _vr_setting_boolean, 2, { { "VISIBLE", "false" }, { "HIDDEN", "true" } } },
 	{ "HOG UP", "vr.vehicle_warthog_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
 	{ "HOG FWD", "vr.vehicle_warthog_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
@@ -378,14 +415,13 @@ static struct vr_menu_setting const vr_menu_comfort[] =
 rifle's apart (vr.scope_pistol_*, vr.scope_sniper_*: 0 and 100%, the usual) */
 static struct vr_menu_setting const vr_menu_scopes[] =
 {
-    { "PISTOL FWD", "vr.scope_pistol_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "PISTOL UP", "vr.scope_pistol_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "PISTOL RIGHT", "vr.scope_pistol_right", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "PISTOL SIZE", "vr.scope_pistol_scale", _vr_setting_real, 7, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "125%", "1.25" }, { "150%", "1.5" }, { "175%", "1.75" }, { "200%", "2" } } },
-    { "SNIPER FWD", "vr.scope_sniper_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "SNIPER UP", "vr.scope_sniper_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "SNIPER RIGHT", "vr.scope_sniper_right", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "SNIPER SIZE", "vr.scope_sniper_scale", _vr_setting_real, 7, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "125%", "1.25" }, { "150%", "1.5" }, { "175%", "1.75" }, { "200%", "2" } } },
+#define SCOPE_MENU(key, label, gun) \
+    { label " FWD", "vr.scope_" #key "_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }, \
+    { label " UP", "vr.scope_" #key "_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }, \
+    { label " RGT", "vr.scope_" #key "_right", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }, \
+    { label " SIZE", "vr.scope_" #key "_scale", _vr_setting_real, 7, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "125%", "1.25" }, { "150%", "1.5" }, { "175%", "1.75" }, { "200%", "2" } } },
+    VR_SCOPE_PROFILES(SCOPE_MENU)
+#undef SCOPE_MENU
     { "RESET SCOPES", "scopes", _vr_setting_reset_scopes, 0, { { NULL,NULL } } },
 };
 
@@ -395,6 +431,9 @@ Mirror Controls); the grip is the gun hand's, with locked weapons only */
 static struct vr_menu_setting const vr_menu_buttons[] =
 {
     { "JUMP", "vr.button_jump", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
+    { "SHOULDER POUCH", "vr.reload_shoulder", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    { "HIP POUCH", "vr.reload_hip", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    { "MANUAL RELOAD", "vr.manual_reload", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     { "USE / RELOAD", "vr.button_action", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
     { "MELEE", "vr.button_melee", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
     { "CROUCH", "vr.button_crouch", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
@@ -1408,11 +1447,13 @@ boolean vr_menu_setting_change(
         return TRUE;
     }
     if(setting->type == _vr_setting_reset_scopes) {
-        static const char *const kinds[]={"pistol","sniper"};
+        #define SCOPE_KEY(key, label, gun) #key,
+        static const char *const kinds[]={VR_SCOPE_PROFILES(SCOPE_KEY)};
+#undef SCOPE_KEY
         static const char *const parts[]={"forward","up","right","scale"};
         char key[64]; int kind, part;
         written=TRUE;
-        for(kind=0;kind<2;kind++) for(part=0;part<4;part++) {
+        for(kind=0;kind<VR_SCOPE_PROFILE_COUNT;kind++) for(part=0;part<4;part++) {
             snprintf(key,sizeof(key),"vr.scope_%s_%s",kinds[kind],parts[part]);
             written=config_write_real(key,config_default_real(key))&&written; }
         vr_reload_settings(); platform_log("vr: reset scope places and sizes%s",written?"":" (save failed)");

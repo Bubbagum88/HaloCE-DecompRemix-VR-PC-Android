@@ -668,11 +668,15 @@ long player_aim_projectile(long player_index, real_point3d const *position, real
 }
 
 #ifdef HALO_VR
-/* The mounted-weapon sight uses the very same aim/convergence calculation,
-without recording a fictitious shot's target or timestamp on the player. */
+/* Mounted sights show geometric convergence without target attraction.
+Actual shots still use player_aim_projectile and retain native autoaim. */
 void vr_preview_player_projectile(long player_index, real_point3d const *position, real_vector3d *direction)
 {
-	player_aim_projectile_internal(player_index, position, direction, FALSE);
+	real_point3d camera_position;
+	real_vector3d camera_direction;
+	struct player_datum *player = player_get(player_index);
+	director_camera_deterministic(player->unit_index, &camera_position, &camera_direction);
+	vr_aim_assist_converge(player_index, &camera_position, &camera_direction, position, direction);
 }
 #endif
 

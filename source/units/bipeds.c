@@ -277,7 +277,9 @@ symbols in this file:
 #include "structures/structure_bsp_definitions.h"
 #ifdef HALO_VR
 #include "halo_vr.h"
+#include "vr_parkour.h"
 #endif
+#include "vr_npc_interaction.h"
 #include "network_coop.h" /* port: port/linux/game/network_coop.c */
 
 /* port: an unarmed player's melee's length, in ticks (a weapon's is about
@@ -805,6 +807,7 @@ static boolean biped_port_may_discard(
 	long biped_index)
 {
 	static long noted_biped_index = NONE;
+	if (vr_npc_interaction_owned(biped_index)) return FALSE;
 
 	if (network_objects_may_delete(biped_index))
 		return TRUE;
@@ -1957,6 +1960,11 @@ static void biped_update_dead(
 {
 	struct biped_datum *biped = biped_get(biped_index);
 	struct biped_definition *definition = biped_definition_get(biped->definition_index);
+	if (vr_npc_interaction_owned(biped_index)) {
+		animation->state_desired=_unit_state_dying;
+		animation->crouching=FALSE;
+		return; /* The interaction owns this corpse's current articulated pose. */
+	}
 
 	if (TEST_FLAG(biped->biped.flags, _biped_limp_body_physics_active_bit) &&
 		biped->biped.limp_body_current_relaxation_iterations <
@@ -2603,6 +2611,13 @@ static void biped_update_physics(
 		}
 	}
 
+#ifdef HALO_VR
+	/* Optional locomotion modifies the proposed velocity before the unchanged
+	 * native capsule sweeps resolve walls, ceilings, floors and other bodies. */
+	vr_parkour_velocity(physics->biped_index, &physics->position,
+		physics->height, physics->width, &physics->new_velocity);
+#endif
+	vr_npc_interaction_velocity(physics->biped_index, physics->new_velocity.n);
 	if (TEST_FLAG(physics->in_flags, _biped_physics_in_no_collision_bit))
 	{
 		collision_flags = 0;
@@ -3549,7 +3564,8 @@ static void biped_update_moving(
 
 	if (TEST_FLAG(biped->object.flags, _object_at_rest_bit) &&
 		TEST_FLAG(biped->object.damage_flags, _object_dead_bit) &&
-		TEST_FLAG(biped->unit.animation.flags, _unit_animation_ignore_translation_bit))
+		TEST_FLAG(biped->unit.animation.flags, _unit_animation_ignore_translation_bit) &&
+		!vr_npc_interaction_owned(biped_index))
 	{
 		return;
 	}

@@ -68,6 +68,7 @@ symbols in this file:
 #include "game/game_engine.h"
 #include "items/item_definitions.h"
 #include "items.h"
+#include "vr_interaction_impact.h"
 #include "physics/breakable_surfaces.h"
 #include "physics/collision_bsp_definitions.h"
 #include "physics/collision_usage.h"
@@ -310,6 +311,42 @@ static void item_adjust_for_angular_velocity_change(
 	}
 
 	return;
+}
+
+struct item_datum *item_vr_grabbable(long index)
+{
+    struct item_datum *item = item_try_and_get(index);
+    if (!item || item->object.parent_object_index != NONE || item->object.name_index != NONE ||
+        item->object.first_child_object_index != NONE || item->item.detonation_ticks ||
+        TEST_FLAG(item->item.flags, _item_attached_to_unit_bit) ||
+        TEST_FLAG(item->item.flags, _item_does_not_accelerate_bit) ||
+        TEST_FLAG(item->item.flags, _item_part_of_respawn_system_bit) ||
+        TEST_FLAG(item->object.flags, _object_movie_star_bit) ||
+        TEST_FLAG(item->object.flags, _object_no_collisions_bit) ||
+        !TEST_FLAG(item->object.flags, _object_connected_to_map_bit) ||
+        TEST_FLAG(item->object.flags, _object_outside_of_map_bit) ||
+        !valid_real_vector3d_axes2(&item->object.forward,&item->object.up) ||
+        !isfinite(object_definition_get(item->definition_index)->object.acceleration_scale) ||
+        object_definition_get(item->definition_index)->object.acceleration_scale<=0) return NULL;
+    return item;
+}
+
+/* World grabbing changes velocity only; native item_update retains collision.
+ * Keep the native angular cache and wake flags synchronized. */
+void item_vr_world_velocity(long item_index, real_vector3d const *linear, real_vector3d const *angular)
+{
+	struct item_datum *item = item_try_and_get(item_index);
+	if (!item || item->object.parent_object_index != NONE ||
+		TEST_FLAG(item->item.flags, _item_attached_to_unit_bit) ||
+		TEST_FLAG(item->item.flags, _item_does_not_accelerate_bit) ||
+		!valid_real_vector3d(linear) || !valid_real_vector3d(angular)) return;
+	item->object.translational_velocity = *linear;
+	item->object.angular_velocity = *angular;
+	SET_FLAG(item->object.flags, _object_at_rest_bit, FALSE);
+	SET_FLAG(item->item.flags, _item_on_structure_bit, FALSE);
+	SET_FLAG(item->item.flags, _item_on_object_bit, FALSE);
+	item_adjust_for_angular_velocity_change(item_index);
+	object_set_garbage(item_index, FALSE);
 }
 
 void item_accelerate(
@@ -598,6 +635,7 @@ boolean item_update(
 					item->item.ignore_object_index,
 					&collision))
 			{
+				vr_interaction_impact_collision(item_index, &collision, &new_velocity);
 				long impulse_sound_index;
 				real impact_scale;
 

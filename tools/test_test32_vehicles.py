@@ -74,6 +74,8 @@ static const char *tag_get_name(long id){assert(id==2);return "vehicles/test/veh
 enum {_vr_steering_stick,_vr_steering_head,_vr_steering_right,_vr_steering_left};
 static void platform_log(const char *fmt,...){(void)fmt;logs++;}
 static void host_xr_recenter(void){requests++;}
+static int handle_clears;
+static void vr_vehicle_handles_clear(void){handle_clears++;}
 static void vr_head_look_reset(void){}
 static void reset_hud_tap(void){}
 static int vr_first_person_vehicles(void){return 1;}
@@ -160,6 +162,7 @@ int main(void){
  int log_before=logs;turret="right";generation++;assert(vr_vehicle_aim_source()==2);assert(logs==log_before+1);
  log_before=logs;assert(vr_vehicle_aim_source()==2);assert(logs==log_before); /* selection logs are transition-only */
  turret="left";generation++;assert(vr_vehicle_aim_source()==3);assert(logs==log_before+1);
+ assert(handle_clears>=3);
  puts("PASS: production seat identity + stereo positional/rotational lean, entry/exit/transfer recenters, invalid handles, independent turret source and lost tracking");
 }
 '''

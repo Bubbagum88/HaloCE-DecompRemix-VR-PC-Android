@@ -9,6 +9,7 @@
 #include "networking/network_game_globals.h"
 #include "network_distributed.h"
 #include "network_vr_pose.h"
+#include "network_interaction.h"
 #include <math.h>
 #include <string.h>
 
@@ -292,7 +293,7 @@ real_matrix4x3 *network_vr_pose_render(long unit, real_matrix4x3 *stock)
     struct object_datum *object;
     if (!stock || !distributed_object_index_valid(unit)) return stock;
     object = object_get(unit);
-    if (object->object.type == _object_type_biped) return render_unit_pose(unit, stock);
+    if (object->object.type == _object_type_biped) return network_interaction_render(unit, render_unit_pose(unit, stock));
     /* Carry a held weapon with the rendered hand, without moving its physics
      * or shot origin. The parent-node binding is the engine's own attachment. */
     if (object->object.type == _object_type_weapon && object->object.parent_object_index != NONE) {

@@ -55,7 +55,7 @@ network = int(re.search(r'#define HALO_PORT_NETWORK_VERSION (\d+)\b', limits).gr
 assert network == 24
 assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MINIMUM 11\b', limits)
 assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MAXIMUM 24\b', limits)
-assert re.search(r'#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 23\b', limits)
+assert re.search(r'#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15\b', limits)
 assert re.search(r'#define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23\b', limits)
 UPSTREAM_144 = [
     ('port/linux/game/coop_enemies.c', '64288778915265ec598613e1bb982f27330953b4b4f5dd7af41244e26c4a7f2a'),

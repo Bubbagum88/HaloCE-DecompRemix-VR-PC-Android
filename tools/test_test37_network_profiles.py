@@ -25,7 +25,7 @@ limits = read("port/linux/include/halo_port_limits.h")
 assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 24$", limits, re.M)
 assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MINIMUM 11$", limits, re.M)
 assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MAXIMUM 24$", limits, re.M)
-assert re.search(r"^#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 23$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15$", limits, re.M)
 assert re.search(r"^#define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23$", limits, re.M)
 assert "int halo_port_active_network_version(void);" in limits
 
@@ -109,11 +109,13 @@ fixture = r'''#include <assert.h>
 #define HALO_PORT_NETWORK_VERSION 24
 #define HALO_PORT_NETWORK_VERSION_MINIMUM 11
 #define HALO_PORT_NETWORK_VERSION_MAXIMUM 24
-#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 23
+#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15
 #define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23
 #define HALO_PORT_ADVERTISED_DISTRIBUTED_FLAG 0x01
 #define HALO_PORT_ADVERTISED_IN_PROGRESS_FLAG 0x02
 typedef int boolean;
+static int legacy_consent;
+static int config_boolean(char const *key) { return legacy_consent; }
 typedef unsigned char byte;
 typedef unsigned short word;
 #define NONE (-1)
@@ -214,8 +216,8 @@ int main(int argc, char **argv) {
         client.available_games[0].map.version = 0;
         client.available_games[0].engine_type = game_engine_none;
         before = messages;
-        assert(!network_game_client_advertised_game_compatible(&client, &client.available_games[0], TRUE));
-        assert(messages == before + 1 && strstr(last_message, "Campaign co-op requires network version 23"));
+        assert(network_game_client_advertised_game_compatible(&client, &client.available_games[0], TRUE));
+        assert(messages == before);
     }
     network_game_client_advertised_versions[0].version = 0;
     client.available_games[0].engine_type = 2;
@@ -261,7 +263,14 @@ int main(int argc, char **argv) {
         assert(network_game_client_settings_version_compatible((unsigned)remote, &update) == ce_allowed);
         update.map.version = 0;
     }
-    puts("PASS: config cache, host-24 advertising, PvP 11..24, campaign/CE 23+ admission and post-join transition guard with fresh host-version capture");
+    legacy_consent=1;update.variant.game_engine_index=game_engine_none;
+    update.map.version=0;snprintf(update.map.name,sizeof(update.map.name),"a10");
+    for(int remote=0;remote<=24;remote++)
+        assert(network_game_client_settings_version_compatible(remote,&update)==(remote>=12));
+    snprintf(update.map.name,sizeof(update.map.name),"custom_maps\\test");
+    for(int remote=12;remote<=24;remote++)assert(network_game_client_settings_version_compatible(remote,&update)==(remote>=23));
+    legacy_consent=0;
+    puts("PASS: config cache, host-24 advertising, PvP 11..24, campaign15+/CE23+ admission and post-join transition guard with fresh host-version capture");
 }
 '''
 

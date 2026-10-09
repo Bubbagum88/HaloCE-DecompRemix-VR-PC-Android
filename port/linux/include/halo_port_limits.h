@@ -67,12 +67,12 @@ when a wire change requires it. */
 /* This build hosts and advertises as OpenCE network version 24. The supported
 PvP host range (11..24) follows ChupaThingyCE's OpenCE-derived compatibility
 table; client selection can narrow discovery/admission but never changes the
-local wire version. Campaign and Custom Edition map joins require version 23
-or newer. The range is also consumed by Android launcher/update metadata. */
+local wire version. Campaign joins require version15 (the complete presentation
+and allegiance record); Custom Edition maps require version23 or newer. The range is also consumed by Android launcher/update metadata. */
 #define HALO_PORT_NETWORK_VERSION 24
 #define HALO_PORT_NETWORK_VERSION_MINIMUM 11
 #define HALO_PORT_NETWORK_VERSION_MAXIMUM 24
-#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 23
+#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15
 #define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23
 /* The binary always hosts/advertises as 24. This immutable startup selection
  * controls which compatible remote PvP protocol versions are listed/joined;

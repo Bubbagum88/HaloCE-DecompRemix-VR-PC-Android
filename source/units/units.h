@@ -771,6 +771,7 @@ boolean unit_is_playing_custom_animation(
 boolean unit_flying_through_air(
 	long unit_index);
 /* port: a unit that feigned death gets back up (units.c) */
+boolean unit_interaction_recover(long unit_index, boolean on_front);
 void unit_port_resurrect(
 	long unit_index);
 /* port: whether the unit plays a flinch or death animation of the type,

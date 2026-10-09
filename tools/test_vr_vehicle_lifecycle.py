@@ -25,6 +25,8 @@ typedef int boolean;
 #define csmemset memset
 #define platform_log(...) ((void)0)
 #define vr_head_look_reset() ((void)0)
+static int handle_clears;
+static void vr_vehicle_handles_clear(void){handle_clears++;}
 static void vr_vehicle_seat(long u,long v,int s,int r){assert(u==-1&&v==-1&&s==-1&&r==0);}
 typedef struct {float x,y,z;} real_point3d;
 struct render_camera {real_point3d position;};
@@ -76,6 +78,7 @@ int main(void){
  seat();vr_render.cinematic_view=1;vr_render.cinematic_position=(real_point3d){4,5,6};
  struct render_camera camera={{1,2,3}};real_point3d point;view_anchor(&camera,&point);assert(point.x==4&&point.y==5&&point.z==6&&!lookups&&!markers);
  for(int i=0;i<10000;i++){seat();anchor(1);vr_render_reset_vehicle_view();pool.valid=0;anchor(0);pool.valid=1;anchor(0);assert(markers==1);}
+ assert(handle_clears>=10001);
  puts("PASS: stale/deleted/reused seat handles, invalid pool, detach/seat changes, map lifecycle ordering, valid vehicle/cinematic/chase views and 10,000 transition cycles");
 }
 '''

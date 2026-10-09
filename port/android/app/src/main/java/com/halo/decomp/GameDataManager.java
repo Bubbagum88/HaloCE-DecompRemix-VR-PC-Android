@@ -25,7 +25,7 @@ final class GameDataManager {
         try {
             GameDataLibrary library=new GameDataLibrary(base);List<GameDataLibrary.Profile> profiles=library.list();final AlertDialog[] visible={null};
             LinearLayout rows=new LinearLayout(activity);rows.setOrientation(LinearLayout.VERTICAL);rows.setPadding(24,16,24,16);
-            TextView intro=new TextView(activity);intro.setText("Each imported set has separate maps and saves. New sets copy your current settings once. Switching never replaces the original data. Detection shows actual cache builds and fingerprints; Original/Rev1/Rev2 disc labels remain unverified unless identified from trusted disc hashes.\n\nDrop ISO/XISO files or folders containing maps into:\n"+library.inbox+"\nThen Scan inbox. You can also import directly with Android's file picker.");rows.addView(intro);
+            TextView intro=new TextView(activity);intro.setText("Each distinct map set has separate maps and saves. Byte-identical imports share one profile, even when their disc revision labels differ. New sets copy your current settings once. Switching never replaces the original data. Detection shows actual cache builds and fingerprints; Original/Rev1/Rev2 disc labels remain unverified unless identified from trusted disc hashes.\n\nDrop ISO/XISO files or folders containing maps into:\n"+library.inbox+"\nThen Scan inbox. You can also import directly with Android's file picker.");rows.addView(intro);
             TextView compatibility=new TextView(activity);compatibility.setText(LauncherHelp.DATA_COMPATIBILITY_NOTE);rows.addView(compatibility);
             File active=GameDataLibrary.activeRoot(base);
             for(GameDataLibrary.Profile p:profiles){

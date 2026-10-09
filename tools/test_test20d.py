@@ -233,13 +233,15 @@ int main(void){
 # (test24b: Turning is one macro, on Controls; read as the row it is)
 menu_rows = re.sub(r'#define VR_MENU_TURNING_ROW (\{.*\})\n', r'\1,\n', menu)
 rows = re.findall(r'\{ "([A-Z +\-]+)", "[\w.]+", _vr_setting_multi, (\d+), \{ (.*?) \} \},', menu_rows)
-assert {r[0] for r in rows} == {'TURNING', 'WEAPONS', 'HOLSTERS', 'HANDS', 'ARM RUN', 'MELEE'}, rows
+assert {r[0] for r in rows} == {'TURNING', 'WEAPONS', 'HOLSTERS', 'HANDS', 'ARM RUN', 'MELEE', 'ACTIVE RAGDOLLS'}, rows
 domains = {'vr.arms': {'ik', 'hidden', 'animated'}, 'vr.hand_tracking': {'ik', 'floating', 'floating_arms'},
            'vr.melee': {'impact', 'swing'},
-           'vr.weapons': {'locked', 'physical'}}
+           'vr.weapons': {'locked', 'physical'}, 'vr.npc_max_ragdolls': {'1', '2', '3', '4'}}
 for label, count, values in rows:
     pairs = re.findall(r'\{ "([^"]+)", "([^"]+)" \}', values)
     assert len(pairs) == int(count) <= 12, label
+    if label == "ACTIVE RAGDOLLS":
+        assert pairs == [(str(n), "vr.npc_max_ragdolls=" + str(n)) for n in range(1, 5)]
     for _, value in pairs:
         for pair in value.split(';'):
             key, text = pair.split('=')
@@ -275,7 +277,7 @@ static const char *config_string(const char*n){return find(n)->text;}
 static int hud_hidden_stub; static int vr_hud_hidden(void){return hud_hidden_stub;} static void vr_set_hud_hidden(int h){hud_hidden_stub=h;}
 static int config_matches(const char*n,const char*t){struct cfg*c=find(n);switch(c->type){case 0:return config_boolean(n)==!strcmp(t,"true");
  case 2:return fabs(atof(c->text)-atof(t))<0.001;default:return !strcmp(c->text,t);}}
-static int config_write_text(const char*n,const char*t){struct cfg*c=find(n);if(c->type==1)return 0;snprintf(c->text,64,"%s",t);return 1;}
+static int config_write_text(const char*n,const char*t){struct cfg*c=find(n);snprintf(c->text,64,"%s",t);return 1;}
 ''' + block(menu, 'enum\n{\n\t_vr_setting_boolean,', '};') + '#define VR_MENU_MAXIMUM_VALUES 12\n' +
     block(menu, 'struct vr_menu_setting\n{', '};') + pages + fn(menu, 'vr_menu_multi') + fn(menu, 'vr_menu_hand_angle') +
     buttons + fn(menu, 'vr_menu_value_index') + r'''
@@ -404,5 +406,30 @@ int main(void){
  /* a failed save retries next launch */
  applied=0;fail=1;migrate_handedness();assert(!applied);
  puts("PASS: handedness migration keeps existing left-handed controls standard once, leaves right-handed configs alone, retries failed saves; floating_arms kept");
+}
+''')
+
+# The first integer combined row must use the actual production text writer.
+run('integer_writer', r'''#include <assert.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+enum { _config_boolean, _config_integer, _config_real, _config_string };
+static struct { int type; } config_settings[]={{_config_integer}};
+static int fail, calls; static char saved[64];
+static long config_setting_index(const char*n){return !strcmp(n,"vr.npc_max_ragdolls")?0:-1;}
+static int config_write_typed(const char*n,int t,const char*v,const char*w){assert(t==_config_integer);calls++;if(fail)return 0;strcpy(saved,w);return 1;}
+static int config_write_boolean(const char*n,int v){return 0;}
+static int config_write_real(const char*n,double v){return 0;}
+static int config_write_string(const char*n,const char*v){return 0;}
+''' + fn(config, 'config_write_text') + r'''
+int main(void){
+ for(int i=1;i<=4;i++){char v[8];sprintf(v,"%d",i);assert(config_write_text("vr.npc_max_ragdolls",v));assert(!strcmp(v,saved));}
+ int before=calls;
+ assert(!config_write_text("vr.npc_max_ragdolls","1.5"));assert(!config_write_text("vr.npc_max_ragdolls",""));
+ assert(!config_write_text("vr.npc_max_ragdolls","9999999999999999999999999"));assert(calls==before);
+ fail=1;assert(!config_write_text("vr.npc_max_ragdolls","2"));assert(!strcmp(saved,"4"));
+ puts("PASS: production integer menu writer validates input and preserves failed-save behavior");
 }
 ''')

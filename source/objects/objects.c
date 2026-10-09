@@ -53,6 +53,14 @@ OBJECTS.C
 #include "sound/game_sound.h"
 #include "structures/structure_bsp_definitions.h"
 #include "units/units.h"
+#include "vr_world_interaction.h"
+#include "vr_npc_interaction.h"
+#include "network_interaction.h"
+#include "vr_interaction_impact.h"
+#include "vr_world_props.h"
+#ifdef HALO_VR
+#include "halo_vr.h"
+#endif
 
 /* ---------- constants */
 
@@ -1062,6 +1070,14 @@ void objects_initialize(
 void objects_initialize_for_new_map(
 	void)
 {
+	vr_world_interaction_reset();
+	vr_world_interaction_remote_reset();
+	vr_interaction_impact_reset();
+	vr_world_props_reset();
+	vr_npc_interaction_reset();
+#ifdef HALO_VR
+	vr_render_reset_contacts();
+#endif
 	damage_initialize_for_new_map();
 	widgets_initialize_for_new_map();
 	object_types_initialize_for_new_map();
@@ -1087,6 +1103,14 @@ void objects_initialize_for_new_map(
 void objects_dispose_from_old_map(
 	void)
 {
+	vr_world_interaction_reset();
+	vr_world_interaction_remote_reset();
+	vr_interaction_impact_reset();
+	vr_world_props_reset();
+	vr_npc_interaction_reset();
+#ifdef HALO_VR
+	vr_render_reset_contacts();
+#endif
 	damage_dispose_from_old_map();
 	widgets_dispose_from_old_map();
 	object_types_dispose_from_old_map();
@@ -3860,6 +3884,8 @@ static boolean object_update(
 			object_compute_node_matrices(object_index);
 		}
 
+		vr_npc_interaction_palette(object_index);
+		network_interaction_palette(object_index);
 		object_compute_function_values(object_index);
 		object_compute_change_colors(object_index);
 
@@ -4451,6 +4477,10 @@ void objects_update(
 	profile_enter(section);
 
 	object_globals->active_garbage_object_count = 0;
+	vr_world_interaction_tick();
+	vr_world_interaction_remote_tick();
+	vr_world_props_tick();
+	vr_npc_interaction_tick();
 	
 	last_active_cluster_bits = object_globals->last_active_cluster_bits;
 	active_cluster_bits = object_globals->active_cluster_bits;
@@ -4535,6 +4565,8 @@ void objects_update(
 		}
 		++i;
 	}
+
+	vr_interaction_impact_flush();
 
 	object_header = (struct object_header_datum *)object_header_data->data;
 	for (i = 0; i<object_header_data->count; ++object_header)

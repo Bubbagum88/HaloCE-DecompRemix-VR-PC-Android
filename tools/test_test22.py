@@ -200,6 +200,13 @@ run('scope', r'''
 #include <stdio.h>
 #include <string.h>
 #include "port/linux/src/vr_alignment.h"
+#include "port/linux/src/vr_scope_profiles.h"
+#define SCOPE_ENUM(key,label,gun) scope_profile_##key,
+enum { VR_SCOPE_PROFILES(SCOPE_ENUM) };
+#undef SCOPE_ENUM
+#define GUN_ENUM(key,label,gun) gun,
+enum { VR_SCOPE_PROFILES(GUN_ENUM) };
+#undef GUN_ENUM
 #define VR_SCOPE_ROUND 1
 #define VR_SCOPE_SNIPER 2
 #define VR_SCOPE_ROCKET 3
@@ -208,7 +215,7 @@ run('scope', r'''
 struct halo_xr_pose { float position[3], orientation[4]; };
 struct halo_xr_layers { unsigned flags; struct halo_xr_pose scope_pose; float scope_size[2]; };
 static struct { int weapon_hand, scope_shape, zoom_level, two_handed, gun_class, settings_generation;
- float scope_size, scope_adjust[2][4]; struct halo_xr_pose aim_pose, shot_pose;
+ float scope_size, scope_adjust[VR_SCOPE_PROFILE_COUNT][4]; struct halo_xr_pose aim_pose, shot_pose;
  struct { struct halo_xr_pose head; unsigned hand_valid[2]; } frame; } vr;
 static void platform_log(const char *format,...){ (void)format; }
 ''' + fn(frame, 'rotate') + fn(frame, 'tracked_hand_origin') + fn(frame, 'place_scope') + r'''
@@ -219,10 +226,10 @@ int main(void){
  memcpy(vr.frame.head.position, vr.aim_pose.position, sizeof(vr.aim_pose.position));
  memcpy(vr.shot_pose.position, vr.aim_pose.position, sizeof(vr.aim_pose.position));
  memcpy(vr.shot_pose.orientation, vr.aim_pose.orientation, sizeof(vr.aim_pose.orientation));
- for(int s=0;s<2;s++) vr.scope_adjust[s][3]=1;
+ for(int s=0;s<VR_SCOPE_PROFILE_COUNT;s++) vr.scope_adjust[s][3]=1;
  for(int hand=0;hand<2;hand++) for(int shape=VR_SCOPE_ROUND;shape<=VR_SCOPE_ROCKET;shape++){
   struct halo_xr_layers l={0}; float local[3], t[3]; const float *o=usual[shape-1];
-  vr.weapon_hand=hand; vr.scope_shape=shape; place_scope(&l);
+  vr.weapon_hand=hand; vr.scope_shape=shape; vr.gun_class=shape==VR_SCOPE_ROUND?VR_GUN_PISTOL:shape==VR_SCOPE_SNIPER?VR_GUN_SNIPER_RIFLE:VR_GUN_ROCKET_LAUNCHER; place_scope(&l);
   /* nothing set: exactly the usual place, size and turn */
   local[0]=hand ? -o[1] : o[1]; local[1]=o[2]; local[2]=-o[0]; rotate(vr.aim_pose.orientation, local, t);
   for(int a=0;a<3;a++) assert(fabsf(l.scope_pose.position[a]-(vr.aim_pose.position[a]+t[a]))<1e-6f);
@@ -232,7 +239,7 @@ int main(void){
  vr.scope_adjust[1][0]=0.03f; vr.scope_adjust[1][1]=0.02f; vr.scope_adjust[1][2]=0.05f; vr.scope_adjust[1][3]=1.5f;
  for(int hand=0;hand<2;hand++){
   struct halo_xr_layers a={0}, b={0}; float moved[3], right[3]={1,0,0}, up[3]={0,1,0}, back[3]={0,0,1}, r[3], u[3], k[3];
-  vr.weapon_hand=hand; vr.scope_shape=VR_SCOPE_SNIPER; place_scope(&b);
+  vr.weapon_hand=hand; vr.scope_shape=VR_SCOPE_SNIPER; vr.gun_class=VR_GUN_SNIPER_RIFLE; place_scope(&b);
   float keep[4]; memcpy(keep, vr.scope_adjust[1], sizeof(keep)); memset(vr.scope_adjust[1],0,sizeof(keep)); vr.scope_adjust[1][3]=1;
   place_scope(&a); memcpy(vr.scope_adjust[1], keep, sizeof(keep));
   for(int i=0;i<3;i++) moved[i]=b.scope_pose.position[i]-a.scope_pose.position[i];
@@ -246,7 +253,7 @@ int main(void){
   * center and physical sight offset stay on the gun, in either hand. */
  for(int hand=0;hand<2;hand++) for(int shape=VR_SCOPE_ROUND;shape<=VR_SCOPE_ROCKET;shape++){
   struct halo_xr_layers base={0}, calibrated={0}; float corrected[3]={-10,25,0}, correction[4];
-  vr.weapon_hand=hand; vr.scope_shape=shape;
+  vr.weapon_hand=hand; vr.scope_shape=shape; vr.gun_class=shape==VR_SCOPE_ROUND?VR_GUN_PISTOL:shape==VR_SCOPE_SNIPER?VR_GUN_SNIPER_RIFLE:VR_GUN_ROCKET_LAUNCHER;
   memcpy(vr.shot_pose.orientation,vr.aim_pose.orientation,sizeof(vr.aim_pose.orientation));
   place_scope(&base);
   vr_alignment_rotation(corrected,correction);
@@ -264,7 +271,7 @@ int main(void){
   memcpy(vr.shot_pose.position,vr.aim_pose.position,sizeof(vr.aim_pose.position));
   vr_alignment_rotation(zero,vr.aim_pose.orientation);
   memcpy(vr.shot_pose.orientation,vr.aim_pose.orientation,sizeof(vr.aim_pose.orientation));
-  vr.scope_shape=VR_SCOPE_SNIPER; vr.weapon_hand=0;
+  vr.scope_shape=VR_SCOPE_SNIPER; vr.gun_class=VR_GUN_SNIPER_RIFLE; vr.weapon_hand=0;
   vr.scope_adjust[1][0]=vr.scope_adjust[1][1]=vr.scope_adjust[1][2]=0;
   tracked_hand_origin(&vr.aim_pose,origin); place_scope(&l);
   assert(fabsf(origin[0]-1.1f)<1e-6f && fabsf(origin[1]-1.1f)<1e-6f && fabsf(origin[2]-0.3f)<1e-6f);
@@ -273,8 +280,23 @@ int main(void){
   assert(fabsf(l.scope_pose.position[2]-(origin[2]+0.15f))<1e-6f);
  }
  /* the pistol's own settings leave the sniper's and the rocket's alone */
- vr.scope_adjust[0][1]=0.1f; vr.weapon_hand=1; vr.scope_shape=VR_SCOPE_ROCKET;
+ vr.scope_adjust[0][1]=0.1f; vr.weapon_hand=1; vr.scope_shape=VR_SCOPE_ROCKET; vr.gun_class=VR_GUN_ROCKET_LAUNCHER;
  { struct halo_xr_layers l={0}; place_scope(&l); assert(l.scope_size[0]==0.06f); }
+ /* Every gun profile changes its own scope, including shared-mask/custom guns. */
+#define GUN_VALUE(key,label,gun) gun,
+ { int guns[]={VR_SCOPE_PROFILES(GUN_VALUE)};
+  for(int g=0;g<VR_SCOPE_PROFILE_COUNT;g++) for(int hand=0;hand<2;hand++) {
+   struct halo_xr_layers a={0},b={0}; vr.gun_class=guns[g]; vr.weapon_hand=hand; vr.scope_shape=VR_SCOPE_ROUND;
+   memset(vr.scope_adjust,0,sizeof(vr.scope_adjust));
+   for(int q=0;q<VR_SCOPE_PROFILE_COUNT;q++)vr.scope_adjust[q][3]=1;
+   place_scope(&a); vr.scope_adjust[g][0]=.12f;vr.scope_adjust[g][1]=.03f;vr.scope_adjust[g][2]=-.04f;vr.scope_adjust[g][3]=2;
+   place_scope(&b); assert(fabsf(b.scope_size[0]-.12f)<1e-6f);
+   assert(fabsf(b.scope_pose.position[0]-a.scope_pose.position[0]+.04f)<1e-6f);
+   assert(fabsf(b.scope_pose.position[1]-a.scope_pose.position[1]-.03f)<1e-6f);
+   assert(fabsf(b.scope_pose.position[2]-a.scope_pose.position[2]+.12f)<1e-6f);
+  }
+ }
+#undef GUN_VALUE
  puts("PASS: baseline scope placement holds for both hands; calibrated scope plane matches the shot view while its center stays on the gun; "
       "extended hands use the 90 cm reach clamp; pistol and sniper adjustments and sizes stay independent");
 }

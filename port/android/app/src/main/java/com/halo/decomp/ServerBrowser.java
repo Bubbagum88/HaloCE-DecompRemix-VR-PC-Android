@@ -44,6 +44,7 @@ final class ServerBrowser {
     private final TextView status;
     private final Button refresh;
     private final Button networkSelector;
+    private final Button legacyCoop;
     private final AlertDialog dialog;
     private volatile boolean closed;
     private volatile HttpsURLConnection connection;
@@ -125,12 +126,14 @@ final class ServerBrowser {
         selectedNetworkVersion = NetworkProfile.selected(activity);
         LinearLayout content = column();
         networkSelector = button(content, "Network: All networks", this::selectNetwork);
+        legacyCoop = button(content, "Legacy co-op 12-14: OFF", this::toggleLegacyCoop);
         refresh = button(content, "Refresh populations & servers", this::refresh);
         status = text(content, "");
         text(content, "Choose a network above, then join a server or return to Play. Network changes apply on the next game launch. Counts are directory reports and may lag.");
         button(content, "Network & joining help", () -> LauncherHelp.page(activity, "Network & joining help",
             "The selector ranks networks by reported player population. Select an available profile to change which host versions the native game discovers and can join on its next launch. "
-            + "All compatible networks searches every supported host version. Networks 11–22 are limited to original Xbox-map PvP; co-op and Custom Edition require 23 or 24. Hosting always uses current network 24.\n\n"
+            + "All compatible networks searches every supported host version. Original Xbox-map PvP supports networks 11–24; campaign co-op supports 15–24; Custom Edition requires 23 or 24. Older hosts retain their original gameplay limitations. Hosting always uses current network 24.\n\n"
+            + NetworkProfile.LEGACY_WARNING + "\n\n"
             + "A directory Join passes the host's invite to the game. Open Multiplayer > Join Game > LAN and choose that host once the connection appears. "
             + "Direct Link also accepts invites. Public in-game listings are under Multiplayer > Join Game > Server Browser.\n\n"
             + "The community directory is supplied by ChupathingyCE. The in-game browser uses signed OpenCE discovery and LAN. "
@@ -251,6 +254,7 @@ final class ServerBrowser {
     }
 
     private void render() {
+        legacyCoop.setText("Legacy co-op 12-14: " + (NetworkProfile.legacyCoop(gameRoot()) ? "ON (old-host limitations)" : "OFF"));
         updateNetworkSelector();
         rows.removeAllViews();
         List<Entry> filtered = filteredDirectory();
@@ -321,6 +325,17 @@ final class ServerBrowser {
         networkSelector.setText(title);
     }
 
+    private void toggleLegacyCoop() {
+        Runnable apply=()->{
+            try { NetworkProfile.setLegacyCoop(gameRoot(), !NetworkProfile.legacyCoop(gameRoot())); render(); }
+            catch(java.io.IOException e) { LauncherHelp.page(activity,"Legacy co-op",e.getMessage()); }
+        };
+        if(NetworkProfile.legacyCoop(gameRoot())) { apply.run(); return; }
+        new GamepadNavigation.Builder(activity).setTitle("Enable legacy co-op 12-14?")
+            .setMessage(NetworkProfile.LEGACY_WARNING)
+            .setPositiveButton("Enable legacy co-op",(d,w)->apply.run()).setNegativeButton("Cancel",null).show();
+    }
+
     private void selectNetwork() {
         List<NetworkPopulation> populations = networkPopulations();
         String[] choices = new String[populations.size() + 1];
@@ -332,7 +347,10 @@ final class ServerBrowser {
                 + (directoryLoaded ? population.players + " players · " + population.servers + " servers" : "population unavailable")
                 + " · " + (population.compatible ? (population.version == NetworkProfile.selected(activity)
                     ? "active" : "switch on next launch") : "unavailable; protocol not included");
-            if (population.version >= 11 && population.version < 23) choices[i + 1] += " · Xbox-map PvP only";
+            if (population.version == 11) choices[i + 1] += " - Xbox-map PvP only";
+            else if (population.version >= 12 && population.version <= 14) choices[i + 1] += NetworkProfile.legacyCoop(gameRoot())
+                ? " - legacy co-op enabled; old-host limitations" : " - co-op requires legacy consent";
+            else if (population.version >= 15 && population.version < 23) choices[i + 1] += " · Xbox-map PvP + co-op";
             if (population.version == selectedNetworkVersion) checked = i + 1;
         }
         AlertDialog chooser = new GamepadNavigation.Builder(activity).setTitle("Select server network")
@@ -356,7 +374,8 @@ final class ServerBrowser {
         int players = 0;
         for (Entry entry : directory)
             if (entry.version > 0 && NetworkProfile.supported(entry.version)
-                && (!(campaign || entry.customEdition) || entry.version >= 23)) players += entry.players;
+                && (!campaign || NetworkProfile.campaignCompatible(entry.version, NetworkProfile.legacyCoop(gameRoot())))
+                && (!entry.customEdition || entry.version >= 23)) players += entry.players;
         return players;
     }
 
@@ -371,7 +390,8 @@ final class ServerBrowser {
         boolean old = entry.kind == ServerListing.Kind.CAMPAIGN;
         boolean compatible = ServerListing.joinable(campaign, entry.kind, entry.version,
             NetworkProfile.minimum(NetworkProfile.selected(activity)), NetworkProfile.maximum(NetworkProfile.selected(activity)))
-            && !((campaign || entry.customEdition) && entry.version > 0 && entry.version < 23);
+            && !(campaign && entry.version > 0 && !NetworkProfile.campaignCompatible(entry.version, NetworkProfile.legacyCoop(gameRoot())))
+            && !(entry.customEdition && entry.version > 0 && entry.version < 23);
         String version = entry.version == 0 ? "version checked by game" : networkLabel(entry.version);
         text(rows, version + (compatible ? "" : " — not available with " + NetworkProfile.label(NetworkProfile.selected(activity))));
         Button open = button(rows, "Join " + entry.name, () -> {
@@ -382,12 +402,17 @@ final class ServerBrowser {
                 else status.setText("Could not write the invite. Check game-data storage access, then try again.");
             };
             if(!campaign&&activity instanceof LauncherActivity)((LauncherActivity)activity).withServerMap(entry.map,connect);
+            else if(campaign && entry.version >= 12 && entry.version <= 14)
+                new GamepadNavigation.Builder(activity).setTitle("Legacy co-op host")
+                    .setMessage(NetworkProfile.LEGACY_WARNING).setPositiveButton("Join legacy host", (d,w)->connect.run())
+                    .setNegativeButton("Cancel",null).show();
             else connect.run();
         });
         String blocked = old ? "This co-op game is from this app 1.0.8 or older, whose co-op this version no longer "
             + "plays (it plays co-op as OpenCE does). Ask the host to update to " + BuildConfig.VERSION_NAME + " or later."
             : entry.customEdition && entry.version > 0 && entry.version < 23 ? "Custom Edition maps require a network 23 or 24 host."
-            : campaign && entry.version > 0 && entry.version < 23 ? "Legacy co-op on this network is not supported. Use a network 23 or 24 host."
+            : campaign && entry.version == 11 ? "Network 11 predates OpenCE campaign co-op. Ask the host to update."
+            : campaign && entry.version >= 12 && entry.version <= 14 && !NetworkProfile.legacyCoop(gameRoot()) ? "Legacy co-op is disabled. Read the Legacy co-op 12-14 warning above and explicitly enable it; network 15-24 is recommended."
             : !compatible ? "Protocol mismatch: this host uses " + networkLabel(entry.version) + ". "
             + (NetworkProfile.supported(entry.version) ? "Choose it in the Network selector above, then join."
                 : "This app has no implementation for that version. Disc revision cannot change the network protocol.")

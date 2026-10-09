@@ -197,7 +197,7 @@ weapons=read('source/items/weapons.c')
 aim=read('source/game/aim_assist.c')
 preview=fn(weapons,'weapon_vr_preview_primary_ray')
 assert 'player_aim_projectile_internal(player_index, position, direction, TRUE)' in fn(aim,'player_aim_projectile')
-assert 'player_aim_projectile_internal(player_index, position, direction, FALSE)' in fn(aim,'vr_preview_player_projectile')
+assert 'vr_aim_assist_converge(player_index, &camera_position, &camera_direction, position, direction)' in fn(aim,'vr_preview_player_projectile')
 assert 'if (record_target)' in fn(aim,'player_aim_projectile_internal')
 render=fn(read('port/linux/game/vr_render.c'),'vr_render_windows')
 assert 'weapon_vr_preview_primary_ray(weapon, player_index, &origin, &direction)' in render

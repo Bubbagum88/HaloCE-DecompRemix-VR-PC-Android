@@ -269,6 +269,57 @@ static struct profile_section render_model_section = { "render_model", NONE, TRU
 /* ---------- private code */
 
 #ifdef HALO_VR
+boolean model_rigid_component_bounds(long model_index, short root, unsigned long long nodes,
+    real_point3d *minimum, real_point3d *maximum)
+{
+    struct model *model=model_definition_get(model_index);
+    unsigned long long subtree=nodes;
+    long budget=131072, found=0;
+    if (!minimum || !maximum || model->nodes.count<=0 || model->nodes.count>64 ||
+        root<0 || root>=model->nodes.count || model->geometries.count<0 ||
+        model->geometries.count>MAXIMUM_GEOMETRIES_PER_MODEL) return FALSE;
+    struct model_node *root_node=TAG_BLOCK_GET_ELEMENT(&model->nodes,root,struct model_node);
+    for(short node=0;!nodes && node<model->nodes.count;node++) {
+        short at=node;int remaining=model->nodes.count;
+        while(at>=0 && at<model->nodes.count && remaining-->0) {
+            if(at==root){subtree|=1ULL<<node;break;}
+            at=TAG_BLOCK_GET_ELEMENT(&model->nodes,at,struct model_node)->parent_node_index;
+        }
+    }
+    for(long g=0;g<model->geometries.count;g++) {
+        struct model_geometry *geometry=TAG_BLOCK_GET_ELEMENT(&model->geometries,g,struct model_geometry);
+        if(geometry->parts.count<0 || geometry->parts.count>MAXIMUM_PARTS_PER_MODEL_GEOMETRY)return FALSE;
+        for(long p=0;p<geometry->parts.count;p++) {
+            struct model_geometry_part *part=TAG_BLOCK_GET_ELEMENT(&geometry->parts,p,struct model_geometry_part);
+            struct model_vertex_compressed const *vertices=NULL;void const *indices=NULL;
+            long count=part->vertex_buffer.count;
+            if(count<0 || count>65535 || count>budget || part->vertex_buffer.type!=_rasterizer_vertex_type_model_compressed ||
+                !rasterizer_model_buffer_data(&part->vertex_buffer,&part->triangle_buffer,(void const **)&vertices,&indices) ||
+                (count && !vertices))return FALSE;
+            budget-=count;
+            for(long v=0;v<count;v++) {
+                struct model_vertex_compressed const *vertex=&vertices[v];
+                int node=vertex->nodes[0]/3;
+                /* A rigid component must not invent a bound for blended body vertices. */
+                if(vertex->node_weight!=32767 || vertex->nodes[0]%3 || node>=model->nodes.count || !(subtree&(1ULL<<node)))continue;
+                real_point3d point;
+                matrix4x3_transform_point(&root_node->runtime_default_inverse_matrix,&vertex->position,&point);
+                for(int axis=0;axis<3;axis++) {
+                    if(!(point.n[axis]>-1000 && point.n[axis]<1000))return FALSE;
+                    if(!found || point.n[axis]<minimum->n[axis])minimum->n[axis]=point.n[axis];
+                    if(!found || point.n[axis]>maximum->n[axis])maximum->n[axis]=point.n[axis];
+                }
+                found++;
+            }
+        }
+    }
+    return found>0;
+}
+boolean model_rigid_node_bounds(long model_index,short root,real_point3d *minimum,real_point3d *maximum)
+{
+    return model_rigid_component_bounds(model_index,root,0,minimum,maximum);
+}
+
 /* Collapsing hidden bones alone leaves triangles weighted partly to the
 torso stretched into ribbons. Remove those triangles from the local avatar's
 draw only. Authored buffers, other players and shadows stay untouched.

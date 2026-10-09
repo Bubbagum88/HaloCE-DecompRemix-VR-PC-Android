@@ -1,5 +1,23 @@
 # Agent and contributor continuation
 
+## Active private Test38 packaging (2026-10-08)
+
+Continue on `test38-interactions-compatibility`; target private
+`1.0.19-test38`, code49. The owner's latest usage-limit override is to finish
+current work and package both APKs now, superseding the earlier full-scope
+packaging hold. Source is frozen; complete validation and packaging without
+expanding features. Do not publish or install.
+
+Read `docs/TEST38-DELIVERY-STATUS.md` for the exact completed, restricted,
+remaining and unstarted work, and preserve `docs/TEST38-DEVICE-CHECKLIST.md`.
+Seven manual-reload profiles, world/NPC interactions and optional parkour are
+implemented but await device acceptance. Campaign networks 15-24 use the normal
+compatibility path; 12-14 require the explicit legacy opt-in. Enhanced co-op
+interactions support at most four remote peers; native co-op capacity is separate.
+Public v1.0.18 remains the accepted baseline. Passing source/build/package checks
+does not establish headset or live-network acceptance.
+
+
 ## Current public release: v1.0.18 (2026-10-08)
 
 The owner authorized publication of Halo CE Quest VR + Android 1.0.18 as

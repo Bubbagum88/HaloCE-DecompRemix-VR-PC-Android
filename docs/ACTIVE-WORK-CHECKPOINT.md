@@ -1,5 +1,23 @@
 ## Current release checkpoint — v1.0.18 (2026-10-08)
 
+## Active private Test38 packaging (2026-10-08)
+
+Continue on `test38-interactions-compatibility`; target private
+`1.0.19-test38`, code49. The owner's latest usage-limit override is to finish
+current work and package both APKs now, superseding the earlier full-scope
+packaging hold. Source is frozen; complete validation and packaging without
+expanding features. Do not publish or install.
+
+Read `docs/TEST38-DELIVERY-STATUS.md` for the exact completed, restricted,
+remaining and unstarted work, and preserve `docs/TEST38-DEVICE-CHECKLIST.md`.
+Seven manual-reload profiles, world/NPC interactions and optional parkour are
+implemented but await device acceptance. Campaign networks 15-24 use the normal
+compatibility path; 12-14 require the explicit legacy opt-in. Enhanced co-op
+interactions support at most four remote peers; native co-op capacity is separate.
+Public v1.0.18 remains the accepted baseline. Passing source/build/package checks
+does not establish headset or live-network acceptance.
+
+
 The owner authorized and published [v1.0.18](https://github.com/moistman42069/HaloCE-Quest-VR/releases/tag/v1.0.18) as Latest. It is Android code48, OpenCE Build157/network24, with the Test37 network-version selector and population-sorted launcher listings. The exact release assets and checks are in `docs/RELEASE-PROVENANCE-1.0.18.md`; full user-facing instructions are in `docs/RELEASE-1.0.18.md`. Prior releases and the GitHub About description are preserved.
 
 Hosting remains network24. The launcher selects the next client's native discovery/admission target (11–24 or All compatible); it does not downgrade hosting. Targets11–22 are original Xbox-map PvP only; campaign/CE requires host23/24. Do not describe the population catalog as exhaustive or hardware cross-play as universally verified. Original/Rev1/Rev2 image comparison remains deferred until the user supplies those files.
@@ -117,7 +135,7 @@ sniper rifle and hand aim, but no game zoom state and no submitted scope layer.
 Test34 now logs the off-hand trigger state, native game zoom transitions,
 effective Scope setting, render admission and VR pose rejection reasons. For
 right-handed Quest, test by holding the left index trigger; verify game zoom
-and a `scope` compositor layer before adjusting offsets. The ±30 cm alignment
+and a `scope` compositor layer before adjusting offsets. The Â±30 cm alignment
 implementation remains unchanged unless an actual zoomed layer is shown to
 drift.
 

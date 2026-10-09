@@ -126,6 +126,14 @@ camera is (`position`); 0 when it is not tracked */
 int vr_hand_world(int hand, const float position[3], float out_position[3], float out_forward[3], float out_up[3]);
 /* as vr_hand_world, turned by the visible hand's own orientation (vr.hand_*) */
 int vr_hand_pose(int hand, const float position[3], float out_position[3], float out_forward[3], float out_up[3]);
+
+/* Exclusive grip consumers. World poses use vr_hand_world (uncalibrated grip)
+ * or vr_hand_pose (visible-hand calibration), with the caller's camera anchor. */
+enum { VR_INTERACTION_NONE, VR_INTERACTION_RELOAD, VR_INTERACTION_VEHICLE, VR_INTERACTION_WORLD, VR_INTERACTION_PARKOUR, VR_INTERACTION_NPC, VR_INTERACTION_COUNT };
+int vr_interaction_claim(int hand, int owner);
+void vr_interaction_release(int hand, int owner);
+int vr_interaction_owner(int hand);
+int vr_interaction_grip(int hand, int *pressed, int *released);
 /* vr.hand_tracking: 0 body IK, 1 floating hands, 2 floating hands and arms */
 int vr_hand_tracking_mode(void);
 /* the game's world units per metre (vr.world_scale) */

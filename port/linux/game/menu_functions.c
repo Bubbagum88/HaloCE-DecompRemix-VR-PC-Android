@@ -3029,6 +3029,10 @@ static void server_settings_update(struct widget_instance *list)
 		/* ... and its PLAYER COLLISIONS, below them: ON or OFF, its help its
 		choice's */
 		visible_set(named(list, "op_player_collisions", 0), cooperative);
+		visible_set(named(list, "op_physical_interactions", 0), cooperative);
+        if(cooperative && list->parameters.list.extended_description &&
+            list->focused_child == named(list, "op_physical_interactions", 0))
+            list->parameters.list.extended_description->parameters.text_box.string_list_index = 24;
 		if (cooperative && (spinner = named(list, "player_collisions_spinner", 0)) != NULL)
 		{
 			short choice = (short)PIN(spinner->parameters.list.selected_index, 0, 1);

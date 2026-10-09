@@ -646,6 +646,8 @@ symbols in this file:
 #include "cseries.h"
 #include "units.h"
 #include "network_campaign.h"
+#include "vr_npc_interaction.h"
+#include "network_interaction.h"
 
 #include "bipeds.h"
 #include "biped_definitions.h"
@@ -4193,6 +4195,33 @@ void unit_port_resurrect(
 	unit_scream(unit_index, _unit_scream_resurrection);
 }
 
+/* Use an authored get-up only when this exact live rig/seat/weapon class has
+ * one. Unlike resurrect, this never clears death or changes AI/seat labels. */
+boolean unit_interaction_recover(long unit_index, boolean on_front)
+{
+	struct unit_datum *unit=unit_try_and_get(unit_index);
+	struct animation_graph *graph;
+	struct animation_graph_unit_seat *seat;
+	struct animation_graph_weapon_class *weapon;
+	short slot=on_front?_unit_weapon_class_animation_resurrect_front:_unit_weapon_class_animation_resurrect_back;
+	long graph_index;
+	short animation_index;
+	if(!unit || unit->unit.player_index!=NONE || unit->object.parent_object_index!=NONE ||
+		TEST_FLAG(unit->object.damage_flags,_object_dead_bit) || unit_is_playing_custom_animation(unit_index) ||
+		unit->unit.animation.state>_unit_state_land_hard) return FALSE;
+	graph_index=unit_definition_get(unit->definition_index)->object.animation_graph.index;
+	if(graph_index==NONE) return FALSE;
+	graph=animation_graph_definition_get(graph_index);
+	if(!graph || unit->unit.animation.seat_index<0 || unit->unit.animation.seat_index>=graph->unit_seats.count) return FALSE;
+	seat=TAG_BLOCK_GET_ELEMENT(&graph->unit_seats,unit->unit.animation.seat_index,struct animation_graph_unit_seat);
+	if(unit->unit.animation.weapon_index<0 || unit->unit.animation.weapon_index>=seat->weapon_classes.count) return FALSE;
+	weapon=TAG_BLOCK_GET_ELEMENT(&seat->weapon_classes,unit->unit.animation.weapon_index,struct animation_graph_weapon_class);
+	if(unit->unit.animation.weapon_type_index<0 || unit->unit.animation.weapon_type_index>=weapon->weapon_types.count || slot>=weapon->animations.count) return FALSE;
+	animation_index=animation_graph_animation_index_get(&weapon->animations)[slot].animation_index;
+	if(animation_index<0 || animation_index>=graph->animations.count) return FALSE;
+	return unit_animation_set_state(unit_index,on_front?_unit_state_resurrect_front:_unit_state_resurrect_back);
+}
+
 /* how far into its own flinch or death animation a client's unit still
 switches to the host's pick */
 #define DAMAGE_ANIMATION_SWITCH_TICKS 10
@@ -5540,6 +5569,7 @@ boolean unit_update(
 			}
 		}
 
+		vr_npc_interaction_controls(unit_index);
 		/*
 		* Jetpack cheat combo:
 		* Press the following keys while the jetpack cheat is active
@@ -11370,6 +11400,10 @@ void unit_postprocess_node_matrices(
 	short ik_point_index;
 	long ik_element_index;
 	boolean weapon_ik_active;
+
+	/* Held NPC limbs already own the collision palette; stock weapon IK would
+	 * pull those limbs back after their children have been positioned. */
+	if (vr_npc_interaction_owned(unit_index) || network_interaction_palette_owned(unit_index)) return;
 
 	if (!TEST_FLAG(unit_definition->unit.flags, _unit_simple_creature_bit) &&
 		unit->unit.animation.seat_index!=NONE)

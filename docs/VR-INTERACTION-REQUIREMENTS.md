@@ -1,4 +1,36 @@
+# Test38 source freeze and packaging override - 2026-10-08
+
+The owner's latest usage-limit override is to finish current work and package
+both private APKs now. This supersedes the earlier full-scope packaging hold.
+Source is frozen; complete validation and packaging without feature expansion.
+The original M1-M29 / W1-W66 requirements remain preserved below, including
+historical instructions; they do not override this latest delivery decision.
+
+Read [TEST38-DELIVERY-STATUS.md](TEST38-DELIVERY-STATUS.md) for the exact completed,
+restricted, remaining and unstarted work. Seven manual-reload profiles,
+world/NPC/ragdoll interactions and optional parkour are implemented with explicit
+device checks pending. Campaign networks 15-24 use the normal compatibility path;
+12-14 require the legacy opt-in. Enhanced co-op interactions support at most four
+remote peers, independently of native co-op capacity.
+
+Optional physical features retain native behavior in unsupported sessions.
+Manual reload and parkour remain solo-only; enhanced network interactions need
+a compatible, consenting host/peer set. No automated result establishes headset
+acceptance or universal compatibility. Do not publish or install this candidate.
+
+Evidence: TEST38-PROGRESS.md, WORLD-INTERACTION-STATUS.md, MANUAL-RELOAD.md,
+TEST38-REQUIREMENT-AUDIT.md and TEST38-DEVICE-CHECKLIST.md. Historical deferred
+statuses below are not the current disposition; consult the delivery status.
+
+---
+
 # Subsequent VR interaction requirements
+
+Current source-pass update: M1–M29 have been worked through with evidence and
+explicit remaining device checks in MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md.
+The earlier dependency/packaging history below is preserved; it is not the current
+source status. Latest pouch override uses independent hip/shoulder toggles on the
+free-hand side. No headset acceptance is inferred from source tests.
 
 ## Latest owner packaging override — 2026-10-07
 
@@ -50,35 +82,35 @@ all interruptions/resets, classic fallback, and standalone performance.
 
 | ID | Requirement | Status | Evidence / next dependency |
 |---|---|---|---|
-| M1 | Optional manual weapon reloading | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M2 | Physical magazine retrieval | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M3 | Magazine models | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M4 | Magazine removal from the weapon | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M5 | Magazine insertion | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M6 | Weapon state and ammunition synchronization | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M7 | Charging handle / cocking / chambering interactions | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M8 | Weapon-specific interaction definitions | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M9 | Two-handed weapon interaction during reloading | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M10 | Reload cancellation and edge cases | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M11 | Haptic interaction pass | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M12 | Improve finger interaction with world surfaces | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M13 | Per-finger contact behavior | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M14 | Continuous finger solving rather than binary poses | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M15 | Joint-level finger behavior | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M16 | Collision probes | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M17 | Prevent visible penetration | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M18 | Contact smoothing | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M19 | Palm interaction | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M20 | Hand positional compliance | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M21 | Finger contact haptics | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M22 | Interaction with grab poses | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M23 | Interaction with weapons and magazines | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M24 | Left/right hand parity | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M25 | Performance requirements | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M26 | Debugging facilities | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M27 | Automated tests where realistic | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M28 | Device-test checklist | Deferred — dependency M | Investigate; no implementation or device result claimed. |
-| M29 | Implementation strategy | Deferred — dependency M | Investigate; no implementation or device result claimed. |
+| M1 | Optional manual weapon reloading | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M2 | Physical magazine retrieval | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M3 | Magazine models | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M4 | Magazine removal from the weapon | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M5 | Magazine insertion | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M6 | Weapon state and ammunition synchronization | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M7 | Charging handle / cocking / chambering interactions | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M8 | Weapon-specific interaction definitions | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M9 | Two-handed weapon interaction during reloading | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M10 | Reload cancellation and edge cases | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M11 | Haptic interaction pass | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M12 | Improve finger interaction with world surfaces | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M13 | Per-finger contact behavior | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M14 | Continuous finger solving rather than binary poses | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M15 | Joint-level finger behavior | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M16 | Collision probes | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M17 | Prevent visible penetration | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M18 | Contact smoothing | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M19 | Palm interaction | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M20 | Hand positional compliance | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M21 | Finger contact haptics | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M22 | Interaction with grab poses | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M23 | Interaction with weapons and magazines | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M24 | Left/right hand parity | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M25 | Performance requirements | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M26 | Debugging facilities | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M27 | Automated tests where realistic | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M28 | Device-test checklist | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
+| M29 | Implementation strategy | Source pass complete; device checks pending | See MANUAL-RELOAD.md and TEST38-REQUIREMENT-AUDIT.md for exact implementation, tests and limits. |
 
 ## World interaction, NPCs, ragdolls and impacts
 

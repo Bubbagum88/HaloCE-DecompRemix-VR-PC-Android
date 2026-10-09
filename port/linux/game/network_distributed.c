@@ -73,6 +73,7 @@ machine (their datum identifiers need not be).
 #include "network_coop.h"
 /* port: the VR avatars (this app's) */
 #include "network_vr_pose.h"
+#include "network_interaction.h"
 #include "network_distributed.h"
 
 #include <limits.h>
@@ -3302,6 +3303,7 @@ void network_distributed_new_game(
 	network_actors_new_game();
 	network_coop_new_game();
 	network_vr_pose_reset();
+	network_interaction_reset();
 }
 
 /* (the retired CE01/CE02 campaign's lifecycle, network_campaign_lifecycle.c,
@@ -3383,6 +3385,7 @@ void network_distributed_tick(
 	}
 	/* port: the VR avatars' poses, to machines that draw them */
 	network_vr_pose_tick();
+	network_interaction_tick();
 	distributed_batches_flush();
 	distributed_machines.in_tick = FALSE;
 	distributed_machines.valid = FALSE;
@@ -3920,6 +3923,7 @@ void network_distributed_handle_message(
 	checks both directions and never touches the simulation */
 	if (header.type == _distributed_message_vr_pose || header.type == _distributed_message_vr_capability)
 	{
+		network_interaction_receive(machine_index, header.type, entries, header.count, size - sizeof(header));
 		network_vr_pose_receive(machine_index, header.type, entries, header.count, size - sizeof(header));
 		return;
 	}
@@ -4032,7 +4036,7 @@ void network_distributed_handle_message(
 		distributed_handle_structure_bsp((struct distributed_structure_bsp const *)entries);
 		break;
 	case _distributed_message_coop_presentation:
-		network_coop_handle_presentation(entries, header.game_time);
+		network_coop_handle_presentation(entries, header.game_time, size - sizeof(header));
 		break;
 	case _distributed_message_coop_events:
 		network_coop_handle_events(entries, header.count);

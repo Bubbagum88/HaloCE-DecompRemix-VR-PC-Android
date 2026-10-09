@@ -125,6 +125,9 @@ symbols in this file:
 #include "sound/sound_manager.h"
 #include "units/units.h"
 #include "halo_vr.h"
+#ifdef HALO_VR
+#include "vr_manual_reload.h"
+#endif
 
 /* ---------- constants */
 
@@ -538,6 +541,10 @@ void first_person_weapon_draw(
 							weapon_definition->weapon.interface_definition.first_person_animations.index,
 							first_person_weapon->node_matrices,
 							first_person_weapon->weapon_node_remapping_table);
+#ifdef HALO_VR
+						vr_manual_reload_model(first_person_weapon->weapon_index,
+							weapon_definition->weapon.interface_definition.first_person_model.index, model_node_matrices);
+#endif
 						render_model(
 							weapon_definition->weapon.interface_definition.first_person_model.index,
 							0.0f,

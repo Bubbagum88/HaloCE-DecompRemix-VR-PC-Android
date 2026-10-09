@@ -20,6 +20,7 @@ eye only.
 #ifdef HALO_VR
 boolean vr_render_script_message(char const *message);
 void vr_render_reset_vehicle_view(void);
+void vr_render_reset_contacts(void);
 union real_point3d;
 boolean vr_script_can_see_point(long unit_index, const union real_point3d *point, real field_of_view, boolean *result);
 /* Head-only tutorial directions: up/down/left/right bits 0/1/2/3. */
@@ -131,6 +132,7 @@ real vr_render_units_per_metre(void);
 /* render_objects.c: the player's own biped drawn in first person (vr.body
 "full"), and the bones it is drawn with (posed to the headset; the game's
 own are left as they are) */
+boolean vr_render_vehicle_controls(void);
 boolean vr_render_full_body(long object_index);
 boolean vr_render_hands_only(void);
 struct real_matrix4x3 *vr_render_body_matrices(long object_index);
