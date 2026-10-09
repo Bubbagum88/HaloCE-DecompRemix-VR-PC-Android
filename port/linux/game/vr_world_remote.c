@@ -13,13 +13,14 @@
 #include "network_interaction.h"
 #include "vr_world_interaction.h"
 #include "vr_world_math.h"
+#include "vr_interaction_hold_math.h"
 #include "vr_world_props.h"
 #include "vr_interaction_impact.h"
 #include "../src/port_config.h"
 #include <float.h>
 #include <string.h>
 static struct remote_grip {
-    boolean active;
+    boolean active, strain_logged, target_limited_logged;
     long player, unit, object, tick;
     int hand;
     real_point3d local, target, previous;
@@ -96,7 +97,10 @@ boolean vr_world_interaction_remote(struct network_interaction_hand const *reque
     }
     for(i=0;i<256;++i) {
         if(remote[i].active && remote[i].player==request->player && remote[i].hand==request->hand) {slot=i;break;}
-        if(!remote[i].active) slot=i;
+        /* Keep the lowest free slot. Overwriting it on each pass silently
+         * put a new grip in slot 255, which made several lifecycle paths and
+         * diagnostics that scan in order appear to lose the owner's grip. */
+        if(slot<0 && !remote[i].active) slot=i;
     }
     if(slot<0) return FALSE;
     r=&remote[slot];
@@ -114,9 +118,22 @@ boolean vr_world_interaction_remote(struct network_interaction_hand const *reque
     if(r->active) {
         if(r->object!=request->object || !(item=vr_world_object_get(r->object))) {memset(r,0,sizeof(*r));return FALSE;}
         vector_from_points3d(&r->previous,&request->position,&vector);
-        if(magnitude3d(&vector)>.45f*u) {memset(r,0,sizeof(*r));return FALSE;}
-        if(game_time_get()>r->tick) for(i=0;i<3;++i)
-            r->velocity.n[i]=r->velocity.n[i]*.55f+vector.n[i]*.45f/(game_time_get()-r->tick);
+		if(magnitude3d(&vector)>.45f*u) {
+			r->velocity=*global_zero_vector3d;
+			platform_log("VR world remote: hand sample rebased player=%ld hand=%d grip=held movement_m=%.3f",
+				request->player,request->hand,(float)magnitude3d(&vector)/(float)u);
+		} else if(game_time_get()>r->tick) for(i=0;i<3;++i)
+			r->velocity.n[i]=r->velocity.n[i]*.55f+vector.n[i]*.45f/(game_time_get()-r->tick);
+		{
+			int limited=0;
+			if(!vr_interaction_hold_target_step(r->target.n,request->position.n,.45f*u,&limited)) {
+				vr_world_interaction_remote_cancel(request->player,request->hand);return FALSE;
+			}
+			if(limited&&!r->target_limited_logged) {
+				platform_log("VR world remote: target rate-limited player=%ld hand=%d grip=held max_step_m=0.450",
+					request->player,request->hand);r->target_limited_logged=TRUE;
+			} else if(!limited)r->target_limited_logged=FALSE;
+		}
     } else {
         struct collision_model_instance model;
         struct collision_model_test_pill_result model_hit;
@@ -141,8 +158,9 @@ boolean vr_world_interaction_remote(struct network_interaction_hand const *reque
         local_vector(&item->object.forward,&item->object.up,&vector,(real_vector3d*)&r->local);
         local_vector(&request->forward,&request->up,&item->object.forward,&r->local_forward);
         local_vector(&request->forward,&request->up,&item->object.up,&r->local_up);
+		r->target=contact;
     }
-    r->previous=r->target=request->position;r->forward=request->forward;r->up=request->up;r->tick=game_time_get();
+	r->previous=request->position;r->forward=request->forward;r->up=request->up;r->tick=game_time_get();
     return TRUE;
 }
 void vr_world_interaction_remote_tick(void)
@@ -163,7 +181,11 @@ void vr_world_interaction_remote_tick(void)
             ++count;
         }
         scale_vector3d(&error,1.f/count,&error);
-        if(magnitude3d(&error)>.65f*u) {vr_world_interaction_remote_cancel(r->player,-1);continue;}
+		if(magnitude3d(&error)>.65f*u) {
+			if(!r->strain_logged)platform_log("VR world remote: hold strain player=%ld hand=%d object=%08lx grip=held separation_m=%.3f action=keep-contact",
+				r->player,r->hand,r->object,(float)magnitude3d(&error)/(float)u);
+			r->strain_logged=TRUE;
+		} else if(magnitude3d(&error)<.50f*u)r->strain_logged=FALSE;
         real mobility=vr_world_object_mobility(r->object);
         if(!vr_world_spring(error.n,item->object.translational_velocity.n,mobility,count,u,global_gravity,velocity.n)) continue;
         world_vector(&r->forward,&r->up,&r->local_forward,&forward);

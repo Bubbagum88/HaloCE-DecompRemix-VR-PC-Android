@@ -1,34 +1,27 @@
 # Current development state
 
-## Active private candidate: Test44 (2026-10-09)
+## Active private candidate: Test45 (2026-10-09)
 
-Candidate target is **1.0.25-test44 / Android code55** on
-`test39-interaction-completion`. It carries forward all changes since public
-v1.0.18 and Test43. The focused changes clarify that picker-selected ISO/XISO
-imports copy maps only; the original stays in its original location and must
-be removed through Android Files. The launcher can remove only an image copy
-placed in its import inbox. The disabled active **Existing game data** row is
-explained as protected status. In the opening A10 tutorial, fresh valid
-hand-reticle rays drive calibration look actions and point checks; other maps
-and head-aim mode keep existing head-based behavior. Stale/invalid hand rays
-pause calibration checks rather than crediting head motion. No other script/AI
-path is intended to change.
+Candidate target is **1.0.26-test45 / Android code56** on
+`test39-interaction-completion`. It carries forward Test44 and all changes since
+public v1.0.18. Test45 focuses on the reported NPC hold release and grabbing
+allies. Acquisition remains tracked palm collision overlap with an authored
+NPC/object model plus a fresh Grip edge. Aim rays do not acquire. A held NPC or
+prop remains owned through ordinary movement/strain; large pose discontinuities
+rebase the hand target and clear throw velocity. Friendly Marines and crew may
+be held through ordinary AI command lists, with only transient controls
+suppressed; their team/orders remain native. Forced immediate orders remain
+ineligible. The host applies the same bounded target-follow rule to co-op props.
 
-Contact acquisition is contact-volume driven: local and host-validated co-op
-NPC/enemy and loose-object grabs require overlap with authored collision models
-plus a fresh Grip edge; climbing requires contact with a solid surface plus a
-fresh Grip edge. Manual reload uses part-bound/pouch contact and socket-bound
-contact; optional vehicle handles use their virtual contact points. Aim
-direction or a target-search ray cannot initiate these actions. The shared palm
-collider is 2–8 cm (4 cm default); camera LOS is a safety guard after contact,
-not target selection. Physical headset acceptance is pending.
-
-The engine base remains Build157/network24 with selected Build167 compatibility
-fixes. See [TEST44-REQUIREMENT-DISPOSITION.md](TEST44-REQUIREMENT-DISPOSITION.md),
-[TEST44-DEVICE-CHECKLIST.md](TEST44-DEVICE-CHECKLIST.md), and
-[TEST44-DELIVERY-STATUS.md](TEST44-DELIVERY-STATUS.md). Test43 artifacts remain
-preserved. Automated tests/builds are not headset or Android storage acceptance.
-Do not publish, install or launch the game. PC/Steam Frame remains deferred.
+The previous Test44 launcher storage guidance, protected Existing game data
+status and A10 reticle-based look calibration are retained. Engine base remains
+Build157/network24 with selected Build167 compatibility fixes. Physical Quest,
+Android and multiplayer acceptance remains pending. See
+[TEST45-REQUIREMENT-DISPOSITION.md](TEST45-REQUIREMENT-DISPOSITION.md),
+[TEST45-DEVICE-CHECKLIST.md](TEST45-DEVICE-CHECKLIST.md), and
+[TEST45-DELIVERY-STATUS.md](TEST45-DELIVERY-STATUS.md). Test44 and older
+artifacts remain preserved. Do not publish, install or launch the game.
+PC/Steam Frame remains deferred.
 
 ## Superseded private candidate: Test40
 

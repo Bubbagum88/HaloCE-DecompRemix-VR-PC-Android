@@ -1719,14 +1719,18 @@ unsigned long vr_render_actions(
 	short local_player_index)
 {
 	long player_index, unit_index, weapon_index = NONE;
+	long inventory[MAXIMUM_WEAPONS_PER_UNIT];
+	short inventory_slot;
 
 	if (local_player_index != local_player_get_next(NONE) || !vr_active())
 		return 0;
 	player_index = local_player_get_player_index(local_player_index);
 	unit_index = player_index != NONE ? player_get(player_index)->unit_index : NONE;
+	for (inventory_slot = 0; inventory_slot < MAXIMUM_WEAPONS_PER_UNIT; ++inventory_slot)
+		inventory[inventory_slot] = unit_index != NONE ? unit_inventory_get_weapon(unit_index, inventory_slot) : NONE;
 	if (unit_index != NONE)
 		weapon_index = unit_inventory_get_weapon(unit_index, unit_get(unit_index)->unit.current_weapon_index);
-	vr_note_weapon(weapon_index);
+	vr_note_weapon(unit_index, weapon_index, inventory);
 	vr_manual_reload_note_weapon(weapon_index);
 	vr_parkour_note_unit(unit_index);
 	vr_contact_diagnostics();
@@ -1757,6 +1761,21 @@ unsigned long vr_render_actions(
 	vr_set_network_game(game_connection() != _game_connection_local);
 	{
 		unsigned long actions = vr_take_actions() | vr_diag_zoom(local_player_index);
+		long holster_request = vr_take_holster_draw_request();
+		if (holster_request != NONE)
+		{
+			boolean found = FALSE;
+			for (inventory_slot = 0; inventory_slot < MAXIMUM_WEAPONS_PER_UNIT; ++inventory_slot)
+				if (inventory[inventory_slot] == holster_request)
+				{
+					player_control_set_desired_weapon(unit_index, inventory_slot);
+					platform_log("vr: holster draw requested exact weapon=%ld from inventory slot=%d",
+						holster_request, inventory_slot);
+					found = TRUE;
+					break;
+				}
+			if (!found) vr_holster_draw_request_failed(holster_request);
+		}
 		/* test21: the horn's chain while driving, once a press: the stick
 		click sends the crouch control; three ticks on, whether the vehicle
 		has it from its driver (vehicles.c sounds the horn from it) */
@@ -1861,6 +1880,12 @@ void vr_render_impact_melee(
 
 		if (rest[hand] > 0.0f)
 			rest[hand] -= 1.0f / 30.0f;
+		if (!vr_physical_melee_hand_allowed(hand))
+		{
+			for (index = 0; index < VR_MELEE_POINTS; ++index)
+				last_valid[hand][index] = FALSE;
+			continue;
+		}
 		if (!vr_hand_world(hand, camera.n, grip.n, forward.n, up.n))
 		{
 			for (index = 0; index < VR_MELEE_POINTS; index++)
@@ -1936,7 +1961,7 @@ real vr_player_sprint_scale(long unit_index)
 		player_get(player)->unit_index != unit_index || cinematic_in_progress() ||
 		director_inhibited_input(local))
 		return 1.0f;
-	return 1.0f + 0.5f * vr_sprint_effort();
+	return vr_sprint_scale_for_effort((float)config_real("vr.sprint_speed"), vr_sprint_effort());
 }
 
 real vr_player_collision_radius(long unit_index, real stock)

@@ -23,11 +23,13 @@ c=r'''
 #include <string.h>
 #include <stdio.h>
 #include "vr_world_math.h"
+#include "vr_interaction_hold_math.h"
 #include "vr_articulated.h"
 #define VR_NPC_INTERACTION_POOL_SIZE {POOL_SIZE}
 #define NONE -1
 #define TRUE 1
 #define FALSE 0
+#define _game_team_player 1
 #define VR_INTERACTION_NPC 5
 #define _object_mask_biped 1
 #define _object_dead_bit 2
@@ -58,16 +60,18 @@ enum {_actor_elite,_actor_jackal,_actor_grunt,_actor_hunter,_actor_engineer,_act
 enum {_race_player=1,_race_human=2,_race_covenant=4,_race_floodcombat=8,_race_floodcarrier=16,_race_floodinfection=32,_race_sentinel=64};
 enum {_actor_definition_flying_bit=21,_actor_definition_swarm_actor_bit=26};
 enum {_game_connection_local=0};static int connection;static int game_connection(void){return connection;}
-static struct npc_state {int active,recovery,settling,minimum_hands,started,is_remote,getting_up,species_type;float mobility;long index,tick,player;int held[2],edge[2],node[2];real_vector3d target[2],offset[2],root_anchor[2],velocity[2];struct{struct vr_articulated_body body;real_matrix4x3 captured[64];}rig;} npc_pool[NPC_POOL_SIZE],*npc_current=&npc_pool[0];
+static struct npc_state {int active,recovery,settling,minimum_hands,started,is_remote,getting_up,species_type;float mobility;long index,tick,player;int held[2],edge[2],node[2],strain_logged[2];real_vector3d target[2],offset[2],root_anchor[2],velocity[2];struct{struct vr_articulated_body body;real_matrix4x3 captured[64];}rig;} npc_pool[NPC_POOL_SIZE],*npc_current=&npc_pool[0];
 #define npc (*npc_current)
 static struct remote_state {long player,candidate[2];int valid,held[2],seen[2],edge[2];real_vector3d point[2];} remote_pool[128];
 static struct {long definition;short type;int valid;} species_cache[64];
 static struct {long definition;int valid;} custom_rig_graph_cache[64];
 static int local_edges[2]={1,1};
 static struct unit_datum {long definition_index;struct{real_vector3d position,translational_velocity;unsigned long flags;unsigned short damage_flags;long parent_object_index;short name_index;}object;struct{long actor_index,player_index;unsigned long flags;int grenade_throw_state;struct{int state;}animation;short current_weapon_index;}unit;} unit;
-struct actor_datum {struct{short type;int active,swarm;long definition_index;}meta;struct{long command_list_index;int command_list_immediate;}state;};static struct actor_datum actor;
+struct actor_datum {struct{short type;int active,swarm;long definition_index;short team_index;}meta;struct{long command_list_index;int command_list_immediate;}state;};static struct actor_datum actor;
 static struct actor_datum *actor_try_and_get(long index){return index==7?&actor:0;}
+static int game_team_is_enemy(short our,short other){return !(our==_game_team_player&&other==2);}
 static int custom_rigs,swarm_types[32],actor_races[32];
+static void platform_log(char const *format,...){(void)format;}
 static int config_boolean(char const *name){assert(!strcmp(name,"vr.custom_npc_rigs"));return custom_rigs;}
 static short actor_type_get_race(short type){return type>=0&&type<32?actor_races[type]:0;}
 static int actor_type_get_swarm(short type){return type>=0&&type<32?swarm_types[type]:1;}
@@ -117,6 +121,7 @@ int main(void){
  assert(species(_actor_elite,&hands,&mobility)&&hands==2&&mobility==.25f);
  assert(species(_actor_hunter,&hands,&mobility)&&hands==2&&mobility==.12f);
  assert(species(_actor_marine,&hands,&mobility)&&hands==1);
+ assert(species(_actor_crew,&hands,&mobility)&&hands==1);
  assert(!species(_actor_sentinel,&hands,&mobility)&&!species(_actor_infection_form,&hands,&mobility));
  /* A broad root/NONE collision result can still attach to a real articulated
     joint. The other hand may never pin the same joint. */
@@ -188,12 +193,21 @@ int main(void){
  unit.unit.grenade_throw_state=_unit_grenade_throw_idle;
  unit.unit.animation.state=_unit_state_idle;unit.unit.current_weapon_index=0;
  actor.meta.type=_actor_grunt;actor.meta.active=1;actor.meta.swarm=0;
- actor.meta.definition_index=1;actor.state.command_list_index=NONE;
+ actor.meta.definition_index=1;actor.meta.team_index=3;actor.state.command_list_index=NONE;
  actor.state.command_list_immediate=0;actors[1].flags=0;
  weapon.weapon.state=_weapon_state_idle;
  for(int n=0;n<2;n++){weapon.weapon.triggers[n].state=_trigger_idle;weapon.weapon.magazines[n].state=_magazine_idle;}
  valid=1;weapon_valid=1;custom_animation=0;
  assert(eligible(7)==&unit);
+ /* Allied Marines and crew use the same contact/Grip acquisition path.
+    Ordinary AI orders are preserved while their transient controls are held;
+    forced immediate orders and scripted enemies remain ineligible. */
+ actor.meta.type=_actor_marine;actor.meta.team_index=2;
+ actor.state.command_list_index=4;assert(eligible(7)==&unit);
+ actor.meta.type=_actor_crew;assert(eligible(7)==&unit);
+ actor.state.command_list_immediate=1;assert(!eligible(7));
+ actor.state.command_list_immediate=0;actor.meta.team_index=3;assert(!eligible(7));
+ actor.state.command_list_index=NONE;actor.meta.type=_actor_grunt;actor.meta.team_index=3;
  unit.unit.player_index=3;assert(!eligible(7));unit.unit.player_index=NONE;
  unit.object.parent_object_index=55;assert(!eligible(7));unit.object.parent_object_index=NONE;
  unit.object.name_index=1;assert(!eligible(7));unit.object.name_index=NONE;
@@ -227,12 +241,12 @@ int main(void){
  npc.active=1;npc.index=7;vr_npc_interaction_cancel();assert(lookups==1&&recomputes==1&&!npc.active);
  npc.active=1;npc.index=7;valid=0;vr_npc_interaction_cancel();assert(recomputes==1);valid=1;
  npc.active=1;npc.index=7;npc.started=1;npc.minimum_hands=1;npc.mobility=.5f;npc.held[0]=npc.held[1]=1;owner[0]=owner[1]=5;
- release(0,0);assert(npc.held[1]&&!npc.recovery&&owner[0]==0&&owner[1]==5);
- release(1,0);assert(npc.settling==1&&owner[1]==0);
+ release(0,0,"test-release");assert(npc.held[1]&&!npc.recovery&&owner[0]==0&&owner[1]==5);
+ release(1,0,"test-release");assert(npc.settling==1&&owner[1]==0);
  npc.held[0]=npc.held[1]=1;npc.minimum_hands=2;npc.settling=0;
- release(0,0);assert(!npc.held[0]&&!npc.held[1]&&npc.settling==1);
+ release(0,0,"test-support-release");assert(!npc.held[0]&&!npc.held[1]&&npc.settling==1);
  npc.minimum_hands=1;npc.held[0]=1;npc.rig.body.count=1;npc.velocity[0].n[0]=20;
- release(0,1);assert(unit.object.translational_velocity.n[0]>.23f&&unit.object.translational_velocity.n[0]<.25f);
+ release(0,1,"test-grip-release");assert(unit.object.translational_velocity.n[0]>.23f&&unit.object.translational_velocity.n[0]<.25f);
  assert(npc.rig.body.nodes[0].previous[0]<-.23f);
  npc.recovery=0;npc.held[0]=1;npc.root_anchor[0].n[2]=1;npc.offset[0].n[2]=.1f;
  npc.target[0].n[2]=1.6f;unit.object.position.n[2]=0;
@@ -296,6 +310,27 @@ assert 'collision_test_vector(_collision_test_for_line_of_sight_flags' in source
 local_tick=function('static void tick_player(')
 assert 'if(!pressed || npc.held[h] || npc.recovery' in local_tick
 assert local_tick.index('if(!pressed || npc.held[h]') < local_tick.index('collision_model_test_pill(')
+assert 'vr_interaction_hold_target_step(npc.target[h].n,point.n,.45f*units,&limited)' in local_tick
+assert 'if(magnitude3d(&delta)>0.45f*units) {release' not in local_tick
+assert 'if(magnitude3d(&delta)>.65f*units) {release' not in local_tick
+assert 'reason=minimum-hands-not-met' in source and '"grip-released"' in source
+assert 'vr_interaction_hold_target_step' in source
+helper=r'''
+int main(void){float target[3]={0,0,0},desired[3]={1,0,0};int limited=0;
+ assert(vr_interaction_hold_target_step(target,desired,.15f,&limited)&&limited);
+ assert(fabsf(target[0]-.15f)<.00001f&&target[1]==0&&target[2]==0);
+ assert(vr_interaction_hold_target_step(target,desired,.15f,&limited)&&limited);
+ assert(fabsf(target[0]-.30f)<.00001f);
+ desired[0]=.35f;assert(vr_interaction_hold_target_step(target,desired,.15f,&limited)&&!limited);
+ assert(fabsf(target[0]-.35f)<.00001f);
+ desired[0]=NAN;assert(!vr_interaction_hold_target_step(target,desired,.15f,&limited));
+ puts("PASS: held contact targets follow normally and rate-limit discontinuities without detach");return 0;}
+'''
+hold_path=out/'hold-target.c'
+hold_path.write_text('#include <assert.h>\n#include <math.h>\n#include <stdio.h>\n#include "vr_interaction_hold_math.h"\n'+helper)
+hold_binary=out/'hold-target'
+subprocess.run(['clang','-std=c11','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-I'+str(ROOT/'port/linux/game'),str(hold_path),'-lm','-o',str(hold_binary)],check=True)
+subprocess.run([str(hold_binary)],check=True)
 assert '!vr_aiming()' not in source
 assert 'actor_set_active(' not in source and 'meta.frozen' not in source
 assert 'unit_port_resurrect(' not in source
@@ -304,9 +339,10 @@ assert 'unit_interaction_recover(index,body_forward.k<0)' in source
 eligible_source=function('static struct unit_datum *eligible(')
 for marker in ['u->unit.player_index!=NONE','u->object.parent_object_index!=NONE','u->object.name_index!=NONE',
                '_object_movie_star_bit','_unit_possessed_by_recording_bit','unit_is_playing_custom_animation(index)',
-               'u->unit.grenade_throw_state!=_unit_grenade_throw_idle','a->state.command_list_index!=NONE',
+               'u->unit.grenade_throw_state!=_unit_grenade_throw_idle','a->state.command_list_index!=NONE&&!friendly',
                'a->state.command_list_immediate']:
     assert marker in eligible_source,marker
+assert 'game_team_is_enemy(_game_team_player,a->meta.team_index)' in eligible_source
 custom_source=function('static int custom_humanoid_rig(')
 for marker in ['_actor_engineer','_actor_player','_actor_monitor','_actor_sentinel','_actor_mounted_weapon',
                '_actor_definition_flying_bit','_actor_definition_swarm_actor_bit','actor->meta.swarm',

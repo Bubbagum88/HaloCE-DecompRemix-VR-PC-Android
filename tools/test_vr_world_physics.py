@@ -108,21 +108,21 @@ static real_vector3d applied;
 static struct object_datum *grabbable(long id){++probes;return id==42?&item:0;}
 static void vr_world_object_velocity(long id,real_vector3d const *linear,real_vector3d const *angular){assert(id==42);(void)angular;++throws;applied=*linear;}
 static void vr_interaction_release(int hand,int owner){assert(hand>=0&&hand<2&&owner==3);++releases;}
-#define platform_log(...) ((void)0)
+static void platform_log(char const *format,...){(void)format;}
 static long last_tick,last_unit;
 static int previous_grip[2];
 static unsigned long weight_haptic_at[2]={10,20};
 ''' + state + '\n' + function('release_hand') + '\n' + function('vr_world_interaction_reset') + r'''
 int main(void){
  hands[0].active=1;hands[0].index=42;hands[0].velocity.i=100;
- release_hand(0,0,1);assert(throws==0&&!hands[0].active&&releases==1);
+ release_hand(0,0,1,"tracking-loss");assert(throws==0&&!hands[0].active&&releases==1);
  hands[0].active=hands[1].active=1;hands[0].index=hands[1].index=42;
- release_hand(0,1,1);assert(throws==0&&hands[1].active);
- hands[1].velocity.i=100;release_hand(1,1,1);assert(throws==1&&fabsf(applied.i-.24f)<.00001f);
+ release_hand(0,1,1,"shared-hand");assert(throws==0&&hands[1].active);
+ hands[1].velocity.i=100;release_hand(1,1,1,"grip-release");assert(throws==1&&fabsf(applied.i-.24f)<.00001f);
  hands[0].active=1;hands[0].index=42;hands[0].velocity.i=100;item.object.type=_object_type_vehicle;
- release_hand(0,1,1);assert(throws==1&&!hands[0].active);item.object.type=_object_type_none;
+ release_hand(0,1,1,"vehicle-release");assert(throws==1&&!hands[0].active);item.object.type=_object_type_none;
  hands[0].active=1;hands[0].index=42;hands[0].velocity.i=NAN;
- release_hand(0,1,1);assert(throws==1);
+ release_hand(0,1,1,"invalid-velocity");assert(throws==1);
  hands[0].active=1;hands[0].index=999;int old=probes;
  vr_world_interaction_reset();assert(probes==old&&throws==1&&!hands[0].active&&last_tick==NONE&&last_unit==NONE);
  assert(weight_haptic_at[0]==0&&weight_haptic_at[1]==0);
@@ -154,10 +154,17 @@ assert world_candidate.index('collision_model_test_pill(') < world_candidate.ind
 assert 'Keep LOS solely as a through-wall guard' in world_candidate
 world_tick=world[world.index('void vr_world_interaction_tick(void)'):]
 assert 'if (!held->active && grip && pressed && vr_interaction_owner(hand)==VR_INTERACTION_NONE)' in world_tick
+assert 'if (magnitude3d(&change) > 0.45f*units) { release_hand' not in world_tick
+assert 'if (magnitude3d(&error)>0.65f*units) { release_hand' not in world_tick
+assert 'action=keep-contact' in world_tick
 npc_source=(ROOT/'port/linux/game/vr_npc_interaction.c').read_text()
 npc_tick=npc_source[npc_source.index('static void tick_player('):npc_source.index('void vr_npc_interaction_tick(void)')]
 assert 'if(!pressed || npc.held[h] || npc.recovery' in npc_tick
 assert npc_tick.index('if(!pressed || npc.held[h]') < npc_tick.index('collision_model_test_pill(')
+parkour=(ROOT/'port/linux/game/vr_parkour.c').read_text()
+parkour_tick=parkour[parkour.index('void vr_parkour_velocity('):]
+assert 'collision_features_test_point(&parkour_contact_features,hand,&contact)' in parkour
+assert 'if(magnitude3d(&error)>0.65f*units){parkour.hand[hand].active=0' not in parkour_tick
 network=(ROOT/'port/linux/game/network_interaction.c').read_text()
 assert 'else if(r->pressed||!r->held)' in network # host only attempts new press or observes release
 assert 'vr_npc_interaction_remote(r->player,hand,r->held,r->position.n)' in network

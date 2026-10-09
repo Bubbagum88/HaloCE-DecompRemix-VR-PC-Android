@@ -16,8 +16,10 @@ and the debug keyboard that the game's console reads.
 #include "port_config.h"
 #include "p2p.h"
 #include "xiso.h"
-#if defined(HALO_ANDROID) && !defined(HALO_VR)
+#ifdef HALO_ANDROID
 #include "guest_host.h"
+#endif
+#if defined(HALO_ANDROID) && !defined(HALO_VR)
 #include "halo_touch.h"
 #endif
 
@@ -114,6 +116,82 @@ BOOL platform_sdl_initialize(void)
 #endif
 	return TRUE;
 }
+
+/* ---------- audio devices (voice chat's microphone; default on Android) */
+
+#ifndef HALO_ANDROID
+int platform_audio_devices(int recording, char (*names)[PLATFORM_AUDIO_DEVICE_NAME_SIZE], int maximum)
+{
+	SDL_AudioDeviceID *devices;
+	int device_count = 0, count = 0, index;
+
+	if (!names || maximum < 1 || !platform_sdl_initialize())
+		return 0;
+	devices = recording ? SDL_GetAudioRecordingDevices(&device_count) : SDL_GetAudioPlaybackDevices(&device_count);
+	for (index = 0; devices && index < device_count && count < maximum; index++)
+	{
+		const char *name = SDL_GetAudioDeviceName(devices[index]);
+
+		/* A name can be persisted without colliding with spinner syntax. */
+		if (!name || !name[0] || strchr(name, '|') || strlen(name) >= PLATFORM_AUDIO_DEVICE_NAME_SIZE)
+			continue;
+		snprintf(names[count++], PLATFORM_AUDIO_DEVICE_NAME_SIZE, "%s", name);
+	}
+	SDL_free(devices);
+	return count;
+}
+
+SDL_AudioDeviceID platform_audio_device(int recording, const char *name)
+{
+	SDL_AudioDeviceID *devices;
+	SDL_AudioDeviceID fallback = recording ? SDL_AUDIO_DEVICE_DEFAULT_RECORDING : SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK;
+	int device_count = 0, index;
+
+	if (!name || !name[0] || !strcmp(name, "default") || !platform_sdl_initialize())
+		return fallback;
+	devices = recording ? SDL_GetAudioRecordingDevices(&device_count) : SDL_GetAudioPlaybackDevices(&device_count);
+	for (index = 0; devices && index < device_count; index++)
+	{
+		const char *candidate = SDL_GetAudioDeviceName(devices[index]);
+
+		if (candidate && !strcmp(candidate, name))
+		{
+			SDL_AudioDeviceID result = devices[index];
+
+			SDL_free(devices);
+			return result;
+		}
+	}
+	SDL_free(devices);
+	platform_log("audio: no %s device named \"%s\": using the system default",
+		recording ? "input" : "output", name);
+	return fallback;
+}
+
+int platform_audio_recording_permission(void)
+{
+	return host_sdl_request_microphone_permission();
+}
+#else
+int platform_audio_devices(int recording, char (*names)[PLATFORM_AUDIO_DEVICE_NAME_SIZE], int maximum)
+{
+	(void)recording;
+	(void)names;
+	(void)maximum;
+	return 0;
+}
+
+SDL_AudioDeviceID platform_audio_device(int recording, const char *name)
+{
+	(void)name;
+	return recording ? SDL_AUDIO_DEVICE_DEFAULT_RECORDING : SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK;
+}
+
+int platform_audio_recording_permission(void)
+{
+	return 1;
+}
+#endif
 
 #ifndef HALO_ANDROID
 /* ---------- first start without game data (xbox_files.c) */

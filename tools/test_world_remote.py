@@ -13,9 +13,12 @@ stub=r'''
 #include <string.h>
 #include <stdio.h>
 #include "vr_world_math.h"
+#include "vr_interaction_hold_math.h"
 typedef int boolean;typedef float real;typedef unsigned char byte;
 typedef union {struct{float i,j,k;};float n[3];} real_vector3d;
 typedef real_vector3d real_point3d;
+static real_vector3d zero_vector;static real_vector3d *global_zero_vector3d=&zero_vector;
+static void platform_log(char const *format,...){(void)format;}
 enum {FALSE,TRUE};
 #define NONE (-1)
 #define FLAG(x) (1u<<(x))
@@ -79,7 +82,11 @@ int main(void){
  r.held=r.pressed=1;assert(vr_world_interaction_remote(&r));int before=velocity_calls;
  vr_world_interaction_remote_cancel(7,0);assert(velocity_calls==before&&!vr_world_interaction_remote_owned(1));
  assert(vr_world_interaction_remote(&r));tick+=10;vr_world_interaction_remote_tick();assert(velocity_calls==before&&!vr_world_interaction_remote_owned(1));
- assert(vr_world_interaction_remote(&r));r.position.i=2;assert(!vr_world_interaction_remote(&r));assert(!vr_world_interaction_remote_owned(1));
+ assert(vr_world_interaction_remote(&r));r.position.i=2;assert(vr_world_interaction_remote(&r));assert(vr_world_interaction_remote_owned(1)); /* large hand sample rebases velocity; held contact remains latched */
+ assert(fabsf(remote[0].target.i-.60f)<.00001f); /* 15 cm -> 2 m request advances only the 45 cm/tick cap; Grip remains latched */
+ int before_strain=velocity_calls;vr_world_interaction_remote_tick();
+ assert(vr_world_interaction_remote_owned(1)&&velocity_calls==before_strain+1); /* solver strain never drops a held remote contact */
+ before=velocity_calls;
  r.position.i=.1f;assert(vr_world_interaction_remote(&r));ready=0;vr_world_interaction_remote_tick();assert(!vr_world_interaction_remote_owned(1)&&velocity_calls==before);
  ready=1;assert(vr_world_interaction_remote(&r));owner_unit.object.damage_flags=FLAG(_object_dead_bit);
  vr_world_interaction_remote_tick();assert(!vr_world_interaction_remote_owned(1)&&velocity_calls==before);

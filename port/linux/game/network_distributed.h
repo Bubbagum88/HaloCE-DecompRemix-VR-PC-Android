@@ -125,6 +125,10 @@ enum
 	/* co-op: where the host's devices are (doors, elevators), when they move
 	(network_coop.c) */
 	_distributed_message_coop_device_states = 77,
+	/* OpenCE voice chat; IDs match the upstream Build167 network messages. */
+	_distributed_message_voice_up = 80,
+	_distributed_message_voice_down = 81,
+	_distributed_message_voice_config = 82,
 
 	NUMBER_OF_DISTRIBUTED_MESSAGES
 };

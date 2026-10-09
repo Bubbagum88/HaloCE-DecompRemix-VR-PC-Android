@@ -19,6 +19,11 @@ static int vr_mr_input_uses_trigger(char const *source)
 {
     return source && strcmp(source, "trigger") == 0;
 }
+static int vr_mr_suppress_native_reload(int manual_enabled, int local_session,
+    int profiled_weapon)
+{
+    return manual_enabled && local_session && profiled_weapon;
+}
 /* Analog trigger hysteresis prevents vibration/noise at the activation point
  * from repeatedly starting and cancelling a reload. Invalid analog values
  * fail closed. */

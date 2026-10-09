@@ -36,6 +36,7 @@ prelude = r'''
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include "vr_holster_math.h"
 typedef float real;
 typedef int boolean;
 #define TRUE 1
@@ -45,6 +46,7 @@ typedef int boolean;
 #define CEILING(n,c) ((n)>(c)?(c):(n))
 #define PIN(n,floor,ceiling) ((n)<(floor) ? (floor) : CEILING((n),(ceiling)))
 #define MAXIMUM_NODES_PER_ANIMATION 64
+#define PENDING_SECONDS 1.0
 typedef union { struct { float i,j,k; }; float n[3]; } real_vector3d;
 typedef union { struct { float x,y,z; }; float n[3]; } real_point3d;
 typedef struct { real scale; real_vector3d forward,left,up; real_point3d position; } real_matrix4x3;
@@ -59,7 +61,9 @@ static void cross_product3d(real_vector3d const*a,real_vector3d const*b,real_vec
 }
 enum { HAND_LOOSE,HAND_HELD,HAND_EMPTY };
 static char const *hand_state_names[] = {"loose","held","empty"};
-static struct { long noted_weapon; int pending_state,hand_state,grip_held[2],weapon_hand,gun_held,two_hand_held,support_near;
+static struct { long noted_weapon,pending_expected_weapon,holster_unit,holster_draw_request;
+ long holster_weapon[VR_HOLSTER_SLOT_COUNT];
+ int pending_state,hand_state,grip_held[2],weapon_hand,gun_held,two_hand_held,support_near;
  double pending_until; float ungripped_seconds; int ungripped_warned; } vr;
 static double clock_ms;
 static double now_ms(void) { return clock_ms; }
@@ -142,14 +146,22 @@ int main(void) {
     if(dir<0&&wanted>0&&k>0&&k<100)assert(wanted-c[0]>=wanted-c[2]-1e-6f); /* the base flattens first */
     if(dir>0&&wanted<1&&k>0&&k<100)assert(c[2]-wanted>=c[0]-wanted-1e-6f);}} /* the tip buckles first */
   printf("PASS: %d contact curls continuous and monotonic (flatten base first, buckle tip first)\n",checked);}
- vr.noted_weapon=-1;vr.pending_state=-1;vr.weapon_hand=1;
- vr_note_weapon(42);assert(vr.hand_state==HAND_LOOSE);
- vr.pending_state=HAND_EMPTY;vr_note_weapon(43);assert(vr.hand_state==HAND_EMPTY);
- vr.pending_state=-1;vr.hand_state=HAND_HELD;vr_note_weapon(43);assert(vr.hand_state==HAND_HELD);
- vr_note_weapon(-1);assert(vr.hand_state==HAND_EMPTY);
- vr.hand_state=HAND_HELD;vr_note_weapon(-1);assert(vr.hand_state==HAND_EMPTY && !vr.gun_held);
- vr.pending_state=HAND_HELD;vr_note_weapon(44);assert(vr.hand_state==HAND_HELD && vr.gun_held);
- vr.pending_state=HAND_EMPTY;vr.pending_until=1;clock_ms=2000;vr_note_weapon(44);assert(vr.pending_state==-1);
+{long inventory[4]={42,43,44,-1};
+ vr.noted_weapon=-1;vr.pending_expected_weapon=-1;vr.holster_draw_request=-1;
+ vr.pending_state=-1;vr.weapon_hand=1;vr.holster_unit=-1;
+ vr_holster_slots_clear(vr.holster_weapon);
+ vr_note_weapon(7,42,inventory);assert(vr.hand_state==HAND_LOOSE);
+ vr.pending_state=HAND_EMPTY;vr_note_weapon(7,43,inventory);assert(vr.hand_state==HAND_EMPTY);
+ vr.pending_state=-1;vr.hand_state=HAND_HELD;vr_note_weapon(7,43,inventory);assert(vr.hand_state==HAND_HELD);
+ vr_note_weapon(7,-1,inventory);assert(vr.hand_state==HAND_EMPTY);
+ vr.hand_state=HAND_HELD;vr_note_weapon(7,-1,inventory);assert(vr.hand_state==HAND_EMPTY && !vr.gun_held);
+ vr.pending_state=HAND_HELD;vr_note_weapon(7,44,inventory);assert(vr.hand_state==HAND_HELD && vr.gun_held);
+ vr.pending_state=HAND_EMPTY;vr.pending_until=1;clock_ms=2000;vr_note_weapon(7,44,inventory);assert(vr.pending_state==-1);
+ vr.holster_weapon[0]=42;vr_note_weapon(8,44,inventory);assert(vr.holster_unit==8 && vr.holster_weapon[0]==-1);
+ vr.pending_expected_weapon=44;vr.pending_state=HAND_HELD;vr.pending_until=1;clock_ms=3000;
+ vr_note_weapon(8,44,inventory);assert(vr.pending_expected_weapon==-1 && vr.pending_state==-1);
+ vr_note_weapon(-1,-1,NULL);assert(vr.holster_unit==-1 && vr.hand_state==HAND_LOOSE && !vr.gun_held);
+}
  puts("PASS: 36 rotations, mirrored wrist frames, 30 finger poses (one curl each: bit-identical to 1.0.7; per-joint curls keep "
       "bone lengths), bounded ancestry, weapon lifecycle");
 }
@@ -157,5 +169,5 @@ int main(void) {
 old_pose = function(render_1_0_7, "vr_pose_finger").replace("vr_pose_finger(", "vr_pose_finger_1_0_7(", 1)
 code = prelude + "\n".join(function(render, name) for name in helpers) + old_pose + function(frame, "vr_note_weapon") + tests
 (OUT / "vr_math.c").write_text(code)
-subprocess.run(["clang", "-std=c11", "-O1", "-g", "-fsanitize=address,undefined", str(OUT / "vr_math.c"), "-lm", "-o", str(OUT / "vr_math")], check=True)
+subprocess.run(["clang", "-std=c11", "-O1", "-g", "-fsanitize=address,undefined", "-I", str(ROOT / "port/linux/game"), str(OUT / "vr_math.c"), "-lm", "-o", str(OUT / "vr_math")], check=True)
 subprocess.run([str(OUT / "vr_math")], check=True)

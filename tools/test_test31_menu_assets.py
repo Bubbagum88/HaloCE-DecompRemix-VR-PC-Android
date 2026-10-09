@@ -18,12 +18,46 @@ ROOT = Path(__file__).resolve().parents[1]
 FOLDER = ROOT / "port/assets/menus"
 
 
+def check_voice_teamplay_overlay(files):
+    """Keep Build167's host voice controls present in the embedded menu set."""
+    overlay_name = "ce/main_menu.settings_select.multiplayer_setup.teamplay_options_edit.port.xml"
+    base_name = "ce/main_menu.settings_select.multiplayer_setup.teamplay_options_edit.xml"
+    assert overlay_name in files, "Build167 teamplay voice overlay is not embedded"
+
+    overlay = ET.parse(FOLDER / overlay_name).getroot()
+    base = ET.parse(FOLDER / base_name).getroot()
+    overlay_widgets = {element.get("name"): element for element in overlay.findall("widget")}
+    expected = {
+        "voice_mode": ("var_voice_mode", 5),
+        "voice_lobby": ("var_voice_lobby", 2),
+        "voice_kbps": ("var_voice_kbps", 7),
+        "voice_proximity": ("var_voice_proximity", 6),
+    }
+    prefix = "main_menu/settings_select/multiplayer_setup/teamplay_options_edit/"
+    for key, (choices, count) in expected.items():
+        assert prefix + "op_" + key in overlay_widgets, key
+        assert prefix + key + "_label" in overlay_widgets, key
+        spinner = overlay_widgets[prefix + key + "_spinner"]
+        assert spinner.get("string_list") == prefix + choices, key
+        values = overlay.find("strings[@name='" + prefix + choices + "']")
+        assert values is not None and len(values.findall("string")) == count, key
+        assert any(event.get("event") == "left_mouse" for event in spinner.findall("on")), key
+
+    menu = next(element for element in base.findall("widget")
+                if element.get("name") == prefix + "teamplay_options_menu")
+    child_names = [child.get("widget") for child in menu.findall("child")]
+    for key in expected:
+        assert prefix + "op_" + key in child_names, key
+    print("Build167 teamplay voice overlay: four host options, values, pointer input and menu rows passed")
+
+
 def check_assets():
     spec = importlib.util.spec_from_file_location("embed_assets", ROOT / "tools/embed_assets.py")
     embed = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(embed)
     files = embed.menu_files()
     assert len(files) == len(set(files)), "duplicate embedded file"
+    check_voice_teamplay_overlay(files)
     for name in files:
         assert (FOLDER / name).is_file(), name
         assert not Path(name).is_absolute() and ".." not in Path(name).parts, name

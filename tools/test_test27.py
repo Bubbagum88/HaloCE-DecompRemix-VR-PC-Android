@@ -114,11 +114,12 @@ expected = {'player_prediction': 1, 'unit_states': 2, 'player_statistics': 3, 'i
             'actor_states': 64, 'structure_bsp': 65, 'coop_presentation': 66, 'coop_sounds_retired': 67,
             'coop_device_groups': 68, 'coop_object_names': 69, 'coop_skip_vote': 70, 'coop_events': 71,
             'coop_object_transforms': 72, 'actor_damage': 73, 'coop_object_looks': 74, 'damage_animations': 75,
-            'coop_screen_effect': 76, 'coop_device_states': 77, 'NUMBER': 78}
+            'coop_screen_effect': 76, 'coop_device_states': 77, 'voice_up': 80,
+            'voice_down': 81, 'voice_config': 82, 'NUMBER': 83}
 checks = ''.join('\tassert(_distributed_message_%s == %d);\n' % (k, v) for k, v in expected.items() if k != 'NUMBER')
 run('message_numbers', '#include <assert.h>\n#include <stdio.h>\n' + enum + '\nint main(void){\n' + checks +
-    '\tassert(NUMBER_OF_DISTRIBUTED_MESSAGES == 78);\n\tputs("PASS: message numbers as OpenCE build 138\'s (1-19, 64-77);'
-    ' this app\'s VR avatars at 37 and 38, a range OpenCE leaves free");\n}\n')
+    '\tassert(NUMBER_OF_DISTRIBUTED_MESSAGES == 83);\n\tassert(_distributed_message_voice_up == 80 && _distributed_message_voice_down == 81 && _distributed_message_voice_config == 82);\n'
+    '\tputs("PASS: OpenCE message IDs retained, voice chat uses upstream 80-82, and the existing VR avatar IDs remain unchanged");\n}\n')
 
 # --- 4. the receive path: OpenCE's (every co-op kind decoded), the VR avatars first
 assert 'header.type > _distributed_message_pings &&' not in distributed_c, 'no filter drops OpenCE\'s co-op kinds'

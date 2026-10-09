@@ -15,9 +15,11 @@ so the audio callback is handed to a thread that has one.
 #include "halo_touch.h"
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_system.h>
 #include <errno.h>
 #include <math.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <string.h>
 #include <sys/resource.h>
 #include <time.h>
@@ -42,6 +44,42 @@ JNIEXPORT void JNICALL Java_com_halo_decomp_GamepadSupport_nativeSettings(JNIEnv
     atomic_store(&pad_rumble,rumble); atomic_store(&pad_swap,swap); atomic_store(&pad_focused,focused);
 }
 #endif
+
+/* Android permission prompts are asynchronous. Keep only their state here;
+ * the guest polls it and never waits on a prompt or callback. */
+enum
+{
+	_microphone_permission_unknown = -2,
+	_microphone_permission_denied = -1,
+	_microphone_permission_pending = 0,
+	_microphone_permission_granted = 1,
+};
+static atomic_int microphone_permission_state = ATOMIC_VAR_INIT(_microphone_permission_unknown);
+
+static void SDLCALL microphone_permission_result(void *userdata, const char *permission, bool granted)
+{
+	atomic_int *state = (atomic_int *)userdata;
+	(void)permission;
+	atomic_store_explicit(state, granted ? _microphone_permission_granted : _microphone_permission_denied,
+		memory_order_release);
+}
+
+int host_sdl_request_microphone_permission(void)
+{
+	int state = atomic_load_explicit(&microphone_permission_state, memory_order_acquire);
+
+	if (state == _microphone_permission_unknown || state == _microphone_permission_denied)
+	{
+		atomic_store_explicit(&microphone_permission_state, _microphone_permission_pending, memory_order_release);
+		if (!SDL_RequestAndroidPermission("android.permission.RECORD_AUDIO", microphone_permission_result,
+			&microphone_permission_state))
+		{
+			atomic_store_explicit(&microphone_permission_state, _microphone_permission_denied, memory_order_release);
+		}
+		state = atomic_load_explicit(&microphone_permission_state, memory_order_acquire);
+	}
+	return state;
+}
 
 /* Flat touch input is independent of SDL device enumeration and physical pad
  * ownership. Java writes a snapshot; only player one's input poll consumes it.
@@ -801,8 +839,17 @@ static int audio_keep(struct audio_binding *binding, const void *data, int lengt
 
 uint32_t host_sdl_open_audio_stream(uint32_t device, const void *spec, uint32_t callback, uint32_t userdata)
 {
-	struct audio_binding *binding = SDL_calloc(1, sizeof(*binding));
+	struct audio_binding *binding;
 	SDL_AudioStream *stream;
+
+	/* (one without a callback, the microphone's, which the guest reads:
+	nothing to bind) */
+	if (!callback)
+	{
+		stream = SDL_OpenAudioDeviceStream((SDL_AudioDeviceID)device, spec, NULL, NULL);
+		return stream ? handle_new(_handle_audio, stream) : 0;
+	}
+	binding = SDL_calloc(1, sizeof(*binding));
 
 	binding->callback = callback;
 	binding->userdata = userdata;
@@ -869,6 +916,36 @@ int host_sdl_resume_audio_stream_device(uint32_t stream)
 	SDL_AudioStream *object = handle_get(stream, _handle_audio);
 
 	return object ? SDL_ResumeAudioStreamDevice(object) : 0;
+}
+
+/* (voice chat's microphone: port/linux/src/voice_audio.c) */
+int host_sdl_get_audio_stream_data(uint32_t stream, void *data, int length)
+{
+	SDL_AudioStream *object = handle_get(stream, _handle_audio);
+
+	return object ? SDL_GetAudioStreamData(object, data, length) : -1;
+}
+
+int host_sdl_get_audio_stream_available(uint32_t stream)
+{
+	SDL_AudioStream *object = handle_get(stream, _handle_audio);
+
+	return object ? SDL_GetAudioStreamAvailable(object) : -1;
+}
+
+/* (a stream opened without a callback only: one with a callback has a
+thread the guest's callbacks run on) */
+void host_sdl_destroy_audio_stream(uint32_t stream)
+{
+	SDL_AudioStream *object = handle_get(stream, _handle_audio);
+
+	if (!object)
+		return;
+	pthread_mutex_lock(&handle_lock);
+	handles[stream].type = _handle_free;
+	handles[stream].object = NULL;
+	pthread_mutex_unlock(&handle_lock);
+	SDL_DestroyAudioStream(object);
 }
 
 /* ---------- the clipboard (internet play's invite links) */

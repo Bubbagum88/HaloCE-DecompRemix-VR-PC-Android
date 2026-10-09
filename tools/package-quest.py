@@ -86,7 +86,7 @@ VR_BUILD_IDENTITIES = {
     b"vr: HaloCE Quest test41 candidate 1.0.22-test41 code52 (OpenCE Build 157 / network 24; configurable 12-40 cm physical grab reach, 8 bounded NPC rig slots, unified all-effects haptics control, explicit interaction-session diagnostics; prior systems retained; device acceptance pending)",
     b"vr: HaloCE Quest test42 candidate 1.0.23-test42 code53 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; all v1.0.18+ Test38-41 features retained; device acceptance pending)",
     b"vr: HaloCE Quest test43 candidate 1.0.24-test43 code54 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; game-data set selection and safe deletion; all v1.0.18+ Test38-42 features retained; device acceptance pending)",
-    b"vr: HaloCE Quest test44 candidate 1.0.25-test44 code55 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; managed game-data selection and explicit picker-source guidance; A10 look calibration follows fresh hand reticle; contact-driven NPC, object, climbing, reload and wheel-hand acquisition; all v1.0.18+ Test38-43 features retained; device acceptance pending)"
+    b"vr: HaloCE Quest test45 candidate 1.0.26-test45 code56 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; touch-then-Grip NPC/enemy/ally contacts; held NPC grip persists through ordinary movement and bounded tracking rebases; release-reason diagnostics; prior launcher, calibration, reload, climbing, VR and Android work retained; device acceptance pending)"
 }
 
 
@@ -226,14 +226,15 @@ def main():
         if "certificate SHA-256 digest: " + CERTIFICATE not in signed:
             raise SystemExit("APK signing certificate differs from the user's test8 key")
         badging = subprocess.check_output([str(args.build_tools / "aapt"), "dump", "badging", str(path)], text=True)
+        permissions = subprocess.check_output([str(args.build_tools / "aapt"), "dump", "permissions", str(path)], text=True)
         if f"package: name='{package}'" not in badging or "native-code: 'arm64-v8a'" not in badging:
             raise SystemExit("Wrong package or ABI: " + str(path))
         if f"versionName='{version_name}'" not in badging:
             raise SystemExit("Wrong candidate version: " + str(path))
         version_code = re.search(r"versionCode='(\d+)'", badging)
-        required_candidate_code = 55 if candidate_at_least(args.label, 44) else 54 if candidate_at_least(args.label, 43) else 53 if candidate_at_least(args.label, 42) else 52 if candidate_at_least(args.label, 41) else 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
+        required_candidate_code = 56 if candidate_at_least(args.label, 45) else 55 if candidate_at_least(args.label, 44) else 54 if candidate_at_least(args.label, 43) else 53 if candidate_at_least(args.label, 42) else 52 if candidate_at_least(args.label, 41) else 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
         if candidate_at_least(args.label, 36) and (version_code is None or int(version_code[1]) < required_candidate_code):
-            raise SystemExit("Test" + ("44" if required_candidate_code == 55 else "43" if required_candidate_code == 54 else "42" if required_candidate_code == 53 else "41" if required_candidate_code == 52 else "40" if required_candidate_code == 51 else "39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
+            raise SystemExit("Test" + ("45" if required_candidate_code == 56 else "44" if required_candidate_code == 55 else "43" if required_candidate_code == 54 else "42" if required_candidate_code == 53 else "41" if required_candidate_code == 52 else "40" if required_candidate_code == 51 else "39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
                              + " Android version code must be at least " + str(required_candidate_code) + ": " + str(path))
         if args.stable and args.label == "1.0.16" and "versionCode='45'" not in badging:
             raise SystemExit("Wrong v1.0.16 Android version code: " + str(path))
@@ -351,6 +352,9 @@ def main():
             if candidate_at_least(args.label, 34):
                 if vr:
                     current_upstream_markers = ([b"OpenCE Build 157 base / network 24", b"selected Build167 compatibility fixes",
+                                                 b"test45 candidate 1.0.26-test45 code56"]
+                        if candidate_at_least(args.label, 45) else
+                        [b"OpenCE Build 157 base / network 24", b"selected Build167 compatibility fixes",
                                                  b"test44 candidate 1.0.25-test44 code55"]
                         if candidate_at_least(args.label, 44) else
                         [b"OpenCE Build 157 base / network 24", b"selected Build167 compatibility fixes",
@@ -387,7 +391,18 @@ def main():
                     if marker not in guest:
                         raise SystemExit("Test37 native compatibility gate missing: " + repr(marker))
                 guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt")).lower()
-                guide_markers = ([b"1.0.25-test44", b"all project changes made after v1.0.18", b"picker-selected iso/xiso",
+                guide_markers = ([b"1.0.26-test45", b"all project changes made after v1.0.18", b"touch-then-grip",
+                                  b"allied marines", b"held grip does not release because the player moves",
+                                  b"picker-selected iso/xiso", b"launcher does not keep or delete", b"android files",
+                                  b"a10 look-calibration", b"rendered ray is fresh and valid", b"outside a10",
+                                  b"game-data selection and storage", b"delete imported copy",
+                                  b"source iso/xiso stays where you selected it", b"manual reload",
+                                  b"export or import a versioned layout", b"show and enable this touch control",
+                                  b"shake cooling", b"custom npc rigs", b"mag debris", b"lift vehicles",
+                                  b"npc rescue", b"hand contact", b"npc rig slots", b"holster haptics",
+                                  b"opence build157", b"build167", b"network24"]
+                                 if candidate_at_least(args.label, 45) else
+                                 [b"1.0.25-test44", b"all project changes made after v1.0.18", b"picker-selected iso/xiso",
                                   b"launcher does not keep or delete", b"android files", b"a10 look-calibration",
                                   b"rendered ray is fresh and valid", b"outside a10", b"game-data selection and storage",
                                   b"Delete imported copy", b"source ISO/XISO stays where you selected it",
@@ -437,6 +452,16 @@ def main():
                 for marker in guide_markers:
                     if marker.lower() not in guide:
                         raise SystemExit("Test37 offline guide marker missing: " + repr(marker))
+                if candidate_at_least(args.label, 45):
+                    if "android.permission.RECORD_AUDIO" not in permissions:
+                        raise SystemExit("Test45 Android microphone permission missing from APK: " + str(path))
+                    for marker in [b"voice chat: microphone", b"audio.voice_chat", b"audio.voice_volume"]:
+                        if marker not in guest:
+                            raise SystemExit("Test45 voice-chat runtime marker missing from APK: " + repr(marker))
+                    for marker in [b"voice chat", b"microphone permission", b"voice volume",
+                                   b"push to talk", b"two-client voice"]:
+                        if marker not in guide:
+                            raise SystemExit("Test45 voice-chat player guide marker missing from APK: " + repr(marker))
             if candidate_at_least(args.label, 42):
                 for marker in [b"halo-ce-touch-layout", b"touch_visibility", b"visible_",
                                b"Export touch layout preset", b"Import touch layout preset",
@@ -660,7 +685,9 @@ def main():
     base_label = re.sub(r"[a-z]$", "", args.label)
     if not args.stable and base_label != args.label:
         edition_docs += [base_label.upper()+"-DELIVERY.md", base_label.upper()+"-PROGRESS.md"]
-    active_candidate_docs = (["TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md"]
+    active_candidate_docs = (["TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md"]
+                             if candidate_at_least(args.label, 45) else
+                             ["TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md"]
                              if candidate_at_least(args.label, 44) else
                              ["TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md"]
                              if candidate_at_least(args.label, 43) else
@@ -693,7 +720,9 @@ def main():
         documents += ["TEST37-PLAYER-NOTES.md", "TEST37-UPSTREAM-INTEGRATION.md"]
     if candidate_at_least(args.label, 39) and not args.stable:
         documents += ["TEST39-DEVICE-CHECKLIST.md", "TEST39-REQUIREMENT-DISPOSITION.md"]
-    if candidate_at_least(args.label, 44) and not args.stable:
+    if candidate_at_least(args.label, 45) and not args.stable:
+        documents += ["TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    elif candidate_at_least(args.label, 44) and not args.stable:
         documents += ["TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
     elif candidate_at_least(args.label, 43) and not args.stable:
         documents += ["TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]

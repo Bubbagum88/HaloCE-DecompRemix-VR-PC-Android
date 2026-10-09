@@ -1,35 +1,30 @@
 # Agent and contributor continuation
 
-## Active private Test44 candidate (2026-10-09)
+## Active private Test45 candidate (2026-10-09)
 
-Continue on `test39-interaction-completion`; target private `1.0.25-test44`,
-Android code55. Carry forward all changes since public v1.0.18 and Test43.
-Test44 clarifies throughout launcher onboarding, the main screen and the game
-data manager that Android picker-selected ISO/XISO images are not retained or
-deleted; only their supported maps are imported, and the original image must be
-removed through Android Files. Inbox image copies remain deletable in the app.
-The A10 opening look calibration uses a fresh validated hand reticle ray for
-look actions and point-gaze checks; outside A10 and in head-aim mode it preserves
-head-based behavior. During hand aim, stale/invalid rays pause calibration
-progress rather than crediting head movement. No other mission or AI behavior
-should change. Engine base remains Build157/network24 with selected Build167
-compatibility fixes.
+Continue on `test39-interaction-completion`; target private `1.0.26-test45`,
+Android code56. Preserve Test44 and all prior APK/source artifacts, plus public
+v1.0.18. The specific change is persistent contact-grab ownership and support
+for friendly NPCs. Read `docs/TEST45-DELIVERY-STATUS.md`,
+`docs/TEST45-REQUIREMENT-DISPOSITION.md`, `docs/TEST45-PLAYER-NOTES.md`, and
+`docs/TEST45-DEVICE-CHECKLIST.md`.
 
-All contact-acquisition interactions are actual contact-volume checks followed
-by a fresh Grip or configured reload-input edge. NPC/enemy and loose-object
-grabs use authored collision models in solo play and are checked again by the
-co-op host; parkour requires hand-volume overlap with a solid surface. Aim
-direction and target-search rays cannot acquire a grab. The shared hand-contact
-radius is a palm collider (2–8 cm, 4 cm default); any retained LOS check is only
-an obstruction/safety guard after contact is confirmed.
+All acquisition interactions remain actual contact followed by a fresh Grip
+or configured reload-input edge. NPC/enemy/ally and loose-object grabs overlap
+authored collision models; climbing overlaps solid surface collision. Reload
+pouch and wheel interactions use their documented virtual contact volumes.
+Rays never acquire targets. A held NPC/prop must not release because of ordinary
+hand displacement or solver strain; tracking discontinuities rebase and zero
+throw velocity. Supported friendly Marines/crew with normal AI orders are
+allowed while only transient movement/trigger controls are suppressed; the
+actor's team and orders remain native. Immediate forced orders remain blocked.
 
-Read `docs/TEST44-DELIVERY-STATUS.md`, `docs/TEST44-REQUIREMENT-DISPOSITION.md`,
-`docs/TEST44-PLAYER-NOTES.md`, and `docs/TEST44-DEVICE-CHECKLIST.md`, plus the
-Test43/42 records. Run targeted checks, all regressions, both Quest/VR and flat
-Android builds, then package both APKs with matching build/source ZIPs. Do not
-publish, install or launch the game. Preserve existing network, VR, mobile,
-saves, co-op and Safe Geometry behavior. PC/Steam Frame remains deferred;
-headset/device acceptance remains pending.
+Run focused interaction fixtures, the full regression suite and both Quest/VR
+and flat Android builds, then package both APKs and matching build/source ZIPs.
+Do not publish, install or launch the game. Preserve network, VR, mobile, saves,
+co-op, Safe Geometry, launcher and calibration behavior. PC/Steam Frame remains
+deferred. Host/source tests do not prove headset behavior; device acceptance is
+pending.
 
 ## Superseded private Test42 candidate (2026-10-09)
 

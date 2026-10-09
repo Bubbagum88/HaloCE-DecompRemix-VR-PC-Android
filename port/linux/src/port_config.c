@@ -143,6 +143,21 @@ static const struct config_setting config_settings[] =
 		"Reverberate the world's sounds as the place the player is in does (the\n"
 		"maps' sound environments, as the Xbox's I3DL2 reverb did); false keeps\n"
 		"them dry." },
+	{ "audio.voice_chat", _config_string, "\"off\"", "HALO_VOICE_CHAT", _environment_value, _platform_all,
+		"Voice chat microphone: \"off\" (default), \"push_to_talk\" (hold\n"
+		"controls.push_to_talk; the microphone opens only while held), or\n"
+		"\"open_mic\" (transmit while speech is detected). Receiving is controlled\n"
+		"separately by audio.voice_volume." },
+	{ "audio.voice_volume", _config_real, "1.0", "HALO_VOICE_VOLUME", _environment_value, _platform_all,
+		"The volume of other players' voices, from 0 (muted) to 2." },
+	{ "audio.input_device", _config_string, "\"default\"", "HALO_AUDIO_INPUT_DEVICE", _environment_value,
+		_platform_desktop,
+		"The voice chat microphone device by its SDL name, or \"default\" for the\n"
+		"system default. Android uses the system's default recording device." },
+	{ "audio.output_device", _config_string, "\"default\"", "HALO_AUDIO_OUTPUT_DEVICE", _environment_value,
+		_platform_desktop,
+		"Where game and voice audio plays: an SDL device name or \"default\" for\n"
+		"the system's default." },
 
 	{ "input.mouse_vertical_sensitivity", _config_real, "0.0", "HALO_MOUSE_VERTICAL_SENSITIVITY", _environment_value,
 		_platform_desktop,
@@ -207,6 +222,9 @@ static const struct config_setting config_settings[] =
 
 	{ "controls.pause", _config_string, "\"Escape\"", "HALO_KEY_PAUSE", _environment_value, _platform_all,
 		"The pause menu (the controller's Start)." },
+	{ "controls.push_to_talk", _config_string, "\"V\"", "HALO_KEY_PUSH_TO_TALK", _environment_value, _platform_all,
+		"Hold to transmit voice when audio.voice_chat is \"push_to_talk\". In VR,\n"
+		"the BUTTONS page also lets you bind a Quest controller button." },
 
 	{ "debug.menu_open", _config_string, "\"\"", "HALO_MENU_OPEN", _environment_value, _platform_all,
 		"Start on this screen of the menus (port/assets/menus) instead of the main\n"
@@ -347,6 +365,18 @@ static const struct config_setting config_settings[] =
 		"clipboard) that lets whoever has it join over the internet; opening a\n"
 		"link (or copying one before switching to the game) joins. Only people\n"
 		"with the invite can join. Off keeps system link to the local network." },
+	{ "network.voice_lobby", _config_boolean, "true", "HALO_NET_VOICE_LOBBY", _environment_value, _platform_all,
+		"Hosting: allow voice chat in the lobby and post-game." },
+	{ "network.voice_mode", _config_string, "\"team_global_enemy_proximity\"", "HALO_NET_VOICE_MODE",
+		_environment_value, _platform_all,
+		"Hosting: in-game voice routing: off, team_proximity, team_enemy_proximity,\n"
+		"team_global, or team_global_enemy_proximity. The Server Setup menu names\n"
+		"these choices." },
+	{ "network.voice_kbps", _config_integer, "24", "HALO_NET_VOICE_KBPS", _environment_value, _platform_all,
+		"Hosting: voice quality in kilobits per second, 8 to 64." },
+	{ "network.voice_proximity", _config_real, "15.0", "HALO_NET_VOICE_PROXIMITY", _environment_value,
+		_platform_all,
+		"Hosting: proximity voice range in world units (5 to 100)." },
     { "network.legacy_coop", _config_boolean, "false", "HALO_NET_LEGACY_COOP", _environment_value, _platform_all,
         "Opt in to legacy network12-14 campaign clients. Old hosts omit scripted team allegiance; marine reticles/team behavior may be wrong.\n"
         "Uses old native presentation behavior without invented allegiance. Prefer network15-24. Hosting stays24." },
@@ -454,6 +484,8 @@ static const struct config_setting config_settings[] =
 		_platform_all,
 		"The weapon network_test_pickup stands the player on: the first whose tag\n"
 		"name has this in it (\"sniper\", say); empty any." },
+	{ "debug.voice_test", _config_boolean, "false", "HALO_VOICE_TEST", _environment_set_is_true, _platform_all,
+		"Automated voice tests: use a generated tone instead of a microphone." },
 	{ "debug.telnet_console", _config_boolean, "false", "HALO_TELNET_CONSOLE", _environment_set_is_true, _platform_all,
 		"Listen on 127.0.0.1 (port telnet_console_port) for a script console that\n"
 		"runs what it is sent as the game's console does, with no password; false\n"
@@ -764,8 +796,18 @@ static const struct config_setting config_settings[] =
 		"bob). Offline, strong forward pumping raises movement speed up to 1.5x.\n"
 		"Network games retain stock speed. Deliberate stick movement takes priority." },
 	{ "vr.arm_run_speed", _config_real, "0.6", "HALO_VR_ARM_RUN_SPEED", _environment_value, _platform_vr,
-		"With vr.arm_run: how fast the hands must move (metres a second) to start\n"
-		"running; full speed at 2.5 times it. Lower is easier." },
+		"With vr.arm_run: hand-motion threshold in metres per second. This is\n"
+		"arm-run sensitivity; sprint speed is configured separately." },
+	{ "vr.button_sprint", _config_boolean, "false", "HALO_VR_BUTTON_SPRINT", _environment_value, _platform_vr,
+		"Use left stick click for offline sprint. The VR menu temporarily frees\n"
+		"that binding and restores it when this option is disabled." },
+	{ "vr.sprint_speed", _config_real, "1.5", "HALO_VR_SPRINT_SPEED", _environment_value, _platform_vr,
+		"Maximum offline sprint movement multiplier, bounded from 1.0x to 1.5x." },
+	{ "vr.melee_requires_fist", _config_boolean, "false", "HALO_VR_MELEE_REQUIRES_FIST", _environment_value, _platform_vr,
+		"Physical melee requires grip and index trigger together; an active hand\n"
+		"interaction takes priority over physical melee." },
+	{ "vr.button_sprint_saved_mask", _config_integer, "0", NULL, _environment_value, _platform_vr,
+		"Internal saved VR button mapping used while Button Sprint is active." },
 	{ "vr.close_contact", _config_boolean, "true", "HALO_VR_CLOSE_CONTACT", _environment_value, _platform_vr,
 		"Offline local VR player only: reduce capsule radius by up to 15 percent\n"
 		"(at most 5 cm, minimum radius 18 cm) for closer hand contact. Solid\n"
@@ -1013,6 +1055,9 @@ static const struct config_setting config_settings[] =
 	{ "vr.button_switch_grenade", _config_string, "\"hold\"", "HALO_VR_BUTTON_SWITCH_GRENADE", _environment_value, _platform_vr,
 		"Quest: the button that switches grenades, or \"hold\" (default): holding the grenade\n"
 		"button switches and tapping it throws. Also a, b, x, y, right_stick, left_stick, right_stick_down (the turning stick held down), grip or none." },
+	{ "vr.button_push_to_talk", _config_string, "\"none\"", "HALO_VR_BUTTON_PUSH_TO_TALK", _environment_value, _platform_vr,
+		"Quest: the controller button held to transmit when audio.voice_chat is \"push_to_talk\".\n"
+		"Default none; no microphone capture occurs until PTT is bound and held, or Open Mic is explicitly selected." },
 	{ "vr.align_left_pitch", _config_real, "0.0", "HALO_VR_ALIGN_LEFT_PITCH", _environment_value, _platform_vr,
 		"Left controller tracking correction, local pitch: degrees (-180..180). Moves hand AND gun;\n"
 		"for comfort use vr.hand_* (hand) or vr.weapon_* (gun). Zero preserves runtime tracking." },

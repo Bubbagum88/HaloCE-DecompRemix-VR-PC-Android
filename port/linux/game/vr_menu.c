@@ -251,11 +251,19 @@ static struct vr_menu_setting const vr_menu_body[] =
 	{ "FINGERS", "vr.fingers", _vr_setting_boolean, 2, { { "OFF", "false" }, { "TRACKED", "true" } } },
 	{ "ROOM-SCALE", "vr.roomscale", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "CROUCH DEPTH", "vr.crouch_height", _vr_setting_real, 9, { { "OFF", "0" }, { "5 CM", "0.05" }, { "10 CM", "0.1" }, { "15 CM", "0.15" }, { "20 CM", "0.2" }, { "25 CM", "0.25" }, { "30 CM", "0.3" }, { "35 CM", "0.35" }, { "40 CM", "0.4" } } },
-	{ "ARM RUN", "vr.arm_run", _vr_setting_multi, 7, { { "OFF", "vr.arm_run=false" }, { "EASY 0.3", "vr.arm_run=true;vr.arm_run_speed=0.3" }, { "0.45", "vr.arm_run=true;vr.arm_run_speed=0.45" }, { "0.6", "vr.arm_run=true;vr.arm_run_speed=0.6" }, { "0.8", "vr.arm_run=true;vr.arm_run_speed=0.8" }, { "1.0", "vr.arm_run=true;vr.arm_run_speed=1.0" }, { "HARD 1.2", "vr.arm_run=true;vr.arm_run_speed=1.2" } } },
 	/* test21: physical melee in network games only with "+ ONLINE"
 	(vr.melee_multiplayer, off by default); the melee button always works */
 	{ "MELEE", "vr.melee", _vr_setting_multi, 4, { { "IMPACT", "vr.melee=impact;vr.melee_multiplayer=false" }, { "SWING", "vr.melee=swing;vr.melee_multiplayer=false" }, { "IMPACT + ONLINE", "vr.melee=impact;vr.melee_multiplayer=true" }, { "SWING + ONLINE", "vr.melee=swing;vr.melee_multiplayer=true" } } },
 	{ "MELEE SPEED", "vr.melee_speed", _vr_setting_real, 12, { { "OFF", "0" }, { "1.0", "1.0" }, { "1.2", "1.2" }, { "1.4", "1.4" }, { "1.6", "1.6" }, { "1.8", "1.8" }, { "2.0", "2.0" }, { "2.3", "2.3" }, { "2.6", "2.6" }, { "2.9", "2.9" }, { "3.2", "3.2" }, { "3.6", "3.6" } } },
+	{ "FIST REQUIRED", "vr.melee_requires_fist", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+};
+
+static struct vr_menu_setting const vr_menu_locomotion[] =
+{
+	{ "BUTTON SPRINT", "vr.button_sprint", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	{ "ARM RUN", "vr.arm_run", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	{ "ARM EFFORT", "vr.arm_run_speed", _vr_setting_real, 6, { { "0.3 M/S", "0.3" }, { "0.45", "0.45" }, { "0.6", "0.6" }, { "0.8", "0.8" }, { "1.0", "1.0" }, { "1.2", "1.2" } } },
+	{ "SPRINT SPEED", "vr.sprint_speed", _vr_setting_real, 6, { { "1.0X", "1.0" }, { "1.1X", "1.1" }, { "1.2X", "1.2" }, { "1.3X", "1.3" }, { "1.4X", "1.4" }, { "1.5X", "1.5" } } },
 };
 
 /* the feel of play, with the crosshair (formerly its own page) */
@@ -451,7 +459,19 @@ static struct vr_menu_setting const vr_menu_buttons[] =
     { "NEXT GRENADE", "vr.button_switch_grenade", _vr_setting_button, 10, { { "HOLD", "hold" }, { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
     /* test26: shows or hides the reticle (starts shown) */
     { "RETICLE", "vr.button_reticle", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
+    { "PUSH TO TALK", "vr.button_push_to_talk", _vr_setting_button, 7, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "NONE", "none" } } },
     { "RESET BUTTONS", "buttons", _vr_setting_reset_buttons, 0, { { NULL,NULL } } },
+};
+
+/* Build167 voice is off by default. Volume zero also mutes received voices;
+ * host routing remains in Server Setup and is not overridden by this client. */
+static struct vr_menu_setting const vr_menu_voice[] =
+{
+	{ "MICROPHONE", "audio.voice_chat", _vr_setting_string, 3,
+		{ { "OFF", "off" }, { "PUSH TO TALK", "push_to_talk" }, { "OPEN MIC", "open_mic" } } },
+	{ "VOICE VOLUME", "audio.voice_volume", _vr_setting_real, 9,
+		{ { "MUTED", "0" }, { "25%", "0.25" }, { "50%", "0.5" }, { "75%", "0.75" },
+		  { "100%", "1" }, { "125%", "1.25" }, { "150%", "1.5" }, { "175%", "1.75" }, { "200%", "2" } } },
 };
 
 static struct vr_menu_setting const vr_menu_align_left[] =
@@ -491,6 +511,8 @@ static struct vr_menu_page
 {
 	{ "CONTROLS", vr_menu_controls, NUMBEROF(vr_menu_controls) },
 	{ "BUTTONS", vr_menu_buttons, NUMBEROF(vr_menu_buttons) },
+	{ "VOICE CHAT", vr_menu_voice, NUMBEROF(vr_menu_voice) },
+	{ "LOCOMOTION", vr_menu_locomotion, NUMBEROF(vr_menu_locomotion) },
 	{ "COMFORT", vr_menu_comfort, NUMBEROF(vr_menu_comfort) },
 	{ "BODY", vr_menu_body, NUMBEROF(vr_menu_body) },
 	{ "HANDS + GUN", vr_menu_hands, NUMBEROF(vr_menu_hands) },
@@ -588,6 +610,57 @@ static int vr_menu_button_action(char const *key)
 static int vr_menu_button_source(int action)
 {
 	return vr_button_source_of(config_string(vr_button_action_key(action)), vr_button_default(action));
+}
+
+/* Button Sprint owns left stick click while enabled. Preserve its old action,
+ * then restore only bindings the user has not changed in the meantime. */
+static boolean vr_menu_button_sprint_set(boolean enabled)
+{
+	boolean current = config_boolean("vr.button_sprint");
+	long saved = config_integer("vr.button_sprint_saved_mask");
+	int action;
+	boolean written = TRUE;
+	if (current == enabled) return TRUE;
+	if (enabled)
+	{
+		long mask = 0;
+		char text[16];
+		for (action = 0; action < VR_BUTTON_ACTIONS; ++action)
+			if (vr_menu_button_source(action) == VR_BUTTON_SOURCE_LEFT_STICK)
+				mask |= 1L << action;
+		snprintf(text, sizeof(text), "%ld", mask);
+		written = config_write("vr.button_sprint_saved_mask", text);
+		for (action = 0; action < VR_BUTTON_ACTIONS; ++action)
+			if (written && (mask & (1L << action)))
+				written = config_write_string(vr_button_action_key(action), "none");
+		if (written) written = config_write_boolean("vr.button_sprint", TRUE);
+		if (!written)
+		{
+			for (action = 0; action < VR_BUTTON_ACTIONS; ++action)
+				if (mask & (1L << action))
+					config_write_string(vr_button_action_key(action), "left_stick");
+			config_write("vr.button_sprint_saved_mask", "0");
+		}
+	}
+	else
+	{
+		if (saved < 0 || saved > 255) saved = 0;
+		for (action = 0; action < VR_BUTTON_ACTIONS; ++action)
+		{
+			if (!(saved & (1L << action))) continue;
+			if (vr_menu_button_source(action) == VR_BUTTON_SOURCE_NONE)
+				written = config_write_string(vr_button_action_key(action), "left_stick") && written;
+			else
+				platform_log("vr: did not restore %s on left stick click; it was changed while Button Sprint was enabled",
+					vr_button_action_key(action));
+		}
+		if (written) written = config_write_boolean("vr.button_sprint", FALSE);
+		if (written) written = config_write("vr.button_sprint_saved_mask", "0");
+	}
+	vr_reload_settings();
+	platform_log("vr: button sprint %s%s", enabled ? "enabled (left stick click)" : "disabled",
+		written ? "" : " (config write failed)");
+	return written;
 }
 
 /* test23: `action` takes `source`; another action on that button takes
@@ -1524,7 +1597,7 @@ boolean vr_menu_setting_change(
     }
     if(setting->type == _vr_setting_reset_buttons) {
         int action;
-        written=TRUE;
+        written=vr_menu_button_sprint_set(FALSE);
         for(action=0;action<VR_BUTTON_ACTIONS;action++)
             written=config_write_string(vr_button_action_key(action),vr_button_source_value(vr_button_default(action)))&&written;
         vr_reload_settings(); platform_log("vr: reset buttons to their defaults%s",written?"":" (save failed)");
@@ -1626,6 +1699,11 @@ boolean vr_menu_setting_change(
 	else
 		value_index = value_index == NONE ? 0 : (value_index + step + setting->value_count) % setting->value_count;
 	value = setting->values[value_index].value;
+	if (setting->type == _vr_setting_boolean && !strcmp(setting->key, "vr.button_sprint"))
+	{
+		vr_menu_button_sprint_set(!strcmp(value, "true"));
+		return TRUE;
+	}
 	switch (setting->type)
 	{
 	case _vr_setting_boolean:

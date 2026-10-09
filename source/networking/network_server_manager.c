@@ -738,6 +738,8 @@ static void network_game_server_start_late_joiner(
 	struct network_game_server_client_machine *machine);
 static void network_game_server_keep_late_joiners_alive(
 	struct network_game_server *server);
+/* OpenCE Build167 voice chat: give a newly accepted machine a fresh key. */
+void network_voice_machine_joined(long machine_index);
 static boolean network_game_server_add_new_client(
 	struct network_game_server *server,
 	struct network_connection *new_connection);
@@ -2053,6 +2055,8 @@ boolean network_game_server_accept_client_machine_into_game(
 				}
 				network_game_server_client_machine_addresses[machine_index] = address.address.long_words[0];
 				network_game_server_client_machine_join_times[machine_index] = system_milliseconds();
+				/* Rotate voice authentication when a new machine takes this slot. */
+				network_voice_machine_joined(machine_index);
 			}
 			else
 			{

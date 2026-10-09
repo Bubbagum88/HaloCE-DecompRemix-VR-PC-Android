@@ -46,6 +46,8 @@ SUITES = [
     'test_host_watch_hash',
     'test_opence_167_fixes',
     'test_test42_refresh_rate',
+    'test_voice_chat_integration',
+    'test_voice_chat_protocol',
 ]
 
 def main():

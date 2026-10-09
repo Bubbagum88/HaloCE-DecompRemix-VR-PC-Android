@@ -27,7 +27,7 @@ for path,digest in UPSTREAM_145:
     # candidate also carries a focused Build167 grenade attribution fix in
     # network_damage.c; its production behavior is checked by
     # test_opence_167_fixes.py. Keep exact hashes for all untouched units.
-    if path.endswith(('coop_enemies.c', 'network_damage.c')):
+    if path.endswith(('coop_enemies.c', 'network_damage.c', 'network_server_message_handler.c')):
         continue
     data=(ROOT/path).read_bytes()
     if path == 'source/networking/network_client_manager.h':
@@ -36,6 +36,11 @@ for path,digest in UPSTREAM_145:
         assert data.count(addition)==1
         data=data.replace(addition,b'')
     assert hashlib.sha256(data).hexdigest()==digest,path
+voice_dispatch=read('source/networking/network_server_message_handler.c')
+assert voice_dispatch.count('network_voice_handles_message(message,') == 2
+assert voice_dispatch.count('network_voice_handle_message(machine_index, message,') == 2
+assert 'network_game_server_client_machine_is_joined_to_game(server, machine)' in voice_dispatch
+assert 'network_game_server_get_client_machine_at_address(server, source_address->address.long_words[0])' in voice_dispatch
 client=read('source/networking/network_client_manager.c')
 assert '!cache_files_map_present(message_packet->map.name, (unsigned long)message_packet->map.version)' in client
 assert 'CUSTOM_EDITION_LEVEL_NAME_PREFIX "%s"' in read('port/linux/game/custom_edition_maps.c')
@@ -47,7 +52,7 @@ assert 'display_error_text_when_main_menu_loaded(error_text)' in fn(cache,'cache
 assert 'cache_files_precache_map_loaded(map_name)' in fn(cache,'cache_files_map_present')
 assert 'return custom_edition_cache_playable(map_name);' in fn(read('source/cache/cache_files_windows.c'),'cache_files_precache_map_loaded')
 assert 'ui_widget_port_text_wrap' in read('source/interface/ui_widget.c')
-print('PASS: host network 24; PvP host range 11..24; %d unchanged networking files match pinned OpenCE build 145; Build167 grenade attribution is covered separately; map namespace/preflight, PAL and legacy loader retained' % (len(UPSTREAM_145)-2))
+print('PASS: host network 24; PvP host range 11..24; %d unchanged networking files match pinned OpenCE build 145; Build167 grenade attribution and joined-peer voice stream/datagram dispatch are covered separately; map namespace/preflight, PAL and legacy loader retained' % (len(UPSTREAM_145)-3))
 
 # Exercise the production range helpers against both allocation layouts.
 run('cache_bounds', r'''

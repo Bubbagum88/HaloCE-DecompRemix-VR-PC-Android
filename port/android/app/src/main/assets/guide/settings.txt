@@ -95,6 +95,27 @@ Reverberate the world's sounds as the place the player is in does (the
 maps' sound environments, as the Xbox's I3DL2 reverb did); false keeps
 them dry.
 
+audio.voice_chat [string]
+Default: "off"
+Voice chat microphone: "off" (default), "push_to_talk" (hold
+controls.push_to_talk; the microphone opens only while held), or
+"open_mic" (transmit while speech is detected). Receiving is controlled
+separately by audio.voice_volume.
+
+audio.voice_volume [real]
+Default: 1.0
+The volume of other players' voices, from 0 (muted) to 2.
+
+audio.input_device [string]
+Default: "default"
+The voice chat microphone device by its SDL name, or "default" for the
+system default. Android uses the system's default recording device.
+
+audio.output_device [string]
+Default: "default"
+Where game and voice audio plays: an SDL device name or "default" for
+the system's default.
+
 input.mouse_vertical_sensitivity [real]
 Default: 0.0
 How far the view turns up and down for the mouse's movement; 0 for the
@@ -173,6 +194,11 @@ Showing the scores (the controller's Back).
 controls.pause [string]
 Default: "Escape"
 The pause menu (the controller's Start).
+
+controls.push_to_talk [string]
+Default: "V"
+Hold to transmit voice when audio.voice_chat is "push_to_talk". In VR,
+the BUTTONS page also lets you bind a Quest controller button.
 
 debug.menu_open [string]
 Default: ""
@@ -371,6 +397,24 @@ clipboard) that lets whoever has it join over the internet; opening a
 link (or copying one before switching to the game) joins. Only people
 with the invite can join. Off keeps system link to the local network.
 
+network.voice_lobby [boolean]
+Default: true
+Hosting: allow voice chat in the lobby and post-game.
+
+network.voice_mode [string]
+Default: "team_global_enemy_proximity"
+Hosting: in-game voice routing: off, team_proximity, team_enemy_proximity,
+team_global, or team_global_enemy_proximity. The Server Setup menu names
+these choices.
+
+network.voice_kbps [integer]
+Default: 24
+Hosting: voice quality in kilobits per second, 8 to 64.
+
+network.voice_proximity [real]
+Default: 15.0
+Hosting: proximity voice range in world units (5 to 100).
+
 network.legacy_coop [boolean]
 Default: false
 Opt in to legacy network12-14 campaign clients. Old hosts omit scripted team allegiance; marine reticles/team behavior may be wrong.
@@ -516,6 +560,10 @@ debug.network_test_pickup_weapon [string]
 Default: ""
 The weapon network_test_pickup stands the player on: the first whose tag
 name has this in it ("sniper", say); empty any.
+
+debug.voice_test [boolean]
+Default: false
+Automated voice tests: use a generated tone instead of a microphone.
 
 debug.telnet_console [boolean]
 Default: false
@@ -1018,8 +1066,26 @@ Network games retain stock speed. Deliberate stick movement takes priority.
 
 vr.arm_run_speed [real]
 Default: 0.6
-With vr.arm_run: how fast the hands must move (metres a second) to start
-running; full speed at 2.5 times it. Lower is easier.
+With vr.arm_run: hand-motion threshold in metres per second. This is
+arm-run sensitivity; sprint speed is configured separately.
+
+vr.button_sprint [boolean]
+Default: false
+Use left stick click for offline sprint. The VR menu temporarily frees
+that binding and restores it when this option is disabled.
+
+vr.sprint_speed [real]
+Default: 1.5
+Maximum offline sprint movement multiplier, bounded from 1.0x to 1.5x.
+
+vr.melee_requires_fist [boolean]
+Default: false
+Physical melee requires grip and index trigger together; an active hand
+interaction takes priority over physical melee.
+
+vr.button_sprint_saved_mask [integer]
+Default: 0
+
 
 vr.close_contact [boolean]
 Default: true
@@ -1482,6 +1548,11 @@ vr.button_switch_grenade [string]
 Default: "hold"
 Quest: the button that switches grenades, or "hold" (default): holding the grenade
 button switches and tapping it throws. Also a, b, x, y, right_stick, left_stick, right_stick_down (the turning stick held down), grip or none.
+
+vr.button_push_to_talk [string]
+Default: "none"
+Quest: the controller button held to transmit when audio.voice_chat is "push_to_talk".
+Default none; no microphone capture occurs until PTT is bound and held, or Open Mic is explicitly selected.
 
 vr.align_left_pitch [real]
 Default: 0.0

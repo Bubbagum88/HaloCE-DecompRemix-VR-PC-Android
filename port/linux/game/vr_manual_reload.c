@@ -306,6 +306,9 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     boolean trigger_input = FALSE;
     unsigned int buttons;float triggers[2],thumbs[4];
     boolean current = reload_local_weapon(weapon_index, &unit_index);
+    boolean suppress_native = vr_mr_suppress_native_reload(
+        config_boolean("vr.manual_reload"), game_connection() == _game_connection_local,
+        reload.ready && reload.weapon == weapon_index && reload.model != NONE);
     /* Other world/NPC weapons must not cancel the local transaction. */
     if (!current) {
         if (reload.weapon == weapon_index) vr_manual_reload_reset();
@@ -315,7 +318,7 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         game_connection() != _game_connection_local || !(units > 0) || vr_hand_empty() ||
         !reload.ready || reload.weapon != weapon_index || reload.hand != hand_index ||
         vr_pose_time()-reload.sample_time > 0.25 || vr_pose_time()<reload.sample_time) {
-        vr_manual_reload_reset(); return 0;
+        vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
     }
     trigger_input = vr_mr_input_uses_trigger(config_string("vr.reload_input"));
     weapon = weapon_get(weapon_index);
@@ -338,25 +341,29 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     if (definition->weapon.magazines.count != 1 || weapon->weapon.state != _weapon_state_idle ||
         TEST_FLAG(weapon->weapon.control_flags, _weapon_control_user_busy_bit) ||
         TEST_FLAG(weapon->weapon.control_flags, _weapon_control_user_switching_weapons_bit)) {
-        vr_manual_reload_reset(); return 0;
+        vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
     }
     magazine = &weapon->weapon.magazines[0];
     magazine_definition = TAG_BLOCK_GET_ELEMENT(&definition->weapon.magazines, 0, struct weapon_magazine_definition);
     if (magazine->state != _magazine_idle || magazine_definition->rounds_reloaded <= 0 ||
-        magazine_definition->rounds_recharged_per_second != 0) { vr_manual_reload_reset(); return 0; }
+        magazine_definition->rounds_recharged_per_second != 0) {
+        vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
+    }
     unit_get_camera_position(unit_index, &camera);
     reload.camera=camera;
     if (!vr_hand_world(vr_weapon_hand(), camera.n, weapon_hand.n, forward.n, up.n) ||
         !vr_hand_world(hand_index, camera.n, hand.n, forward.n, up.n) ||
         !vr_head_view(camera.n, object_get(unit_index)->object.forward.n, head.n, head_forward.n, head_up.n)) {
-        vr_manual_reload_reset(); return 0;
+        vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
     }
     matrix4x3_from_point_and_vectors(&hand_matrix, &hand, &forward, &up);
     if (reload.have_attachment) matrix4x3_multiply(&hand_matrix, &reload.attachment, &reload.held);
     /* Ammo follows the free hand's body side. Shoulder and hip are independently
      * enabled; handedness changes cancel/reacquire the transaction above. */
     head_forward.k = 0;
-    if (normalize3d(&head_forward) <= 0.001f) { vr_manual_reload_reset(); return 0; }
+    if (normalize3d(&head_forward) <= 0.001f) {
+        vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
+    }
     left.i = -head_forward.j; left.j = head_forward.i; left.k = 0;
     scale_vector3d(&left,vr_mr_pouch_side(hand_index),&left);
     for (int axis=0; axis<3; ++axis) {
@@ -440,7 +447,7 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     }
     if (event == VR_MR_BEGIN || event == VR_MR_PICKUP || event == VR_MR_CHARGE) {
         if (!vr_interaction_claim_input(hand_index, VR_INTERACTION_RELOAD, input.held)) {
-            vr_manual_reload_reset(); return 0;
+            vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
         }
         reload.grip_time=vr_pose_time();
         if (event == VR_MR_BEGIN) {
@@ -472,7 +479,10 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     }
     if (!input.held || event == VR_MR_CANCEL || event == VR_MR_COMMIT)
         vr_interaction_release(hand_index, VR_INTERACTION_RELOAD);
-    if (explicit_reload || !input.valid) return 0;
+    /* The reload button cancels the physical transaction but must never fall
+     * through to the native automatic reload for a supported profile. */
+    if (explicit_reload || !input.valid)
+        return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
     return VR_MANUAL_SUPPRESS_AUTO |
         (reload.state.phase != VR_MR_IDLE ? VR_MANUAL_BLOCK_FIRE : 0) |
         (event == VR_MR_COMMIT ? VR_MANUAL_COMMIT : 0);

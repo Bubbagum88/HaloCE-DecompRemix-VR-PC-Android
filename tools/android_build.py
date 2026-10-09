@@ -27,7 +27,7 @@ from typing import Any, Dict, List, Optional
 
 from .linux_build import (LINUX_PROFILE, MINIUPNPC_DEFINES, MINIUPNPC_DIR, MUSL_MATH_DIR, XDK_INCLUDE,
                           compile_launcher, game_defines_and_includes, game_sources, miniupnpc_sources,
-                          musl_math_sources, pgo_mode, pgo_profile,
+                          musl_math_sources, opus_cflags, opus_sources, OPUS_DIR, pgo_mode, pgo_profile,
                           profile_use_flags, updater_defines, xdk_headers)
 from .embed_assets import hud_assets_build, hud_configure_inputs
 from .ninja_syntax import Writer
@@ -482,7 +482,9 @@ def generate_android_build(n: Writer, sln: Any) -> None:
         f"-I{LINUX_DIR}/src", f"-I{LINUX_DIR}/include", f"-I{PORT_DIR}/guest/runtime",
         f"-I{PORT_DIR}/include", f"-I{TOML_DIR}", f"-I{EXPAT_DIR}", f"-I{KCP_DIR}", f"-Iport/third_party/monocypher", f"-I{ZLIB_DIR}",
         "-Isource -Isource/cseries",
-        f"-I{SDL_DIR}/include", f"-I{gl_include}", *libc_includes, f"-idirafter {XDK_INCLUDE}",
+        f"-I{SDL_DIR}/include", f"-I{gl_include}",
+        *(f"-I{OPUS_DIR / name}" for name in ("include", "celt", "silk", "silk/float")),
+        *libc_includes, f"-idirafter {XDK_INCLUDE}",
     ])
     guest_host_only = {"memory_watch.c"}  # replaced by guest_memory_watch.c
     for source in sorted((LINUX_DIR / "src").glob("*.c")):
@@ -498,6 +500,9 @@ def generate_android_build(n: Writer, sln: Any) -> None:
         objects.append(guest_object(EXPAT_DIR / name, platform_cflags))
     # internet play's reliable streams (port/third_party/kcp; p2p.c)
     objects.append(guest_object(KCP_DIR / "ikcp.c", platform_cflags))
+    # voice chat's codec (port/third_party/opus), with the guest ABI
+    for source in opus_sources():
+        objects.append(guest_object(source, " ".join([opus_cflags(guest_abi), *libc_includes])))
     for name in ("monocypher.c", "monocypher-ed25519.c"):
         objects.append(guest_object(Path("port/third_party/monocypher") / name, platform_cflags))
     # the port's zlib

@@ -42,6 +42,7 @@ typedef int BOOL;
 typedef unsigned char BYTE;
 typedef char CHAR;
 typedef uint64_t Uint64;
+typedef uint32_t SDL_AudioDeviceID;
 typedef int SDL_ThreadID;
 typedef void SDL_Window;
 #define FALSE 0

@@ -3,6 +3,7 @@
  * negotiated co-op host authority only; actor metadata is never recreated. */
 #include "cseries.h"
 #include "game/game.h"
+#include "game/game_allegiance.h"
 #include "game/players.h"
 #include "camera/director.h"
 #include "cutscene/cinematics.h"
@@ -23,6 +24,7 @@
 #include "vr_npc_interaction.h"
 #include "vr_articulated_native.h"
 #include "vr_world_math.h"
+#include "vr_interaction_hold_math.h"
 #include "vr_world_interaction.h"
 #include "network_interaction.h"
 #include "vr_interaction_impact.h"
@@ -51,7 +53,7 @@ static struct npc_state {
     real mobility;
     long index,tick,player;
     struct vr_articulated_native rig;
-    int node[2],held[2],edge[2],sample[2];
+    int node[2],held[2],edge[2],sample[2],strain_logged[2],sample_rebased[2];
     real_vector3d offset[2],root_anchor[2],velocity[2];
     real_vector3d body_forward_local;
     real_point3d target[2],previous[2],root;
@@ -310,6 +312,7 @@ static struct unit_datum *eligible(long index)
     long weapon;
     struct npc_state *state=state_for_object(index);
     int dead=u&&TEST_FLAG(u->object.damage_flags,_object_dead_bit);
+    int friendly=FALSE;
     if(!u || u->unit.player_index!=NONE || (!dead&&u->unit.actor_index==NONE) ||
        u->object.parent_object_index!=NONE || u->object.name_index!=NONE ||
        TEST_FLAG(u->object.flags,_object_movie_star_bit) ||
@@ -322,8 +325,16 @@ static struct unit_datum *eligible(long index)
        (!dead&&u->unit.animation.state>_unit_state_land_hard && !(state&&state->getting_up&&
         (u->unit.animation.state==_unit_state_resurrect_front||u->unit.animation.state==_unit_state_resurrect_back)))) return NULL;
     a=u->unit.actor_index!=NONE?actor_try_and_get(u->unit.actor_index):NULL;
+    /* A friendly campaign actor may have an ordinary AI command list even
+     * while standing still. Contact-grabbing it temporarily overrides only
+     * its transient movement/trigger controls; its team, orders and command
+     * list remain native and resume when the grip is released. Immediate
+     * orders remain excluded because they represent a forced scripted action. */
+    if(a && !dead && a->meta.team_index>=0 &&
+       !game_team_is_enemy(_game_team_player,a->meta.team_index))friendly=TRUE;
     if(!interaction_profile(unit_species(u,index),u,index,&required_hands,&mobility) ||
-       (!dead&&(!a || !a->meta.active || a->state.command_list_index!=NONE || a->state.command_list_immediate))) return NULL;
+       (!dead&&(!a || !a->meta.active ||
+        (a->state.command_list_index!=NONE&&!friendly) || a->state.command_list_immediate))) return NULL;
     weapon=unit_inventory_get_weapon(index,u->unit.current_weapon_index);
     w=weapon!=NONE?weapon_try_and_get(weapon):NULL;
     /* Match native weapon_busy: a burst/charge/reload already in progress
@@ -404,13 +415,25 @@ void vr_npc_interaction_cancel(void)
     for(int n=0;n<NPC_POOL_SIZE;++n) {npc_current=&npc_pool[n];cancel_one();}
     memset(remote_pool,0,sizeof(remote_pool));local_edges[0]=local_edges[1]=1;
 }
-static void release(int hand,int throwing)
+static void cancel_one_reason(char const *reason)
+{
+	if(npc.active)platform_log("VR NPC: cancel actor=%08lx hand0=%d hand1=%d started=%d reason=%s",
+		npc.index,npc.held[0],npc.held[1],npc.started,reason?reason:"unspecified");
+	cancel_one();
+}
+static void release(int hand,int throwing,char const *reason)
 {
     int was_held=npc.held[hand];
+    if(was_held)platform_log("VR NPC: release actor=%08lx hand=%d grip_released=%d throw=%d reason=%s",
+		npc.index,hand,throwing,throwing,reason?reason:"unspecified");
     npc.held[hand]=0;if(!npc.is_remote) vr_interaction_release(hand,VR_INTERACTION_NPC);
     if(npc.active && npc.started && npc.held[0]+npc.held[1]<npc.minimum_hands) {
-        npc.held[1-hand]=0;if(!npc.is_remote) vr_interaction_release(1-hand,VR_INTERACTION_NPC);
+        if(npc.held[1-hand])platform_log("VR NPC: release actor=%08lx hand=%d grip=held throw=0 reason=minimum-hands-not-met",
+			npc.index,1-hand);
+		npc.held[1-hand]=0;npc.strain_logged[1-hand]=0;
+		if(!npc.is_remote) vr_interaction_release(1-hand,VR_INTERACTION_NPC);
     }
+    npc.strain_logged[hand]=0;
     if(npc.active && !npc.held[0] && !npc.held[1] && !npc.recovery) {
         if(!npc.started) {cancel_one();return;}
         npc.settling=1;
@@ -431,7 +454,7 @@ static int owns(long index)
     for(int n=0;n<NPC_POOL_SIZE;++n) if(npc_pool[n].active&&npc_pool[n].index==index) {npc_current=&npc_pool[n];found=1;break;}
     if(!found) return FALSE;
     if(!authority() || (!npc.is_remote&&!config_boolean("vr.npc_interaction")) || !eligible(index)) {
-        cancel_one();return FALSE;
+        cancel_one_reason(!authority()?"authority-lost":(!npc.is_remote&&!config_boolean("vr.npc_interaction"))?"feature-disabled":"target-ineligible");return FALSE;
     }
     return TRUE;
 }
@@ -507,11 +530,11 @@ static void tick_player(int use_remote,long player)
        !vr_controller(&buttons,triggers,thumbs))) ||
        !u || u->object.parent_object_index!=NONE || TEST_FLAG(u->object.damage_flags,_object_dead_bit) ||
        cinematic_in_progress() || (!use_remote&&director_inhibited_input(local)) || !(units>0)) {
-        cancel_one();return;
+        cancel_one_reason("session-or-owner-invalid");return;
     }
     if(tick==npc.tick && player==npc.player) return;
     if(tick<npc.tick || tick>npc.tick+1 || player!=npc.player) {
-        cancel_one();
+        cancel_one_reason("player-or-tick-discontinuity");
     }
     npc.tick=tick;npc.player=player;npc.is_remote=use_remote;
     if(npc.active && !owns(npc.index)) return;
@@ -527,22 +550,52 @@ static void tick_player(int use_remote,long player)
         pressed=grip&&!edges[h];edges[h]=grip;
         if(use_remote) point=remote.point[h];
         if((use_remote&&!remote.seen[h]) || (!use_remote&&((h==vr_weapon_hand()&&!vr_hand_empty()) || !vr_hand_world(h,camera.n,point.n,forward.n,up.n)))) {
-            release(h,FALSE);npc.sample[h]=0;continue;
+            release(h,FALSE,use_remote&&!remote.seen[h]?"remote-pose-missing":
+				(!use_remote&&h==vr_weapon_hand()&&!vr_hand_empty()?"weapon-hand-occupied":"hand-tracking-lost"));
+			npc.sample[h]=0;npc.velocity[h]=*global_zero_vector3d;continue;
         }
         if(npc.sample[h]) {
             vector_from_points3d(&npc.previous[h],&point,&delta);
-            if(magnitude3d(&delta)>0.45f*units) {release(h,FALSE);npc.sample[h]=0;continue;}
-            for(int k=0;k<3;++k) npc.velocity[h].n[k]=npc.velocity[h].n[k]*.55f+delta.n[k]*.45f;
+			if(magnitude3d(&delta)>0.45f*units) {
+				/* A fast swing or tracking rebase is not a release gesture.
+				 * Rebase throw velocity so a pose jump cannot launch the target. */
+				npc.velocity[h]=*global_zero_vector3d;
+				if(!npc.sample_rebased[h])platform_log("VR NPC: hand sample rebased actor=%08lx hand=%d grip=%d held=%d movement_m=%.3f",
+					npc.index,h,grip,npc.held[h],(float)magnitude3d(&delta)/(float)units);
+				npc.sample_rebased[h]=1;
+			} else {
+				npc.sample_rebased[h]=0;
+				for(int k=0;k<3;++k) npc.velocity[h].n[k]=npc.velocity[h].n[k]*.55f+delta.n[k]*.45f;
+			}
         }
-        npc.target[h]=npc.previous[h]=point;npc.sample[h]=1;
+        if(npc.held[h]) {
+			int limited=0;
+			if(!vr_interaction_hold_target_step(npc.target[h].n,point.n,.45f*units,&limited)) {
+				release(h,FALSE,"invalid-hand-target");npc.sample[h]=0;continue;
+			}
+			if(limited&&!npc.strain_logged[h]) {
+				platform_log("VR NPC: hold target rate-limited actor=%08lx hand=%d grip=held max_step_m=0.450",
+					npc.index,h);
+				npc.strain_logged[h]=1;
+			} else if(!limited)npc.strain_logged[h]=0;
+		} else npc.target[h]=point;
+		npc.previous[h]=point;npc.sample[h]=1;
         if(npc.held[h]) {
             real_vector3d offset;
+            if(npc.node[h]<0||npc.node[h]>=npc.rig.body.count) {
+				release(h,FALSE,"invalid-contact-node");continue;
+			}
             surface_offset(h,&offset);
-            for(int k=0;k<3;++k) delta.n[k]=npc.rig.body.nodes[npc.node[h]].position[k]+offset.n[k]-point.n[k];
-            if(magnitude3d(&delta)>.65f*units) {release(h,FALSE);continue;}
+			for(int k=0;k<3;++k) delta.n[k]=npc.rig.body.nodes[npc.node[h]].position[k]+offset.n[k]-npc.target[h].n[k];
+			if(magnitude3d(&delta)>.65f*units&&!npc.strain_logged[h]) {
+				platform_log("VR NPC: hold strain actor=%08lx hand=%d grip=held separation_m=%.3f action=keep-contact",
+					npc.index,h,(float)magnitude3d(&delta)/(float)units);
+				npc.strain_logged[h]=1;
+			} else if(magnitude3d(&delta)<.50f*units)npc.strain_logged[h]=0;
         }
         if(npc.held[h] && (!grip || (!use_remote&&vr_interaction_owner(h)!=VR_INTERACTION_NPC))) {
-            release(h,!grip&&(use_remote||vr_interaction_owner(h)==VR_INTERACTION_NPC));continue;
+            int intentional=!grip&&(use_remote||vr_interaction_owner(h)==VR_INTERACTION_NPC);
+			release(h,intentional,intentional?"grip-released":"interaction-owner-lost");continue;
         }
         if(!pressed || npc.held[h] || npc.recovery || (!use_remote&&vr_interaction_owner(h)!=VR_INTERACTION_NONE)) continue;
         {
@@ -599,9 +652,13 @@ static void tick_player(int use_remote,long player)
                     matrix4x3_transform_vector(&inverse,&candidate->object.forward,&npc.body_forward_local);
                 }
                 if(!interaction_profile((short)npc.species_type,candidate,it.index,
-                    &npc.minimum_hands,&npc.mobility)) {cancel_one();break;}
+                    &npc.minimum_hands,&npc.mobility)) {cancel_one_reason("unsupported-interaction-profile");break;}
                 npc.settling=0;
-                if(npc.held[0]+npc.held[1]>=npc.minimum_hands) npc.started=1;
+                if(!npc.started && npc.held[0]+npc.held[1]>=npc.minimum_hands) {
+					npc.started=1;
+					platform_log("VR NPC: hold constraint started actor=%08lx species=%d hands=%d remote=%d",
+						it.index,npc.species_type,npc.held[0]+npc.held[1],use_remote);
+				}
                 {
                     real_matrix4x3 inverse;
                     for(int k=0;k<3;++k) {
@@ -611,8 +668,14 @@ static void tick_player(int use_remote,long player)
                     matrix4x3_inverse(&npc.rig.captured[node],&inverse);
                     matrix4x3_transform_vector(&inverse,&delta,&npc.offset[h]);
                 }
-                platform_log("VR NPC: grabbed actor=%08lx species=%d hand=%d node=%d requires=%d",it.index,
-                    npc.species_type,h,node,npc.minimum_hands);
+				{
+					struct actor_datum *grabbed_actor=actor_try_and_get(candidate->unit.actor_index);
+					int friendly=grabbed_actor && grabbed_actor->meta.team_index>=0 &&
+						!game_team_is_enemy(_game_team_player,grabbed_actor->meta.team_index);
+				platform_log("VR NPC: grabbed actor=%08lx species=%d team=%d friendly=%d hand=%d node=%d requires=%d acquisition=authored-contact-plus-fresh-grip",
+						it.index,npc.species_type,grabbed_actor?grabbed_actor->meta.team_index:NONE,
+						friendly,h,node,npc.minimum_hands);
+				}
                 if(mapped)platform_log("VR NPC: contact fallback actor=%08lx mapped_node=%d",it.index,node);
                 if(!use_remote) vr_haptic(h,.25f,.035f);
                 acquired=1;
@@ -653,7 +716,7 @@ void vr_npc_interaction_palette(long index)
     npc.rig.impact_enabled=npc.started&&!npc.recovery;
     npc.rig.impact_units=interaction_units();
     u=unit_get(index);native=object_get_node_matrices(index);
-    if(!native || npc.rig.body.count>u->object.node_matrices.size/(long)sizeof(*native)) {cancel_one();return;}
+    if(!native || npc.rig.body.count>u->object.node_matrices.size/(long)sizeof(*native)) {cancel_one_reason("invalid-native-palette");return;}
     /* Translate by accepted native root motion. Ordinary NPCs already use a
      * zero-height root sphere (biped_get_physics_pill); every articulated node,
      * including the rig root, remains free and swept against world geometry. */
@@ -676,7 +739,7 @@ void vr_npc_interaction_palette(long index)
     if(npc.recovery) {
         float targets[VR_ARTICULATED_NODES][3];
         for(n=0;n<npc.rig.body.count;++n) memcpy(targets[n],native[n].position.n,sizeof(targets[n]));
-        if(!vr_articulated_recovery(&npc.rig.body,targets,1.0f/npc.recovery,vr_articulated_native_sweep,&npc.rig)) {cancel_one();return;}
+        if(!vr_articulated_recovery(&npc.rig.body,targets,1.0f/npc.recovery,vr_articulated_native_sweep,&npc.rig)) {cancel_one_reason("recovery-solver-invalid");return;}
         for(n=0;n<npc.rig.body.count;++n) {
             real t=1.0f/npc.recovery;
             real_matrix4x3 *m=&npc.rig.captured[n];
@@ -685,7 +748,7 @@ void vr_npc_interaction_palette(long index)
             normalize3d(&m->forward);cross_product3d(&m->up,&m->forward,&m->left);normalize3d(&m->left);
             cross_product3d(&m->forward,&m->left,&m->up);
             memcpy(m->position.n,npc.rig.body.nodes[n].position,sizeof(m->position.n));
-            if(!valid_real_matrix4x3(m)) {cancel_one();return;}
+            if(!valid_real_matrix4x3(m)) {cancel_one_reason("recovery-palette-invalid");return;}
         }
         if(npc.recovery==1) {
             int clear=1;
@@ -702,11 +765,12 @@ void vr_npc_interaction_palette(long index)
             surface_offset(n,&offset);
             pins[count].node=npc.node[n];
             for(k=0;k<3;++k) pins[count].position[k]=npc.target[n].n[k]-offset.n[k];
-            if(!vr_articulated_native_sweep(&npc.rig,npc.rig.body.nodes[npc.node[n]].position,
-                    npc.rig.body.nodes[npc.node[n]].radius,pins[count].position)) {cancel_one();return;}
+            if(npc.node[n]<0||npc.node[n]>=npc.rig.body.count) {cancel_one_reason("invalid-pinned-node");return;}
+			if(!vr_articulated_native_sweep(&npc.rig,npc.rig.body.nodes[npc.node[n]].position,
+					npc.rig.body.nodes[npc.node[n]].radius,pins[count].position)) {cancel_one_reason("pinned-node-collision-state-invalid");return;}
             ++count;
         }
-        if(!vr_articulated_native_step(&npc.rig,1.f/30.f,global_gravity*900.f,pins,count)) {cancel_one();return;}
+        if(!vr_articulated_native_step(&npc.rig,1.f/30.f,global_gravity*900.f,pins,count)) {cancel_one_reason("articulated-solver-rejected-state");return;}
         if(npc.settling) {
             real maximum=0;
             for(n=0;n<npc.rig.body.count;++n) {

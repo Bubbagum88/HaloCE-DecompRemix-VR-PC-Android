@@ -235,7 +235,11 @@ int main(void){
 # (test24b: Turning is one macro, on Controls; read as the row it is)
 menu_rows = re.sub(r'#define VR_MENU_TURNING_ROW (\{.*\})\n', r'\1,\n', menu)
 rows = re.findall(r'\{ "([A-Z +\-]+)", "[\w.]+", _vr_setting_multi, (\d+), \{ (.*?) \} \},', menu_rows)
-assert {r[0] for r in rows} >= {'TURNING', 'WEAPONS', 'HOLSTERS', 'HANDS', 'ARM RUN', 'MELEE', 'NPC RIG SLOTS'}, rows
+assert {r[0] for r in rows} >= {'TURNING', 'WEAPONS', 'HOLSTERS', 'HANDS', 'MELEE', 'NPC RIG SLOTS'}, rows
+locomotion = menu[menu.index('vr_menu_locomotion[]'):menu.index('static struct vr_menu_page')]
+for label, key in [('BUTTON SPRINT', 'vr.button_sprint'), ('ARM RUN', 'vr.arm_run'),
+                   ('ARM EFFORT', 'vr.arm_run_speed'), ('SPRINT SPEED', 'vr.sprint_speed')]:
+    assert '{ "%s", "%s"' % (label, key) in locomotion, (label, key)
 reach_row = next((line for line in menu.splitlines() if '"HAND CONTACT"' in line), '')
 assert '_vr_setting_real, 4,' in reach_row, 'VR menu exposes bounded palm contact radii'
 reach_values = re.findall(r'\{ "([^"]+)", "([^"]+)" \}', reach_row)
@@ -339,7 +343,7 @@ static struct { struct { uint32_t hand_buttons[2], buttons; float trigger[2], th
  grip_held[2], in_holster, hand_state, physical, button_source[VR_BUTTON_ACTIONS], recentre_source; unsigned pad_buttons; float pad_trigger[2];
  double x_held, grenade_pulse, view_held;
  /* test26: crouch on the turning stick held down, the reticle's toggle */
- int seated, turn_stick_down, reticle_hidden, reticle_press, reticle_cancelled;
+ int seated, turn_stick_down, reticle_hidden, reticle_press, reticle_cancelled, push_to_talk_held;
  /* test30: the menus' letters (0: in play, as these frames are) */
  int menus_active; } vr;
 static int recentres, buzzes;

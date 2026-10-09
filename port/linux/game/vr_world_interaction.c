@@ -23,6 +23,7 @@
 #include "vr_world_interaction.h"
 #include "vr_npc_interaction.h"
 #include "vr_world_math.h"
+#include "vr_interaction_hold_math.h"
 #include "vr_weight_feedback_math.h"
 #include "vr_world_props.h"
 #include "vr_interaction_impact.h"
@@ -36,7 +37,7 @@
 void platform_log(char const *format, ...);
 
 static struct world_hand {
-    boolean active, sample_valid;
+    boolean active, sample_valid, strain_logged;
     long index;
     real_point3d local_grab, previous, point;
     real_vector3d velocity, local_forward, local_up, forward, up;
@@ -375,7 +376,7 @@ long vr_world_interaction_object(int hand)
 {
     return hand>=0 && hand<2 && hands[hand].active && grabbable(hands[hand].index) ? hands[hand].index : NONE;
 }
-static void release_hand(int hand, boolean throwing, real units)
+static void release_hand(int hand, boolean throwing, real units,char const *reason)
 {
     struct world_hand *held = &hands[hand];
     struct object_datum *item = held->active ? grabbable(held->index) : NULL;
@@ -386,7 +387,8 @@ static void release_hand(int hand, boolean throwing, real units)
             if (vr_world_limit(velocity.n, units * 0.24f))
                 vr_world_object_velocity(held->index, &velocity, &item->object.angular_velocity);
         }
-        platform_log("VR world: release hand=%d object=%08lx throw=%d", hand, held->index, throwing);
+		platform_log("VR world: release hand=%d object=%08lx grip=%s throw=%d reason=%s",
+			hand, held->index, throwing?"up":"held", throwing, reason?reason:"unspecified");
     }
     memset(held, 0, sizeof(*held));
     vr_interaction_release(hand, VR_INTERACTION_WORLD);
@@ -488,16 +490,32 @@ void vr_world_interaction_tick(void)
         released = !grip && previous_grip[hand];
         previous_grip[hand]=grip;
         if (!allowed || !vr_hand_world(hand, camera.n, point.n, forward.n, up.n)) {
-            previous_grip[hand]=1; release_hand(hand, FALSE, units); continue;
+            previous_grip[hand]=1; release_hand(hand, FALSE, units,
+				allowed?"hand-tracking-lost":"hand-no-longer-free"); continue;
         }
         if (held->sample_valid) {
             vector_from_points3d(&held->previous, &point, &change);
-            if (magnitude3d(&change) > 0.45f*units) { release_hand(hand,FALSE,units); continue; }
-            for (n=0;n<3;++n) held->velocity.n[n] = held->velocity.n[n]*0.55f + change.n[n]*0.45f;
+            if (magnitude3d(&change) > 0.45f*units) {
+				held->velocity=*global_zero_vector3d;
+				if(!held->strain_logged)platform_log("VR world: hand sample rebased hand=%d object=%08lx grip=%d held=%d movement_m=%.3f",
+					hand,held->active?held->index:NONE,grip,held->active,(float)magnitude3d(&change)/(float)units);
+				held->strain_logged=TRUE;
+			} else for (n=0;n<3;++n) held->velocity.n[n] = held->velocity.n[n]*0.55f + change.n[n]*0.45f;
         }
-        held->previous = held->point = point; held->forward=forward; held->up=up; held->sample_valid=TRUE;
+        if(held->active) {
+			int limited=0;
+			if(!vr_interaction_hold_target_step(held->point.n,point.n,.45f*units,&limited)) {
+				release_hand(hand,FALSE,units,"invalid-hand-target");continue;
+			}
+			if(limited&&!held->strain_logged) {
+				platform_log("VR world: hold target rate-limited hand=%d object=%08lx grip=held max_step_m=0.450",
+					hand,held->index);held->strain_logged=TRUE;
+			} else if(!limited)held->strain_logged=FALSE;
+		} else held->point=point;
+		held->previous=point;held->forward=forward;held->up=up;held->sample_valid=TRUE;
         if (held->active && (!grip || !grabbable(held->index) || vr_interaction_owner(hand)!=VR_INTERACTION_WORLD)) {
-            release_hand(hand, !grip && released && vr_interaction_owner(hand)==VR_INTERACTION_WORLD, units); continue;
+            boolean intentional=!grip && released && vr_interaction_owner(hand)==VR_INTERACTION_WORLD;
+			release_hand(hand,intentional,units,intentional?"grip-released":(!grip?"grabbable-lost":"interaction-owner-lost")); continue;
         }
         if (!held->active && grip && pressed && vr_interaction_owner(hand)==VR_INTERACTION_NONE) {
             real_point3d contact;
@@ -509,8 +527,10 @@ void vr_world_interaction_tick(void)
                 local_vector(&item->object.forward,&item->object.up,&change,(real_vector3d *)&held->local_grab);
                 local_vector(&forward,&up,&item->object.forward,&held->local_forward);
                 local_vector(&forward,&up,&item->object.up,&held->local_up);
+                held->velocity=*global_zero_vector3d;
                 vr_haptic(hand,0.25f,0.035f);
-                platform_log("VR world: grab hand=%d object=%08lx second=%d",hand,index,hands[1-hand].active&&hands[1-hand].index==index);
+				platform_log("VR world: grab hand=%d object=%08lx second=%d acquisition=authored-contact-plus-fresh-grip",
+					hand,index,hands[1-hand].active&&hands[1-hand].index==index);
             } else platform_log("VR world: contact grab miss hand=%d radius=%.2f cm world=%d vehicle_lift=%d (hand sphere did not overlap an eligible collision model)",
                 hand,(float)vr_world_hand_contact_radius((float)config_real("vr.interaction_reach"),(float)units)*100.0f/(float)units,
                 world_grab_enabled(),vehicle_lift_enabled());
@@ -530,10 +550,16 @@ void vr_world_interaction_tick(void)
             ++count;
         }
         scale_vector3d(&error,1.0f/count,&error);
-        if (magnitude3d(&error)>0.65f*units) { release_hand(hand,FALSE,units); continue; }
+		if (magnitude3d(&error)>0.65f*units) {
+			if(!held->strain_logged)platform_log("VR world: hold strain hand=%d object=%08lx grip=held separation_m=%.3f action=keep-contact",
+				hand,held->index,(float)magnitude3d(&error)/(float)units);
+			held->strain_logged=TRUE;
+		} else if(magnitude3d(&error)<0.50f*units)held->strain_logged=FALSE;
         if (item->object.type == _object_type_vehicle) {
             if (!vehicle_lift_apply(held->index, &error, count, units, &mobility)) {
-                release_hand(hand, FALSE, units);
+				if(!held->strain_logged)platform_log("VR world: vehicle lift paused hand=%d object=%08lx reason=outside-safe-envelope grip=held",
+					hand,held->index);
+				held->strain_logged=TRUE;
                 continue;
             }
 			{
@@ -553,7 +579,9 @@ void vr_world_interaction_tick(void)
         mobility=vr_world_object_mobility(held->index);
         vr_interaction_impact_track(held->index,unit,mobility,units);
         if (!vr_world_spring(error.n,item->object.translational_velocity.n,mobility,count,units,global_gravity,velocity.n)) {
-            release_hand(hand,FALSE,units); continue;
+			if(!held->strain_logged)platform_log("VR world: constraint paused hand=%d object=%08lx reason=invalid-physics-state grip=held",
+				hand,held->index);
+			held->strain_logged=TRUE;continue;
         }
         if(count==1) weight_feedback(hand,mobility,magnitude3d(&error),&velocity,units);
         else for(h=0;h<2;h++) if(hands[h].active&&hands[h].index==held->index)

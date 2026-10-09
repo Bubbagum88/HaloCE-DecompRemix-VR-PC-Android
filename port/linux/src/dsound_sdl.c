@@ -34,6 +34,7 @@ skips opening a device (port_config.c).
 */
 
 #include "platform.h"
+#include "voice_audio.h"
 #include "sdl_platform.h"
 #include "port_config.h"
 
@@ -1032,6 +1033,8 @@ static void mix(float *output, unsigned long frames)
 		if ((!enabled && reverb.level <= 0.0f) || reverb.quiet > REVERB_QUIET_FRAMES)
 			reverb_clear();
 	}
+	/* Voice is a dry client mix, after game reverb and before the limiter. */
+	voice_audio_mix(output, frames);
 	audio_statistics.frames_mixed += frames;
 	/* soft limit rather than wrap or hard clip when many voices pile up */
 	for (sample = 0; sample < frames * OUTPUT_CHANNELS; sample++)
@@ -1127,7 +1130,8 @@ static void audio_start(void)
 #else
 		SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "512");
 #endif
-		audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, audio_callback, NULL);
+		audio_stream = SDL_OpenAudioDeviceStream(
+			platform_audio_device(FALSE, config_string("audio.output_device")), &spec, audio_callback, NULL);
 		if (audio_stream)
 		{
 			/* (the device's own format is logged where it opens: on Android

@@ -1,42 +1,35 @@
 ## Current release checkpoint — v1.0.18 (2026-10-08)
 
-## Active private Test44 candidate (2026-10-09)
+## Active private Test45 candidate (2026-10-09)
 
-Candidate **1.0.25-test44 / code55** on `test39-interaction-completion` carries
-forward all work since public v1.0.18 and Test43. It clarifies ISO/XISO source
-ownership across the first-run screen, main launcher and game-data manager:
-picker selection imports supported maps only; the original image stays in its
-original location, is not retained/deleted by the launcher, and can be removed
-in Android Files. Only an image copied into the import inbox can be deleted
-inside the launcher. It also explains that the disabled active Existing game
-data row is a protected status indicator.
+Candidate **1.0.26-test45 / code56** on `test39-interaction-completion`.
+Preserve Test44 and prior APKs/source archives; public v1.0.18 remains
+unchanged. Test45 keeps the touch-then-press contract: NPC/enemy/ally and object
+grabs require tracked palm-volume overlap with the authored collision model,
+then a fresh Grip press; climbing contacts a solid surface; reload/wheel
+interactions use their documented contact bounds. Aim rays do not acquire.
 
-The opening A10 tutorial's directional and script look checks use the fresh,
-validated hand-aim reticle ray. The override is A10-only; it uses the prior
-head path outside A10 and in head-aim mode. During hand aim, stale/invalid ray
-data pauses calibration checks rather than crediting head movement. No general
-mission visibility or AI behavior is intended to change. Engine base remains OpenCE Build157/network24
-with selected Build167 compatibility fixes. Test43's package remains preserved.
+While Grip remains held, NPC/prop ownership persists through ordinary motion
+and solver strain; each target follows a bounded per-step controller target.
+Tracking discontinuities rebase the target and zero throw velocity. Invalid
+tracking/entity/authority and explicit Grip release remain logged exits.
+Supported friendly Marines/crew may be held with ordinary AI orders while only
+transient movement/trigger controls are suppressed; AI team and orders remain
+native. Immediate forced orders remain excluded. Co-op props use host-side
+contact verification and bounded target following.
 
-Contact actions in Test44 must stay strictly touch-then-press: NPC/enemy and
-object grabs use tracked palm-volume overlap against authored collision models
-in solo and host-validated co-op; climbing requires overlap with a solid
-surface; reload and optional vehicle handles use their authored/virtual contact
-geometry. A fresh Grip or configured reload-input edge is required. Aim rays do
-not acquire targets. Automated source/host-oracle checks pass; two-headset and
-physical Quest acceptance cases remain pending in the device checklist.
+Test44 ISO/XISO source guidance, Existing game data explanation and A10 reticle
+calibration remain. Engine base is OpenCE Build157/network24 with selected
+Build167 fixes. Run focused tests, all regression suites, both edition builds
+and package checks. Send Quest/Android APKs plus matching build/source ZIPs for
+owner testing; do not publish, install or launch the game. Physical headset and
+two-headset co-op acceptance remain pending. PC/Steam Frame remains deferred.
 
-Preserve existing VR, Android, saves, network, co-op and Safe Geometry behavior.
-PC/Steam Frame remains deferred. Run the focused launcher/calibration checks,
-the full regression suite, both edition builds and the candidate package gate.
-Deliver both APKs and matching build/source ZIPs for owner testing only; do not
-publish, install or launch the game. Device acceptance remains pending.
-
-See [TEST44-DELIVERY-STATUS.md](TEST44-DELIVERY-STATUS.md),
-[TEST44-REQUIREMENT-DISPOSITION.md](TEST44-REQUIREMENT-DISPOSITION.md),
-[TEST44-PLAYER-NOTES.md](TEST44-PLAYER-NOTES.md), and
-[TEST44-DEVICE-CHECKLIST.md](TEST44-DEVICE-CHECKLIST.md). Test43 and earlier
-candidate artifacts remain preserved.
+See [TEST45-DELIVERY-STATUS.md](TEST45-DELIVERY-STATUS.md),
+[TEST45-REQUIREMENT-DISPOSITION.md](TEST45-REQUIREMENT-DISPOSITION.md),
+[TEST45-PLAYER-NOTES.md](TEST45-PLAYER-NOTES.md), and
+[TEST45-DEVICE-CHECKLIST.md](TEST45-DEVICE-CHECKLIST.md). Test44 and older
+artifacts remain preserved.
 
 ## Superseded private Test39 candidate (2026-10-08)
 

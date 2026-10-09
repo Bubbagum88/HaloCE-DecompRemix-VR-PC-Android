@@ -1,4 +1,12 @@
-# Test42 OpenCE Build167 integration audit
+# Test42 OpenCE Build167 integration audit (historical snapshot)
+
+> **Historical status:** this audit records the Test42 candidate, before the
+> Test45 selected voice-chat integration. Its statements about voice below
+> accurately describe that earlier snapshot and are superseded for current
+> voice behavior by [`TEST45-VOICE-CHAT.md`](TEST45-VOICE-CHAT.md) and the
+> voice section in [`TEST45-PLAYER-NOTES.md`](TEST45-PLAYER-NOTES.md). Test45
+> still does not claim full Build167 parity, per-player mute, votekick, or
+> headset-verified voice.
 
 ## Baseline and network identity
 
@@ -35,7 +43,7 @@ The existing Test37 network compatibility rules, all Test38-Test41 local
 interaction systems, Safe Geometry migration, mobile controls and user icon
 remain intact in the Test42 cumulative candidate.
 
-## Upstream work intentionally not described as integrated
+## Upstream work intentionally not described as integrated (Test42 snapshot)
 
 Build157→Build167 also contains changes outside this candidate's verified
 scope. Build167 itself is primarily the upstream icon change. In particular,

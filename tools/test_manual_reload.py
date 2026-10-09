@@ -68,6 +68,10 @@ int main(void){
  assert(!vr_mr_profile_changed(1,17,29,17,29));
  assert(vr_mr_profile_changed(1,17,29,18,29));
  assert(vr_mr_profile_changed(1,17,29,17,30));
+ assert(!vr_mr_suppress_native_reload(0,1,1)); /* classic mode keeps native reload */
+ assert(!vr_mr_suppress_native_reload(1,0,1)); /* online games keep network-safe reload */
+ assert(vr_mr_suppress_native_reload(1,1,1));  /* profiled solo manual mode suppresses it */
+ assert(!vr_mr_suppress_native_reload(1,1,0)); /* unknown profiles fall back to native reload */
  assert(!vr_mr_input_uses_trigger("grip") && !vr_mr_input_uses_trigger(NULL));
  assert(!vr_mr_input_uses_trigger("invalid")); /* unknown config safely uses default Grip */
  assert(vr_mr_input_uses_trigger("trigger"));

@@ -181,10 +181,13 @@ game allows it (not a network game's client, whose blows the host would
 not see; the game says, from vr_render_actions); 1 while in effect */
 void vr_set_impact_melee_allowed(int allowed);
 int vr_impact_melee(void);
+int vr_physical_melee_hand_allowed(int hand);
 /* test21: physical melee is off in network games unless vr.melee_multiplayer */
 void vr_set_network_game(int network);
 /* test21: seated, either stick click sounds a driver's horn (the crouch control) */
 int vr_horn_held(void);
+/* Voice chat's remappable Quest Push-to-Talk; false when XR input is unfocused. */
+int vr_push_to_talk_held(void);
 /* a hand's (0 left, 1 right) recent peak speed about the room, in metres a
 second, and vr.melee_speed, the speed a blow needs */
 float vr_hand_speed(int hand);
@@ -204,7 +207,9 @@ int vr_two_handed(void);
 object index, -1 none), each tick, for what the hand holds; and 1 while
 the hand holds nothing (a gun put away or let fall: the first-person gun
 is not drawn, the hand is free) */
-void vr_note_weapon(long weapon_index);
+void vr_note_weapon(long unit_index, long weapon_index, long const inventory[4]);
+long vr_take_holster_draw_request(void);
+void vr_holster_draw_request_failed(long weapon_index);
 /* test21: per-gun aim adjustment. The held gun's kind (from its tag's name,
 each tick: vr_set_gun_class, -1 none) selects vr.aim_<key>_up/_right
 (degrees, up to VR_GUN_AIM_LIMIT), which turn the shots, the reticle and
@@ -240,6 +245,8 @@ enum
 	/* test26: shows or hides the reticle (the crosshair) for the session;
 	it starts shown */
 	VR_BUTTON_ACTION_RETICLE,
+	/* Voice chat PTT; NONE by default so it does not take a gameplay button. */
+	VR_BUTTON_ACTION_PUSH_TO_TALK,
 	VR_BUTTON_ACTIONS
 };
 enum

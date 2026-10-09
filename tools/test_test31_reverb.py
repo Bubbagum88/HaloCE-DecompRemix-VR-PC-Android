@@ -69,6 +69,9 @@ static unsigned long config_changes(void){assert(!mutex_depth);return 0;}
 static double config_real(const char *p){assert(!mutex_depth);(void)p;return 1;}
 static int config_boolean(const char *p){assert(!mutex_depth);(void)p;return 0;}
 static void platform_log(const char *p,...){(void)p;}
+/* The production audio callback now mixes optional voice after game reverb;
+ * this harness has no voice stream, so keep that independent path silent. */
+static void voice_audio_mix(float *output, unsigned long frames){(void)output;(void)frames;}
 ''' + invalid_argument + '\n' + types + r'''
 typedef struct _DSI3DL2LISTENER DSI3DL2LISTENER;
 typedef const DSI3DL2LISTENER *LPCDSI3DL2LISTENER;

@@ -207,8 +207,9 @@ grabbable = function_body(gameplay, "interaction_grabbable")
 assert "world_grab_enabled()" in grabbable
 assert 'config_boolean("vr.custom_scenery_grab")' in function_body(gameplay, "world_grab_enabled")
 assert "!grabbable(held->index)" in function_body(gameplay, "vr_world_interaction_tick")
-assert "release_hand(hand, FALSE, units)" in function_body(gameplay, "vr_world_interaction_tick")
 tick = function_body(gameplay, "vr_world_interaction_tick")
+assert 'reason=outside-safe-envelope grip=held' in tick
+assert "release_hand(hand, FALSE, units" not in tick[tick.index("if (!vehicle_lift_apply"):tick.index("vr_world_interaction_weight_feedback(hand, mobility")]
 assert "item->object.type == _object_type_vehicle" in tick
 assert "vehicle_lift_apply(held->index, &error, count, units, &mobility)" in tick
 assert "vr_world_interaction_weight_feedback(hand, mobility" in tick

@@ -29,7 +29,7 @@ static struct {
     real_vector3d wall_normal;
     real_point3d wall_point;
     struct {
-        int active,down,sampled;
+        int active,down,sampled,strain_logged;
         long object;
         real_point3d anchor,object_position,relative;
         real_vector3d launch,normal;
@@ -200,7 +200,7 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
                 parkour.hand[hand].active=1;parkour.hand[hand].anchor=hit.point;parkour.hand[hand].normal=hit.plane.n;parkour.hand[hand].object=hit_object;
                 if(object)parkour.hand[hand].object_position=object->object.position;
                 parkour.hand[hand].launch=*global_zero_vector3d;parkour.hand[hand].sampled=0;
-                vr_haptic(hand,0.35f,0.04f);platform_log("VR parkour: wall grip hand=%d object=%ld",hand,hit_object);
+				vr_haptic(hand,0.35f,0.04f);platform_log("VR parkour: wall grip hand=%d object=%ld acquisition=surface-contact-plus-fresh-grip",hand,hit_object);
 			} else platform_log("VR parkour: wall grip missed hand=%d radius=%.2f cm (touch a solid vertical surface, then squeeze Grip)",
 				hand,(float)vr_world_hand_contact_radius((float)config_real("vr.interaction_reach"),(float)units)*100.0f/(float)units);
         }
@@ -212,9 +212,18 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
                 real_vector3d moved;
                 if(!object){parkour.hand[hand].active=0;vr_interaction_release(hand,VR_INTERACTION_PARKOUR);continue;}
                 vector_from_points3d(&parkour.hand[hand].object_position,&object->object.position,&moved);
-                if(magnitude3d(&moved)>0.005f*units){parkour.hand[hand].active=0;vr_interaction_release(hand,VR_INTERACTION_PARKOUR);continue;}
+				if(magnitude3d(&moved)>0.005f*units){
+					/* A moving scenery target is not a supported climb anchor. This
+					 * remains a safety cancellation; static BSP anchors are unaffected. */
+					platform_log("VR parkour: release hand=%d reason=dynamic-anchor-moved grip=held",hand);
+					parkour.hand[hand].active=0;vr_interaction_release(hand,VR_INTERACTION_PARKOUR);continue;
+				}
             }
-            if(magnitude3d(&error)>0.65f*units){parkour.hand[hand].active=0;vr_interaction_release(hand,VR_INTERACTION_PARKOUR);continue;}
+			if(magnitude3d(&error)>0.65f*units){
+				if(!parkour.hand[hand].strain_logged)platform_log("VR parkour: hold strain hand=%d grip=held separation_m=%.3f action=keep-contact",
+					hand,(float)magnitude3d(&error)/(float)units);
+				parkour.hand[hand].strain_logged=1;
+			}else if(magnitude3d(&error)<0.50f*units)parkour.hand[hand].strain_logged=0;
             for(int axis=0;axis<3;axis++){
                 relative.n[axis]=point.n[axis]-camera.n[axis];
                 if(parkour.hand[hand].sampled)
