@@ -27,7 +27,13 @@ for path,digest in UPSTREAM_145:
     # of these untouched reference units remain byte-identical to Build 145.
     if path.endswith('coop_enemies.c'):
         continue
-    assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==digest,path
+    data=(ROOT/path).read_bytes()
+    if path == 'source/networking/network_client_manager.h':
+        # Test38 adds only this query declaration; preserve the upstream header guard.
+        addition=b'unsigned int network_game_client_joined_version(void);\n'
+        assert data.count(addition)==1
+        data=data.replace(addition,b'')
+    assert hashlib.sha256(data).hexdigest()==digest,path
 client=read('source/networking/network_client_manager.c')
 assert '!cache_files_map_present(message_packet->map.name, (unsigned long)message_packet->map.version)' in client
 assert 'CUSTOM_EDITION_LEVEL_NAME_PREFIX "%s"' in read('port/linux/game/custom_edition_maps.c')
