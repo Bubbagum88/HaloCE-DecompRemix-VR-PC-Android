@@ -1,43 +1,27 @@
 ## Current release checkpoint — v1.0.18 (2026-10-08)
 
-## Active private Test45 candidate (2026-10-09)
+## Active private Test46 candidate (2026-10-09)
 
-Candidate **1.0.26-test45 / code56** on `test39-interaction-completion`.
-Preserve Test44 and prior APKs/source archives; public v1.0.18 remains
-unchanged. Test45 keeps the touch-then-press contract: NPC/enemy/ally and object
-grabs require tracked palm-volume overlap with the authored collision model,
-then a fresh Grip press; climbing contacts a solid surface; reload/wheel
-interactions use their documented contact bounds. Aim rays do not acquire.
+Candidate **1.0.27-test46 / code57** on `test39-interaction-completion`.
+Preserve Test45, Test44 and older APK/source artifacts; public v1.0.18 remains
+unchanged. The complete scope and evidence are recorded in
+[TEST46-REQUIREMENT-DISPOSITION.md](TEST46-REQUIREMENT-DISPOSITION.md).
 
-While Grip remains held, NPC/prop ownership persists through ordinary motion
-and solver strain; each target follows a bounded per-step controller target.
-Tracking discontinuities rebase the target and zero throw velocity. Invalid
-tracking/entity/authority and explicit Grip release remain logged exits.
-Supported friendly Marines/crew may be held with ordinary AI orders while only
-transient movement/trigger controls are suppressed; AI team and orders remain
-native. Immediate forced orders remain excluded. Co-op props use host-side
-contact verification and bounded target following.
+Test46 carries forward the contact/latching and ally work, A10 reticle
+calibration, corrected NPC-rescue eligibility, same-map visual magazine
+retention, bounded contact-driven translation/rotation for eligible ground
+vehicles, and selected Build167 host-relayed voice. Voice remains on
+Build157/network24. Android microphone permission is asynchronous and requested
+only when transmission is enabled and active. VR includes microphone mode,
+controller PTT and 0-200% receive volume. Two-client voice needs device testing.
 
-The existing default-off **LIFT VEHICLES** option now follows contact-held
-hands in translation and rotation for the validated unoccupied ground-vehicle
-subset. Native vehicle integration and collision remain active; release leaves
-bounded native velocity. Networked/destroyed/occupied vehicles and boat/aircraft
-solver families remain excluded. The focused vehicle math/source test passes;
-Quest motion/collision/release acceptance remains pending.
-
-Test44 ISO/XISO source guidance, Existing game data explanation and A10 reticle
-calibration remain. Engine base is OpenCE Build157/network24 with selected
-Build167 fixes. Run focused tests, all regression suites, both edition builds
-and package checks. Send Quest/Android APKs plus matching build/source ZIPs for
-owner testing; do not publish, install or launch the game. Physical headset and
-two-headset co-op acceptance remain pending. PC/Steam Frame remains deferred.
-
-See [TEST45-DELIVERY-STATUS.md](TEST45-DELIVERY-STATUS.md),
-[TEST45-REQUIREMENT-DISPOSITION.md](TEST45-REQUIREMENT-DISPOSITION.md),
-[TEST45-PLAYER-NOTES.md](TEST45-PLAYER-NOTES.md), and
-[TEST45-DEVICE-CHECKLIST.md](TEST45-DEVICE-CHECKLIST.md). Test44 and older
-artifacts remain preserved.
-
+Run focused and cumulative checks, build both APK variants, and package them
+with matching source/build ZIPs for owner testing. Do not publish, install or
+launch the game. Device acceptance remains pending. PC/Steam Frame remains
+deferred. See [TEST46-DELIVERY-STATUS.md](TEST46-DELIVERY-STATUS.md),
+[TEST46-PLAYER-NOTES.md](TEST46-PLAYER-NOTES.md),
+[TEST46-DEVICE-CHECKLIST.md](TEST46-DEVICE-CHECKLIST.md), and
+[TEST46-VOICE-CHAT.md](TEST46-VOICE-CHAT.md).
 ## Superseded private Test39 candidate (2026-10-08)
 
 Continue on `test39-interaction-completion`; target private `1.0.20-test39`,

@@ -1,6 +1,6 @@
-# Test45 private candidate: 1.0.26-test45
+# Test46 private candidate: 1.0.27-test46
 
-## Changes in Test45: contact latching and allied NPCs
+## Changes in Test46: contact latching and allied NPCs
 
 - **NPC GRAB** now accepts supported friendly Marines and crew as well as the
   existing enemy species and corpses. Acquisitions still require the tracked
@@ -25,11 +25,12 @@
   succeeded.
 
 Private Quest VR and Android test build. Public v1.0.18 remains the accepted
-release; Test45 has not been published or device-tested. It carries forward all
-project changes made after v1.0.18 through Test44, plus the contact-latch change
-and A10 calibration refinement below. PC/Steam Frame remains deferred.
+release; Test46 has not been published or device-tested. It carries forward all
+project changes made after v1.0.18 through Test45, plus the A10 calibration,
+Build167 voice, retained-magazine, vehicle-lift and rescue-eligibility updates
+documented below. PC/Steam Frame remains deferred.
 
-## Changes in Test45
+## Changes in Test46
 
 - The first-run screen, main launcher and **Game files & versions** manager now
   explain that picker-selected ISO/XISO files import supported maps
@@ -96,10 +97,16 @@ and Java startup. Switching applies to the next launch. See
   in solo play. It does not alter normal firing heat rules online.
 - **CUSTOM SCENERY / CUSTOM NPC RIGS / MAG DEBRIS / LIFT VEHICLES / NPC RESCUE:**
   optional custom scenery/NPC graph paths, magazine debris, bounded vehicle
-  lifting and mission-NPC recovery. Magazine debris is visual, local and reset
-  on map change. Up to 32 discarded magazines remain visible for the loaded
-  map; when full, new visuals are skipped. Vehicle lift is vertical and limited
-  to supported unoccupied vehicles. Rescue applies only to eligible live actors
+  lifting and mission-NPC recovery. Magazine debris is visual and local. Up to
+  32 discarded magazines remain visible through same-map checkpoint/core
+  restores during the running session; map change, disabling MAG DEBRIS, or
+  entering an online session clears them. When full, new visuals are skipped.
+  Vehicle lift uses contact plus Grip to move and rotate a supported unoccupied
+  Warthog, Ghost, Scorpion or turret with one or two hands. Translation and
+  orientation are speed-capped; release lets the native vehicle solver continue
+  with gravity and collision. It is solo-only, does not teleport, and excludes
+  occupied, destroyed, parented, named/movie-star, boat, aircraft and networked
+  vehicles. Rescue applies only to eligible live actors
   in the documented fall/recovery state. Custom scenery uses validated
   collision bounds; it does not enable arbitrary BSP geometry or script-owned
   scenery.
@@ -124,9 +131,9 @@ and Java startup. Switching applies to the next launch. See
   Choosing 72/80/90/120 Hz continues to request the highest supported rate at
   or below that value; the runtime can still decline a request.
 
-## OpenCE Build167 voice chat (selected Test45 integration)
+## OpenCE Build167 voice chat (selected Test46 integration)
 
-Test45 adds OpenCE's host-relayed Opus voice path using optional message IDs
+Test46 adds OpenCE's host-relayed Opus voice path using optional message IDs
 80-82. The engine remains based on Build157/network24; this does not raise or
 change the network protocol version. Voice-capable peers participate after
 they advertise that they can hear voice; this is not a claim that older or
@@ -157,7 +164,7 @@ unmodified clients support voice.
 Source checks verify configuration, controls, network wiring and Android audio
 bridging. Quest permission prompts, capture/playback, lobby/match routing and
 two-client voice have not been runtime-verified. See
-[`TEST45-VOICE-CHAT.md`](TEST45-VOICE-CHAT.md) for setup and the device test
+[`TEST46-VOICE-CHAT.md`](TEST46-VOICE-CHAT.md) for setup and the device test
 boundary.
 
 ## OpenCE, network and image compatibility
@@ -172,7 +179,7 @@ network transport or playback. Selected voice-chat runtime is integrated as
 described above, but per-player mute, votekick, the upstream co-op setup UI, and
 Build165-166 renderer/camera/animation changes are not included or verified.
 The Test42 audit linked in the repo is a historical snapshot and is
-superseded for voice integration by the Test45 notes and voice-chat record.
+superseded for voice integration by the Test46 notes and voice-chat record.
 
 The supplied USA Original, Rev 1 and Rev 2 XISOs all import successfully and
 their 24 map files are byte-identical. Original remains the recommended
@@ -180,21 +187,38 @@ conservative baseline; this does not mean the tested Rev 1/Rev 2 sets are known
 to be incompatible. Other regions, repacks and modified images remain
 unverified.
 
+## Campaign co-op and enhanced interaction limits
+
+Campaign player-count options remain those supplied by OpenCE. The 128-machine
+transport table is not a claim that 128-player campaign spawning, AI, vehicles,
+checkpoints or transitions are stable or device-tested. Enhanced world-object
+interaction can negotiate above four remote peers when the host enables it and
+all participating clients support it. Articulated NPC pose synchronization is
+still limited to four remote peers; above that, NPC physical handling falls
+back to native behavior. Manual reload and parkour remain solo-only. Native
+campaign co-op and its usual capacity are unchanged by these optional systems.
+
 ## Important limits
 
 NPC RIG SLOTS does not raise Halo's native corpse-ragdoll count. Source review
 found no native simultaneous corpse-count cap to raise: eligible bodies run a
 settling solver for a bounded duration, while general object/memory pressure
-may reclaim eligible off-screen garbage. Custom rig support is bounded to known
-or validated humanoid graph layouts, not universal retargeting for arbitrary
-mods. Dropped magazines do not persist in saves, survive a map change, create
-ammo, or replicate. Vehicle lifting does not carry, rotate or throw vehicles.
+may reclaim eligible off-screen garbage. Custom rig support is opt-in and
+solo-only for `_actor_none` and grounded custom `_actor_engineer` tags that
+pass the native head/pelvis, capsule, graph and non-flight checks. It reuses
+the authored graph; it is not universal retargeting for arbitrary mods or
+online custom-layout support. Dropped magazines are not serialized into save files, do not survive a
+map change, create ammo, or replicate; the 32 visual props survive only same-map
+state restores in the current process. Vehicle lifting supports bounded
+hand-driven translation and rotation for the listed ground vehicle classes;
+it does not teleport or add an extra throw impulse, and release retains only
+the capped native velocity.
 NPC rescue does not revive dead actors, override scripts or guarantee every
 mission encounter. These interactions still need Quest testing. Automated
 checks do not establish headset or live-server acceptance.
 
 Install over the existing app without clearing data. Follow
-`TEST45-DEVICE-CHECKLIST.md` before treating this candidate as accepted.
+`TEST46-DEVICE-CHECKLIST.md` before treating this candidate as accepted.
 
 
 ---

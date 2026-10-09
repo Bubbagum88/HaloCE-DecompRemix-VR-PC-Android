@@ -48,6 +48,7 @@ SUITES = [
     'test_test42_refresh_rate',
     'test_voice_chat_integration',
     'test_voice_chat_protocol',
+    'test_test46_candidate',
 ]
 
 def main():

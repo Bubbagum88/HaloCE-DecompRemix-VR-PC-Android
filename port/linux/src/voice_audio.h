@@ -15,8 +15,19 @@ dsound_sdl.c (the mix).
 /* the longest packet sent or taken (64 kbps is 160 bytes a frame) */
 #define VOICE_MAXIMUM_PACKET 400
 
+/* voice_audio_microphone() result values. Permission denial is distinct from
+ * a transient device-open failure so callers can retry the latter without
+ * repeatedly prompting for permission. */
+enum
+{
+	VOICE_AUDIO_MICROPHONE_DEVICE_FAILURE = -2,
+	VOICE_AUDIO_MICROPHONE_PERMISSION_DENIED = -1,
+	VOICE_AUDIO_MICROPHONE_NOT_READY = 0,
+	VOICE_AUDIO_MICROPHONE_READY = 1,
+};
+
 /* opens the microphone (on another thread: not at once) or closes it;
-whether it is open */
+returns one of the result values above */
 int voice_audio_microphone(int open);
 /* the next 20 ms the microphone heard, if it has them all; 1 if so */
 int voice_audio_read_frame(float *frame);

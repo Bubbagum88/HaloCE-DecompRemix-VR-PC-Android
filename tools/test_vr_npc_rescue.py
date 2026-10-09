@@ -114,6 +114,8 @@ assert re.search(
     r"check\.script_state_resumable\s*=\s*actor\s*&&\s*!actor->state\.command_list_immediate\s*&&\s*actor->state\.action\s*!=\s*_actor_action_obey",
     rescue,
 ), "ordinary queued mission orders should resume after rescue; immediate/active obey states stay excluded"
+assert "!check.script_state_resumable" in rescue, "production rescue eligibility must use the validated resumable-script predicate"
+assert "check.no_script_ownership" not in rescue, "stale/nonexistent eligibility fields must not bypass production compile coverage"
 assert "actor->state.command_list_index == NONE" not in rescue, "a queued ordinary command list must not blanket-block rescue"
 for forbidden in ("object_reset(", "unit_port_resurrect(", "actor_set_active(",
                   "unit_interaction_recover(", "actor_move_halt(", "network_send("):

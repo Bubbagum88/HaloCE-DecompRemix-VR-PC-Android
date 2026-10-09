@@ -1289,7 +1289,7 @@ Opt in to bounded collision-box grabbing of eligible unnamed custom scenery. The
 
 vr.custom_npc_rigs [boolean]
 Default: false
-Solo-only fallback for unclassified humanoid biped graphs after hierarchy validation. The VR menu also enables NPC GRAB. Existing known species are unchanged; unknown, swarm, scripted, unsafe or malformed rigs remain refused.
+Solo-only fallback for generic actors and grounded custom Engineer variants with native head/pelvis, capsule and graph validation. The VR menu also enables NPC GRAB. Existing species profiles are unchanged; flying, swarm, scripted, unsafe or malformed rigs remain refused.
 
 vr.npc_rescue [boolean]
 Default: false
@@ -1326,7 +1326,7 @@ Tracked palm contact-sphere radius in metres for physical object/NPC grabs and c
 
 vr.vehicle_lift [boolean]
 Default: false
-Optional offline vertical lifting of unoccupied, unnamed Warthog, Ghost, Scorpion and turret vehicles. Works independently of WORLD GRAB. Native gravity and collision remain active; no horizontal carry or rotation. Unsupported, occupied, scripted and network vehicles remain native.
+Optional offline, contact-grabbed full-body lifting of unoccupied, unnamed Warthog, Ghost, Scorpion and turret vehicles; independent of WORLD GRAB. One/two hand motion controls bounded native translation and orientation; release leaves a speed-capped vehicle in native physics. No teleporting. Destroyed, occupied, parented, named/movie-star, unsupported and network vehicles remain native.
 
 vr.scope_size [real]
 Default: 0.06

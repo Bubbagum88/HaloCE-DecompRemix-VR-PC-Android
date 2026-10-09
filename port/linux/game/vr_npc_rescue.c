@@ -206,7 +206,7 @@ static boolean vr_npc_rescue_candidate_eligibility(
 		!actor_type_get_swarm(actor->meta.type);
 	check.encounter_valid = vr_npc_rescue_valid_encounter_squad(actor, &encounter);
 	check.squad_valid = check.encounter_valid && encounter != NULL;
-	if (!check.actor_attached || !check.actor_live || !check.no_script_ownership ||
+	if (!check.actor_attached || !check.actor_live || !check.script_state_resumable ||
 		!check.not_flying || !check.not_swarm || !check.encounter_valid)
 		return FALSE;
 	actor_definition = actor_definition_get(actor->meta.definition_index);

@@ -1,8 +1,8 @@
 ﻿# World interaction implementation and acceptance status
 
-The Test38 interaction foundation carries into active private Test45. Optional loose-object interaction, articulated NPC handling and the Test40 additions are OFF by default. Source implementation and automated checks cover only the bounded paths below; headset, campaign and real multiplayer acceptance are still required. This document does not claim universal NPC support or that every original acceptance scenario has passed.
+The Test38 interaction foundation carries into active private Test46. Optional loose-object interaction, articulated NPC handling and the Test40 additions are OFF by default. Source implementation and automated checks cover only the bounded paths below; headset, campaign and real multiplayer acceptance are still required. This document does not claim universal NPC support or that every original acceptance scenario has passed.
 
-**Artifact boundary:** the vehicle-lifting expansion and same-map magazine-persistence follow-up described below are source-only changes made after the APK hashes recorded in `TEST45-DELIVERY-STATUS.md`. They are not present in those APKs; no APK was rebuilt for these follow-ups. Treat their automated results as source evidence only until a new candidate is built and tested.
+**Artifact boundary:** the earlier Test45 APK hashes in `TEST45-DELIVERY-STATUS.md` predate the vehicle-lifting expansion and same-map magazine-persistence follow-up. Both changes are part of the Test46 candidate source and are being built into the new APK pair. Treat them as source/test verified until the final package record is filled and Quest device behavior is tested.
 
 ## Delivered architecture
 
@@ -16,7 +16,7 @@ The Test38 interaction foundation carries into active private Test45. Optional l
 - Enhanced campaign sessions negotiate an optional interaction capability. The host validates player ownership, finite/range-limited input, session sequence and leases, and alone simulates root physics and damage. Both flat Android and VR hosts support that authority. NPC palettes are interpolated on upgraded clients with bounded bandwidth and lease expiry. Stock/mixed sessions retain their original behavior; enhanced NPC handling is not silently activated there. Legacy campaign protocol compatibility is a separate feature.
 - Save/load, map changes, tracking/focus loss, player death, vehicle entry and invalid ownership cancel transient holds. Before saving, live ownership is released; no frozen AI flags or solver format are added to checkpoints.
 
-## Test40 and Test45 additions
+## Test40 through Test46 additions
 
 - **Custom NPC rigs:** `vr.custom_npc_rigs` admits a validated generic actor
   fallback in solo play for `_actor_none` and grounded custom `_actor_engineer`
@@ -35,9 +35,9 @@ The Test38 interaction foundation carries into active private Test45. Optional l
   these visuals in the current process after saved collision-owner handles are
   detached. Map initialization/disposal, disabling the option and entering an
   online session clear them. They are visual-only, not ammo, save-file objects
-  or network messages. This persistence follow-up is source-only and is absent
-  from the APK hashes in `TEST45-DELIVERY-STATUS.md`.
-- **Vehicle lifting (Test45):** default-off `vr.vehicle_lift` independently
+  or network messages. The Test45 APK hashes predate the persistence follow-up;
+  Test46 includes the code, pending final artifact verification and Quest test.
+- **Vehicle lifting (Test46):** default-off `vr.vehicle_lift` independently
   admits contact-held, unoccupied, non-destroyed, unparented, unnamed
   Warthog/Ghost/Scorpion/turret classes with validated physics. One/two tracked
   hands drive bounded translation and angular velocity; the engine continues
@@ -45,8 +45,9 @@ The Test38 interaction foundation carries into active private Test45. Optional l
   capped native velocity; no teleport or extra throw impulse is applied.
   Network sessions, boats, aircraft, named/movie-star and unsupported classes
   retain stock behavior. `test_vr_vehicle_lift.py` covers helper math and
-  source guards; Quest acceptance remains pending. This expansion is
-  source-only and is absent from the APK hashes in `TEST45-DELIVERY-STATUS.md`.
+  source guards; Quest acceptance remains pending. The Test45 APK hashes
+  predate this expansion; Test46 includes the code, pending final artifact
+  verification and Quest test.
 - **NPC rescue:** `vr.npc_rescue` watches eligible encounter actors in solo VR.
   After ten seconds of downward unsupported/out-of-map state, it moves an NPC
   only to a recorded grounded pose with a clear full standing capsule. It does

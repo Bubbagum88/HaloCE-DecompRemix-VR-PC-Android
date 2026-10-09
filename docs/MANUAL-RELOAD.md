@@ -50,8 +50,11 @@ The Needler bundle reuses its 16 authored visible needles as one reload object;
 these are a visual cluster, not 16 individual ammunition units. The actual
 20-round capacity and reserve transfer stay under the native magazine rules.
 
-Press the normal reload button to cancel a physical sequence and use classic
-reload. Weapon changes, dropping/putting away the weapon, death, vehicle entry,
+Pressing the normal reload button cancels the current physical sequence without
+committing ammunition. For a supported weapon profile in solo play, native
+automatic reload remains suppressed while **Manual Reload** is on; turn the
+setting off to use the classic reload control. Unprofiled weapons retain their
+native behavior. Weapon changes, dropping/putting away the weapon, death, vehicle entry,
 cinematics, inhibited input, lost tracking, map transitions, or disabling the
 option cancel transient state. Ammunition is unchanged before final commit.
 Online play uses the existing native reload path: this implementation does not

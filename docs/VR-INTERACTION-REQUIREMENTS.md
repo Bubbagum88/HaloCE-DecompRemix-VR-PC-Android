@@ -1,34 +1,32 @@
-# Test42 current source disposition — 2026-10-09
+# Current source disposition — Test46 (2026-10-09)
 
 This file preserves the original detailed M1-M29 / W1-W66 request matrix and
-its investigation history. The old “Deferred — dependency W” cells below are
-the initial pre-implementation status, not the current Test42 result. Use
-[TEST42-REQUIREMENT-DISPOSITION.md](TEST42-REQUIREMENT-DISPOSITION.md) for the
-current feature-by-feature source status and explicit remaining limits; use
-[TEST42-DEVICE-CHECKLIST.md](TEST42-DEVICE-CHECKLIST.md) for owner runtime
-acceptance. Test42 does not claim that every broad physical-interaction idea is
-universal or device-verified.
+its investigation history. The active candidate is Test46; use
+[TEST46-REQUIREMENT-DISPOSITION.md](TEST46-REQUIREMENT-DISPOSITION.md) for the
+current feature-by-feature implementation and limits, and
+[TEST46-DEVICE-CHECKLIST.md](TEST46-DEVICE-CHECKLIST.md) for owner runtime
+acceptance. Source/test completion is not headset acceptance.
 
-## Current Test42 snapshot
+Test46 carries the bounded Test38-45 work forward: solo-only profiled manual
+reload and parkour, contact-driven local/consent-gated co-op interactions,
+validated humanoid graph fallback, same-map visual magazine retention,
+bounded translation/orientation lifting for validated unoccupied ground
+vehicles, limited live-NPC fall recovery, configurable contact reach/climb/rig
+slots, unified haptics plus holster-only mute, and session diagnostics. The
+selected OpenCE Build167 host-relayed voice implementation uses optional
+messages 80-82 without changing Build157/network24. Android requests microphone
+permission asynchronously only when transmission is enabled and active; VR
+provides Off/PTT/Open Mic, controller PTT and 0-200% incoming voice volume.
 
-Test42 carries the bounded Test38-41 implementations forward: profiled,
-solo-only manual reload; local and consent/host-gated interactions; validated
-custom humanoid graph fallback; map-session visual magazine debris; bounded
-vertical lift of eligible vehicles; limited live-NPC fall recovery; configurable
-reach, climb and rig slots; one master haptics control; and session diagnostics.
-See the Test42 disposition for exact constraints, including no universal rig
-retargeter, save-persistent/networked magazine objects, whole-vehicle carry or
-rotation, native corpse-ragdoll-cap change, or universal NPC rescue. Those scope
-limits are recorded explicitly; do not describe them as completed merely
-because related toggles exist.
-
-Test42 also adds Android-only touch-layout export/import and per-control
-hide/restore in the existing HUD editor. The format is versioned and bounded;
-old touch profiles remain visible by default. This does not change Quest VR
-touch input or gamepad preferences.
+The scope has explicit limits: no arbitrary skeleton retargeter, no
+save-file/network-persistent dropped magazines, no native corpse-ragdoll cap
+change, and no universal rescue of scripted or every mission actor. Whole-
+vehicle lifting and enhanced NPC/prop physics remain limited to their validated
+solo or negotiated-authority cases. Physical behavior, audio routing,
+performance and multiplayer require the headset checks. PC/Steam Frame remains
+deferred.
 
 ---
-
 ## Historical Test41 source disposition (superseded by Test42 above)
 
 The private candidate at that checkpoint was **Test41 / 1.0.22-test41 / code52**, based on OpenCE
@@ -213,7 +211,7 @@ compatibility are demonstrated. No articulated-ragdoll capability is assumed.
 | W33 | Multiple object interactions | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W34 | Grabbing weapons from the world | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W35 | Grenades and equipment | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
-| W36 | Vehicles and extremely large objects | Test45 source expands default-off local lifting to bounded hand-driven translation/orientation and capped free release for validated unoccupied Warthog/Ghost/Scorpion/turret classes. | Uses native vehicle integration/gravity/collision; no teleport or network manipulation. Destroyed, occupied, parented, named/movie-star, unsupported, boat and aircraft cases retain stock behavior. Focused helper/source test passes; Quest acceptance and a full APK build remain pending. |
+| W36 | Vehicles and extremely large objects | Test46 includes default-off local lifting with bounded hand-driven translation/orientation and capped free release for validated unoccupied Warthog/Ghost/Scorpion/turret classes. | Uses native vehicle integration/gravity/collision; no teleport or network manipulation. Destroyed, occupied, parented, named/movie-star, unsupported, boat and aircraft cases retain stock behavior. Focused helper/source test passes; final APK checks and Quest acceptance remain pending. |
 | W37 | World collision | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W38 | Player-body collision considerations | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W39 | Co-op and multiplayer compatibility | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |

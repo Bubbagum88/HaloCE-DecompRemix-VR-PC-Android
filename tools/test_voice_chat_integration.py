@@ -34,6 +34,12 @@ header = read("port/linux/src/sdl_platform.h")
 platform = read("port/linux/src/sdl_platform.c")
 assert "platform_audio_device(int recording, const char *name)" in header
 assert "SDL_AUDIO_DEVICE_DEFAULT_RECORDING" in platform
+audio_header = read("port/linux/src/voice_audio.h")
+for marker in ("VOICE_AUDIO_MICROPHONE_DEVICE_FAILURE = -2",
+               "VOICE_AUDIO_MICROPHONE_PERMISSION_DENIED = -1",
+               "VOICE_AUDIO_MICROPHONE_NOT_READY = 0",
+               "VOICE_AUDIO_MICROPHONE_READY = 1"):
+    assert marker in audio_header
 audio = read("port/linux/src/voice_audio.c")
 assert "platform_audio_device(TRUE, microphone_opening_device)" in audio
 open_thread = audio.split("static void *microphone_open_thread", 1)[1].split("static BOOL voice_testing", 1)[0]
@@ -42,9 +48,9 @@ assert "SDL_OpenAudioDeviceStream" in open_thread
 permission_gate = mic_control.index("platform_audio_recording_permission()")
 thread_start = mic_control.index("pthread_create(&thread, NULL, microphone_open_thread, NULL)")
 assert permission_gate < thread_start
-assert "if (permission <= 0)\n\t\t\treturn permission < 0 ? -1 : FALSE;" in mic_control
+assert "if (permission <= 0)\n\t\t\treturn permission < 0 ? VOICE_AUDIO_MICROPHONE_PERMISSION_DENIED : VOICE_AUDIO_MICROPHONE_NOT_READY;" in mic_control
 assert "if (open && !microphone && !microphone_opening && !microphone_failed)" in mic_control
-assert "if (open && microphone_failed)\n\t\tready = -1;" in mic_control
+assert "if (open && microphone_failed)\n\t\tready = VOICE_AUDIO_MICROPHONE_DEVICE_FAILURE;" in mic_control
 assert "microphone_failed = stream == NULL;" in open_thread
 assert "microphone_failed = TRUE;" in mic_control
 platform_audio = platform.split("/* ---------- audio devices (voice chat's microphone; default on Android) */", 1)[1].split("#ifndef HALO_ANDROID", 1)[1].split("/* ---------- first start without game data", 1)[0]
@@ -61,24 +67,29 @@ assert "host_sdl_request_microphone_permission" in read("port/android/host_impor
 assert "return host_sdl_request_microphone_permission();" in platform
 assert "voice_audio_mix(output, frames)" in read("port/linux/src/dsound_sdl.c")
 main = read("source/main/main.c")
+network_voice = read("port/linux/game/network_voice.c")
 assert "network_voice_update();" in main
 # No startup path opens capture: network_voice_update is the sole caller of
 # voice_audio_microphone, and its first no-network path closes then returns.
-assert len(re.findall(r'\bvoice_audio_microphone\s*\(', read("port/linux/game/network_voice.c"))) == 4
+assert len(re.findall(r'\bvoice_audio_microphone\s*\(', network_voice)) == 5
 assert "voice_audio_microphone(" not in main
 voice_update = read("port/linux/game/network_voice.c").split("void network_voice_update(", 1)[1].split("/* ---------- the menus", 1)[0]
 assert "voice_end_session();\n\t\treturn;" in voice_update
 assert "if (!voice_settings_heard)" in voice_update and "voice_audio_microphone(FALSE);" in voice_update
-assert "voice_microphone_failed" in voice_update
-assert "voice_audio_microphone(voice_microphone_wanted) < 0" in voice_update
-assert "voice_audio_microphone(FALSE);\n\t\tplatform_log(\"voice chat: microphone permission/device unavailable" in voice_update
+assert "voice_microphone_permission_denied" in voice_update
+assert "voice_microphone_retry_pending" in voice_update
+assert "voice_microphone_retry_at - now" in voice_update
+assert "VOICE_MICROPHONE_RETRY_MS = 10000" in network_voice
+assert "microphone_result == VOICE_AUDIO_MICROPHONE_PERMISSION_DENIED" in voice_update
+assert "microphone_result == VOICE_AUDIO_MICROPHONE_DEVICE_FAILURE" in voice_update
+assert "retrying in %d ms" in voice_update
 assert "held = push_to_talk && halo_push_to_talk_held() && !console_is_active();" in voice_update
 assert "Keep PTT available in the network lobby, which is itself a menu" in voice_update
 assert "else if (open_mic || held)" in voice_update
-assert "voice_microphone_failed = FALSE;" in voice_update
-# Permission/device failure is latched until voice is disabled or the session
-# ends; it does not repeatedly reopen the device while PTT remains held.
-assert "else if (voice_microphone_failed)\n\t\tvoice_microphone_wanted = FALSE;" in voice_update
+assert "voice_microphone_permission_denied = FALSE;" in voice_update
+# Permission denial waits for explicit mode change; transient SDL device-open
+# errors retry after ten seconds without re-requesting permission.
+assert "else if (voice_microphone_permission_denied)\n\t\tvoice_microphone_wanted = FALSE;" in voice_update
 mix = audio.split("void voice_audio_mix(float *output", 1)[1]
 encode = audio.split("int voice_audio_encode(", 1)[1].split("void voice_audio_play(", 1)[0]
 assert "voice_volume" in mix and "voice_volume" not in encode
@@ -89,7 +100,6 @@ distributed = read("port/linux/game/network_distributed.h")
 for marker in ("_distributed_message_voice_up = 80", "_distributed_message_voice_down = 81",
                "_distributed_message_voice_config = 82"):
     assert marker in distributed
-network_voice = read("port/linux/game/network_voice.c")
 assert "VOICE_WIRE_MAXIMUM_PACKET = 255" in network_voice
 assert "MIN(limit, MIN(VOICE_MAXIMUM_PACKET, VOICE_WIRE_MAXIMUM_PACKET))" in network_voice
 assert "(byte)length" in network_voice
@@ -129,10 +139,10 @@ assert "per-player mute controls are not wired" in notes
 assert "not a claim of complete upstream" in notes
 assert "no dedicated hold-to-talk touch button" in notes
 package = read("tools/package-quest.py")
-assert "required_candidate_code = 56 if candidate_at_least(args.label, 45)" in package
+assert "required_candidate_code = 57 if candidate_at_least(args.label, 46)" in package
 assert '"dump", "permissions"' in package and "android.permission.RECORD_AUDIO" in package
-assert "Test45 voice-chat runtime marker missing from APK" in package
-assert "Test45 voice-chat player guide marker missing from APK" in package
+assert "OpenCE Build167 voice-chat runtime marker missing from APK" in package
+assert "OpenCE Build167 voice-chat player-guide marker missing from APK" in package
 
 print("PASS: Build167 voice chat has privacy defaults, compiled codec, Android recording bridge, mixer/network hooks, native/VR controls, and server routing assets")
 print("DEVICE CHECK REQUIRED: microphone permission, capture/playback, PTT, and two-peer voice in a Quest lobby")

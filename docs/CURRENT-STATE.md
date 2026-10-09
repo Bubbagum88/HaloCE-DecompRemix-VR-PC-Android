@@ -1,33 +1,34 @@
 # Current development state
 
-## Active private candidate: Test45 (2026-10-09)
+## Active private candidate: Test46 (2026-10-09)
 
-Candidate target is **1.0.26-test45 / Android code56** on
-`test39-interaction-completion`. It carries forward Test44 and all changes since
-public v1.0.18. Test45 focuses on the reported NPC hold release and grabbing
-allies. Acquisition remains tracked palm collision overlap with an authored
-NPC/object model plus a fresh Grip edge. Aim rays do not acquire. A held NPC or
-prop remains owned through ordinary movement/strain; large pose discontinuities
-rebase the hand target and clear throw velocity. Friendly Marines and crew may
-be held through ordinary AI command lists, with only transient controls
-suppressed; their team/orders remain native. Forced immediate orders remain
-ineligible. The host applies the same bounded target-follow rule to co-op props.
+Candidate target is **1.0.27-test46 / Android code57** on
+`test39-interaction-completion`. It carries forward Test45 and all recorded
+changes since public v1.0.18. The complete scope and evidence are tracked in
+[TEST46-REQUIREMENT-DISPOSITION.md](TEST46-REQUIREMENT-DISPOSITION.md), with
+physical acceptance separated from source/test status.
 
-The existing default-off **LIFT VEHICLES** option now supports bounded
-hand-driven translation and rotation for the validated unoccupied Warthog,
-Ghost, Scorpion and turret subset. Native integration, gravity and collision
-remain in control; release leaves capped native velocity. Networked, destroyed,
-occupied, named/movie-star and unsupported solver families remain stock.
-Focused math/source checks pass; Quest handling still needs acceptance.
+Test46 preserves contact-then-fresh-Grip interaction, held NPC/prop ownership
+through ordinary motion with safe tracking rebases, friendly Marine/crew
+handling, the prior launcher/calibration/touch/network/co-op/saves/scopes/
+vehicles/manual-reload/parkour/haptics/Safe Geometry behavior, and the
+post-Test45 same-map magazine and bounded ground-vehicle lifting updates.
+Native corpse ragdoll eligibility remains engine-owned; `NPC RIG SLOTS` does
+not change an undocumented native corpse cap. NPC rescue is opt-in, solo-only
+recovery of eligible live encounter actors, not revival or script takeover.
 
-The previous Test44 launcher storage guidance, protected Existing game data
-status and A10 reticle-based look calibration are retained. Engine base remains
-Build157/network24 with selected Build167 compatibility fixes. Physical Quest,
-Android and multiplayer acceptance remains pending. See
-[TEST45-REQUIREMENT-DISPOSITION.md](TEST45-REQUIREMENT-DISPOSITION.md),
-[TEST45-DEVICE-CHECKLIST.md](TEST45-DEVICE-CHECKLIST.md), and
-[TEST45-DELIVERY-STATUS.md](TEST45-DELIVERY-STATUS.md). Test44 and older
-artifacts remain preserved. Do not publish, install or launch the game.
+Selected OpenCE Build167 host-relayed Opus voice uses messages 80-82 without
+changing Build157/network24. Android requests `RECORD_AUDIO` asynchronously
+only when voice transmission is enabled and active. The VR menu offers
+Off/PTT/Open Mic, controller PTT, and 0-200% incoming voice volume. Permission
+denial and temporary microphone-device failure follow separate paths. Actual
+permission UI, routing and two-client voice still need headset acceptance.
+
+Use [TEST46-DELIVERY-STATUS.md](TEST46-DELIVERY-STATUS.md),
+[TEST46-PLAYER-NOTES.md](TEST46-PLAYER-NOTES.md),
+[TEST46-DEVICE-CHECKLIST.md](TEST46-DEVICE-CHECKLIST.md), and
+[TEST46-VOICE-CHAT.md](TEST46-VOICE-CHAT.md). Preserve Test45 and older
+artifacts and public v1.0.18. Do not publish, install or launch the game.
 PC/Steam Frame remains deferred.
 
 ## Superseded private candidate: Test40

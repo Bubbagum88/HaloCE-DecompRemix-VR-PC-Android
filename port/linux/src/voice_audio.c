@@ -157,7 +157,7 @@ int voice_audio_microphone(int open)
 		int permission = platform_audio_recording_permission();
 
 		if (permission <= 0)
-			return permission < 0 ? -1 : FALSE;
+			return permission < 0 ? VOICE_AUDIO_MICROPHONE_PERMISSION_DENIED : VOICE_AUDIO_MICROPHONE_NOT_READY;
 	}
 	{
 		/* (audio.input_device: Settings > Audio's, none on Android) */
@@ -198,12 +198,11 @@ int voice_audio_microphone(int open)
 		}
 		microphone_failed = FALSE;
 	}
-	ready = microphone != NULL;
-	/* (a denied Android runtime permission, or a missing device: no rapid
-	reopen/re-prompt loop; network_voice.c disables capture until the user
-	turns voice off and on again) */
+	ready = microphone ? VOICE_AUDIO_MICROPHONE_READY : VOICE_AUDIO_MICROPHONE_NOT_READY;
+	/* (a missing device: network_voice.c waits before retrying; Android
+	permission denial is returned separately above and waits for user action) */
 	if (open && microphone_failed)
-		ready = -1;
+		ready = VOICE_AUDIO_MICROPHONE_DEVICE_FAILURE;
 	pthread_mutex_unlock(&voice_lock);
 	if (closing)
 	{
@@ -223,7 +222,7 @@ int voice_audio_microphone(int open)
 			microphone_opening = FALSE;
 			microphone_failed = TRUE;
 			pthread_mutex_unlock(&voice_lock);
-			platform_log("voice chat: microphone open thread could not start; capture disabled until voice mode is toggled");
+			platform_log("voice chat: microphone open thread could not start");
 		}
 	}
 	return ready;

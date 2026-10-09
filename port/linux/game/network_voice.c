@@ -90,6 +90,9 @@ enum
 	VOICE_CONFIG_MS = 10000,
 	/* a client forgets the host's settings unheard this long (ms) */
 	VOICE_CONFIG_TIMEOUT_MS = 25000,
+	/* a transient SDL input-device failure is retried at the same interval as
+	   upstream Build167; permission denial still waits for explicit user action */
+	VOICE_MICROPHONE_RETRY_MS = 10000,
 	/* a speaker's icon shows this long after their last frame (ms) */
 	VOICE_SPEAKING_MS = 300,
 	/* open mic: talking while the microphone's level is over this (about
@@ -207,10 +210,12 @@ static unsigned long voice_talked_at;
 static boolean voice_talked;
 static unsigned long voice_open_mic_until;
 static boolean voice_microphone_wanted;
-/* a denied Android permission or unavailable input disables capture for this
-voice mode. It is cleared only when voice is disabled or its host route ends,
-so the game does not repeatedly ask for permission while PTT remains held. */
-static boolean voice_microphone_failed;
+/* Permission denial waits for the player to switch voice Off/on. Transient
+ * SDL device failures retry after the upstream interval without a permission
+ * prompt loop. */
+static boolean voice_microphone_permission_denied;
+static boolean voice_microphone_retry_pending;
+static unsigned long voice_microphone_retry_at;
 static boolean voice_session;
 
 /* every machine slot's last frame heard (for its icon), and whether this
@@ -868,7 +873,9 @@ static void voice_end_session(
 		return;
 	voice_session = FALSE;
 	voice_microphone_wanted = FALSE;
-	voice_microphone_failed = FALSE;
+	voice_microphone_permission_denied = FALSE;
+	voice_microphone_retry_pending = FALSE;
+	voice_microphone_retry_at = 0;
 	voice_audio_microphone(FALSE);
 	voice_audio_forget_all();
 	voice_settings_heard = FALSE;
@@ -918,7 +925,9 @@ void network_voice_update(
 	{
 		voice_audio_microphone(FALSE);
 		voice_microphone_wanted = FALSE;
-		voice_microphone_failed = FALSE;
+		voice_microphone_permission_denied = FALSE;
+		voice_microphone_retry_pending = FALSE;
+		voice_microphone_retry_at = 0;
 		return;
 	}
 	/* (a client says it hears voices) */
@@ -935,18 +944,39 @@ void network_voice_update(
 	if (!voice_may_talk() || (!open_mic && !push_to_talk))
 	{
 		voice_microphone_wanted = FALSE;
-		voice_microphone_failed = FALSE;
+		voice_microphone_permission_denied = FALSE;
+		voice_microphone_retry_pending = FALSE;
+		voice_microphone_retry_at = 0;
 	}
-	else if (voice_microphone_failed)
+	else if (voice_microphone_permission_denied)
+		voice_microphone_wanted = FALSE;
+	else if (voice_microphone_retry_pending && (long)(voice_microphone_retry_at - now) > 0)
 		voice_microphone_wanted = FALSE;
 	else if (open_mic || held)
 		voice_microphone_wanted = TRUE;
-	if (voice_audio_microphone(voice_microphone_wanted) < 0)
 	{
-		voice_microphone_failed = TRUE;
-		voice_microphone_wanted = FALSE;
-		voice_audio_microphone(FALSE);
-		platform_log("voice chat: microphone permission/device unavailable; capture disabled until voice mode is turned off or the network voice session ends");
+		int microphone_result = voice_audio_microphone(voice_microphone_wanted);
+
+		if (microphone_result == VOICE_AUDIO_MICROPHONE_PERMISSION_DENIED)
+		{
+			voice_microphone_permission_denied = TRUE;
+			voice_microphone_wanted = FALSE;
+			voice_audio_microphone(FALSE);
+			platform_log("voice chat: microphone permission denied; capture disabled until voice mode is turned off");
+		}
+		else if (microphone_result == VOICE_AUDIO_MICROPHONE_DEVICE_FAILURE)
+		{
+			voice_microphone_wanted = FALSE;
+			voice_microphone_retry_pending = TRUE;
+			voice_microphone_retry_at = now + VOICE_MICROPHONE_RETRY_MS;
+			voice_audio_microphone(FALSE);
+			platform_log("voice chat: microphone device unavailable; retrying in %d ms", VOICE_MICROPHONE_RETRY_MS);
+		}
+		else if (microphone_result == VOICE_AUDIO_MICROPHONE_READY)
+		{
+			voice_microphone_retry_pending = FALSE;
+			voice_microphone_retry_at = 0;
+		}
 	}
 	while (voice_microphone_wanted && voice_audio_read_frame(frame))
 	{
