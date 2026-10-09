@@ -27,11 +27,13 @@ requested multiplayer feature is finished.
 
 ## Build and acceptance status
 
-All 84 regression suites passed; cache-format pytest had 127 passes and four
-optional map fixtures skipped. The Quest and flat native/Gradle builds passed,
-and the final package gate verified signatures, build identities, APK contents,
-flavor/network parity and source/build archives. The first Quest compile caught
-and fixed a C89 loop-scope issue before the final build. Exact APK hashes and
+All 84 regression suites passed in both the VR and flat build workflows;
+cache-format pytest had 127 passes and four optional map fixtures skipped.
+The Quest and flat native/Gradle builds include the supplied Halo logo as their
+launcher artwork. The final package gate verified signatures, build identities,
+APK contents, flavor/network parity, no orphaned ZIP payload, and source/build
+archives. An initial incremental APK was rejected for orphaned bytes; clean
+Gradle assemblies were then used for both final variants. Exact APK hashes and
 package checks are in [TEST39-DELIVERY.md](TEST39-DELIVERY.md) and the generated
 manifest. Headset, Android-device, heat-weapon and live co-op acceptance remain
 the owner's test; compilation and sanitizer fixtures are not runtime proof.

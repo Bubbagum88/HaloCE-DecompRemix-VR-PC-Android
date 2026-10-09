@@ -20,6 +20,11 @@ authorized. PC/Steam Frame work remains deferred.
 | Preserve bounded NPC co-op | Articulated NPC interaction/palette packets stay limited to four remote machines and are refused above that count; world-object interactions can remain negotiated. Normal OpenCE co-op is not capped or modified by this optional channel. |
 | Reset behavior | Interaction/session reset clears the per-hand weight-haptic cadence. All new settings default OFF, and online gates fail closed for solo-only effects. |
 
+The supplied Halo CE Combat Evolved VR / Open CE Port logo is now used for
+both the Quest and Android adaptive launcher icons. The full artwork is
+included in the generated Android icon resources; it does not change game
+runtime or user settings.
+
 ## Preserved from Test38
 
 Test38's scope profiles, vehicle/turret reticle behavior, reload profiles,
@@ -65,15 +70,17 @@ Completed before delivery:
 - All **84 regression suites** in `tools/run-quest-checks.py` passed under WSL
   clang/JDK, including a second clean run inside each flavor build.
 - Cache-format pytest: **127 passed, 4 optional real-map fixtures skipped**.
-- Quest and flat Android native/Gradle builds both completed. The first Quest
-  compile caught a C89 loop-scope error in the new module; it was corrected and
-  the final full Quest build then passed. No APK from the failed compile was
-  packaged.
-- `package-quest.py` passed certificate, package/version, arm64, guide and
-  license, OpenXR/touch flavor separation, networking parity, APK ZIP/orphan
-  data, required marker, and source/build archive checks. The two APKs carry
-  the established certificate SHA-256
+- Quest and flat Android native/Gradle builds both completed with the supplied
+  launcher logo. All 84 regression suites passed in the VR and flat build
+  workflows. A clean Gradle assembly was required after the package gate caught
+  stale unindexed bytes in incremental APK output; those rejected APKs were not
+  packaged or delivered.
+- The final `package-quest.py` run passed certificate, package/version, arm64,
+  guide and license, OpenXR/touch flavor separation, networking parity,
+  APK ZIP/orphan data, required marker, and source/build archive checks. Both
+  APKs carry the established certificate SHA-256
   `53d416f7e123cc62b749940983209bc9a400002e033fd5f50900d4ffad8e2aa4`.
+  Final sizes and hashes are in [TEST39-DELIVERY.md](TEST39-DELIVERY.md).
 - Focused host-sanitizer tests cover input pacing, the 128-machine negotiation
   ceiling, old-peer confirmation compatibility, NPC gating above four, finite
   shake math, capped weight feedback and safe reset behavior.

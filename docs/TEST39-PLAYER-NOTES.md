@@ -9,6 +9,9 @@ provide your own supported Halo CE game data.
 
 ## Main changes in Test39
 
+- The Quest and Android launcher icons now use the supplied Halo CE Combat
+  Evolved VR / Open CE Port logo.
+
 - Optional **SHAKE COOLING** toggle for offline VR. It is OFF by default and
   is in the VR menu's Controls page. When an overheated, currently selected
   weapon is held, deliberate back-and-forth controller motion can speed its

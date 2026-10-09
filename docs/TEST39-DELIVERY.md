@@ -5,16 +5,19 @@ code 50, OpenCE Build157/network24.
 **Status:** private owner-test candidate only. Public v1.0.18 remains the
 accepted/public baseline. This does not authorize publication or installation.
 
-The exact APK filenames, byte counts, SHA-256 hashes, signing certificate,
-source commit, APK/runtime source commit, source archive, package archive and
-reproducible checksum list are in the generated `manifest.json` and
-`SHA256SUMS.txt` alongside the APKs. The candidate is built with the established
-certificate; package verification must reject any different key.
+The final logo-updated APKs and matching archives are in
+`D:\HaloQuest\builds\test39-20261008-v1.0.20-test39-logo-verified`.
+The generated `manifest.json` and `SHA256SUMS.txt` record the exact source
+commit, APK/runtime source commit, signing certificate, archive hashes and
+file sizes. Both APKs use the established signing certificate.
 
 | Edition | APK | Bytes | SHA-256 |
 |---|---|---:|---|
-| Android / flat | `HaloCE-Android-1.0.20-test39.apk` | 32,811,714 | `dc2375e8157e3584531d2babe87c406ddd51aef329dab21302828e0376613e18` |
-| Quest / VR | `HaloCE-Quest-VR-1.0.20-test39.apk` | 34,918,473 | `12c2936ef64039b46d7e33a604bf534458c762d12151702a2d8c7e6ad20baf5f` |
+| Android / flat | `HaloCE-Android-1.0.20-test39.apk` | 33,350,243 | `79674d4431293c9459658171b5cdfe47cfaf477cf8f7aed8ca98abeae585c197` |
+| Quest / VR | `HaloCE-Quest-VR-1.0.20-test39.apk` | 35,456,998 | `9e7684b1553e61db0459e7927f4c313204e79bb588b4b2846520895e4e93b893` |
+
+The Quest and Android adaptive launcher icons now use the supplied Halo CE
+Combat Evolved VR / Open CE Port logo artwork.
 
 Both APKs use package IDs `com.halo.decomp` / `com.halo.decomp.vr`, version
 code 50, minimum API 28 and the existing signing certificate. The package gate
