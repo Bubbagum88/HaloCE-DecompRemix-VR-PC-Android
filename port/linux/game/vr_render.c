@@ -33,6 +33,7 @@ built from the game's camera and the headset's pose (port/linux/src/vr.h).
 #include "vr_action_blend.h"
 #include "vr_gun_anchor.h"
 #include "vr_manual_reload.h"
+#include "vr_sprint_melee_math.h"
 #include "physics/collision_models.h"
 #include "physics/collision_bsp.h"
 #include "vr_hand_compliance_math.h"

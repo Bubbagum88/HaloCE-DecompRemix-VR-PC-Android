@@ -27,6 +27,7 @@ def function(source, name):
 
 
 render = (ROOT / "port/linux/game/vr_render.c").read_text()
+assert '#include "vr_sprint_melee_math.h"' in render, "VR render must include its production sprint math helpers"
 # test26: the finger pose before each joint took its own curl (1.0.7), to
 # compare against: one curl for all three joints poses exactly as it did
 render_1_0_7 = subprocess.check_output(["git", "show", "9bca3958:port/linux/game/vr_render.c"], cwd=ROOT, text=True)
