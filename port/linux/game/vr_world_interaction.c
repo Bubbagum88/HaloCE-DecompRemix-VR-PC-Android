@@ -56,6 +56,8 @@ static int interaction_diag_slots = -1;
 static int interaction_diag_haptics_milli = -1;
 static long interaction_diag_tick = NONE;
 unsigned long system_milliseconds(void);
+static void world_vector(real_vector3d const *forward, real_vector3d const *up,
+	real_vector3d const *local, real_vector3d *world);
 
 /* vehicle_definition is private to vehicles.c. This prefix is copied from
  * that source definition (unit, flags, vehicle_type, pad); the offset assert
