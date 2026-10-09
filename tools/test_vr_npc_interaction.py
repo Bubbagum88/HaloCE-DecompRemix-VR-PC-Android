@@ -58,7 +58,7 @@ typedef struct {float values[13];} real_matrix4x3;
 static int valid_real_point3d(real_point3d const *p){return p&&isfinite(p->x)&&isfinite(p->y)&&isfinite(p->z);}
 enum {_actor_elite,_actor_jackal,_actor_grunt,_actor_hunter,_actor_engineer,_actor_assassin,_actor_player,_actor_marine,_actor_crew,_actor_combat_form,_actor_infection_form,_actor_carrier_form,_actor_monitor,_actor_sentinel,_actor_none,_actor_mounted_weapon,NUMBER_OF_ACTOR_TYPES};
 enum {_race_player=1,_race_human=2,_race_covenant=4,_race_floodcombat=8,_race_floodcarrier=16,_race_floodinfection=32,_race_sentinel=64};
-enum {_actor_definition_flying_bit=21,_actor_definition_swarm_actor_bit=26};
+enum {_actor_definition_flying_bit=21,_actor_definition_swarm_actor_bit=26,_biped_flying_bit=2};
 enum {_game_connection_local=0};static int connection;static int game_connection(void){return connection;}
 static struct npc_state {int active,recovery,settling,minimum_hands,started,is_remote,getting_up,species_type;float mobility;long index,tick,player;int held[2],edge[2],node[2],strain_logged[2];real_vector3d target[2],offset[2],root_anchor[2],velocity[2];struct{struct vr_articulated_body body;real_matrix4x3 captured[64];}rig;} npc_pool[NPC_POOL_SIZE],*npc_current=&npc_pool[0];
 #define npc (*npc_current)
@@ -76,7 +76,7 @@ static int config_boolean(char const *name){assert(!strcmp(name,"vr.custom_npc_r
 static short actor_type_get_race(short type){return type>=0&&type<32?actor_races[type]:0;}
 static int actor_type_get_swarm(short type){return type>=0&&type<32?swarm_types[type]:1;}
 struct actor_definition {unsigned long flags;short type;};static struct actor_definition actors[8];
-struct biped_definition {struct{short runtime_pelvis_node_index;}biped;};static struct biped_definition biped;
+struct biped_definition {struct{unsigned long flags;float collision_height_standing,collision_radius;short runtime_pelvis_node_index,runtime_head_node_index;}biped;};static struct biped_definition biped;
 struct vr_articulated_native {struct vr_articulated_body body;};
 static int graph_capture_ok=1,graph_nodes=8,graph_parent[64],graph_capture_count;
 static struct biped_definition *biped_definition_get(long index){(void)index;return &biped;}
@@ -150,7 +150,8 @@ int main(void){
  actors[1].flags=0;actor_races[_actor_none]=_race_covenant;swarm_types[_actor_none]=0;
  graph_capture_ok=1;graph_nodes=8;memset(graph_parent,0,sizeof graph_parent);
  graph_parent[0]=-1;graph_parent[1]=0;graph_parent[2]=1;graph_parent[3]=1;graph_parent[4]=1;graph_parent[5]=2;graph_parent[6]=3;graph_parent[7]=4;
- biped.biped.runtime_pelvis_node_index=1;
+ biped.biped.runtime_pelvis_node_index=1;biped.biped.runtime_head_node_index=5;
+ biped.biped.collision_height_standing=1.4f;biped.biped.collision_radius=.25f;biped.biped.flags=0;
  assert(!interaction_profile(_actor_none,&unit,1,&hands,&mobility)); /* default OFF */
  custom_rigs=1;
  assert(interaction_profile(_actor_none,&unit,1,&hands,&mobility)&&hands==2&&mobility==.25f);
@@ -162,7 +163,7 @@ int main(void){
    unit.definition_index++;memset(custom_rig_graph_cache,0,sizeof custom_rig_graph_cache);
    assert(interaction_profile(_actor_none,&unit,1,&hands,&mobility));
  }
- for(int type=0;type<NUMBER_OF_ACTOR_TYPES;type++) if(type!=_actor_none)
+ for(int type=0;type<NUMBER_OF_ACTOR_TYPES;type++) if(type!=_actor_none&&type!=_actor_engineer)
    assert(!custom_humanoid_rig((short)type,&unit,1,&hands,&mobility));
  assert(!custom_humanoid_rig(NUMBER_OF_ACTOR_TYPES,&unit,1,&hands,&mobility)); /* invalid enum is not clamped to _actor_none */
  actor_races[_actor_none]=_race_player;assert(!custom_humanoid_rig(_actor_none,&unit,1,&hands,&mobility));
@@ -182,6 +183,24 @@ int main(void){
  graph_parent[2]=0;graph_parent[3]=0;graph_parent[4]=0;unit.definition_index++;assert(!custom_humanoid_rig(_actor_none,&unit,1,&hands,&mobility)); /* no split below pelvis */
  graph_parent[2]=1;graph_parent[3]=1;graph_parent[4]=1;graph_parent[7]=99;unit.definition_index++;assert(!custom_humanoid_rig(_actor_none,&unit,1,&hands,&mobility)); /* malformed parent */
  graph_parent[7]=4;unit.definition_index++;assert(custom_humanoid_rig(_actor_none,&unit,1,&hands,&mobility));
+ /* The graph proof uses authored head/pelvis markers and native biped
+    flight/capsule metadata, and admits a grounded custom Engineer layout. */
+ actor_races[_actor_engineer]=_race_covenant;swarm_types[_actor_engineer]=0;
+ assert(custom_humanoid_rig(_actor_engineer,&unit,1,&hands,&mobility)&&hands==2&&mobility==.25f);
+ biped.biped.runtime_head_node_index=8;unit.definition_index++;
+ assert(!custom_humanoid_rig(_actor_engineer,&unit,1,&hands,&mobility));biped.biped.runtime_head_node_index=5;
+ swarm_types[_actor_engineer]=1;unit.definition_index++;
+ assert(!custom_humanoid_rig(_actor_engineer,&unit,1,&hands,&mobility));swarm_types[_actor_engineer]=0;
+ biped.biped.flags=1u<<_biped_flying_bit;unit.definition_index++;
+ assert(!custom_humanoid_rig(_actor_engineer,&unit,1,&hands,&mobility));biped.biped.flags=0;
+ biped.biped.runtime_head_node_index=7;graph_parent[7]=0;unit.definition_index++;
+ assert(!custom_humanoid_rig(_actor_engineer,&unit,1,&hands,&mobility)); /* head outside pelvis subtree */
+ graph_parent[7]=4;biped.biped.runtime_head_node_index=5;
+ biped.biped.collision_height_standing=.4f;unit.definition_index++;
+ assert(!custom_humanoid_rig(_actor_engineer,&unit,1,&hands,&mobility)); /* invalid authored capsule */
+ biped.biped.collision_height_standing=1.4f;
+ actors[1].flags=1u<<_actor_definition_flying_bit;unit.definition_index++;
+ assert(!custom_humanoid_rig(_actor_engineer,&unit,1,&hands,&mobility));actors[1].flags=0;
  /* Exercise the production eligibility gate itself. The prior fixture
     replaced this function with `return valid ? &unit : NULL`, which could
     pass while every live NPC was rejected. A normal connected-map Grunt
@@ -344,10 +363,14 @@ for marker in ['u->unit.player_index!=NONE','u->object.parent_object_index!=NONE
     assert marker in eligible_source,marker
 assert 'game_team_is_enemy(_game_team_player,a->meta.team_index)' in eligible_source
 custom_source=function('static int custom_humanoid_rig(')
-for marker in ['_actor_engineer','_actor_player','_actor_monitor','_actor_sentinel','_actor_mounted_weapon',
+for marker in ['_actor_none','_actor_engineer','type!=_actor_engineer',
                '_actor_definition_flying_bit','_actor_definition_swarm_actor_bit','actor->meta.swarm',
                'game_connection()!=_game_connection_local']:
     assert marker in custom_source,marker
+graph_source=function('static int custom_rig_graph_valid(')
+for marker in ['runtime_head_node_index','runtime_pelvis_node_index','_biped_flying_bit',
+               'collision_height_standing','collision_radius','head_reaches_pelvis']:
+    assert marker in graph_source,marker
 remote_probe=source[source.index('static long probe_remote(real_point3d const *point,real_point3d const *camera,long player_unit,long required,int hand)\n{'):source.index('static void reset_one(')]
 assert 'collision_model_test_pill(&model,point,&stationary,contact_radius,&model_hit)' in remote_probe
 assert remote_probe.index('collision_model_test_pill(') < remote_probe.index('collision_test_vector(')

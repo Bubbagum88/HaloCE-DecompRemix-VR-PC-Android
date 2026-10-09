@@ -9,18 +9,23 @@ The Test38 interaction foundation carries into the private Test40 candidate. Opt
 - NPCs use a new bounded articulated solver, actual animation-graph hierarchy, native authored hinge/axis/range semantics, swept joint spheres, self-collision and native collision-authoritative root movement. Captured limb palettes reach collision/child consumers before native weapon IK can overwrite them. The adapter preserves the native mixed coordinate-space semantics rather than assuming generic cone angles reproduce authored constraints.
 - Living Grunts, Jackals, Marines and Crew permit one-hand handling. Elites, Hunters, Combat Forms and Carrier Forms require two distinct limb grips. The first heavy grip reserves contact but does not freeze the actor. Existing corpses use the same proven species information or an unambiguous loaded actor-variant reference; unidentified corpses are refused. Flying/swarm units and unusable rigs are excluded.
 - Held actors retain their AI/perception/team/inventory metadata. Transient movement and trigger controls are suppressed after native persistent-control processing. Active weapon actions, scripted/named/seated actors and unsafe animation states are refused. Death does not revive an actor: it transitions to corpse handling. Live release settles, selects an available native front/back get-up, and blends through collision-aware recovery. Corpse release returns to native corpse settling without calling resurrection.
-- Up to four independent articulated bodies remain active, configured from one to four. Each body has at most 64 nodes, two pins and eight constraint passes; collision sweeps occur after the constraint pass rather than at every iteration. Timing is aggregated in logs. Quest performance and comfort remain device acceptance items.
+- Up to eight independent articulated bodies remain active, configured from one to eight. Each body has at most 64 nodes, two pins and eight constraint passes; collision sweeps occur after the constraint pass rather than at every iteration. Timing is aggregated in logs. Quest performance and comfort remain device acceptance items.
 - Confirmed native collision contacts can produce capped, debounced host-authoritative impact damage through the native melee damage definition. Relative normal speed and mobility determine the bounded scale. NPC floor impacts retain native falling damage; the added NPC path handles confirmed nonfloor impacts, avoiding a second floor-damage event.
 - Enhanced campaign sessions negotiate an optional interaction capability. The host validates player ownership, finite/range-limited input, session sequence and leases, and alone simulates root physics and damage. Both flat Android and VR hosts support that authority. NPC palettes are interpolated on upgraded clients with bounded bandwidth and lease expiry. Stock/mixed sessions retain their original behavior; enhanced NPC handling is not silently activated there. Legacy campaign protocol compatibility is a separate feature.
 - Save/load, map changes, tracking/focus loss, player death, vehicle entry and invalid ownership cancel transient holds. Before saving, live ownership is released; no frozen AI flags or solver format are added to checkpoints.
 
 ## Test40 additions
 
-- **Custom NPC rigs:** `vr.custom_npc_rigs` admits a validated unclassified
-  humanoid fallback in solo play. It uses the loaded graph and pelvis split;
-  it is not an arbitrary skeleton retargeting registry. Known native actor
-  species retain their prior profiles, and unknown/non-humanoid/scripted or
-  malformed graphs stay refused.
+- **Custom NPC rigs:** `vr.custom_npc_rigs` admits a validated generic actor
+  fallback in solo play for `_actor_none` and grounded custom `_actor_engineer`
+  variants. It uses the loaded graph and authored biped metadata: bounded
+  native graph, non-flying biped, valid standing capsule, authored head beneath
+  the authored pelvis, and a branch below the pelvis. Known native actor
+  species keep their prior profiles. This supports compatible custom humanoid
+  tags without bone-name guesses, but is not an arbitrary skeleton retargeting
+  registry: the actor enum is fixed, only human/Covenant/Flood-combat races are
+  admitted, and swarm/flying/special, malformed, scripted, and online custom
+  graph layouts remain refused. Real custom-tag headset coverage is pending.
 - **Discarded magazine visuals:** `vr.dropped_magazines` is a render-only,
   offline option for supported manual-reload magazine profiles. It uses a
   fixed 32-slot pool with no timed expiry and replaces the oldest when full.
@@ -75,7 +80,7 @@ The Test38 interaction foundation carries into the private Test40 candidate. Opt
 | W30 | Biped grab points | Actual collision node maps to native rig; distinct heavy-limb requirement. |
 | W31 | Stability | Finite/count/time guards, bounded forces, transactional solver rejection and recovery sweeps. |
 | W32 | Release safety | Ownership-aware release, no throw on focus loss/reset, fresh grip required. |
-| W33 | Multiple objects | Independent hand/object transactions and up to four continuing NPC bodies. |
+| W33 | Multiple objects | Independent hand/object transactions and up to eight continuing NPC bodies in the mod's articulated interaction pool. |
 | W34 | World weapons | Native loose weapons; pickup ends invalid hold; no duplication or new inventory shortcut. |
 | W35 | Equipment | Eligible loose equipment; detonating projectiles/counter duplication excluded. |
 | W36 | Vehicles/huge objects | Test40 adds default-off vertical lifting for a validated, unoccupied subset; no horizontal carry or rotation. |
@@ -96,7 +101,7 @@ The Test38 interaction foundation carries into the private Test40 candidate. Opt
 | W51 | Teleport/reset | Hand-jump, unit, tick and lifecycle guards cancel without throwing. |
 | W52 | Performance | Fixed-size arrays, bounded queries and timing logs; no headset performance claim. |
 | W53 | Budget | 64 nodes/body, eight passes, two pins, bounded acquisition and network bandwidth. |
-| W54 | Ragdoll count | Configurable one to four; released bodies retain their slot until recovery/settling. |
+| W54 | Ragdoll count | Configurable one to eight mod interaction rigs; released bodies retain their slot until recovery/settling. This does not change Halo's native corpse-ragdoll limit. |
 | W55 | Debug tools | Logs and sanitizer harnesses; force/constraint visual overlay not implemented. |
 | W56 | Logging | Ownership/transition and aggregate simulation timing; avoid per-render spam. |
 | W57 | Automated checks | Real extracted production lifecycle/species/pool functions, solver sanitizers and guest compilation. |

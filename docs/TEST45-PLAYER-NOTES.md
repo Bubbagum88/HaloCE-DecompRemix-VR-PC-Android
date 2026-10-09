@@ -187,9 +187,11 @@ unverified.
 NPC RIG SLOTS does not raise Halo's native corpse-ragdoll count. Source review
 found no native simultaneous corpse-count cap to raise: eligible bodies run a
 settling solver for a bounded duration, while general object/memory pressure
-may reclaim eligible off-screen garbage. Custom rig support is bounded to known
-or validated humanoid graph layouts, not universal retargeting for arbitrary
-mods. Dropped magazines are not serialized into save files, do not survive a
+may reclaim eligible off-screen garbage. Custom rig support is opt-in and
+solo-only for `_actor_none` and grounded custom `_actor_engineer` tags that
+pass the native head/pelvis, capsule, graph and non-flight checks. It reuses
+the authored graph; it is not universal retargeting for arbitrary mods or
+online custom-layout support. Dropped magazines are not serialized into save files, do not survive a
 map change, create ammo, or replicate; the 32 visual props survive only same-map
 state restores in the current process. Vehicle lifting does not carry, rotate or throw vehicles.
 NPC rescue does not revive dead actors, override scripts or guarantee every

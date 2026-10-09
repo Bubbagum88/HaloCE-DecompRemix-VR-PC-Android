@@ -231,7 +231,7 @@ compatibility are demonstrated. No articulated-ragdoll capability is assumed.
 | W51 | Teleport/recenter/state reset | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W52 | Performance | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W53 | Physics budgeting | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
-| W54 | Maximum active ragdolls | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
+| W54 | Maximum active ragdolls | **Implemented for the mod's articulated NPC interaction rigs:** `NPC RIG SLOTS` exposes 1–8 simultaneous active interaction/settling/recovery rigs, default 8 for new configs. | This is not a change to Halo's native corpse-ragdoll limit or garbage-collection policy. The engine retains corpse lifetime/count behavior; device performance at eight mod rigs remains a headset acceptance item. |
 | W55 | Debug tools | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W56 | Logging | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W57 | Automated testing | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |

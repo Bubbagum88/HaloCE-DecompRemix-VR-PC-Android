@@ -173,7 +173,7 @@ static int custom_rig_graph_valid(struct unit_datum *unit,long index)
 {
     struct biped_definition *definition;
     struct vr_articulated_native rig;
-    int pelvis,children=0,slot=-1,n;
+    int pelvis,head,children=0,head_reaches_pelvis=FALSE,slot=-1,n;
     if(!unit || index==NONE || unit->definition_index==NONE)return FALSE;
     for(n=0;n<NUMBEROF(custom_rig_graph_cache);++n) {
         if(custom_rig_graph_cache[n].valid && custom_rig_graph_cache[n].definition==unit->definition_index)return TRUE;
@@ -187,7 +187,22 @@ static int custom_rig_graph_valid(struct unit_datum *unit,long index)
     definition=biped_definition_get(unit->definition_index);
     if(!definition)return FALSE;
     pelvis=definition->biped.runtime_pelvis_node_index;
-    if(pelvis<0 || pelvis>=rig.body.count)return FALSE;
+    head=definition->biped.runtime_head_node_index;
+    /* Reuse the engine's semantic biped markers instead of guessing bones by
+     * node number or tag name. Require a non-flying capsule and an authored
+     * head beneath the authored pelvis; this is a bounded humanoid-biped
+     * profile, not arbitrary skeleton retargeting. */
+    if(TEST_FLAG(definition->biped.flags,_biped_flying_bit) ||
+       !isfinite(definition->biped.collision_height_standing) ||
+       !isfinite(definition->biped.collision_radius) ||
+       definition->biped.collision_height_standing<=0 || definition->biped.collision_radius<=0 ||
+       definition->biped.collision_height_standing<=definition->biped.collision_radius*2 ||
+       pelvis<0 || pelvis>=rig.body.count || head<=0 || head>=rig.body.count || head==pelvis)return FALSE;
+    for(n=head;n>0;n=rig.body.nodes[n].parent) {
+        if(n==pelvis) {head_reaches_pelvis=TRUE;break;}
+        if(rig.body.nodes[n].parent<0 || rig.body.nodes[n].parent>=n)break;
+    }
+    if(!head_reaches_pelvis)return FALSE;
     for(n=1;n<rig.body.count;++n) {
         int parent=rig.body.nodes[n].parent;
         if(parent<0 || parent>=n)return FALSE;
@@ -207,17 +222,17 @@ static int custom_humanoid_rig(short type,struct unit_datum *unit,long index,int
     struct actor_datum *actor;
     struct actor_definition *actor_definition;
     short race;
-	/* Unclassified rig fallbacks are local-only. Known species continue to use
-	 * their existing negotiated path; custom graph layouts are never assumed to
-	 * match another peer's tag revision. */
+	/* Validated custom-layout fallbacks are local-only. Known species continue
+	 * to use their existing negotiated path; custom graph layouts are never
+	 * assumed to match another peer's tag revision. */
 	if(!config_boolean("vr.custom_npc_rigs") || game_connection()!=_game_connection_local)return FALSE;
-    /* Keep known non-humanoid and special-purpose types out of the generic
-     * path. `_actor_none` is the engine's real fallback for custom humanoid
-     * tags; only that unclassified enum reaches this graph-validated path.
-     * Other known humanoids are handled by species() above. */
-    if(type==_actor_player || type==_actor_engineer || type==_actor_infection_form ||
-       type==_actor_carrier_form || type==_actor_monitor || type==_actor_sentinel ||
-       type==_actor_mounted_weapon || type!=_actor_none || !unit || index==NONE)return FALSE;
+    /* The engine has a fixed actor-type enum, so custom CE content cannot add
+     * a new runtime type. `_actor_none` is its generic fallback. Engineer is
+     * admitted only when its live actor/biped tags prove it is non-flying and
+     * its native biped graph passes the head/pelvis/capsule checks below;
+     * this permits grounded custom humanoid variants without admitting the
+     * stock flying Engineer. Every other unsupported special class stays out. */
+    if((type!=_actor_none && type!=_actor_engineer) || !unit || index==NONE)return FALSE;
     if(actor_type_get_swarm(type))return FALSE;
     race=actor_type_get_race(type);
     if(race!=_race_human && race!=_race_covenant && race!=_race_floodcombat)return FALSE;
@@ -227,8 +242,8 @@ static int custom_humanoid_rig(short type,struct unit_datum *unit,long index,int
     if(!actor_definition || TEST_FLAG(actor_definition->flags,_actor_definition_flying_bit) ||
        TEST_FLAG(actor_definition->flags,_actor_definition_swarm_actor_bit))return FALSE;
     if(!custom_rig_graph_valid(unit,index))return FALSE;
-    /* Unknown humanoid profiles are deliberately conservative: both hands
-     * must be engaged and their mobility is no stronger than the validated
+    /* Generic custom-layout profiles are deliberately conservative: both
+     * hands must be engaged and mobility is no stronger than the validated
      * Elite-family path. */
     *hands=2;*mobility=.25f;
     return TRUE;

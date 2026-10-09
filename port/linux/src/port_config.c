@@ -920,7 +920,7 @@ static const struct config_setting config_settings[] =
 	{ "vr.custom_scenery_grab", _config_boolean, "false", "HALO_VR_CUSTOM_SCENERY_GRAB", _environment_value, _platform_vr,
 		"Opt in to bounded collision-box grabbing of eligible unnamed custom scenery. The VR menu also enables WORLD GRAB; scripted, animated, unsafe or malformed tags remain refused." },
 	{ "vr.custom_npc_rigs", _config_boolean, "false", "HALO_VR_CUSTOM_NPC_RIGS", _environment_value, _platform_vr,
-		"Solo-only fallback for unclassified humanoid biped graphs after hierarchy validation. The VR menu also enables NPC GRAB. Existing known species are unchanged; unknown, swarm, scripted, unsafe or malformed rigs remain refused." },
+		"Solo-only fallback for generic actors and grounded custom Engineer variants with native head/pelvis, capsule and graph validation. The VR menu also enables NPC GRAB. Existing species profiles are unchanged; flying, swarm, scripted, unsafe or malformed rigs remain refused." },
 	{ "vr.npc_rescue", _config_boolean, "false", "HALO_VR_NPC_RESCUE", _environment_value, _platform_vr,
 		"Optional solo VR recovery for eligible live encounter NPCs falling unsupported for 10 seconds. Returns them to a clear last-grounded pose; does not respawn, revive, or override active scripts." },
 	{ "vr.npc_max_ragdolls", _config_integer, "8", "HALO_VR_NPC_MAX_RAGDOLLS", _environment_value, _platform_all | _platform_vr,
