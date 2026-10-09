@@ -147,7 +147,7 @@ static struct prop_state *prop_activate(long index,struct object_datum *o)
 void vr_world_object_velocity(long index,real_vector3d const *linear,real_vector3d const *angular)
 {
     if(item_vr_grabbable(index)){item_vr_world_velocity(index,linear,angular);return;}
-    if((game_connection()==_game_connection_local&&!config_boolean("vr.world_interaction")) ||
+    if((game_connection()==_game_connection_local&&!config_boolean("vr.world_interaction")&&!config_boolean("vr.custom_scenery_grab")) ||
         (game_connection()!=_game_connection_local&&!network_interaction_host_ready()))return;
     struct object_datum *o=prop_get(index);struct prop_state *state;
     if(!o || !linear || !angular || !valid_real_vector3d(linear) || !valid_real_vector3d(angular) || !(state=prop_activate(index,o)))return;
@@ -293,7 +293,7 @@ void vr_world_props_tick(void)
     long tick=game_time_get();
     if(tick==prop_tick||game_time_get_paused())return;
     prop_tick=tick;
-    if((game_connection()==_game_connection_local&&!config_boolean("vr.world_interaction")) ||
+    if((game_connection()==_game_connection_local&&!config_boolean("vr.world_interaction")&&!config_boolean("vr.custom_scenery_grab")) ||
         (game_connection()!=_game_connection_local&&!network_interaction_host_ready())){vr_world_props_freeze();return;}
     for(int i=0;i<PROP_CAPACITY;i++)if(props[i].active) {
         struct prop_state *state=&props[i];struct object_datum *o=prop_get(state->index);

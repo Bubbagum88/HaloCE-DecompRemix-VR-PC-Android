@@ -56,6 +56,8 @@ for key, kind, default in [('vr.gun_anchor', '_config_boolean', 'true'), ('vr.gu
                            ('vr.weapon_offset_right', '_config_real', '0.10'), ('vr.weapon_offset_up', '_config_real', '-0.12'),
                            ('vr.weapon_offset_back', '_config_real', '-0.20'), ('vr.weapon_pitch', '_config_real', '0.0')]:
     assert table.get(key) == (kind, default), (key, table.get(key))
+assert table.get('vr.npc_max_ragdolls') == ('_config_integer', '8')
+assert table.get('vr.interaction_reach') == ('_config_real', '0.25')
 
 # --- static wiring
 ik = fn(render, 'vr_render_first_person_ik')
@@ -233,15 +235,21 @@ int main(void){
 # (test24b: Turning is one macro, on Controls; read as the row it is)
 menu_rows = re.sub(r'#define VR_MENU_TURNING_ROW (\{.*\})\n', r'\1,\n', menu)
 rows = re.findall(r'\{ "([A-Z +\-]+)", "[\w.]+", _vr_setting_multi, (\d+), \{ (.*?) \} \},', menu_rows)
-assert {r[0] for r in rows} == {'TURNING', 'WEAPONS', 'HOLSTERS', 'HANDS', 'ARM RUN', 'MELEE', 'ACTIVE RAGDOLLS'}, rows
+assert {r[0] for r in rows} >= {'TURNING', 'WEAPONS', 'HOLSTERS', 'HANDS', 'ARM RUN', 'MELEE', 'NPC RIG SLOTS'}, rows
+reach_row = next((line for line in menu.splitlines() if '"GRAB REACH"' in line), '')
+assert '_vr_setting_real, 5,' in reach_row, 'VR menu exposes five bounded physical-grab distances'
+reach_values = re.findall(r'\{ "([^"]+)", "([^"]+)" \}', reach_row)
+assert reach_values == [('12 CM', '0.12'), ('18 CM', '0.18'), ('25 CM', '0.25'),
+                        ('30 CM', '0.30'), ('40 CM', '0.40')], reach_values
 domains = {'vr.arms': {'ik', 'hidden', 'animated'}, 'vr.hand_tracking': {'ik', 'floating', 'floating_arms'},
            'vr.melee': {'impact', 'swing'},
-           'vr.weapons': {'locked', 'physical'}, 'vr.npc_max_ragdolls': {'1', '2', '3', '4'}}
+           'vr.weapons': {'locked', 'physical'}, 'vr.npc_max_ragdolls': {str(n) for n in range(1, 9)},
+           'vr.interaction_reach': {'0.12', '0.18', '0.25', '0.30', '0.40'}}
 for label, count, values in rows:
     pairs = re.findall(r'\{ "([^"]+)", "([^"]+)" \}', values)
     assert len(pairs) == int(count) <= 12, label
-    if label == "ACTIVE RAGDOLLS":
-        assert pairs == [(str(n), "vr.npc_max_ragdolls=" + str(n)) for n in range(1, 5)]
+    if label == "NPC RIG SLOTS":
+        assert pairs == [(str(n), "vr.npc_max_ragdolls=" + str(n)) for n in range(1, 9)]
     for _, value in pairs:
         for pair in value.split(';'):
             key, text = pair.split('=')
@@ -249,6 +257,20 @@ for label, count, values in rows:
             if kind == '_config_boolean': assert text in ('true', 'false'), pair
             elif kind == '_config_real': float(text)
             if key in domains: assert text in domains[key], pair
+multi_options = {
+    label: re.findall(r'\{ "([^"]+)", "([^"]+)" \}', values)
+    for label, _, values in rows
+}
+assert multi_options['CUSTOM SCENERY'] == [
+    ('OFF', 'vr.custom_scenery_grab=false'),
+    ('ON', 'vr.custom_scenery_grab=true;vr.world_interaction=true')]
+assert multi_options['CUSTOM NPC RIGS'] == [
+    ('OFF', 'vr.custom_npc_rigs=false'),
+    ('ON', 'vr.custom_npc_rigs=true;vr.npc_interaction=true')]
+assert multi_options['MAG DEBRIS'] == [
+    ('OFF', 'vr.dropped_magazines=false'),
+    ('ON', 'vr.dropped_magazines=true;vr.manual_reload=true')]
+assert '"NPC RIG SLOTS"' in menu and '"WORLD GRAB"' in menu and '"NPC GRAB"' in menu
 pages = menu[menu.index('#define VR_MENU_TURNING_ROW'):].split('\n')[0] + '\n' + \
     ''.join(block(menu, f'static struct vr_menu_setting const {name}[] =', '};')
                 for name in ('vr_menu_controls', 'vr_menu_body', 'vr_menu_vr', 'vr_menu_hands'))
@@ -425,11 +447,11 @@ static int config_write_real(const char*n,double v){return 0;}
 static int config_write_string(const char*n,const char*v){return 0;}
 ''' + fn(config, 'config_write_text') + r'''
 int main(void){
- for(int i=1;i<=4;i++){char v[8];sprintf(v,"%d",i);assert(config_write_text("vr.npc_max_ragdolls",v));assert(!strcmp(v,saved));}
+ for(int i=1;i<=8;i++){char v[8];sprintf(v,"%d",i);assert(config_write_text("vr.npc_max_ragdolls",v));assert(!strcmp(v,saved));}
  int before=calls;
  assert(!config_write_text("vr.npc_max_ragdolls","1.5"));assert(!config_write_text("vr.npc_max_ragdolls",""));
  assert(!config_write_text("vr.npc_max_ragdolls","9999999999999999999999999"));assert(calls==before);
- fail=1;assert(!config_write_text("vr.npc_max_ragdolls","2"));assert(!strcmp(saved,"4"));
+ fail=1;assert(!config_write_text("vr.npc_max_ragdolls","2"));assert(!strcmp(saved,"8"));
  puts("PASS: production integer menu writer validates input and preserves failed-save behavior");
 }
 ''')

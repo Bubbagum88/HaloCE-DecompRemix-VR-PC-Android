@@ -4,6 +4,11 @@ import subprocess
 import re
 ROOT=Path(__file__).resolve().parents[1]
 source=(ROOT/'port/linux/game/vr_npc_interaction.c').read_text()
+header=(ROOT/'port/linux/game/vr_npc_interaction.h').read_text()
+pool_match=re.search(r'^#define\s+VR_NPC_INTERACTION_POOL_SIZE\s+(\d+)\s*$',header,re.M)
+assert pool_match, 'the production NPC rig pool must have a compile-time bound'
+POOL_SIZE=int(pool_match.group(1))
+assert POOL_SIZE==8, f'expected the requested raised pool, got {POOL_SIZE}'
 def function(signature):
     match=re.search(re.escape(signature)+r'[^;{]*\{',source)
     assert match,signature
@@ -19,29 +24,47 @@ c=r'''
 #include <stdio.h>
 #include "vr_world_math.h"
 #include "vr_articulated.h"
+#define VR_NPC_INTERACTION_POOL_SIZE {POOL_SIZE}
 #define NONE -1
 #define TRUE 1
 #define FALSE 0
 #define VR_INTERACTION_NPC 5
 #define _object_mask_biped 1
+#define _object_dead_bit 2
+#define _object_connected_to_map_bit 11
+#define _object_outside_of_map_bit 21
+#define _object_movie_star_bit 22
+#define _object_no_collisions_bit 24
+#define _unit_possessed_by_recording_bit 0
+#define _unit_grenade_throw_idle 0
+#define _unit_state_idle 0
+#define _unit_state_land_hard 22
+#define _unit_state_resurrect_front 34
+#define _unit_state_resurrect_back 35
+#define _weapon_state_idle 0
+#define _trigger_idle 0
+#define _magazine_idle 0
 #define PIN(v,a,b) ((v)<(a)?(a):((v)>(b)?(b):(v)))
 #define NUMBEROF(a) ((int)(sizeof(a)/sizeof(*(a))))
 #define TEST_FLAG(a,b) (!!((a)&(1u<<(b))))
-enum {NPC_POOL_SIZE=4,NPC_REMOTE_PLAYERS=128};
+enum {NPC_POOL_SIZE=VR_NPC_INTERACTION_POOL_SIZE,NPC_REMOTE_PLAYERS=128};
 typedef float real;
 typedef union {float n[3];struct{float x,y,z;};} real_vector3d;
+typedef union {float n[3];struct{float x,y,z;};} real_point3d;
 typedef struct {float values[13];} real_matrix4x3;
+#define MAX(a,b) ((a)>(b)?(a):(b))
+static int valid_real_point3d(real_point3d const *p){return p&&isfinite(p->x)&&isfinite(p->y)&&isfinite(p->z);}
 enum {_actor_elite,_actor_jackal,_actor_grunt,_actor_hunter,_actor_engineer,_actor_assassin,_actor_player,_actor_marine,_actor_crew,_actor_combat_form,_actor_infection_form,_actor_carrier_form,_actor_monitor,_actor_sentinel,_actor_none,_actor_mounted_weapon,NUMBER_OF_ACTOR_TYPES};
 enum {_race_player=1,_race_human=2,_race_covenant=4,_race_floodcombat=8,_race_floodcarrier=16,_race_floodinfection=32,_race_sentinel=64};
 enum {_actor_definition_flying_bit=21,_actor_definition_swarm_actor_bit=26};
 enum {_game_connection_local=0};static int connection;static int game_connection(void){return connection;}
-static struct npc_state {int active,recovery,settling,minimum_hands,started,is_remote,species_type;float mobility;long index,tick,player;int held[2],edge[2],node[2];real_vector3d target[2],offset[2],root_anchor[2],velocity[2];struct{struct vr_articulated_body body;real_matrix4x3 captured[64];}rig;} npc_pool[4],*npc_current=&npc_pool[0];
+static struct npc_state {int active,recovery,settling,minimum_hands,started,is_remote,getting_up,species_type;float mobility;long index,tick,player;int held[2],edge[2],node[2];real_vector3d target[2],offset[2],root_anchor[2],velocity[2];struct{struct vr_articulated_body body;real_matrix4x3 captured[64];}rig;} npc_pool[NPC_POOL_SIZE],*npc_current=&npc_pool[0];
 #define npc (*npc_current)
 static struct remote_state {long player,candidate[2];int valid,held[2],seen[2],edge[2];real_vector3d point[2];} remote_pool[128];
 static struct {long definition;short type;int valid;} species_cache[64];
 static struct {long definition;int valid;} custom_rig_graph_cache[64];
 static int local_edges[2]={1,1};
-static struct unit_datum {long definition_index;struct{real_vector3d position,translational_velocity;}object;struct{long actor_index;}unit;} unit;
+static struct unit_datum {long definition_index;struct{real_vector3d position,translational_velocity;unsigned long flags;unsigned short damage_flags;long parent_object_index;short name_index;}object;struct{long actor_index,player_index;unsigned long flags;int grenade_throw_state;struct{int state;}animation;short current_weapon_index;}unit;} unit;
 struct actor_datum {struct{short type;int active,swarm;long definition_index;}meta;struct{long command_list_index;int command_list_immediate;}state;};static struct actor_datum actor;
 static struct actor_datum *actor_try_and_get(long index){return index==7?&actor:0;}
 static int custom_rigs,swarm_types[32],actor_races[32];
@@ -50,7 +73,7 @@ static short actor_type_get_race(short type){return type>=0&&type<32?actor_races
 static int actor_type_get_swarm(short type){return type>=0&&type<32?swarm_types[type]:1;}
 struct actor_definition {unsigned long flags;short type;};static struct actor_definition actors[8];
 struct biped_definition {struct{short runtime_pelvis_node_index;}biped;};static struct biped_definition biped;
-struct vr_articulated_native {struct{int count;struct{int parent;}nodes[64];}body;};
+struct vr_articulated_native {struct vr_articulated_body body;};
 static int graph_capture_ok=1,graph_nodes=8,graph_parent[64],graph_capture_count;
 static struct biped_definition *biped_definition_get(long index){(void)index;return &biped;}
 static int vr_articulated_native_capture(long index,struct vr_articulated_native *rig){(void)index;++graph_capture_count;if(!graph_capture_ok)return 0;rig->body.count=graph_nodes;for(int n=0;n<graph_nodes&&n<64;++n)rig->body.nodes[n].parent=graph_parent[n];return 1;}
@@ -61,24 +84,33 @@ static void tag_iterator_new(struct tag_iterator *it,long group){(void)group;it-
 static long tag_iterator_next(struct tag_iterator *it){return it->index<variant_count?it->index++:NONE;}
 static struct actor_variant_definition *actor_variant_definition_get(long index){return &variants[index];}
 static struct actor_definition *actor_definition_get(long index){return index>=0&&index<NUMBEROF(actors)?&actors[index]:NULL;}
-static int owner[2],lookups,recomputes,valid=1;
+struct weapon_datum {struct{int state;struct{int state;}triggers[2],magazines[2];}weapon;};
+static struct weapon_datum weapon;
+static int weapon_valid=1,custom_animation,owner[2],lookups,recomputes,valid=1;
 static void vr_interaction_release(int hand,int which){if(owner[hand]==which)owner[hand]=0;}
 static void *object_try_and_get_and_verify_type(long index,int mask){(void)index;(void)mask;++lookups;return valid?&unit:0;}
+static int unit_is_playing_custom_animation(long index){(void)index;return custom_animation;}
+static long unit_inventory_get_weapon(long index,short slot){(void)index;(void)slot;return weapon_valid?9:NONE;}
+static struct weapon_datum *weapon_try_and_get(long index){return weapon_valid&&index==9?&weapon:0;}
 static void object_compute_node_matrices(long index){(void)index;++recomputes;}
 static int owns(long index){return npc.active&&index==npc.index;}
 static struct unit_datum *unit_get(long index){(void)index;return &unit;}
-static struct unit_datum *eligible(long index){(void)index;return valid?&unit:0;}
 static void surface_offset(int hand,real_vector3d *offset){*offset=npc.offset[hand];}
 static float interaction_units(void){return 1;}
 static float global_gravity=.003f;
-static int maximum=4;
+static int maximum=8;
 static long config_integer(char const *name){(void)name;return maximum;}
 static void cancel_one(void);
 '''
-for sig in ['static int species(', 'static int custom_rig_graph_valid(', 'static int custom_humanoid_rig(', 'static int interaction_profile(', 'static struct npc_state *free_state(', 'static struct npc_state *state_for_object(', 'static int select_owner(', 'static short unit_species(', 'static void reset_one(', 'static void cancel_one(', 'void vr_npc_interaction_reset(', 'void vr_npc_interaction_cancel(', 'static void release(', 'void vr_npc_interaction_velocity(', 'int vr_npc_interaction_snapshot(', 'int vr_npc_interaction_remote_contact(']:
+c=c.replace('#define VR_NPC_INTERACTION_POOL_SIZE {POOL_SIZE}',
+            f'#define VR_NPC_INTERACTION_POOL_SIZE {POOL_SIZE}')
+for sig in ['static int species(', 'static int custom_rig_graph_valid(', 'static int custom_humanoid_rig(', 'static int interaction_profile(', 'static int npc_contact_node(', 'static struct npc_state *free_state(', 'static struct npc_state *state_for_object(', 'static int select_owner(', 'static short unit_species(', 'static struct unit_datum *eligible(', 'static void reset_one(', 'static void cancel_one(', 'void vr_npc_interaction_reset(', 'void vr_npc_interaction_cancel(', 'static void release(', 'void vr_npc_interaction_velocity(', 'int vr_npc_interaction_snapshot(', 'int vr_npc_interaction_remote_contact(']:
     c+=function(sig)+'\n'
 c+=r'''
 int main(void){
+ assert(vr_world_interaction_reach(.12f,1.f)==.12f);
+ assert(vr_world_interaction_reach(.40f,1.f)==.40f);
+ assert(vr_world_interaction_reach(.99f,1.f)==.40f);
  assert(vr_world_authority(1,0,0));
  int hands;float mobility;
  assert(species(_actor_grunt,&hands,&mobility)&&hands==1&&mobility==.5f);
@@ -86,6 +118,20 @@ int main(void){
  assert(species(_actor_hunter,&hands,&mobility)&&hands==2&&mobility==.12f);
  assert(species(_actor_marine,&hands,&mobility)&&hands==1);
  assert(!species(_actor_sentinel,&hands,&mobility)&&!species(_actor_infection_form,&hands,&mobility));
+ /* A broad root/NONE collision result can still attach to a real articulated
+    joint. The other hand may never pin the same joint. */
+ struct vr_articulated_native contact_rig={0};contact_rig.body.count=4;
+ contact_rig.body.nodes[1].position[0]=0;contact_rig.body.nodes[1].position[1]=0;contact_rig.body.nodes[1].radius=.03f;
+ contact_rig.body.nodes[2].position[0]=.10f;contact_rig.body.nodes[2].position[1]=0;contact_rig.body.nodes[2].radius=.03f;
+ contact_rig.body.nodes[3].position[0]=0;contact_rig.body.nodes[3].position[1]=.20f;contact_rig.body.nodes[3].radius=.03f;
+ real_point3d contact={.n={.09f,.01f,0}};int mapped=0;
+ assert(npc_contact_node(&contact_rig,0,&contact,1,NONE,&mapped)==2&&mapped);
+ assert(npc_contact_node(&contact_rig,NONE,&contact,1,2,&mapped)==1&&mapped);
+ assert(npc_contact_node(&contact_rig,3,&contact,1,NONE,&mapped)==3&&!mapped);
+ assert(npc_contact_node(&contact_rig,3,&contact,1,3,&mapped)==2&&mapped);
+ contact.n[0]=.6f;contact.n[1]=.6f;assert(npc_contact_node(&contact_rig,0,&contact,1,NONE,&mapped)==NONE&&!mapped);
+ assert(npc_contact_node(&contact_rig,-2,&contact,1,NONE,&mapped)==NONE);
+ assert(npc_contact_node(&contact_rig,99,&contact,1,NONE,&mapped)==NONE);
  actor_races[_actor_engineer]=_race_covenant;actor_races[_actor_assassin]=_race_covenant;
  actor_races[_actor_monitor]=_race_sentinel;actor_races[_actor_sentinel]=_race_sentinel;
  assert(!species(_actor_engineer,&hands,&mobility));custom_rigs=1;
@@ -131,7 +177,49 @@ int main(void){
  graph_parent[2]=0;graph_parent[3]=0;graph_parent[4]=0;unit.definition_index++;assert(!custom_humanoid_rig(_actor_none,&unit,1,&hands,&mobility)); /* no split below pelvis */
  graph_parent[2]=1;graph_parent[3]=1;graph_parent[4]=1;graph_parent[7]=99;unit.definition_index++;assert(!custom_humanoid_rig(_actor_none,&unit,1,&hands,&mobility)); /* malformed parent */
  graph_parent[7]=4;unit.definition_index++;assert(custom_humanoid_rig(_actor_none,&unit,1,&hands,&mobility));
- custom_rigs=0;
+ /* Exercise the production eligibility gate itself. The prior fixture
+    replaced this function with `return valid ? &unit : NULL`, which could
+    pass while every live NPC was rejected. A normal connected-map Grunt
+    with a live actor, idle weapon, and no script/control conflict must pass. */
+ custom_rigs=0;unit.definition_index=900;unit.object.damage_flags=0;
+ unit.object.parent_object_index=NONE;unit.object.name_index=NONE;
+ unit.object.flags=1u<<_object_connected_to_map_bit;
+ unit.unit.actor_index=7;unit.unit.player_index=NONE;unit.unit.flags=0;
+ unit.unit.grenade_throw_state=_unit_grenade_throw_idle;
+ unit.unit.animation.state=_unit_state_idle;unit.unit.current_weapon_index=0;
+ actor.meta.type=_actor_grunt;actor.meta.active=1;actor.meta.swarm=0;
+ actor.meta.definition_index=1;actor.state.command_list_index=NONE;
+ actor.state.command_list_immediate=0;actors[1].flags=0;
+ weapon.weapon.state=_weapon_state_idle;
+ for(int n=0;n<2;n++){weapon.weapon.triggers[n].state=_trigger_idle;weapon.weapon.magazines[n].state=_magazine_idle;}
+ valid=1;weapon_valid=1;custom_animation=0;
+ assert(eligible(7)==&unit);
+ unit.unit.player_index=3;assert(!eligible(7));unit.unit.player_index=NONE;
+ unit.object.parent_object_index=55;assert(!eligible(7));unit.object.parent_object_index=NONE;
+ unit.object.name_index=1;assert(!eligible(7));unit.object.name_index=NONE;
+ unit.object.flags|=1u<<_object_movie_star_bit;assert(!eligible(7));unit.object.flags&=~(1u<<_object_movie_star_bit);
+ unit.object.flags|=1u<<_object_no_collisions_bit;assert(!eligible(7));unit.object.flags&=~(1u<<_object_no_collisions_bit);
+ unit.object.flags&=~(1u<<_object_connected_to_map_bit);assert(!eligible(7));unit.object.flags|=1u<<_object_connected_to_map_bit;
+ unit.object.flags|=1u<<_object_outside_of_map_bit;assert(!eligible(7));unit.object.flags&=~(1u<<_object_outside_of_map_bit);
+ unit.unit.flags|=1u<<_unit_possessed_by_recording_bit;assert(!eligible(7));unit.unit.flags&=~(1u<<_unit_possessed_by_recording_bit);
+ custom_animation=1;assert(!eligible(7));custom_animation=0;
+ unit.unit.grenade_throw_state=1;assert(!eligible(7));unit.unit.grenade_throw_state=_unit_grenade_throw_idle;
+ unit.unit.animation.state=29;assert(!eligible(7));unit.unit.animation.state=_unit_state_idle;
+ actor.meta.active=0;assert(!eligible(7));actor.meta.active=1;
+ actor.state.command_list_index=0;assert(!eligible(7));actor.state.command_list_index=NONE;
+ actor.state.command_list_immediate=1;assert(!eligible(7));actor.state.command_list_immediate=0;
+ weapon.weapon.state=1;assert(!eligible(7));weapon.weapon.state=_weapon_state_idle;
+ weapon.weapon.triggers[1].state=1;assert(!eligible(7));weapon.weapon.triggers[1].state=_trigger_idle;
+ weapon.weapon.magazines[0].state=1;assert(!eligible(7));weapon.weapon.magazines[0].state=_magazine_idle;
+ unit.unit.actor_index=NONE;assert(!eligible(7));unit.unit.actor_index=7;
+ actor.meta.type=_actor_none;actor_races[_actor_none]=_race_covenant;custom_rigs=0;
+ assert(!eligible(7));custom_rigs=1;assert(eligible(7)==&unit);custom_rigs=0;
+ valid=0;assert(!eligible(7));valid=1;
+ /* Keep the legacy release/throw fixture on a production-eligible live unit. */
+ actor.meta.type=_actor_grunt;actor.meta.active=1;actor.state.command_list_index=NONE;
+ unit.unit.actor_index=7;unit.unit.player_index=NONE;unit.unit.animation.state=_unit_state_idle;
+ unit.object.parent_object_index=NONE;unit.object.name_index=NONE;
+ unit.object.flags=1u<<_object_connected_to_map_bit;
  npc.active=1;npc.index=7;npc.held[0]=npc.held[1]=1;owner[0]=5;owner[1]=3;lookups=0;
  vr_npc_interaction_reset();assert(!npc.active&&owner[0]==0&&owner[1]==3&&lookups==0);
  for(int n=0;n<NUMBEROF(custom_rig_graph_cache);++n)assert(!custom_rig_graph_cache[n].valid); /* map reset clears graph proofs */
@@ -157,17 +245,17 @@ int main(void){
  vr_npc_interaction_velocity(7,v);assert(!memcmp(v,before,sizeof v));
  npc.recovery=0;vr_npc_interaction_velocity(8,v);assert(!memcmp(v,before,sizeof v));
  vr_npc_interaction_reset();
- for(int i=0;i<4;i++){npc_pool[i].active=1;npc_pool[i].started=1;npc_pool[i].index=100+i;npc_pool[i].player=10+i;npc_pool[i].is_remote=1;npc_pool[i].held[0]=1;npc_pool[i].minimum_hands=1;npc_pool[i].rig.body.count=1;}
+ for(int i=0;i<NPC_POOL_SIZE;i++){npc_pool[i].active=1;npc_pool[i].started=1;npc_pool[i].index=100+i;npc_pool[i].player=10+i;npc_pool[i].is_remote=1;npc_pool[i].held[0]=1;npc_pool[i].minimum_hands=1;npc_pool[i].rig.body.count=1;}
  assert(!select_owner(99,1,0));assert(select_owner(12,1,0)&&npc.index==102);
  assert(state_for_object(103)==&npc_pool[3]);assert(!state_for_object(999));
  npc_pool[0].held[0]=0;assert(!select_owner(99,1,0)); /* settling body remains owned */
  long id;int count;real_matrix4x3 matrices[64];int seen=0;
- for(int i=0;i<4;i++){assert(vr_npc_interaction_snapshot(&id,&count,matrices,64));assert(count==1);seen|=1<<(id-100);}
- assert(seen==15);assert(!vr_npc_interaction_snapshot(&id,&count,matrices,0));
+ for(int i=0;i<NPC_POOL_SIZE;i++){assert(vr_npc_interaction_snapshot(&id,&count,matrices,64));assert(count==1);seen|=1<<(id-100);}
+ assert(seen==((1u<<NPC_POOL_SIZE)-1));assert(!vr_npc_interaction_snapshot(&id,&count,matrices,0));
  float point[3];assert(vr_npc_interaction_remote_contact(12,0,&id,point)&&id==102);
  assert(!vr_npc_interaction_remote_contact(12,1,&id,point));
  vr_npc_interaction_reset();maximum=1;assert(select_owner(99,1,0));npc.active=1;npc.player=99;npc.is_remote=1;npc.held[0]=1;
- assert(!select_owner(98,1,0));maximum=4;assert(select_owner(98,1,0));
+ assert(!select_owner(98,1,0));maximum=8;assert(select_owner(98,1,0));
  vr_npc_interaction_reset();unit.unit.actor_index=7;actor.meta.type=_actor_grunt;
  assert(unit_species(&unit,555)==_actor_grunt);
  unit.unit.actor_index=NONE;unit.definition_index=101;variant_count=1;

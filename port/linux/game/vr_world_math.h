@@ -5,6 +5,17 @@ static int vr_world_authority(int local, int server, int campaign)
 {
     return local || (server && campaign);
 }
+/* Close-range hand interaction stays deliberately bounded. A wall/object LOS
+ * query remains mandatory at the call site, so increasing this radius never
+ * permits reaching through solid geometry. */
+static inline float vr_world_interaction_reach(float metres, float units_per_metre)
+{
+    if (!isfinite(metres) || !isfinite(units_per_metre) || units_per_metre <= 0.0f)
+        return 0.0f;
+    if (metres < 0.12f) metres = 0.12f;
+    if (metres > 0.40f) metres = 0.40f;
+    return metres * units_per_metre;
+}
 /* Velocities are world units/tick (the native item_update convention). */
 static int vr_world_limit(float v[3], float limit)
 {

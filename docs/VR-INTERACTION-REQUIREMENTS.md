@@ -1,19 +1,24 @@
-# Test40 current source disposition — 2026-10-08
+# Test41 current source disposition — 2026-10-09
 
-The current private candidate is **Test40 / 1.0.21-test40 / code51**. The
-latest user instruction is to complete the four previously deferred areas,
-validate them and package both APKs for owner testing. The current implementation
-and boundaries are recorded in [TEST40-DELIVERY-STATUS.md](TEST40-DELIVERY-STATUS.md),
-[TEST40-REQUIREMENT-DISPOSITION.md](TEST40-REQUIREMENT-DISPOSITION.md), and
-[TEST40-DEVICE-CHECKLIST.md](TEST40-DEVICE-CHECKLIST.md). PC/Steam Frame remains
-deferred. The old Test38/Test39 packaging holds below are historical and do
-not override the Test40 work scope. Public v1.0.18 remains unchanged.
+The private candidate is **Test41 / 1.0.22-test41 / code52**, based on OpenCE
+Build157/network24. The owner reports that new interaction options appeared to
+do nothing in a solo campaign. Test41 adds session/config diagnostics, a
+12-40 cm reach used by world/NPC/parkour contact, mapping for broad NPC root
+collision hits, and 16-direction horizontal climb probes. It labels the 1-8
+pool slider **NPC RIG SLOTS** because that setting caps this mod's physical
+interaction rigs, not Halo's native corpse-ragdoll limit. One HAPTICS setting
+scales all vibration. The NPC fixture now executes production actor eligibility
+instead of a permissive stub. See [TEST41-DELIVERY-STATUS.md](TEST41-DELIVERY-STATUS.md),
+[TEST41-REQUIREMENT-DISPOSITION.md](TEST41-REQUIREMENT-DISPOSITION.md), and
+[TEST41-DEVICE-CHECKLIST.md](TEST41-DEVICE-CHECKLIST.md). Automated checks do
+not establish Quest action success; owner testing remains required. PC/Steam
+Frame is deferred and public v1.0.18 remains unchanged.
 
-Test40 addresses custom humanoid rig fallback, persistent map-session magazine
-visuals, bounded vertical vehicle lifting, and local NPC recovery. The build
-does not claim arbitrary skeleton remapping, saved/networked magazine objects,
-full vehicle rotation/horizontal carry, NPC revival, or universal custom-tag
-compatibility. Device acceptance remains pending.
+Test40's retained scope includes graph-validated custom humanoid fallback,
+map-session visual magazine debris, bounded vertical lifting of supported
+vehicles, and delayed recovery for eligible live encounter NPCs. These are not
+universal skeleton remapping, saved/networked magazine objects, full vehicle
+rotation/horizontal carry, NPC revival or universal custom-tag compatibility.
 
 ---
 
@@ -203,7 +208,7 @@ compatibility are demonstrated. No articulated-ragdoll capability is assumed.
 | W59 | Recommended implementation order | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W60 | Interaction with the previously requested manual reload and finger systems | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W61 | Interaction priority model | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
-| W62 | Haptics | Test40 carries acquisition/reload/parkour feedback and one-shot fingertip collision pulses; optional, capped and rate-limited solo load feedback now covers held props, supported NPC limbs and vehicle lifting. | `vr.weight_haptics` stays OFF by default; device strength/comfort acceptance remains pending. |
+| W62 | Haptics | Test41 routes acquisition, reload, parkour, fingertip contact and bounded local load feedback through one master `vr.haptics` strength setting. | 0 disables every effect; higher values scale all effects. Load feedback remains rate-limited and local-only. Device strength/comfort acceptance remains pending. |
 | W63 | Avoid game-breaking behavior | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W64 | Out-of-bounds protection | Test40 adds default-off local recovery of eligible live encounter NPCs after sustained unsupported falling. | Ten-second dwell; only a last-grounded position with a clear standing capsule; no respawn/revive or active-script takeover. |
 | W65 | Physical interaction should remain fun | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |

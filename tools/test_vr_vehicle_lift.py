@@ -203,6 +203,9 @@ assert "cross_product3d(global_up3d, acceleration, &torque)" not in apply
 
 assert "return vehicle_lift_get(index) ? object_get(index) : NULL;" in function_body(
     gameplay, "interaction_grabbable")
+grabbable = function_body(gameplay, "interaction_grabbable")
+assert "world_grab_enabled()" in grabbable
+assert 'config_boolean("vr.custom_scenery_grab")' in function_body(gameplay, "world_grab_enabled")
 assert "!grabbable(held->index)" in function_body(gameplay, "vr_world_interaction_tick")
 assert "release_hand(hand, FALSE, units)" in function_body(gameplay, "vr_world_interaction_tick")
 tick = function_body(gameplay, "vr_world_interaction_tick")
@@ -217,7 +220,9 @@ assert re.search(
     r'"vr\.vehicle_lift",\s*_config_boolean,\s*"false",\s*"HALO_VR_VEHICLE_LIFT",\s*_environment_value,\s*_platform_vr',
     config,
 ), "vehicle lift must be a default-off VR setting"
-assert "Requires WORLD GRAB." in config
+assert "Works independently of WORLD GRAB." in config
 assert '"vr.vehicle_lift", _vr_setting_boolean' in menu
 assert '"LIFT VEHICLES"' in menu
+assert '(!world_grab_enabled() && !vehicle_lift_enabled())' in tick
+assert 'if (world_grab_enabled())' in candidate_path
 print("PASS: default-off local vehicle candidate; type/seat/script/parent/native-physics gates; bounded vehicle_accelerate path; lifecycle cancellation")

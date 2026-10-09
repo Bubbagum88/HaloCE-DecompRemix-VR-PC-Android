@@ -1,6 +1,6 @@
 # Halo CE Quest VR + Android player guide
 
-This guide describes the unpublished **test37 candidate / 1.0.18-test37 / OpenCE Build 157 / network 24**. It is provided for testing, not as a public release. For the current public build see [v1.0.16 release notes](RELEASE-1.0.16.md).
+This guide describes the published **Halo CE Quest VR + Android v1.0.18 / OpenCE Build 157 / network 24**. For installation, controls, compatibility and release details, see [v1.0.18 release notes](RELEASE-1.0.18.md). Private-candidate additions are documented in the candidate note prepended to this guide.
 
 ## Install and update
 
@@ -60,6 +60,11 @@ Use **MOVE + swipe** to move and aim, or drag **FIRE** to move, aim and fire tog
 Open the pause menu and choose **VR Settings**. Use Next Page and Back to move between settings pages. Arrow controls decrease/increase values; A/right advances or confirms. **Legs + Arms**, **Safe geometry**, **Third Person vehicles** and **Right Hand steering** are defaults. First-person vehicle view remains experimental. Changes save; restart after changing geometry compatibility.
 
 Settings include body/hand modes, fingers, hand/gun calibration, weapon grip and support grip, controls, gestures, HUD/wrist HUD, scopes, vehicles/seats, comfort, graphics, display and controller tracking corrections. Optical finger tracking is not used; fingers follow controller sensors. See [controls and options](CONTROLS-AND-OPTIONS.md) for exact defaults and the full menu inventory.
+
+**HAPTICS** is the single vibration control for every controller effect,
+including shots, contact, reloads, movement and interaction feedback. Set it to
+0% to disable all vibration, or raise it to adjust strength. Load feedback is
+part of this same setting; it has no separate on/off toggle.
 
 ## Revisions, logs and support
 

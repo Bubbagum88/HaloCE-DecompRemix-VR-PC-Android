@@ -1,23 +1,26 @@
 ## Current release checkpoint — v1.0.18 (2026-10-08)
 
-## Active private Test40 candidate (2026-10-08)
+## Active private Test41 candidate (2026-10-09)
 
-Source work and private packaging are complete on `test39-interaction-completion`;
-candidate **1.0.21-test40 / code51** is at
-`D:\HaloQuest\builds\test40-20261008-v1.0.21-test40-delivery`. Wait for the
-owner to test both APKs and report device/log results. Do not publish, install
-or launch the game. PC/Steam Frame stays deferred; public v1.0.18 stays
+Candidate **1.0.22-test41 / code52** is being validated on
+`test39-interaction-completion`. Preserve the existing Test40 package at
+`D:\HaloQuest\builds\test40-20261008-v1.0.21-test40-delivery`. The supplied
+logs contain solo campaign evidence: the pending invite does not complete a
+network join, then the saved campaign starts; the source assigns local mode.
+Test41 adds session diagnostics, configurable 12-40 cm world/NPC/parkour
+contact reach, maps broad NPC root hits to nearby authored joints, and probes
+16 horizontal directions for climb contact. **NPC RIG SLOTS** controls the
+mod's 1-8 physical interaction rigs, not Halo's native corpse-ragdoll limit.
+One HAPTICS strength controls all vibration. The NPC fixture now compiles
+production eligibility instead of a permissive stub. Do not publish, install
+or launch the game. Package both APKs for owner testing after source checks;
+device acceptance remains pending. PC/Steam Frame and public v1.0.18 remain
 unchanged.
 
-Read [TEST40-DELIVERY-STATUS.md](TEST40-DELIVERY-STATUS.md),
-[TEST40-REQUIREMENT-DISPOSITION.md](TEST40-REQUIREMENT-DISPOSITION.md),
-[TEST40-PROGRESS.md](TEST40-PROGRESS.md) and
-[TEST40-DEVICE-CHECKLIST.md](TEST40-DEVICE-CHECKLIST.md). The four additions
-are custom humanoid fallback, persistent map-session visual magazines,
-bounded vertical vehicle lifting and solo mission-NPC recovery. Each is
-default-off and limited as documented. The existing WEIGHT HAPTICS option now
-covers held props, supported NPC limbs and vehicle lifting; event/collision
-pulses remain. Host checks do not equal headset or campaign acceptance.
+Read [TEST41-DELIVERY-STATUS.md](TEST41-DELIVERY-STATUS.md),
+[TEST41-REQUIREMENT-DISPOSITION.md](TEST41-REQUIREMENT-DISPOSITION.md), and
+[TEST41-DEVICE-CHECKLIST.md](TEST41-DEVICE-CHECKLIST.md). Test40 remains archived
+with its own delivery and acceptance record.
 
 Preserve the Test39 network/co-op and accepted VR/Android behavior. The prior
 Test39 candidate and its artifacts remain archived below and in its delivery

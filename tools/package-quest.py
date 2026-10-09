@@ -81,7 +81,8 @@ VR_BUILD_IDENTITIES = {
     b"vr: HaloCE Quest 1.0.18 release code48 (OpenCE Build 157 / network 24; launcher network-version browser and population selector; upstream analog trigger, Custom Edition spawn facing, PC vehicle set and host-alone lobby start; scope/turret behavior retained; Safe geometry and accepted VR settings retained)",
     b"vr: HaloCE Quest test38 candidate 1.0.19-test38 code49 (OpenCE Build 157 / network 24; legacy co-op15-24; optional physical interactions and vehicle controls; scope profiles and mounted reticle; device acceptance pending)",
     b"vr: HaloCE Quest test39 candidate 1.0.20-test39 code50 (OpenCE Build 157 / network 24; offline shake cooling and weight haptics toggles; expanded bounded co-op world interactions; custom scenery and validated alternate NPC rig opt-ins; device acceptance pending)",
-    b"vr: HaloCE Quest test40 candidate 1.0.21-test40 code51 (OpenCE Build 157 / network 24; opt-in local custom humanoid rig fallback, persistent visual magazine debris, bounded vertical vehicle lifting, and solo mission-NPC recovery; prior systems retained; device acceptance pending)"
+    b"vr: HaloCE Quest test40 candidate 1.0.21-test40 code51 (OpenCE Build 157 / network 24; opt-in local custom humanoid rig fallback, persistent visual magazine debris, bounded vertical vehicle lifting, and solo mission-NPC recovery; prior systems retained; device acceptance pending)",
+    b"vr: HaloCE Quest test41 candidate 1.0.22-test41 code52 (OpenCE Build 157 / network 24; configurable 12-40 cm physical grab reach, 8 bounded NPC rig slots, unified all-effects haptics control, explicit interaction-session diagnostics; prior systems retained; device acceptance pending)"
 }
 
 
@@ -224,9 +225,9 @@ def main():
         if f"versionName='{version_name}'" not in badging:
             raise SystemExit("Wrong candidate version: " + str(path))
         version_code = re.search(r"versionCode='(\d+)'", badging)
-        required_candidate_code = 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
+        required_candidate_code = 52 if candidate_at_least(args.label, 41) else 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
         if candidate_at_least(args.label, 36) and (version_code is None or int(version_code[1]) < required_candidate_code):
-            raise SystemExit("Test" + ("40" if required_candidate_code == 51 else "39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
+            raise SystemExit("Test" + ("41" if required_candidate_code == 52 else "40" if required_candidate_code == 51 else "39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
                              + " Android version code must be at least " + str(required_candidate_code) + ": " + str(path))
         if args.stable and args.label == "1.0.16" and "versionCode='45'" not in badging:
             raise SystemExit("Wrong v1.0.16 Android version code: " + str(path))
@@ -330,7 +331,7 @@ def main():
                     raise SystemExit("Test33 VR candidate identity marker missing")
             if candidate_at_least(args.label, 34):
                 if vr:
-                    current_upstream_markers = ([b"OpenCE Build 157 / network 24", b"test40 candidate 1.0.21-test40 code51"]
+                    current_upstream_markers = ([b"OpenCE Build 157 / network 24", b"test41 candidate 1.0.22-test41 code52"]
                         if candidate_at_least(args.label, 40) else
                         [b"OpenCE Build 157 / network 24", b"test39 candidate 1.0.20-test39 code50"]
                         if candidate_at_least(args.label, 39) else
@@ -358,7 +359,15 @@ def main():
                     if marker not in guest:
                         raise SystemExit("Test37 native compatibility gate missing: " + repr(marker))
                 guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt"))
-                guide_markers = ([b"1.0.21-test40", b"Hosting remains on OpenCE network version 24",
+                guide_markers = ([b"1.0.22-test41", b"12 to 40 cm", b"physical NPC interaction rigs", b"NPC RIG SLOTS",
+                                  b"pending invite did not complete a network join", b"Hosting remains on OpenCE network version 24",
+                                  b"four remote machines", b"128-machine table", b"SHAKE COOLING",
+                                  b"HAPTICS", b"0% to disable all vibration", b"NPC RESCUE", b"DROPPED MAGAZINES",
+                                  b"LIFT VEHICLES", b"CUSTOM NPC RIGS", b"32-magazine pool",
+                                  b"Vehicle lifting is independent of WORLD GRAB",
+                                  b"10 seconds", b"vertical lifting"]
+                                 if candidate_at_least(args.label, 41) else
+                                 [b"1.0.21-test40", b"Hosting remains on OpenCE network version 24",
                                   b"four remote machines", b"128-machine table", b"SHAKE COOLING",
                                   b"WEIGHT HAPTICS", b"NPC RESCUE", b"DROPPED MAGAZINES",
                                   b"LIFT VEHICLES", b"CUSTOM NPC RIGS", b"32-magazine pool",
@@ -496,7 +505,14 @@ def main():
                 raise SystemExit("Negotiated avatar support missing")
             if vr and (b"HANDS ONLY" not in guest or b"NEXT PAGE (%ld/%ld)" not in guest):
                 raise SystemExit("Body modes or paged settings missing")
-            if vr and candidate_at_least(args.label, 39):
+            if vr and candidate_at_least(args.label, 41):
+                for marker in [b"SHAKE COOLING", b"HAPTICS", b"CUSTOM SCENERY",
+                               b"CUSTOM NPC RIGS", b"vr.cooldown_shake"]:
+                    if marker not in guest:
+                        raise SystemExit("Test41 VR option missing from guest: " + repr(marker))
+                if b"WEIGHT HAPTICS" in guest:
+                    raise SystemExit("Test41 still exposes a per-feature haptics toggle")
+            elif vr and candidate_at_least(args.label, 39):
                 for marker in [b"SHAKE COOLING", b"WEIGHT HAPTICS", b"CUSTOM SCENERY",
                                b"CUSTOM NPC RIGS", b"vr.cooldown_shake", b"vr.weight_haptics"]:
                     if marker not in guest:
@@ -561,7 +577,9 @@ def main():
     base_label = re.sub(r"[a-z]$", "", args.label)
     if not args.stable and base_label != args.label:
         edition_docs += [base_label.upper()+"-DELIVERY.md", base_label.upper()+"-PROGRESS.md"]
-    active_candidate_docs = (["TEST40-DELIVERY-STATUS.md", "TEST40-PLAYER-NOTES.md", "TEST40-REQUIREMENT-DISPOSITION.md"]
+    active_candidate_docs = (["TEST41-DELIVERY-STATUS.md", "TEST41-PLAYER-NOTES.md", "TEST41-REQUIREMENT-DISPOSITION.md"]
+                             if candidate_at_least(args.label, 41) else
+                             ["TEST40-DELIVERY-STATUS.md", "TEST40-PLAYER-NOTES.md", "TEST40-REQUIREMENT-DISPOSITION.md"]
                              if candidate_at_least(args.label, 40) else
                              ["TEST39-DELIVERY-STATUS.md", "TEST39-PLAYER-NOTES.md", "TEST39-INTERACTION-NETWORK.md"])
     documents = edition_docs+active_candidate_docs+["TEST38-DELIVERY-STATUS.md", "TEST38-PLAYER-NOTES.md", "TEST38-DEVICE-CHECKLIST.md", "WORLD-INTERACTION-STATUS.md", "MANUAL-RELOAD.md", "VR-LOOSE-PROPS.md", "VR-PARKOUR.md", "TEST38-INTERACTION-NETWORK.md", "GAME-DATA-LIBRARY.md", "TEST15-DELIVERY.md", "TEST15-PROGRESS.md", "TEST15-UPSTREAM.md", "DATA-COMPATIBILITY.md", "CURRENT-STATE.md", "PLAYER-GUIDE.md", "CONTROLS-AND-OPTIONS.md", "COOP-COMPATIBILITY-AUDIT.md", "NETWORK-VR-AVATARS.md", "CAMPAIGN-PROTOCOL-WIP.md",
@@ -586,7 +604,9 @@ def main():
         documents += ["TEST37-PLAYER-NOTES.md", "TEST37-UPSTREAM-INTEGRATION.md"]
     if candidate_at_least(args.label, 39) and not args.stable:
         documents += ["TEST39-DEVICE-CHECKLIST.md", "TEST39-REQUIREMENT-DISPOSITION.md"]
-    if candidate_at_least(args.label, 40) and not args.stable:
+    if candidate_at_least(args.label, 41) and not args.stable:
+        documents += ["TEST41-DEVICE-CHECKLIST.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    elif candidate_at_least(args.label, 40) and not args.stable:
         documents += ["TEST40-DEVICE-CHECKLIST.md", "TEST40-PROGRESS.md", "VR-INTERACTION-REQUIREMENTS.md"]
     # Candidate-specific additions above may repeat a shared handoff document.
     # Keep both the copied folder and build ZIP free of duplicate entries.

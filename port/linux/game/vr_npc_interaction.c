@@ -43,7 +43,7 @@ static unsigned long timing_frames,timing_total,timing_maximum;
 static float vr_units_per_metre(void){return 0.32808399f;}
 #endif
 
-enum { NPC_POOL_SIZE=4, NPC_REMOTE_PLAYERS=128 };
+enum { NPC_POOL_SIZE=VR_NPC_INTERACTION_POOL_SIZE, NPC_REMOTE_PLAYERS=128 };
 static struct npc_state {
     int active,recovery,settling,minimum_hands,started,is_remote,getting_up,torso_node,species_type;
     real mobility;
@@ -157,8 +157,8 @@ static int species(short type,int *hands,real *mobility)
     case _actor_carrier_form:*hands=2;*mobility=.2f;return TRUE;
     default:
         /* The Assassin actor enum aliases the native Elite actor behavior and
-         * rig family. The opt-in permits that alternate authored variant only;
-         * race alone is not enough to infer a safe humanoid skeleton. */
+         * rig family. It has a known two-hand profile; the unclassified path
+         * below handles validated custom humanoid graphs. */
         if(!config_boolean("vr.custom_npc_rigs") || type!=_actor_assassin ||
            actor_type_get_swarm(type) || actor_type_get_race(type)!=_race_covenant)
             return FALSE;
@@ -207,9 +207,10 @@ static int custom_humanoid_rig(short type,struct unit_datum *unit,long index,int
 	 * their existing negotiated path; custom graph layouts are never assumed to
 	 * match another peer's tag revision. */
 	if(!config_boolean("vr.custom_npc_rigs") || game_connection()!=_game_connection_local)return FALSE;
-    /* Keep known non-humanoid, special-purpose and already-classified actor
-     * types out of the generic path. Invalid raw enum values are not treated
-     * as _actor_none; actor_type_get_* itself clamps them to that enum. */
+    /* Keep known non-humanoid and special-purpose types out of the generic
+     * path. `_actor_none` is the engine's real fallback for custom humanoid
+     * tags; only that unclassified enum reaches this graph-validated path.
+     * Other known humanoids are handled by species() above. */
     if(type==_actor_player || type==_actor_engineer || type==_actor_infection_form ||
        type==_actor_carrier_form || type==_actor_monitor || type==_actor_sentinel ||
        type==_actor_mounted_weapon || type!=_actor_none || !unit || index==NONE)return FALSE;
@@ -231,6 +232,38 @@ static int custom_humanoid_rig(short type,struct unit_datum *unit,long index,int
 static int interaction_profile(short type,struct unit_datum *unit,long index,int *hands,real *mobility)
 {
     return species(type,hands,mobility) || custom_humanoid_rig(type,unit,index,hands,mobility);
+}
+/* Collision models may report their root node (0) or NONE for broad body
+ * contact. Neither identifies a limb that can be pinned by the articulated
+ * solver. Map those contacts to the nearest authored non-root joint, while
+ * preserving valid explicit nodes and the distinct-node rule for heavy NPCs. */
+static int npc_contact_node(struct vr_articulated_native const *rig,short hit_node,
+    real_point3d const *contact,real units,int other_node,int *mapped)
+{
+    real best_distance_squared=INFINITY;
+    real maximum_distance;
+    int best=NONE;
+    if(mapped)*mapped=FALSE;
+    if(!rig||!contact||rig->body.count<2||rig->body.count>VR_ARTICULATED_NODES||
+       !valid_real_point3d(contact)||!isfinite(units)||!(units>0.0f&&units<100.0f)||
+       hit_node < NONE || hit_node >= rig->body.count)return NONE;
+    if(hit_node>0&&hit_node!=other_node)return hit_node;
+    maximum_distance=.22f*units;
+    for(int node=1;node<rig->body.count;++node){
+        real distance_squared=0;
+        if(node==other_node)continue;
+        for(int axis=0;axis<3;++axis){
+            real delta=rig->body.nodes[node].position[axis]-contact->n[axis];
+            if(!isfinite(delta)){distance_squared=INFINITY;break;}
+            distance_squared+=delta*delta;
+        }
+        if(!isfinite(rig->body.nodes[node].radius)||rig->body.nodes[node].radius<0)continue;
+        maximum_distance=MAX(maximum_distance,rig->body.nodes[node].radius*4.0f);
+        if(distance_squared<best_distance_squared){best_distance_squared=distance_squared;best=node;}
+    }
+    if(best==NONE||!isfinite(best_distance_squared)||best_distance_squared>maximum_distance*maximum_distance)return NONE;
+    if(mapped)*mapped=TRUE;
+    return best;
 }
 static void surface_offset(int hand,real_vector3d *offset)
 {
@@ -305,31 +338,35 @@ static long probe_remote(real_point3d const *point,real_point3d const *camera,lo
     struct collision_result hit;
     struct vr_articulated_native capture;
     real_vector3d delta;
+    real reach=(real)vr_world_interaction_reach((float)config_real("vr.interaction_reach"),.32808399f);
     int budget=0;
     object_iterator_new(&it,_object_mask_biped,0);
     while((unit=object_iterator_next(&it))!=NULL) {
         struct npc_state *existing=state_for_object(it.index);
         real_point3d contact;
         real_point3d ray_start;
-        int node;
+        int node,mapped=FALSE;
         if((required!=NONE&&required!=it.index) || (existing&&existing!=npc_current&&(existing->held[0]||existing->held[1])&&
            !(existing->is_remote&&existing->player==remote.player)) || !eligible(it.index)) continue;
         vector_from_points3d(point,&unit->object.bounding_sphere_center,&delta);
-        if(magnitude3d(&delta)>unit->object.bounding_sphere_radius+.12f*.32808399f) continue;
+        if(magnitude3d(&delta)>unit->object.bounding_sphere_radius+reach) continue;
         if(++budget>16) break;
         if(normalize3d(&delta)<.00001f) continue;
-        point_from_line3d(point,&delta,-.12f*.32808399f,&ray_start);
+        point_from_line3d(point,&delta,-reach,&ray_start);
         vector_from_points3d(&ray_start,&unit->object.bounding_sphere_center,&delta);
         if(!collision_test_vector(_collision_test_for_line_of_sight_flags|FLAG(_collision_test_back_facing_surfaces_bit),&ray_start,&delta,player_unit,&hit) ||
            hit.type!=_collision_result_object || hit.object_index!=it.index) continue;
         contact=hit.point;node=hit.node_index;
         vector_from_points3d(point,&contact,&delta);
-        if(magnitude3d(&delta)>.12f*.32808399f) continue;
+        if(magnitude3d(&delta)>reach) continue;
         vector_from_points3d(camera,&contact,&delta);
         if(collision_test_vector(_collision_test_for_line_of_sight_flags,camera,&delta,player_unit,&hit) &&
            !(hit.type==_collision_result_object&&hit.object_index==it.index)) continue;
-        if(!vr_articulated_native_capture(it.index,&capture) || node<=0 || node>=capture.body.count) continue;
-        if(existing&&existing->held[1-hand]&&existing->node[1-hand]==node) continue;
+        if(!existing&&!vr_articulated_native_capture(it.index,&capture)) continue;
+        node=npc_contact_node(existing?&existing->rig:&capture,(short)node,&contact,.32808399f,
+            existing&&existing->held[1-hand]?existing->node[1-hand]:NONE,&mapped);
+        if(node==NONE) continue;
+        if(mapped)platform_log("VR NPC: remote contact fallback player=%ld actor=%08lx mapped_node=%d",remote.player,it.index,node);
         return it.index;
     }
     return NONE;
@@ -483,6 +520,7 @@ static void tick_player(int use_remote,long player)
             npc_pool[slot].is_remote==use_remote&&npc_pool[slot].held[h]) {npc_current=&npc_pool[slot];npc.tick=tick;break;}
         int pressed,released,grip=use_remote?remote.held[h]:vr_interaction_grip(h,&pressed,&released);
         real_point3d point;
+        real reach=(real)vr_world_interaction_reach((float)config_real("vr.interaction_reach"),(float)units);
         real_vector3d forward,up,delta;
         pressed=grip&&!edges[h];edges[h]=grip;
         if(use_remote) point=remote.point[h];
@@ -509,35 +547,42 @@ static void tick_player(int use_remote,long player)
             struct object_iterator it;
             struct unit_datum *candidate;
             struct collision_result hit;
-            int budget=0;
+            int budget=0,scanned=0,eligible_count=0,surface_hits=0;
+            int graph_rejects=0,node_rejects=0,capacity_rejects=0,acquired=0;
             object_iterator_new(&it,_object_mask_biped,0);
             while((candidate=object_iterator_next(&it))!=NULL) {
-                int node;
+                int node,mapped=FALSE;
                 real_point3d ray_start;
                 struct npc_state *existing=state_for_object(it.index),*destination;
+                ++scanned;
                 if((npc.active&&npc.minimum_hands>1&&npc.index!=it.index) ||
                    (existing&&existing!=npc_current&&(existing->held[0]||existing->held[1])&&
                     !(existing->is_remote==use_remote&&existing->player==player)) ||
-                   (use_remote&&remote.candidate[h]!=it.index) || !eligible(it.index)) continue;
+                   (use_remote&&remote.candidate[h]!=it.index)) continue;
+                if(!eligible(it.index)) continue;
+                ++eligible_count;
                 destination=existing?existing:(!npc.active?npc_current:free_state());
-                if(!destination) continue;
+                if(!destination){++capacity_rejects;continue;}
                 vector_from_points3d(&point,&candidate->object.bounding_sphere_center,&delta);
-                if(magnitude3d(&delta)>candidate->object.bounding_sphere_radius+.12f*units) continue;
+                if(magnitude3d(&delta)>candidate->object.bounding_sphere_radius+reach) continue;
                 if(++budget>16) break;
                 if(normalize3d(&delta)<.00001f) continue;
-                point_from_line3d(&point,&delta,-.12f*units,&ray_start);
+                point_from_line3d(&point,&delta,-reach,&ray_start);
                 vector_from_points3d(&ray_start,&candidate->object.bounding_sphere_center,&delta);
                 if(!collision_test_vector(_collision_test_for_line_of_sight_flags|FLAG(_collision_test_back_facing_surfaces_bit),&ray_start,&delta,unit,&hit) ||
                    hit.type!=_collision_result_object || hit.object_index!=it.index) continue;
+                ++surface_hits;
                 vector_from_points3d(&point,&hit.point,&delta);
-                if(magnitude3d(&delta)>.12f*units) continue;
+                if(magnitude3d(&delta)>reach) continue;
                 node=hit.node_index;
                 real_point3d contact=hit.point;
                 vector_from_points3d(&camera,&contact,&delta);
                 if(collision_test_vector(_collision_test_for_line_of_sight_flags,&camera,&delta,unit,&hit) &&
                    !(hit.type==_collision_result_object && hit.object_index==it.index)) continue;
-                if(!existing && !vr_articulated_native_capture(it.index,&destination->rig)) continue;
-                if(node<=0 || node>=destination->rig.body.count || (destination->held[1-h]&&destination->node[1-h]==node)) continue;
+                if(!existing && !vr_articulated_native_capture(it.index,&destination->rig)) {++graph_rejects;continue;}
+                node=npc_contact_node(&destination->rig,(short)node,&contact,units,
+                    destination->held[1-h]?destination->node[1-h]:NONE,&mapped);
+                if(node==NONE){++node_rejects;continue;}
                 if(!use_remote&&!vr_interaction_claim(h,VR_INTERACTION_NPC)) break;
                 {
                     real_vector3d velocity=npc.velocity[h];
@@ -569,8 +614,14 @@ static void tick_player(int use_remote,long player)
                 }
                 platform_log("VR NPC: grabbed actor=%08lx species=%d hand=%d node=%d requires=%d",it.index,
                     npc.species_type,h,node,npc.minimum_hands);
-                if(!use_remote) vr_haptic(h,.25f,.035f);break;
+                if(mapped)platform_log("VR NPC: contact fallback actor=%08lx mapped_node=%d",it.index,node);
+                if(!use_remote) vr_haptic(h,.25f,.035f);
+                acquired=1;
+                break;
             }
+            if(!acquired)platform_log("VR NPC: grab miss hand=%d scanned=%d eligible=%d surfaces=%d graph_rejects=%d node_rejects=%d no_rig_slot=%d reach=%.2f m custom_rigs=%d",
+                h,scanned,eligible_count,surface_hits,graph_rejects,node_rejects,capacity_rejects,
+                (float)reach/(float)units,config_boolean("vr.custom_npc_rigs"));
         }
     }
 }

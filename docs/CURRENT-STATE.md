@@ -1,21 +1,33 @@
 # Current development state
 
-## Active private candidate: Test40 (2026-10-08)
+## Active private candidate: Test41 (2026-10-09)
 
-Candidate target is **1.0.21-test40 / Android code51**, based on OpenCE
-Build157/network24. See [TEST40-DELIVERY-STATUS.md](TEST40-DELIVERY-STATUS.md),
-[TEST40-REQUIREMENT-DISPOSITION.md](TEST40-REQUIREMENT-DISPOSITION.md),
-[TEST40-PROGRESS.md](TEST40-PROGRESS.md), and
-[TEST40-DEVICE-CHECKLIST.md](TEST40-DEVICE-CHECKLIST.md). The candidate
-addresses the previously deferred custom-rig fallback, persistent visual
-magazines, bounded vertical vehicle lifting and local NPC rescue, each behind
-an OFF-by-default option. The existing opt-in WEIGHT HAPTICS setting also
-covers vehicle lifting and supported held NPC limbs. The bounded behaviors and unsupported cases are
-documented; this is not universal custom-rig, save/network magazine, full
-vehicle manipulation, or NPC-respawn support. PC/Steam Frame remains deferred.
-The pair is for owner testing only; no device acceptance or publication is
-implied. Final artifact hashes and checks will be recorded in
-[TEST40-DELIVERY.md](TEST40-DELIVERY.md).
+Candidate target is **1.0.22-test41 / Android code52**, based on OpenCE
+Build157/network24. The supplied second log enters a saved solo campaign after
+an invite attempt that never joined; solo setup assigns
+`_game_connection_local`. Test41 adds once-per-state-change session/config
+logs, a visible 12-40 cm **GRAB REACH** used by world, NPC and parkour wall
+contact, maps broad NPC root hits to nearby authored joints, and probes 16
+horizontal directions for climb contact. **NPC RIG SLOTS** sets the mod's
+articulated interaction pool to 1-8; it does not change Halo's native
+corpse-ragdoll limit. The separate load-haptics toggle is removed: HAPTICS
+scales every vibration, with zero disabling all. The NPC fixture now exercises
+production eligibility rather than a fake permissive stub. See
+[TEST41-DELIVERY-STATUS.md](TEST41-DELIVERY-STATUS.md),
+[TEST41-REQUIREMENT-DISPOSITION.md](TEST41-REQUIREMENT-DISPOSITION.md), and
+[TEST41-DEVICE-CHECKLIST.md](TEST41-DEVICE-CHECKLIST.md). Device acceptance is
+pending; public v1.0.18 and the Test40 package remain unchanged. PC/Steam Frame
+remains deferred. Final artifact hashes and checks will be recorded in
+[TEST41-DELIVERY.md](TEST41-DELIVERY.md).
+
+## Superseded private candidate: Test40
+
+Test40 is **1.0.21-test40 / Android code51**, based on OpenCE Build157/network24.
+Its delivered package and exact record remain in
+`D:\HaloQuest\builds\test40-20261008-v1.0.21-test40-delivery` and
+[TEST40-DELIVERY.md](TEST40-DELIVERY.md). It introduced the bounded custom rig,
+magazine debris, vehicle lift and NPC rescue options. Test41 preserves these
+features; do not change the accepted public release based on candidate results.
 
 ## Superseded private candidate: Test39
 

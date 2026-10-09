@@ -23,6 +23,12 @@ static int failed_sweep(void *unused,float const old[3],float radius,float next[
 int main(void){
  for(int local=0;local<2;++local)for(int server=0;server<2;++server)for(int campaign=0;campaign<2;++campaign)
    assert(vr_world_authority(local,server,campaign)==(local||(server&&campaign)));
+ assert(fabsf(vr_world_interaction_reach(.12f,1.f)-.12f)<.00001f);
+ assert(fabsf(vr_world_interaction_reach(.25f,1.f)-.25f)<.00001f);
+ assert(fabsf(vr_world_interaction_reach(.99f,1.f)-.40f)<.00001f);
+ assert(fabsf(vr_world_interaction_reach(.01f,1.f)-.12f)<.00001f);
+ assert(vr_world_interaction_reach(NAN,1.f)==0.f);
+ assert(vr_world_interaction_reach(.25f,0.f)==0.f);
  float error[3]={1,0,0},current[3]={0,0,0},light[3],heavy[3],two[3];
  assert(vr_world_spring(error,current,2,1,1,0,light));
  assert(vr_world_spring(error,current,.25f,1,1,0,heavy));
@@ -127,3 +133,22 @@ c=out/'lifecycle.c';c.write_text(lifecycle);binary=out/'lifecycle'
 subprocess.run(['clang','-std=gnu11','-Wall','-Wextra','-Wno-unused-function','-fsanitize=address,undefined','-I'+str(ROOT/'port/linux/game'),str(c),'-lm','-o',str(binary)],check=True)
 subprocess.run([str(binary)],check=True)
 print('PASS: actual release/reset code: tracking loss, shared two-hand release, throw cap, NaN rejection, stale-ID-safe map reset')
+
+# Session instrumentation is evaluated before the optional interaction gates,
+# so a solo campaign with its toggles disabled or unavailable is still recorded.
+world=(ROOT/'port/linux/game/vr_world_interaction.c').read_text()
+tick=world[world.index('void vr_world_interaction_tick(void)'):]
+assert tick.index('interaction_log_session_state();') < tick.index('if (!vr_active()')
+for marker in ['case _game_connection_local: return "local";',
+               'case _game_connection_network_client: return "network-client";',
+               'case _game_connection_network_server: return "network-server";',
+               'session=%s(%d) in_game=%d map_loaded=%d vr=%d coop=%d',
+               'reach=%dcm npc_rig_slots=%d/%d',
+               'interaction_diag_haptics_milli == haptics_milli']:
+    assert marker in world, marker
+campaign=(ROOT/'source/main/main.c').read_text()
+assert 'main_globals.connection = _game_connection_local;' in campaign
+npc=(ROOT/'port/linux/game/vr_npc_interaction.c').read_text()
+assert 'vr_world_interaction_reach((float)config_real("vr.interaction_reach")' in npc
+assert '.12f*units' not in npc and '.12f*.32808399f' not in npc
+print('PASS: solo is explicitly local; session diagnostics run before feature gates; NPC grabs use the configured bounded reach')

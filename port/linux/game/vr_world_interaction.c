@@ -19,6 +19,7 @@
 #include "../src/vr.h"
 #include "../src/port_config.h"
 #include "vr_world_interaction.h"
+#include "vr_npc_interaction.h"
 #include "vr_world_math.h"
 #include "vr_weight_feedback_math.h"
 #include "vr_world_props.h"
@@ -40,6 +41,16 @@ static struct world_hand {
 static long last_tick = NONE, last_unit = NONE;
 static int previous_grip[2] = {1,1};
 static unsigned long weight_haptic_at[2];
+static int interaction_diag_connection = -2;
+static int interaction_diag_features = -1;
+static int interaction_diag_vr = -1;
+static int interaction_diag_coop = -1;
+static int interaction_diag_game = -1;
+static int interaction_diag_map = -1;
+static int interaction_diag_reach_cm = -1;
+static int interaction_diag_slots = -1;
+static int interaction_diag_haptics_milli = -1;
+static long interaction_diag_tick = NONE;
 unsigned long system_milliseconds(void);
 
 /* vehicle_definition is private to vehicles.c. This prefix is copied from
@@ -71,6 +82,14 @@ static boolean vehicle_lift_enabled(void)
 {
 	return config_boolean("vr.vehicle_lift") &&
 		game_connection() == _game_connection_local;
+}
+
+static boolean world_grab_enabled(void)
+{
+	/* CUSTOM SCENERY is itself an opt-in world-grab path, so a hand-edited
+	 * config need not also discover an undocumented prerequisite toggle. */
+	return config_boolean("vr.world_interaction") ||
+		config_boolean("vr.custom_scenery_grab");
 }
 
 static boolean vehicle_lift_type_supported(short type)
@@ -159,10 +178,16 @@ static struct vehicle_datum *vehicle_lift_get(long index)
 
 static struct object_datum *interaction_grabbable(long index)
 {
-	struct object_datum *object = vr_world_object_get(index);
-	if (object)
+	struct object_datum *object;
+	/* Keep the two independently selectable paths independent. Previously this
+	 * helper always admitted ordinary props, while the top-level tick required
+	 * WORLD GRAB even when only LIFT VEHICLES was enabled. */
+	if (world_grab_enabled() &&
+		(object = vr_world_object_get(index)))
 		return object;
-	return vehicle_lift_get(index) ? object_get(index) : NULL;
+	if (vehicle_lift_enabled())
+		return vehicle_lift_get(index) ? object_get(index) : NULL;
+	return NULL;
 }
 
 /* Apply only a tiny, capped global-up velocity response. The native vehicle
@@ -232,7 +257,7 @@ void vr_world_interaction_weight_feedback(int hand, float mobility,
 {
     unsigned long now;
     float amplitude;
-    if(hand<0||hand>1||!config_boolean("vr.weight_haptics")||
+    if(hand<0||hand>1||config_real("vr.haptics")<=0.0||
        game_connection()!=_game_connection_local)return;
     now=system_milliseconds();
     if(weight_haptic_at[hand]&&now-weight_haptic_at[hand]<120)return;
@@ -269,6 +294,67 @@ static void world_vector(real_vector3d const *forward, real_vector3d const *up,
     int n;
     cross_product3d(up, forward, &left);
     for (n=0;n<3;++n) world->n[n] = forward->n[n]*local->i + left.n[n]*local->j + up->n[n]*local->k;
+}
+static char const *interaction_connection_name(int connection)
+{
+	switch (connection)
+	{
+	case _game_connection_local: return "local";
+	case _game_connection_network_client: return "network-client";
+	case _game_connection_network_server: return "network-server";
+	case _game_connection_film_playback: return "film";
+	default: return "unknown";
+	}
+}
+/* Log effective state only when its session/settings identity changes. This
+ * makes solo-vs-network gating and required toggles visible without a per-frame
+ * log flood. */
+static void interaction_log_session_state(void)
+{
+	int connection = game_connection();
+	int features =
+		(config_boolean("vr.world_interaction") ? 1 : 0) |
+		(config_boolean("vr.vehicle_lift") ? 2 : 0) |
+		(config_boolean("vr.npc_interaction") ? 4 : 0) |
+		(config_boolean("vr.npc_rescue") ? 8 : 0) |
+		(config_boolean("vr.custom_npc_rigs") ? 16 : 0) |
+		(config_boolean("vr.custom_scenery_grab") ? 32 : 0) |
+		(config_boolean("vr.dropped_magazines") ? 64 : 0) |
+		(config_boolean("vr.manual_reload") ? 128 : 0);
+	int active = vr_active();
+	int coop = network_coop_active();
+	int in_game = game_in_progress();
+	int map_loaded = game_map_loaded();
+	int reach_cm = (int)(PIN((real)config_real("vr.interaction_reach"), 0.12f, 0.40f) * 100.0f + 0.5f);
+	int slots = (int)config_integer("vr.npc_max_ragdolls");
+	int haptics_milli = (int)(PIN((real)config_real("vr.haptics"), 0.0f, 1.0f) * 1000.0f + 0.5f);
+	long tick = game_time_get();
+	if (slots < 1) slots = 1;
+	if (slots > VR_NPC_INTERACTION_POOL_SIZE) slots = VR_NPC_INTERACTION_POOL_SIZE;
+	if (interaction_diag_connection == connection && interaction_diag_features == features &&
+		interaction_diag_vr == active && interaction_diag_coop == coop &&
+		interaction_diag_game == in_game && interaction_diag_map == map_loaded &&
+		interaction_diag_reach_cm == reach_cm && interaction_diag_slots == slots &&
+		interaction_diag_haptics_milli == haptics_milli &&
+		(tick >= interaction_diag_tick || interaction_diag_tick == NONE))
+		return;
+	interaction_diag_connection = connection;
+	interaction_diag_features = features;
+	interaction_diag_vr = active;
+	interaction_diag_coop = coop;
+	interaction_diag_game = in_game;
+	interaction_diag_map = map_loaded;
+	interaction_diag_reach_cm = reach_cm;
+	interaction_diag_slots = slots;
+	interaction_diag_haptics_milli = haptics_milli;
+	interaction_diag_tick = tick;
+	platform_log("VR interactions: session=%s(%d) in_game=%d map_loaded=%d vr=%d coop=%d world_grab=%d vehicle_lift=%d npc_grab=%d npc_rescue=%d custom_rigs=%d custom_scenery=%d mag_debris=%d manual_reload=%d reach=%dcm npc_rig_slots=%d/%d haptics=%.2f%s",
+		interaction_connection_name(connection), connection, in_game, map_loaded, active, coop,
+		features & 1 ? 1 : 0, features & 2 ? 1 : 0, features & 4 ? 1 : 0,
+		features & 8 ? 1 : 0, features & 16 ? 1 : 0, features & 32 ? 1 : 0,
+		features & 64 ? 1 : 0, features & 128 ? 1 : 0,
+		reach_cm, slots, VR_NPC_INTERACTION_POOL_SIZE, (float)config_real("vr.haptics"),
+		connection == _game_connection_local ? "" : "; local-only interactions suppressed in this network/film session");
 }
 #define grabbable interaction_grabbable
 int vr_world_interaction_hand(int hand, float point[3])
@@ -317,13 +403,16 @@ static long candidate(real_point3d const *point, real_point3d const *camera, lon
 {
     struct object_iterator iterator;
     struct object_datum *item;
-    real best = 0.12f * units;
+    real best = (real)vr_world_interaction_reach((float)config_real("vr.interaction_reach"), (float)units);
     long selected = NONE;
     int narrow_tests=0;
     real_vector3d ray;
     struct collision_result hit;
-    unsigned long mask = _object_mask_weapon | _object_mask_equipment | _object_mask_scenery;
+    unsigned long mask = 0;
+    if (world_grab_enabled())
+        mask |= _object_mask_weapon | _object_mask_equipment | _object_mask_scenery;
     if (vehicle_lift_enabled()) mask |= _object_mask_vehicle;
+    if (!mask) return NONE;
     object_iterator_new(&iterator, mask, 0);
     while ((item = object_iterator_next(&iterator)) != NULL) {
         boolean is_vehicle = item->object.type == _object_type_vehicle;
@@ -362,7 +451,9 @@ void vr_world_interaction_tick(void)
     int hand, h, n;
     unsigned int buttons;
     float triggers[2],thumbs[4];
-    if (!vr_active() || !config_boolean("vr.world_interaction") ||
+    interaction_log_session_state();
+    if (!vr_active() ||
+        (!world_grab_enabled() && !vehicle_lift_enabled()) ||
         !vr_controller(&buttons,triggers,thumbs) ||
         !vr_world_authority(game_connection()==_game_connection_local,
             game_connection()==_game_connection_network_server,network_coop_active()) ||
@@ -413,7 +504,9 @@ void vr_world_interaction_tick(void)
                 local_vector(&forward,&up,&item->object.up,&held->local_up);
                 vr_haptic(hand,0.25f,0.035f);
                 platform_log("VR world: grab hand=%d object=%08lx second=%d",hand,index,hands[1-hand].active&&hands[1-hand].index==index);
-            }
+            } else platform_log("VR world: grab miss hand=%d reach=%.2f m world=%d vehicle_lift=%d (no eligible surface in reach/line of sight)",
+                hand,(float)vr_world_interaction_reach((float)config_real("vr.interaction_reach"),(float)units),
+                world_grab_enabled(),vehicle_lift_enabled());
         }
     }
     for (hand=0;hand<2;++hand) {

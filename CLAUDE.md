@@ -1,26 +1,35 @@
 # Agent and contributor continuation
 
-## Active private Test40 candidate (2026-10-08)
+## Active private Test41 candidate (2026-10-09)
 
-Continue on `test39-interaction-completion`; target private `1.0.21-test40`,
-Android code51. Complete source validation and package both Quest/VR and flat
+Continue on `test39-interaction-completion`; target private `1.0.22-test41`,
+Android code52. Complete source validation and package both Quest/VR and flat
 Android builds. Do not publish, install or launch the game. PC/Steam Frame
 remains deferred.
 
-Read `docs/TEST40-DELIVERY-STATUS.md`, `docs/TEST40-REQUIREMENT-DISPOSITION.md`,
-`docs/TEST40-PROGRESS.md` and `docs/TEST40-DEVICE-CHECKLIST.md`. This candidate
-addresses the four previously deferred requests: opt-in custom humanoid rig
-fallback, map-session visual magazine debris, bounded vertical lifting for a
-validated vehicle subset, and solo NPC recovery after a ten-second unsupported
-fall. The haptics pass also routes the existing opt-in weight feedback to
-supported NPC handling and vehicle lifting while preserving collision-contact
-pulses. Their exact limits are in the status/disposition documents; do not claim
-universal skeleton mapping, saved/networked magazines, full 6-DoF vehicle
-manipulation, NPC respawn or recovery of script-owned actors.
+Read `docs/TEST41-DELIVERY-STATUS.md`, `docs/TEST41-REQUIREMENT-DISPOSITION.md`,
+and `docs/TEST41-DEVICE-CHECKLIST.md`. Test41 responds to the supplied logs:
+the second log is solo campaign after a pending invite that never joined; the
+game's solo setup sets `_game_connection_local`. It adds explicit interaction
+session/config diagnostics, makes physical grab distance a visible 12-40 cm
+setting for world, NPC and parkour contact, maps broad NPC root hits to nearby
+authored joints, and expands climb probing to 16 horizontal directions. The
+menu labels the 1-8 bounded physical NPC interaction capacity **NPC RIG
+SLOTS**; this does not alter Halo's native corpse limit. The separate
+weight-haptics toggle is removed so HAPTICS scales every vibration. The NPC
+host fixture exercises production eligibility rather than a permissive stub.
+Preserve Test40's interaction features and all accepted network, VR, mobile and
+save behavior.
 
-All four controls are OFF by default. Public v1.0.18 remains accepted. Device,
-campaign, co-op and performance acceptance remain pending. Preserve Test39's
-working network, co-op, VR and Android baseline and all earlier releases.
+Public v1.0.18 remains accepted. Device acceptance remains pending. Preserve
+Test40's delivered artifacts and Test39's working network, co-op, VR and
+Android baseline; do not publish, install or launch the game.
+
+## Superseded private Test40 candidate (2026-10-08)
+
+Test40's pair is preserved at
+`D:\HaloQuest\builds\test40-20261008-v1.0.21-test40-delivery`; see its
+delivery/status/disposition/checklist docs for the exact hashes and bounds.
 
 
 ## Current public release: v1.0.18 (2026-10-08)

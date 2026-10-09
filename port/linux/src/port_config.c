@@ -738,7 +738,7 @@ static const struct config_setting config_settings[] =
 		"Ducking this far (metres) below your height at the last recentre\n"
 		"crouches; 0 turns it off." },
 	{ "vr.haptics", _config_real, "1.0", "HALO_VR_HAPTICS", _environment_value, _platform_vr,
-		"The strength of the controllers' buzz (shots, gestures), 0 to 1; 0 none." },
+		"The strength of all controller haptics (shots, contact, reload, movement and interaction feedback), 0 to 1; 0 disables all haptics." },
 	{ "vr.menu_3d", _config_boolean, "true", "HALO_VR_MENU_3D", _environment_value, _platform_vr,
 		"The main menu in 3D: its scene around you, its menus on a panel ahead;\n"
 		"false shows it all on the flat screen." },
@@ -803,11 +803,11 @@ static const struct config_setting config_settings[] =
     { "vr.grab_radius", _config_real, "0.25", "HALO_VR_GRAB_RADIUS", _environment_value, _platform_vr,
         "Offline player contact radius in metres, clamped 0.18..0.60 and never above the native radius. Occupied space blocks radius expansion." },
     { "vr.parkour_wallrun", _config_boolean, "false", "HALO_VR_PARKOUR_WALLRUN", _environment_value, _platform_vr,
-        "Optional offline wall running. Native collision remains authoritative." },
+        "Optional offline wall running. Jump near a wall while moving along it; the wallrun is brief and native collision remains authoritative." },
     { "vr.parkour_walljump", _config_boolean, "false", "HALO_VR_PARKOUR_WALLJUMP", _environment_value, _platform_vr,
-        "Optional offline wall jumping. Native collision remains authoritative." },
+        "Optional offline wall jumping. Press jump again while airborne beside a wall to leap away; native collision remains authoritative." },
     { "vr.parkour_climb", _config_boolean, "false", "HALO_VR_PARKOUR_CLIMB", _environment_value, _platform_vr,
-        "Optional offline grip climbing. Native collision remains authoritative." },
+        "Optional offline grip climbing. Squeeze a controller grip with a free hand near a static wall, pull to climb, and release to launch. GRAB REACH sets hand-to-wall distance; native collision remains authoritative." },
     { "vr.wallrun_speed", _config_real, "1.25", "HALO_VR_WALLRUN_SPEED", _environment_value, _platform_vr,
         "Wallrun speed multiplier, 1..2." },
     { "vr.wallrun_duration", _config_real, "1.5", "HALO_VR_WALLRUN_DURATION", _environment_value, _platform_vr,
@@ -863,19 +863,17 @@ static const struct config_setting config_settings[] =
 	{ "vr.manual_reload", _config_boolean, "false", "HALO_VR_MANUAL_RELOAD", _environment_value, _platform_vr,
         "Optional offline physical magazine reload for supported weapons; button reload remains available." },
 	{ "vr.dropped_magazines", _config_boolean, "false", "HALO_VR_DROPPED_MAGAZINES", _environment_value, _platform_vr,
-		"Keep ejected supported rifle/pistol/sniper magazines as local visual debris until the map changes; the oldest is replaced when the 32-magazine pool fills. No ammo, save, or network state is created." },
+		"Keep ejected supported rifle/pistol/sniper magazines as local visual debris until the map changes. The VR menu also enables MANUAL RELOAD; the oldest visual is replaced when the 32-magazine pool fills. No ammo, save, or network state is created." },
 	{ "vr.cooldown_shake", _config_boolean, "false", "HALO_VR_COOLDOWN_SHAKE", _environment_value, _platform_vr,
 		"Offline VR toggle: shake the currently held overheated weapon to speed its authored cooling. Automatically disabled online." },
-	{ "vr.weight_haptics", _config_boolean, "false", "HALO_VR_WEIGHT_HAPTICS", _environment_value, _platform_vr,
-		"Optional pulsed VR feedback for held props, supported NPC limbs and vehicle lifting; solo-only, capped and rate limited. Grab/contact event pulses remain active independently." },
 	{ "vr.custom_scenery_grab", _config_boolean, "false", "HALO_VR_CUSTOM_SCENERY_GRAB", _environment_value, _platform_vr,
-		"Opt in to bounded collision-box grabbing of eligible unnamed custom scenery. Scripted, animated, unsafe or malformed tags remain refused." },
+		"Opt in to bounded collision-box grabbing of eligible unnamed custom scenery. The VR menu also enables WORLD GRAB; scripted, animated, unsafe or malformed tags remain refused." },
 	{ "vr.custom_npc_rigs", _config_boolean, "false", "HALO_VR_CUSTOM_NPC_RIGS", _environment_value, _platform_vr,
-		"Solo-only fallback for unclassified humanoid biped graphs after hierarchy validation. Existing known species are unchanged; unknown, swarm, scripted, unsafe or malformed rigs remain refused." },
+		"Solo-only fallback for unclassified humanoid biped graphs after hierarchy validation. The VR menu also enables NPC GRAB. Existing known species are unchanged; unknown, swarm, scripted, unsafe or malformed rigs remain refused." },
 	{ "vr.npc_rescue", _config_boolean, "false", "HALO_VR_NPC_RESCUE", _environment_value, _platform_vr,
 		"Optional solo VR recovery for eligible live encounter NPCs falling unsupported for 10 seconds. Returns them to a clear last-grounded pose; does not respawn, revive, or override active scripts." },
-    { "vr.npc_max_ragdolls", _config_integer, "4", "HALO_VR_NPC_MAX_RAGDOLLS", _environment_value, _platform_all | _platform_vr,
-        "Maximum simultaneously active physical NPC rigs (1-4), including settling/recovery; bounded per-tick work." },
+	{ "vr.npc_max_ragdolls", _config_integer, "8", "HALO_VR_NPC_MAX_RAGDOLLS", _environment_value, _platform_all | _platform_vr,
+		"Maximum simultaneously active physical NPC interaction rigs (1-8), including settling/recovery. This is not Halo's native corpse-ragdoll limit; enable NPC GRAB to start a local rig." },
     { "vr.npc_interaction", _config_boolean, "false", "HALO_VR_NPC_INTERACTION", _environment_value, _platform_vr,
         "Optional physical interaction with supported native NPC rigs. Co-op requires host permission and negotiated compatible peers; PvP stays native." },
 	{ "vr.interaction_damage", _config_boolean, "true", "HALO_VR_INTERACTION_DAMAGE", _environment_value, _platform_all,
@@ -887,8 +885,10 @@ static const struct config_setting config_settings[] =
 	{ "vr.world_interaction", _config_boolean, "false", "HALO_VR_WORLD_INTERACTION", _environment_value, _platform_vr,
         "Optional loose weapon, equipment and movable prop grabbing. Grip close with a free hand.\n"
         "Two hands improve control. Co-op requires a consenting compatible host and peers; competitive multiplayer stays native." },
+	{ "vr.interaction_reach", _config_real, "0.25", "HALO_VR_INTERACTION_REACH", _environment_value, _platform_vr,
+		"Maximum hand-to-surface distance for supported world/NPC grabs, in metres (0.12 to 0.40). Solid geometry and target collision are still checked." },
 	{ "vr.vehicle_lift", _config_boolean, "false", "HALO_VR_VEHICLE_LIFT", _environment_value, _platform_vr,
-		"Optional offline vertical lifting of unoccupied, unnamed Warthog, Ghost, Scorpion and turret vehicles. Requires WORLD GRAB. Native gravity and collision remain active; no horizontal carry or rotation. Unsupported, occupied, scripted and network vehicles remain native." },
+		"Optional offline vertical lifting of unoccupied, unnamed Warthog, Ghost, Scorpion and turret vehicles. Works independently of WORLD GRAB. Native gravity and collision remain active; no horizontal carry or rotation. Unsupported, occupied, scripted and network vehicles remain native." },
 	{ "vr.scope_size", _config_real, "0.06", "HALO_VR_SCOPE_SIZE", _environment_value, _platform_vr,
 		"How wide the scope is, in metres." },
 	{ "vr.scope_pistol_forward", _config_real, "0.0", "HALO_VR_SCOPE_PISTOL_FORWARD", _environment_value, _platform_vr,
@@ -1695,7 +1695,9 @@ static void config_report_unknown_keys(toml_datum_t table)
 			char name[128];
 
 			snprintf(name, sizeof(name), "%s.%s", table.u.tab.key[section_index], section.u.tab.key[key_index]);
-			if (config_setting_index(name) < 0)
+			/* Test40 exposed this opt-in. Test41 folds its output into vr.haptics;
+			 * keep old user config readable without logging it as a typo. */
+			if (config_setting_index(name) < 0 && strcmp(name, "vr.weight_haptics"))
 				platform_log("config.toml line %d: unknown setting %s", section.u.tab.value[key_index].lineno, name);
 		}
 	}

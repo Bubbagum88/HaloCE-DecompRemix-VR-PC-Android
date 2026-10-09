@@ -41,10 +41,12 @@ struct player_datum{long unit_index;}player={42};
 static real_vector3d zero,*global_zero_vector3d=&zero;
 static int enabled[3],network,focused=1,paused,inhibited,cinematic,grip[2],owner[2],tracked[2]={1,1},empty;
 static int queries,lookups,logs;static long now;
-static real_point3d hands[2]={{.n={.04f,0,1}},{.n={.04f,0,1}}};
+static real_point3d hands[2]={{.n={.20f,0,1}},{.n={.20f,0,1}}};
 static real_vector3d gaze={.n={0,1,0}};
+static real_vector3d wall_normal={.n={1,0,0}};static float wall_offset;
 static int config_boolean(char const*k){return !strcmp(k,"vr.parkour_wallrun")?enabled[0]:!strcmp(k,"vr.parkour_walljump")?enabled[1]:enabled[2];}
-static float config_real(char const*k){return !strcmp(k,"vr.wallrun_duration")?1.5f:!strcmp(k,"vr.wallrun_speed")?1.25f:1;}
+static float config_real(char const*k){return !strcmp(k,"vr.wallrun_duration")?1.5f:!strcmp(k,"vr.wallrun_speed")?1.25f:!strcmp(k,"vr.interaction_reach")?.25f:1;}
+static float vr_world_interaction_reach(float metres,float units){if(metres<.12f)metres=.12f;if(metres>.40f)metres=.40f;return metres*units;}
 static short local_player_get_next(short x){(void)x;return 0;}
 static long local_player_get_player_index(short x){(void)x;return 0;}
 static struct player_datum *player_get(long x){(void)x;return &player;}
@@ -75,10 +77,13 @@ static void add_vectors3d(real_vector3d const*a,real_vector3d const*b,real_vecto
 static void vector_from_points3d(real_point3d const*a,real_point3d const*b,real_vector3d*out){for(int i=0;i<3;i++)out->n[i]=b->n[i]-a->n[i];}
 static int collision_test_vector(unsigned flags,real_point3d const*p,real_vector3d const*v,long ignore,struct collision_result*r){
  (void)flags;(void)ignore;queries++;
- if(v->i>=0||p->x<0||p->x+v->i>0)return 0;
- r->type=_collision_result_structure;r->t=-p->x/v->i;
+ float denominator=wall_normal.i*v->i+wall_normal.j*v->j+wall_normal.k*v->k;
+ float distance=wall_normal.i*p->x+wall_normal.j*p->y+wall_normal.k*p->z-wall_offset;
+ if(denominator>=-.000001f)return 0;
+ r->t=-distance/denominator;if(r->t<0||r->t>1)return 0;
+ r->type=_collision_result_structure;
  for(int i=0;i<3;i++)r->point.n[i]=p->n[i]+r->t*v->n[i];
- r->plane.n=(real_vector3d){.n={1,0,0}};
+ r->plane.n=wall_normal;
  r->object_index=0x12345678; /* poison: production BSP collision does not set this */
  return 1;
 }
@@ -92,6 +97,14 @@ static real_vector3d tick(float x,float y,float z){
 int main(void){
  body.object.parent_object_index=NONE;body.object.position.x=.22f;body.object.forward.i=1;
  vr_parkour_reset();
+ /* At the full 25 cm reach, a wall 22.5 degrees between the old world-axis
+    probes is outside each cardinal ray but inside the diagonal contact ray. */
+ wall_normal=(real_vector3d){.n={.9238795f,.3826834f,0}};
+ real_point3d oblique_hand={.n={.25f*.9238795f,.25f*.3826834f,1}};
+ struct collision_result oblique_hit;
+ assert(parkour_grab_surface(42,&oblique_hand,1,&oblique_hit));
+ assert(fabsf(oblique_hit.t-1.0f)<.001f);
+ wall_normal=(real_vector3d){.n={1,0,0}};wall_offset=0;queries=0;
  real_vector3d v=tick(.1f,.2f,.3f);assert(v.i==.1f&&v.j==.2f&&v.k==.3f&&queries==0);
  enabled[2]=1;network=1;v=tick(.1f,.2f,.3f);assert(v.k==.3f&&queries==0);network=0;
  tick(0,0,0);grip[0]=1;v=tick(0,0,0);

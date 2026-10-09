@@ -14,9 +14,33 @@
 #include "../src/port_config.h"
 #include "vr_parkour.h"
 #include "vr_parkour_math.h"
+#include "vr_world_math.h"
 void platform_log(char const *format,...);
 
 #define PARKOUR_WALL_FLAGS (FLAG(_collision_test_structure_bit)|FLAG(_collision_test_objects_bit)|FLAG(_collision_test_objects_scenery_bit))
+/* Climb contact is a hand-to-surface query, not a world-axis query. Six
+ * cardinal rays miss a valid wall near the configured reach when its normal
+ * falls between those axes. Sweep 16 evenly spaced horizontal directions;
+ * every accepted result still comes from native static collision and the
+ * requested reach bound. */
+static real_vector3d const parkour_grab_directions[16] = {
+	{ .n = { 1.0000000f,  0.0000000f, 0.0f } },
+	{ .n = { 0.9238795f,  0.3826834f, 0.0f } },
+	{ .n = { 0.7071068f,  0.7071068f, 0.0f } },
+	{ .n = { 0.3826834f,  0.9238795f, 0.0f } },
+	{ .n = { 0.0000000f,  1.0000000f, 0.0f } },
+	{ .n = {-0.3826834f,  0.9238795f, 0.0f } },
+	{ .n = {-0.7071068f,  0.7071068f, 0.0f } },
+	{ .n = {-0.9238795f,  0.3826834f, 0.0f } },
+	{ .n = {-1.0000000f,  0.0000000f, 0.0f } },
+	{ .n = {-0.9238795f, -0.3826834f, 0.0f } },
+	{ .n = {-0.7071068f, -0.7071068f, 0.0f } },
+	{ .n = {-0.3826834f, -0.9238795f, 0.0f } },
+	{ .n = { 0.0000000f, -1.0000000f, 0.0f } },
+	{ .n = { 0.3826834f, -0.9238795f, 0.0f } },
+	{ .n = { 0.7071068f, -0.7071068f, 0.0f } },
+	{ .n = { 0.9238795f, -0.3826834f, 0.0f } },
+};
 static struct {
     long unit,tick;
     int jump_down,jump_age,run_ticks,running,jumped_wall,wall_valid;
@@ -87,9 +111,10 @@ static long parkour_hit_object(struct collision_result const *hit)
 static boolean parkour_grab_surface(long unit,real_point3d const *hand,real units,struct collision_result *best)
 {
     boolean found=FALSE;
-    for(int axis=0;axis<3;axis++)for(int sign=-1;sign<=1;sign+=2){
-        real_vector3d vector={0};struct collision_result hit;
-        vector.n[axis]=sign*0.10f*units;
+    real reach=(real)vr_world_interaction_reach((float)config_real("vr.interaction_reach"),(float)units);
+    for(int direction=0;direction<(int)(sizeof(parkour_grab_directions)/sizeof(parkour_grab_directions[0]));direction++){
+        real_vector3d vector;struct collision_result hit;
+        scale_vector3d(&parkour_grab_directions[direction],reach,&vector);
         if(parkour_surface(hand,&vector,unit,&hit)&&(!found||hit.t<best->t)){*best=hit;found=TRUE;}
     }
     return found;
@@ -103,7 +128,13 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
     real units,per_second,throttle;
     int jump,edge,airborne,contacts=0,released=0,wall_found=0;
     long tick;
-    if(!parkour_enabled())return; /* No probes or velocity changes when disabled. */
+    if(!parkour_enabled()){
+        /* Disabling an active climb must release its hand ownership promptly.
+         * Avoid rewriting state for every NPC when parkour is already idle. */
+        if(parkour.unit!=NONE||parkour.running||parkour.hand[0].active||parkour.hand[1].active)
+            vr_parkour_reset();
+        return; /* No probes or velocity changes when disabled. */
+    }
     if(!parkour_local(unit)){
         if(unit==parkour.unit)vr_parkour_reset();
         return; /* NPCs and network players never enter this path. */
@@ -170,7 +201,8 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
                 if(object)parkour.hand[hand].object_position=object->object.position;
                 parkour.hand[hand].launch=*global_zero_vector3d;parkour.hand[hand].sampled=0;
                 vr_haptic(hand,0.35f,0.04f);platform_log("VR parkour: wall grip hand=%d object=%ld",hand,hit_object);
-            }
+            } else platform_log("VR parkour: wall grip missed hand=%d reach=%.2f m (move the free hand closer and squeeze grip)",
+                hand,(float)vr_world_interaction_reach((float)config_real("vr.interaction_reach"),(float)units));
         }
         if(parkour.hand[hand].active){
             real_vector3d error;real_point3d relative;

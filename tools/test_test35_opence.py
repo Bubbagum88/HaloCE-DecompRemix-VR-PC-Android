@@ -25,10 +25,10 @@ def function(source, name):
 limits = read("port/linux/include/halo_port_limits.h")
 assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 24$", limits, re.M)
 gradle = read("port/android/app/build.gradle")
-assert "versionCode Math.max(51, buildNumber)" in gradle
-assert '"1.0.21-test40"' in gradle
+assert "versionCode Math.max(52, buildNumber)" in gradle
+assert '"1.0.22-test41"' in gradle
 frame = read("port/linux/src/vr_frame.c")
-assert "HaloCE Quest test40 candidate 1.0.21-test40 code51" in frame
+assert "HaloCE Quest test41 candidate 1.0.22-test41 code52" in frame
 assert "OpenCE Build 157 / network 24" in frame
 updater = read('port/android/app/src/main/java/com/halo/decomp/Updater.java')
 assert 'OpenCE build 157 (network 24)' in updater
