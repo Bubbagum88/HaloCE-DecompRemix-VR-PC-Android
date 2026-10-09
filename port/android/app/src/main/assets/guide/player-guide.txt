@@ -28,7 +28,9 @@ geometry defaults, VR controls and the user's Halo CE Quest icon.
 - **CUSTOM SCENERY / CUSTOM NPC RIGS / MAG DEBRIS / LIFT VEHICLES / NPC RESCUE:**
   optional custom scenery/NPC graph paths, magazine debris, bounded vehicle
   lifting and mission-NPC rescue. Magazine debris is visual, local and reset on
-  map change. Vehicle lift is vertical and
+  map change. Up to 32 discarded magazines remain visible for the loaded map,
+  even if the source weapon object disappears;
+  when full, older drops are retained and new visuals are skipped. Vehicle lift is vertical and
   limited to supported unoccupied vehicles. Rescue only applies to eligible
   live actors in the documented fall/recovery state.
   Custom scenery is restricted to validated supported collision bounds; it
