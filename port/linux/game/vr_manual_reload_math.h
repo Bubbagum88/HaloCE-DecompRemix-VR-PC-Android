@@ -15,6 +15,13 @@ static float vr_mr_pull_distance(float start_x, float current_x)
 {
     return start_x-current_x;
 }
+/* Bounds are rechecked after a transient reload-state reset, but diagnostic
+ * output should identify a profile once rather than repeat on every frame. */
+static int vr_mr_profile_changed(int had_previous, long previous_weapon,
+    long previous_model, long weapon, long model)
+{
+    return !had_previous || previous_weapon != weapon || previous_model != model;
+}
 static float vr_mr_pouch_side(int free_hand){return free_hand==1?-1.0f:1.0f;}
 static int vr_mr_pouch_enabled(int hip,int shoulder,int near_hip,int near_shoulder)
 {return (hip&&near_hip)||(shoulder&&near_shoulder);}

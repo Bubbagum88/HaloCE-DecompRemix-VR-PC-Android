@@ -17,8 +17,10 @@ comparison. Install Test41 over the existing app; do not clear app data.
       rather than every frame.
 - [ ] Set the single HAPTICS slider to 0% and confirm shots, contact,
       reload, movement and interaction feedback all stop. Raise it to 50% and
-      confirm each effect returns at reduced strength; there are no per-feature
-      haptics toggles.
+      confirm each effect returns at reduced strength. Then set HOLSTER HAPTICS
+      Off: holster entry/draw/stow buzz should stop while weapon switching still
+      works. Manual reload pouch detection and reload haptics on the free hand
+      must remain independent and still follow the master HAPTICS value.
 
 ## Physical grab reach and NPC pool
 
@@ -46,19 +48,25 @@ comparison. Install Test41 over the existing app; do not clear app data.
       `event=` entry; the old log only showed authored bounds.
 - [ ] Dropped magazine debris: enable both required options, complete a
       supported magazine ejection, verify visual collision/lifetime and confirm
-      native ammo totals are unchanged.
+      native ammo totals are unchanged. Fill the 32-object pool, confirm the
+      oldest visual is replaced safely, then change maps and confirm stale
+      objects are released without changing reserve ammo.
 - [ ] Parkour: test wallrun while sprinting/jumping toward a valid wall, wall
       jump, and two-hand wall climb/release. Look for `VR parkour` events.
 - [ ] Vehicle lift: enable LIFT VEHICLES by itself; test only an eligible,
       unoccupied supported vehicle (Warthog, Ghost, Scorpion or turret). Check
-      bounded vertical movement, collision, release and haptics. WORLD GRAB is
-      not a prerequisite.
+      bounded vertical movement, collision, release and haptics. Repeat with
+      occupied, parented, scripted and unsupported vehicles; they must remain
+      unaffected. WORLD GRAB is not a prerequisite.
 - [ ] NPC rescue: enable it in a solo encounter; verify ordinary AI/cutscene
       behavior stays native, then test a live eligible NPC falling unsupported
       for under and over ten seconds. Check the rescue log and AI continuation.
+      Verify recovery does not place the NPC into a blocked capsule, and repeat
+      across checkpoint load, map transition and actor deletion/reset.
 - [ ] Custom NPC rigs: enabling it should also enable NPC GRAB. Test only a
       compatible unknown humanoid graph; verify a malformed/special rig fails
-      closed without a crash.
+      closed without a crash. Repeat after changing maps so cached graph
+      validation does not leak across actors or tag sets.
 - [ ] Load feedback: with global HAPTICS above zero, test sustained movement or
       strain while holding supported objects/NPC limbs/vehicle lift. A static
       light hold is not expected to pulse continuously. HAPTICS at 0% must

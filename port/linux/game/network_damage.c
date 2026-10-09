@@ -1163,20 +1163,28 @@ static short distributed_grenade_throw(
 	return oldest;
 }
 
-/* whether an explosion of the damage is among the player's this tick
-(distributed_report_paid): at the epicenter, or (NULL) anywhere */
+/* whether an explosion of the grenade's damage is among the player's this
+tick (distributed_report_paid): at the epicenter, or (NULL) anywhere. A
+single grenade projectile may create multiple damage effects, e.g. a frag
+blast and its shock wave. */
 static boolean distributed_explosion_this_tick(
 	short player_index,
-	long damage_index,
+	short grenade_type,
 	real_point3d const *epicenter)
 {
+	struct game_globals_grenade *grenade = TAG_BLOCK_GET_ELEMENT(&scenario_get_game_globals()->grenades,
+		grenade_type, struct game_globals_grenade);
 	short index;
 
-	if (damage_explosions[player_index].time != game_time_get())
+	if (damage_explosions[player_index].time != game_time_get() || grenade->projectile.index == NONE)
 		return FALSE;
 	for (index = 0; index < damage_explosions[player_index].count; index++)
 	{
-		if (damage_explosions[player_index].explosions[index].definition_index == damage_index &&
+		byte kinds;
+		struct damage_reach reach;
+
+		if (distributed_source_deals(grenade->projectile.index,
+				damage_explosions[player_index].explosions[index].definition_index, TRUE, &kinds, &reach) > 0.0f &&
 			(!epicenter || (damage_explosions[player_index].explosions[index].epicenter.x == epicenter->x &&
 				damage_explosions[player_index].explosions[index].epicenter.y == epicenter->y &&
 				damage_explosions[player_index].explosions[index].epicenter.z == epicenter->z)))
@@ -1255,7 +1263,7 @@ static real distributed_player_deals(
 			struct game_globals_grenade);
 		boolean thrown = distributed_grenade_throw(player_index, index) != NONE;
 
-		if ((thrown || distributed_explosion_this_tick(player_index, damage_index, NULL)) &&
+		if ((thrown || distributed_explosion_this_tick(player_index, index, NULL)) &&
 			grenade->projectile.index != NONE)
 		{
 			byte this_kinds;
@@ -1835,10 +1843,10 @@ static boolean distributed_report_valid(
 		return FALSE;
 	/* what only a grenade of theirs deals, from one the host saw them throw
 	that has not gone off: its explosion once (the explosion's other objects
-	that tick come free, distributed_report_paid), what it hits at a point
-	while it is about */
+	that tick come free, distributed_report_paid), and its other same-tick
+	damage effects, what it hits at a point while it is about */
 	if (grenade_type != NONE &&
-		!distributed_explosion_this_tick(player_index, report->damage.definition_index, &report->damage.epicenter))
+		!distributed_explosion_this_tick(player_index, grenade_type, &report->damage.epicenter))
 	{
 		throw_index = distributed_grenade_throw(player_index, grenade_type);
 		if (throw_index == NONE)

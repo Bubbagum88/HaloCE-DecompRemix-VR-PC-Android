@@ -632,6 +632,10 @@ debug.texture_no_cache [boolean]
 Default: false
 Upload textures again every time they are used.
 
+debug.memory_watch [boolean]
+Default: true
+once per frame. ARM-translated guests always compare page contents.
+
 debug.sample_seconds [real]
 Default: 0.0
 Log where the game is this often, in seconds; 0 never. On Android every
@@ -1047,6 +1051,12 @@ Holsters over each shoulder and at each hip (the weapon hand buzzes
 coming into one): its grip there switches weapons, or with physical
 weapons (vr.weapons) a gun let go there is put away and an empty hand
 gripping there draws one.
+
+vr.holster_haptics [boolean]
+Default: true
+Vibrate when the weapon hand enters, draws from, or puts away a weapon
+at a holster. This does not disable magazine reload or other haptics;
+the global HAPTICS strength still scales every vibration.
 
 vr.holster_size [real]
 Default: 0.2

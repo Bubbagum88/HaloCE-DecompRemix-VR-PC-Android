@@ -1,0 +1,37 @@
+# Test42 cumulative requirement disposition
+
+This is the carry-forward ledger requested for the first candidate after public
+v1.0.18. It separates shipped source, verified host coverage, and behavior that
+still needs Quest/device acceptance.
+
+| Area from v1.0.18 onward | Candidate status | Limits and evidence |
+|---|---|---|
+| v1.0.18 baseline | Retained: network-version client selector, busiest-first browser, revision/game-data library, updater and separate upstream downloads, in-game OpenCE browser/setup, Safe Geometry migration, mobile touch/gamepad, VR settings and custom logo. | Test37/current launcher, Safe Geometry, Android and networking suites remain in the cumulative regression runner. No universal ISO/revision or every-server guarantee. |
+| Test38 manual reload | Retained: supported profiled magazines, insertion, two-hand actions, chamber/charge interaction, cancellation and ammo-state synchronization. | Solo-only. Unsupported weapon profiles remain native reload. `test_manual_reload` and lifecycle/palette fixtures; Quest behavior still needs action testing. |
+| Test38 scope and vehicle controls | Retained: per-weapon scope controls, vehicle/turret aim-source options, mounted reticles, vehicle view and recenter behavior. Mounted VR preview now skips deterministic head-camera convergence and stays on the selected weapon ray; native projectile autoaim is unchanged. | Profile-specific weapon support; do not infer every vehicle's behavior from one turret. Source fixture verifies convergence suppression and native shot bookkeeping; headset acceptance remains pending. |
+| Test38 physical interaction/network contract | Retained: optional world/NPC contact and consent/host-gated interaction synchronization. | Compatible peers and host permission are required; articulated NPC sync is bounded to four remote peers. Campaign player capacity is unchanged. Manual reload and parkour are solo-only. |
+| Test39 shake cooling | Retained as an optional, solo-only toggle. | Only supported heat-based weapons; does not alter stock online heat. Device verification pending. |
+| Test39 world/custom interaction | Retained: bounded world handling, custom scenery collision-bound path, validated alternate NPC graph path and load feedback. | Custom scenery is limited to validated supported bounds/tags; arbitrary BSP geometry and script-owned scenery are excluded. Graph, collision and actor eligibility checks fail closed. Load feedback uses the global HAPTICS strength. |
+| Test40 custom rig fallback | Retained. | Supports classified/validated compatible humanoid layouts only. It is not an arbitrary rig retargeter; unsafe, malformed and incompatible graphs are refused. |
+| Test40 discarded magazines | Retained as a bounded 32-item visual debris pool; drops remain in the loaded map without timed expiry or eviction, and copied render parameters keep a drop alive if its source weapon object disappears. | Local visual objects only; new drops are skipped when full and the pool clears on map/save lifecycle. No save-file persistence, ammo pickup, network replication or universal weapon profile. |
+| Test40 vehicle lifting | Retained as bounded vertical motion through supported vehicle physics. | Only supported unoccupied vehicles; no horizontal carry, rotation, throwing or whole-vehicle manipulation. Device acceptance pending. |
+| Test40 NPC rescue | Retained as opt-in recovery for eligible live mission actors after the supported unsupported-fall interval. | No revive/respawn, script bypass or guarantee for every actor/mission. Recovery capsule, actor lifecycle and checkpoint cases are on the checklist. |
+| Test41 reach and climb | Retained: 12/18/25/30/40 cm selected reach applied to physical world, NPC and parkour contact; 16 horizontal wall probes; broad NPC root hits can map to nearby authored joints. | Surface collision, identity and line-of-sight checks remain; reach cannot pass through walls. Production fixtures cover configured-range and eligibility paths. |
+| Test41 NPC rig capacity | Retained: 1-8 mod NPC interaction rigs. | Does not modify Halo's native corpse-ragdoll limit. Performance at high counts is device-dependent. |
+| Test41 haptics | Retained: one master HAPTICS intensity gates/scales effects; HOLSTER HAPTICS is the requested narrow mute for holster buzz only. | Reload and all non-holster feedback continue to use the master. Host fixtures pass; comfort and actual controller response need headset testing. |
+| OpenCE Build167 review | Selected fixes retained in source: CE map-name validation, bounded save map-name copy, negative/out-of-range PVS guard, initial network-unit grenade reset, grenade multi-effect attribution, teleporter correction tracking, strict chunk parsing/download bounds, and ARM-bridge page-hash tracking. | Focused production-source fixtures are registered in `run-quest-checks.py`. Engine baseline stays Build157/network24; this is not full upstream source parity. |
+| APK identity/icon/docs | Candidate target is 1.0.23-test42 / code53 for both APKs. User-supplied Halo CE Quest artwork remains the app icon; bundled guide is generated with Test42 notes. | Package gate verifies certificate, package ids, ABI, versions, network parity and icon assets. Device install/update behavior remains owner testing. |
+| Android touch layout | Added versioned export/import through Android's document picker and per-control hide/restore in the existing HUD editor. Old installs default all controls to visible. Import is allowlisted, range-checked and capped at 64 KiB; gamepad preferences are not part of the preset. | Codec and production view lifecycle fixtures cover round-trip, malformed input, hide/hit-test/restore, Save/Cancel and preference isolation. Physical document-picker behavior and Android restart/update tests remain on the device checklist. |
+| Quest refresh rate Auto | Display > Refresh exposes Auto plus the supported fixed requests. Selecting Auto after a fixed request now sends OpenXR's 0.0 no-preference request. | A fixture executes the production Quest request and runtime-selection functions. Actual headset/runtime behavior remains on the device checklist. |
+| Native corpse ragdoll capacity | Source investigation complete: no native simultaneous corpse/ragdoll count cap was found. `NPC RIG SLOTS` controls only this mod's active articulated NPC interaction rigs. | The native limp-body solver runs up to 20 relaxation iterations per eligible corpse; that value is duration, not a corpse count. Dead units enter general garbage collection, which may remove eligible off-screen garbage under object or memory pressure; some tags also destroy/respawn after death. No corpse-count slider or garbage-policy override is added because the shared policy is not corpse-specific and changing it risks object/memory pressure. |
+| PC / Steam Frame | Deferred by user request. | No PC or Steam Frame port is included. |
+
+## Confirmed unresolved evidence
+
+- Host fixtures do not prove a Quest controller completed a reload, grab,
+  climb, rescue or lift. Owner action testing is required.
+- OpenCE renderer/animation and menu-structure changes, voice chat and
+  votekick are excluded pending feature-specific porting and runtime checks.
+- No test establishes universal original/Rev1/Rev2 image, map, or server
+  compatibility. The recommended original XISO remains the compatibility
+  baseline; game-image and network versions are separate.

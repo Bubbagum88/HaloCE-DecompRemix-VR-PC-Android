@@ -1,30 +1,21 @@
 ## Current release checkpoint — v1.0.18 (2026-10-08)
 
-## Active private Test41 candidate (2026-10-09)
+## Active private Test42 candidate (2026-10-09)
 
-Candidate **1.0.22-test41 / code52** is being validated on
-`test39-interaction-completion`. Preserve the existing Test40 package at
-`D:\HaloQuest\builds\test40-20261008-v1.0.21-test40-delivery`. The supplied
-logs contain solo campaign evidence: the pending invite does not complete a
-network join, then the saved campaign starts; the source assigns local mode.
-Test41 adds session diagnostics, configurable 12-40 cm world/NPC/parkour
-contact reach, maps broad NPC root hits to nearby authored joints, and probes
-16 horizontal directions for climb contact. **NPC RIG SLOTS** controls the
-mod's 1-8 physical interaction rigs, not Halo's native corpse-ragdoll limit.
-One HAPTICS strength controls all vibration. The NPC fixture now compiles
-production eligibility instead of a permissive stub. Do not publish, install
-or launch the game. Package both APKs for owner testing after source checks;
-device acceptance remains pending. PC/Steam Frame and public v1.0.18 remain
-unchanged.
+Candidate **1.0.23-test42 / code53** on `test39-interaction-completion` must
+include every project change since public v1.0.18: Tests38-41, the user icon,
+updated bundled guide, Android touch-layout export/import and per-control hide,
+the supplied USA XISO comparison, and selected OpenCE Build167 compatibility fixes. The
+engine base stays Build157/network24. Preserve Test40 and Test41 artifacts and
+all accepted VR, Android, save, network and Safe Geometry behavior. PC/Steam
+Frame remains deferred. Package both APKs for owner testing only; do not publish,
+install or launch the game. Device acceptance remains pending.
 
-Read [TEST41-DELIVERY-STATUS.md](TEST41-DELIVERY-STATUS.md),
-[TEST41-REQUIREMENT-DISPOSITION.md](TEST41-REQUIREMENT-DISPOSITION.md), and
-[TEST41-DEVICE-CHECKLIST.md](TEST41-DEVICE-CHECKLIST.md). Test40 remains archived
-with its own delivery and acceptance record.
-
-Preserve the Test39 network/co-op and accepted VR/Android behavior. The prior
-Test39 candidate and its artifacts remain archived below and in its delivery
-record.
+See [TEST42-DELIVERY-STATUS.md](TEST42-DELIVERY-STATUS.md),
+[TEST42-REQUIREMENT-DISPOSITION.md](TEST42-REQUIREMENT-DISPOSITION.md),
+[TEST42-OPENCE167-INTEGRATION.md](TEST42-OPENCE167-INTEGRATION.md), and
+[TEST42-DEVICE-CHECKLIST.md](TEST42-DEVICE-CHECKLIST.md). The cumulative feature
+list, safety bounds and evidence limits are recorded there.
 
 ## Superseded private Test39 candidate (2026-10-08)
 

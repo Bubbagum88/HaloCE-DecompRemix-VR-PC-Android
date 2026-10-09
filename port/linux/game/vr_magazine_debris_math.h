@@ -6,27 +6,16 @@
 
 enum { VR_MAGAZINE_DEBRIS_CAPACITY = 32 };
 
-/* Deterministic fixed-pool policy: use a free slot, otherwise recycle the
- * oldest. A bad age input is treated as the oldest slot, never as free. */
-static int vr_magazine_debris_choose_slot(int const *active, unsigned const *age, int count)
+/* Magazines stay visible for the loaded map. When the bounded pool is full,
+ * preserve existing drops and decline new visuals instead of deleting old
+ * ones under the player. */
+static int vr_magazine_debris_choose_slot(int const *active, int count)
 {
-    int selected = -1;
-    unsigned oldest = 0;
-    if (!active || !age || count <= 0 || count > VR_MAGAZINE_DEBRIS_CAPACITY) return -1;
+    if (!active || count <= 0 || count > VR_MAGAZINE_DEBRIS_CAPACITY) return -1;
     for (int i = 0; i < count; ++i) {
         if (!active[i]) return i;
-        if (selected < 0 || age[i] >= oldest) { selected = i; oldest = age[i]; }
     }
-    return selected;
-}
-
-/* Saturating map-session age is used only to recycle the oldest visual when
- * the fixed pool fills. Active debris has no timed expiry. */
-static int vr_magazine_debris_advance_age(unsigned *age)
-{
-    if (!age) return 0;
-    if (*age < UINT_MAX) ++*age;
-    return 1;
+    return -1;
 }
 
 static int vr_magazine_debris_speed_valid(float const velocity[3], float maximum)

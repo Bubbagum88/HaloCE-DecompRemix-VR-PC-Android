@@ -1,29 +1,27 @@
 # Agent and contributor continuation
 
-## Active private Test41 candidate (2026-10-09)
+## Active private Test42 candidate (2026-10-09)
 
-Continue on `test39-interaction-completion`; target private `1.0.22-test41`,
-Android code52. Complete source validation and package both Quest/VR and flat
-Android builds. Do not publish, install or launch the game. PC/Steam Frame
-remains deferred.
+Continue on `test39-interaction-completion`; target private `1.0.23-test42`,
+Android code53. Carry forward every project change after public v1.0.18,
+including Tests38-41, the custom app icon, Android touch-layout export/import
+and per-control hide, the supplied USA XISO comparison, and selected OpenCE
+Build167 fixes. The engine base stays Build157/network24. Complete source validation and package
+both Quest/VR and flat Android builds. Do not publish, install or launch the
+game. PC/Steam Frame remains deferred.
 
-Read `docs/TEST41-DELIVERY-STATUS.md`, `docs/TEST41-REQUIREMENT-DISPOSITION.md`,
-and `docs/TEST41-DEVICE-CHECKLIST.md`. Test41 responds to the supplied logs:
-the second log is solo campaign after a pending invite that never joined; the
-game's solo setup sets `_game_connection_local`. It adds explicit interaction
-session/config diagnostics, makes physical grab distance a visible 12-40 cm
-setting for world, NPC and parkour contact, maps broad NPC root hits to nearby
-authored joints, and expands climb probing to 16 horizontal directions. The
-menu labels the 1-8 bounded physical NPC interaction capacity **NPC RIG
-SLOTS**; this does not alter Halo's native corpse limit. The separate
-weight-haptics toggle is removed so HAPTICS scales every vibration. The NPC
-host fixture exercises production eligibility rather than a permissive stub.
-Preserve Test40's interaction features and all accepted network, VR, mobile and
-save behavior.
+Read `docs/TEST42-DELIVERY-STATUS.md`, `docs/TEST42-REQUIREMENT-DISPOSITION.md`,
+`docs/TEST42-DEVICE-CHECKLIST.md`, and `docs/TEST42-OPENCE167-INTEGRATION.md`.
+This is the complete post-v1.0.18 candidate: manual reload, scopes and vehicle
+controls; world/NPC interaction and shake cooling; bounded custom rigs, visual
+magazine debris, vehicle lift and NPC rescue; reach, NPC rig slots, master
+haptics with the holster-only mute, session diagnostics; selected Build167
+compatibility fixes; and the user's icon/guide. Retain all documented limits
+and existing network, VR, mobile, save and Safe Geometry behavior.
 
 Public v1.0.18 remains accepted. Device acceptance remains pending. Preserve
-Test40's delivered artifacts and Test39's working network, co-op, VR and
-Android baseline; do not publish, install or launch the game.
+Test40/Test41 artifacts and Test39's working network, co-op, VR and Android
+baseline; do not publish, install or launch the game.
 
 ## Superseded private Test40 candidate (2026-10-08)
 

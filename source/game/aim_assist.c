@@ -675,6 +675,15 @@ void vr_preview_player_projectile(long player_index, real_point3d const *positio
 	real_point3d camera_position;
 	real_vector3d camera_direction;
 	struct player_datum *player = player_get(player_index);
+	struct unit_datum *player_unit = player ? unit_try_and_get(player->unit_index) : NULL;
+	/* Mounted VR reticles are built from the weapon's actual muzzle ray. Do
+	 * not pull that ray toward the deterministic head camera: turret/vehicle
+	 * aiming is selected independently (right/left hand, head or stick), and
+	 * camera convergence makes the sight visibly drift when the selected aim
+	 * source is not the head. Actual projectiles still use the native
+	 * player_aim_projectile path, including stock target attraction. */
+	if (!player_unit || player_unit->object.parent_object_index != NONE)
+		return;
 	director_camera_deterministic(player->unit_index, &camera_position, &camera_direction);
 	vr_aim_assist_converge(player_index, &camera_position, &camera_direction, position, direction);
 }

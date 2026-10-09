@@ -4,13 +4,20 @@
 
 The three owner-supplied images labelled USA Original, Rev 1 and Rev 2 contain **byte-identical sets of 24 map files**: 10 campaign maps, 13 multiplayer maps, and the menu map. Every map is Xbox cache format 5, NTSC build `01.10.12.2276`. These labels describe the supplied files; the audit does not authenticate disc provenance from filenames.
 
-The complete images differ in size and non-map payloads. No revision-specific map, scope, turret or network behavior change is justified by these samples. The launcher now describes these tested USA sets as equally suitable.
+The complete images differ in size and non-map payloads. No revision-specific map, scope, turret or network behavior change is justified by these samples. The launcher continues to recommend the original XISO as a conservative compatibility baseline; the exact tested Rev 1 and Rev 2 sets are also accepted and contain identical map data. That recommendation does not indicate a known incompatibility in either tested revision.
 
 | Supplied label | Image bytes | Image SHA-256 | Files |
 |---|---:|---|---:|
 | (USA) (Rev 1) | 3546677248 | `8140d5b914e3f12583065635f89d82ebc086322d704f25a20a50018b53278e0e` | 114 |
 | (USA) (Rev 2) | 3625713664 | `43ec0813edadd592b7b489a930f108d289db9313ac337611110ffca8be0a7258` | 50 |
 | (USA) | 3728867328 | `bbed30485a34fb971687648f31a8b50467c92d7ef296e3f97bad51372db1b012` | 1166 |
+
+The extra files in the supplied images are confined to `xdemos`: Original has
+1,136 entries there, Rev 1 has 84, and Rev 2 has 20. The other 30 paths and
+file sizes match across all three images, including `default.xbe` and the five
+root Bink files. These non-map files were inventoried by path and size, but
+their contents were not hashed. All three supplied XISOs use partition offset
+0; other container/partition layouts were not tested.
 
 ## Production validation
 

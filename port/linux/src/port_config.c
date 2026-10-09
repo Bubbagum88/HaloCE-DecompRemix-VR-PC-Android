@@ -520,6 +520,9 @@ static const struct config_setting config_settings[] =
 		"Log texture uploads." },
 	{ "debug.texture_no_cache", _config_boolean, "false", "HALO_TEXTURE_NO_CACHE", _environment_set_is_true, _platform_all,
 		"Upload textures again every time they are used." },
+	{ "debug.memory_watch", _config_boolean, "true", NULL, _environment_value, _platform_android,
+		"Track guest writes by page protection; false compares page contents\n"
+		"once per frame. ARM-translated guests always compare page contents." },
 	{ "debug.sample_seconds", _config_real, "0.0", "HALO_SAMPLE", _environment_value,
 		_platform_android | _platform_windows,
 		"Log where the game is this often, in seconds; 0 never. On Android every\n"
@@ -787,6 +790,10 @@ static const struct config_setting config_settings[] =
 		"coming into one): its grip there switches weapons, or with physical\n"
 		"weapons (vr.weapons) a gun let go there is put away and an empty hand\n"
 		"gripping there draws one." },
+	{ "vr.holster_haptics", _config_boolean, "true", "HALO_VR_HOLSTER_HAPTICS", _environment_value, _platform_vr,
+		"Vibrate when the weapon hand enters, draws from, or puts away a weapon\n"
+		"at a holster. This does not disable magazine reload or other haptics;\n"
+		"the global HAPTICS strength still scales every vibration." },
 	{ "vr.holster_size", _config_real, "0.2", "HALO_VR_HOLSTER_SIZE", _environment_value, _platform_vr,
 		"How far from its place each holster reaches, in metres (0.05 to 0.6)." },
 	{ "vr.roomscale", _config_boolean, "true", "HALO_VR_ROOMSCALE", _environment_value, _platform_vr,
@@ -1878,6 +1885,9 @@ static void config_load(void)
 	for (index = 0; index < NUMBER_OF_CONFIG_SETTINGS; index++)
 	{
 		const struct config_setting *setting = &config_settings[index];
+		/* A NULL environment name means this setting is config-file only. */
+		if (!setting->environment)
+			continue;
 		const char *environment = getenv(setting->environment);
 
 		if (!environment)

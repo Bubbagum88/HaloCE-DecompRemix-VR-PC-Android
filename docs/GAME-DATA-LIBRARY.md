@@ -30,11 +30,17 @@ UI must be a recognized menu cache; unsupported cache builds/types are rejected
 for managed imports. Resource files (bitmaps/sounds/loc) are hashed separately.
 Unknown custom content remains the existing experimental content path.
 
-Header recognition is not authentication of the complete map or a full-disc
-integrity check. There is no verified Original/Rev1/Rev2 hash database in this
-project; those disc labels remain **unverified**, even if a filename says Rev2.
-You can add your own label while retaining the detected build/fingerprint.
-PAL normalization is automatic in the existing engine.
+Header recognition is not authentication of a full disc. The exact owner-
+supplied USA Original, Rev 1 and Rev 2 XISOs have been fully compared: each
+contains the same 24 map paths, sizes and bytes and imports to the same managed
+fingerprint. See [USA image comparison](USA-IMAGE-COMPARISON.md) for the image
+hashes and limits. The original XISO remains the recommended baseline; the
+tested Rev 1 and Rev 2 images are not known to be incompatible, and this
+recommendation does not claim their map data differ. Other regions, repacks,
+modified images and gameplay on every device remain unverified. A filename does
+not authenticate a disc label. You can add your own label while retaining the
+detected build/fingerprint. PAL normalization is automatic in the existing
+engine.
 
 ## Multiplayer assistance and limits
 

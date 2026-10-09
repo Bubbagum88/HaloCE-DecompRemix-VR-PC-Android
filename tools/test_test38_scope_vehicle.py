@@ -21,9 +21,11 @@ typedef int boolean;typedef float real;typedef struct {float x,y,z;} real_point3
 #define MAXIMUM_COLLISION_USER_STACK_DEPTH 8
 #define _collision_user_aim_assist 1
 struct player_datum {long unit_index,team_index,aim_assist_unit_index,aim_assist_timestamp;};
+struct unit_datum {struct {long parent_object_index;} object;};
 struct aim_assist_parameters {float deviation_angle;};struct aim_assist_target {real_point3d position;float autoaim_level;long object_index;};
-static struct player_datum p={1,2,77,88};static int global_current_collision_user_depth=1,global_current_collision_users[8],target_calls;
+static struct player_datum p={1,2,77,88};static struct unit_datum player_unit={{42}};static int global_current_collision_user_depth=1,global_current_collision_users[8],target_calls,convergence_calls;
 static struct player_datum *player_get(long i){return &p;}
+static struct unit_datum *unit_try_and_get(long i){assert(i==1);return &player_unit;}
 static long unit_get_aiming_unit_index(long i){return i;}
 static int unit_get_zoom_level(long i){return 0;}
 static int unit_get_aim_assist_parameters(long i,int z,struct aim_assist_parameters *a){a->deviation_angle=1;return 1;}
@@ -33,7 +35,7 @@ static void director_camera_deterministic(long i,real_point3d *p,real_vector3d *
 static int aim_assist(struct aim_assist_parameters*a,real_point3d*b,real_vector3d*c,long d,long e,struct aim_assist_target*t){target_calls++;t->position=(real_point3d){0,1,0};t->autoaim_level=1;t->object_index=9;return 1;}
 static void vector_from_points3d(const real_point3d*a,const real_point3d*b,real_vector3d*v){*v=(real_vector3d){b->x-a->x,b->y-a->y,b->z-a->z};}
 static float normalize3d(real_vector3d*v){return 1;}
-static void aim_assist_collision_direction(long a,long b,real_point3d c,real_vector3d d,const real_point3d*e,const real_vector3d*f,real_vector3d*g){*g=d;}
+static void aim_assist_collision_direction(long a,long b,real_point3d c,real_vector3d d,const real_point3d*e,const real_vector3d*f,real_vector3d*g){convergence_calls++;*g=d;}
 static void fast_normals_interpolate(const real_vector3d*a,const real_vector3d*b,float t,real_vector3d*r){r->i=a->i*(1-t)+b->i*t;r->j=a->j*(1-t)+b->j*t;r->k=0;}
 static void pin_normal_to_cone3d(const real_vector3d*a,const real_vector3d*b,float c,float d,real_vector3d*r){*r=*a;}
 #define sine sinf
@@ -44,10 +46,14 @@ code+=fn(s,'player_aim_projectile_internal')+fn(s,'player_aim_projectile')+fn(s,
 code+=r'''
 int main(void){real_point3d origin={0,0,0};real_vector3d preview={1,0,0},shot=preview;
 vr_preview_player_projectile(0,&origin,&preview);
-assert(target_calls==0 && preview.i==1 && preview.j==0);assert(p.aim_assist_unit_index==77 && p.aim_assist_timestamp==88);
+assert(convergence_calls==0 && preview.i==1 && preview.j==0);assert(p.aim_assist_unit_index==77 && p.aim_assist_timestamp==88);
+player_unit.object.parent_object_index=NONE;preview=(real_vector3d){1,0,0};
+vr_preview_player_projectile(0,&origin,&preview);
+assert(convergence_calls==1 && target_calls==0 && preview.i==1 && preview.j==0);
+player_unit.object.parent_object_index=42;
 assert(player_aim_projectile(0,&origin,&shot)==9);assert(target_calls==1 && shot.i==0 && shot.j==1);
 assert(p.aim_assist_unit_index==9 && p.aim_assist_timestamp==123);assert(global_current_collision_user_depth==1);
-puts("PASS: mounted preview keeps convergence without target attraction; real projectile retains native autoaim and target bookkeeping");}
+puts("PASS: mounted VR preview stays on the selected muzzle ray; unmounted geometric convergence remains; native projectile retains autoaim and target bookkeeping");}
 '''
 with tempfile.TemporaryDirectory() as d:
  p=Path(d);(p/'t.c').write_text(code)

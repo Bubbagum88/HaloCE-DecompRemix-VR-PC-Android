@@ -1,6 +1,37 @@
-# Test41 current source disposition — 2026-10-09
+# Test42 current source disposition — 2026-10-09
 
-The private candidate is **Test41 / 1.0.22-test41 / code52**, based on OpenCE
+This file preserves the original detailed M1-M29 / W1-W66 request matrix and
+its investigation history. The old “Deferred — dependency W” cells below are
+the initial pre-implementation status, not the current Test42 result. Use
+[TEST42-REQUIREMENT-DISPOSITION.md](TEST42-REQUIREMENT-DISPOSITION.md) for the
+current feature-by-feature source status and explicit remaining limits; use
+[TEST42-DEVICE-CHECKLIST.md](TEST42-DEVICE-CHECKLIST.md) for owner runtime
+acceptance. Test42 does not claim that every broad physical-interaction idea is
+universal or device-verified.
+
+## Current Test42 snapshot
+
+Test42 carries the bounded Test38-41 implementations forward: profiled,
+solo-only manual reload; local and consent/host-gated interactions; validated
+custom humanoid graph fallback; map-session visual magazine debris; bounded
+vertical lift of eligible vehicles; limited live-NPC fall recovery; configurable
+reach, climb and rig slots; one master haptics control; and session diagnostics.
+See the Test42 disposition for exact constraints, including no universal rig
+retargeter, save-persistent/networked magazine objects, whole-vehicle carry or
+rotation, native corpse-ragdoll-cap change, or universal NPC rescue. Those scope
+limits are recorded explicitly; do not describe them as completed merely
+because related toggles exist.
+
+Test42 also adds Android-only touch-layout export/import and per-control
+hide/restore in the existing HUD editor. The format is versioned and bounded;
+old touch profiles remain visible by default. This does not change Quest VR
+touch input or gamepad preferences.
+
+---
+
+## Historical Test41 source disposition (superseded by Test42 above)
+
+The private candidate at that checkpoint was **Test41 / 1.0.22-test41 / code52**, based on OpenCE
 Build157/network24. The owner reports that new interaction options appeared to
 do nothing in a solo campaign. Test41 adds session/config diagnostics, a
 12-40 cm reach used by world/NPC/parkour contact, mapping for broad NPC root

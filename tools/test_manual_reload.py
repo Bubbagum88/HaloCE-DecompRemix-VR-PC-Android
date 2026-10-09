@@ -5,6 +5,11 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 source = (ROOT / "source/items/weapons.c").read_text()
+reload_source = (ROOT / "port/linux/game/vr_manual_reload.c").read_text()
+assert "vr_mr_profile_changed(bounds_log_initialized, bounds_logged_weapon" in reload_source
+assert "bounds_logged_model, weapon_index, reload.model" in reload_source
+assert "model=%ld magazine=%d chamber=%d" in reload_source
+assert "bounds_log_initialized=TRUE" in reload_source
 start = source.index("static void weapon_magazine_finish_reload(\n", source.index("static void weapon_magazine_finish_reload(\n") + 1)
 end = source.index("\nstatic void weapon_magazine_start_chamber", start)
 finish = source[start:end]
@@ -36,6 +41,10 @@ static int step(struct vr_mr_state *s,int held,int near_mag,int pouch,int chambe
 }
 int main(void){
  struct vr_mr_state s={0};
+ assert(vr_mr_profile_changed(0,0,0,17,29));
+ assert(!vr_mr_profile_changed(1,17,29,17,29));
+ assert(vr_mr_profile_changed(1,17,29,18,29));
+ assert(vr_mr_profile_changed(1,17,29,17,30));
  assert(step(&s,1,0,0,0,0,0)==VR_MR_NONE); /* grip away from gun */
  assert(step(&s,1,1,0,0,0,0)==VR_MR_NONE); /* held grip never auto-locks */
  step(&s,0,1,0,0,0,0);

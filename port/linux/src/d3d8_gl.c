@@ -4546,6 +4546,7 @@ void WINAPI D3DDevice_Present(CONST RECT *source_rectangle, CONST RECT *destinat
 		platform_video_swap();
 		}
 		xgpu_gl_state_invalidate();
+		memory_watch_begin_frame();
 		xgpu_texture_cache_begin_frame();
 #ifdef HALO_ANDROID
 		if (xgpu_capabilities.atomic_counters && device.readback[device.buffer_ring].count)

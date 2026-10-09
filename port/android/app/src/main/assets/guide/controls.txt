@@ -77,7 +77,7 @@ Physical weapons is the local default. A gun supplied on load/pickup stays suppo
 - Crouch compares height against the last recenter; default 35 cm, zero disables physical crouch.
 - Flashlight gesture: off hand within 20 cm of the head by default. **Head Gestures → Flashlight** sets the reach (10–30 cm) or Off (the old Button choice).
 - HUD tap (1.0.8; held since 1.0.11): the gun hand held for a moment beside its own temple (the right temple for a right-handed player) shows or hides the HUD. **HUD → Head Tap** or **Head Gestures → HUD Tap** sets the reach (6–15 cm) or Off; **HUD → HUD** shows or hides it from the menu.
-- Shoulder/hip holsters: default region size 20 cm, with entry haptics. Locked and Physical modes use them differently as above.
+- Shoulder/hip holsters: default region size 20 cm, with entry haptics. **VR Controls → HOLSTER HAPTICS** turns off only the weapon-hand buzz for entering, drawing from, or stowing at a holster. Weapon switching and all four holster positions remain active. Manual reload uses the free hand and its configured shoulder/hip magazine pouch independently; reload and other haptics still follow the global **HAPTICS** strength.
 - Arm Run defaults off. Pumping or two-hand weapon bob supplies forward movement with a neutral stick. A lower Arm Run number (Easy 0.3) makes activation easier. Strong offline effort can reach 1.5x speed; network speed stays stock. Stick input wins.
 - Impact melee sweeps the hand/weapon; Swing requests native melee. Default threshold 2 m/s, zero disables motion melee. The button still works. Network clients use Swing.
 - Local finger poses use controller touch/trigger/grip sensors. Free-hand point/thumb/fist and a held gesture are available; this is not optical tracking of individual fingers.
@@ -93,7 +93,7 @@ Test20d gives each decision one row. Rows that only mattered together with anoth
 
 | Category | Menu options |
 | --- | --- |
-| Controls | **Handedness** Right / Left; **Mirror Controls** Auto / Off; **Turning** Smooth 60–300 degrees/s or Snap 22.5 / 30 / 45 / 60 / 90 (finer on the Comfort page); Move With Head / Left Hand / Right Hand; **Two Hands** Auto Lock (default) / Squeeze / Off; **Weapons** Locked / Physical / Physical + MP; **Holsters** Off or 10–40 cm; Aim Hand / Head; Controls VR / Xbox; **L Stick Click** Reticle (default) / Crouch (1.0.8) |
+| Controls | **Handedness** Right / Left; **Mirror Controls** Auto / Off; **Turning** Smooth 60–300 degrees/s or Snap 22.5 / 30 / 45 / 60 / 90 (finer on the Comfort page); Move With Head / Left Hand / Right Hand; **Two Hands** Auto Lock (default) / Squeeze / Off; **Weapons** Locked / Physical / Physical + MP; **Holsters** Off or 10–40 cm; **Holster Haptics** On / Off; Aim Hand / Head; Controls VR / Xbox; **L Stick Click** Reticle (default) / Crouch (1.0.8) |
 | Body | Body Arms + Hands / Full / Legs + Arms / Hands Only; **Hands** Body IK / Floating / Float + Arms / Animated / Gun Only; Fingers Off / Tracked; Room-scale Off / On; Crouch Depth Off or 5–40 cm; **Arm Run** Off or effort 0.3–1.2; **Melee** Impact / Swing / Impact + Online / Swing + Online; Melee Speed Off or 1.0–3.6 m/s |
 | Hands + Gun | Hand Pitch / Yaw / Roll (both hands, left mirrored; default −70 / 0 / 0); Reset Hands; Gun Pitch / Yaw / Roll (default 0); Reset Gun; Gun Forward / Up / Out ±20 cm; Gun Grip Anchored / Classic |
 | Gameplay | Haptics 0–100%; Scope Off / On; Cutscenes Immersive / 3D Screen / Flat; Close Contact Off / On |
@@ -102,16 +102,18 @@ Test20d gives each decision one row. Rows that only mattered together with anoth
 | Buttons | Jump, Use / Reload, Melee, Crouch, Next Weapon, Grenade, Next Grenade, Reticle (below); Reset Buttons |
 | Vehicles | Third Person (default) / First Person; Horizon Level (default) / Half / Vehicle (first person, driver); Steering Right Hand (default) / Left Hand / Head / Stick; global and Warthog/Ghost/Banshee/Scorpion/Pelican Up/Fwd/Right seat offsets ±50 cm; Reset Offsets |
 | Graphics | Preset Auto / Low / Medium / High / Max; Resolution Auto / 60 / 70 / 80 / 90 / 100 / 110 / **125% Q3** (the Quest 3's own panels) / 140 / 160 / 180 / 200%; **FOV** Full (default) / Glasses 70×66; Shadows, Lights, Specular, Reflections, Bump Maps, Grass, Fog Layers: Auto / On / Off |
-| Display | Decals, Particles, Contrails, Weather, Lens Flares, Camo: Auto / On / Off; Refresh 72 / 80 / 90 / 120 Hz |
+| Display | Decals, Particles, Contrails, Weather, Lens Flares, Camo: Auto / On / Off; Refresh Auto / 72 / 80 / 90 / 120 Hz |
 | Controller Left / Right | Advanced tracking correction for hand and gun together (see below) |
 
-Important defaults: right-handed with Mirror Controls Auto; body `legs`; Hands Body IK; hand pitch −70°; gun angle 0, Gun Grip Anchored, gun position 0; fingers/room-scale/scope on; holsters 20 cm; hand aim; two-hand Auto Lock; physical melee offline only; Physical weapons (not in multiplayer); Arm Run off; Close Contact on; smooth turn 120 degrees/s; refresh request 72 Hz. Saved values override defaults. Hands Only forces hand IK even if Hands was set to Animated or Gun Only.
+Important defaults: right-handed with Mirror Controls Auto; body `legs`; Hands Body IK; hand pitch −70°; gun angle 0, Gun Grip Anchored, gun position 0; fingers/room-scale/scope on; holsters 20 cm with Holster Haptics on; hand aim; two-hand Auto Lock; physical melee offline only; Physical weapons (not in multiplayer); Arm Run off; Close Contact on; smooth turn 120 degrees/s; refresh request 72 Hz. Saved values override defaults. Hands Only forces hand IK even if Hands was set to Animated or Gun Only.
 
 Close Contact reduces only the offline local VR capsule radius: up to 15%, at most 5 cm, never below 18 cm. Solid collision and height remain. Physical + MP concerns weapon holding/drop behavior, not visual avatar sharing; peers may not reproduce physical drops/pickups correctly.
 
 Auto graphics effects follow the preset. Resolution is relative to the runtime's recommended eye size (1680×1760 on the Quest 3), and above 100% (or with FOV Glasses) the eye images handed to the compositor follow it, so the extra detail reaches the display; Auto and every step to 100% keep the recommended images, as in 1.0.10. **125% Q3** is about the Quest 3's panels (2064×2208 per eye), higher steps supersample. Refresh requests a supported rate; it does not guarantee frame timing. The simulation remains 30 Hz with interpolated rendering.
 
 **FOV Glasses 70×66** draws only a 70° × 66° window ahead of each eye (black around it), simulating the field of view of upcoming VR glasses so players can get an idea of it. Because only that window is drawn, at the same sharpness, it renders about 40% of the pixels on a Quest 3 (60% fewer, at every Resolution step; the Quest 3's own view is about 94° × 99° per eye) and fewer objects, which leaves room for a higher frame rate or a higher Resolution step. HUD and menus are unaffected; the window size is `vr.glasses_fov_h` / `vr.glasses_fov_v` in `config.toml`.
+
+Refresh **Auto** clears the app's fixed-rate preference and asks OpenXR to use the runtime's choice again. A fixed rate remains a request, not a frame-time guarantee.
 
 ## Flat Android touch and controller
 

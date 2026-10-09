@@ -17,6 +17,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 CERTIFICATE = "53d416f7e123cc62b749940983209bc9a400002e033fd5f50900d4ffad8e2aa4"
+ANDROID_ICON_SHA256 = "3b624e4635383b11083e925cad7a09ddc67c34abf7999f4f75e5d507c72619f5"
 
 
 def sha(path):
@@ -82,7 +83,8 @@ VR_BUILD_IDENTITIES = {
     b"vr: HaloCE Quest test38 candidate 1.0.19-test38 code49 (OpenCE Build 157 / network 24; legacy co-op15-24; optional physical interactions and vehicle controls; scope profiles and mounted reticle; device acceptance pending)",
     b"vr: HaloCE Quest test39 candidate 1.0.20-test39 code50 (OpenCE Build 157 / network 24; offline shake cooling and weight haptics toggles; expanded bounded co-op world interactions; custom scenery and validated alternate NPC rig opt-ins; device acceptance pending)",
     b"vr: HaloCE Quest test40 candidate 1.0.21-test40 code51 (OpenCE Build 157 / network 24; opt-in local custom humanoid rig fallback, persistent visual magazine debris, bounded vertical vehicle lifting, and solo mission-NPC recovery; prior systems retained; device acceptance pending)",
-    b"vr: HaloCE Quest test41 candidate 1.0.22-test41 code52 (OpenCE Build 157 / network 24; configurable 12-40 cm physical grab reach, 8 bounded NPC rig slots, unified all-effects haptics control, explicit interaction-session diagnostics; prior systems retained; device acceptance pending)"
+    b"vr: HaloCE Quest test41 candidate 1.0.22-test41 code52 (OpenCE Build 157 / network 24; configurable 12-40 cm physical grab reach, 8 bounded NPC rig slots, unified all-effects haptics control, explicit interaction-session diagnostics; prior systems retained; device acceptance pending)",
+    b"vr: HaloCE Quest test42 candidate 1.0.23-test42 code53 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; all v1.0.18+ Test38-41 features retained; device acceptance pending)"
 }
 
 
@@ -206,6 +208,8 @@ def main():
         parser.error("--version-name requires a private candidate and a simple version string")
     version_name=args.version_name or (args.label if args.stable else "1.0-"+args.label)
     release_tag="v"+args.label if args.stable else "halo-ce-quest-"+args.label
+    if sha(ROOT / "port/android/art/android-icon.png") != ANDROID_ICON_SHA256:
+        raise SystemExit("The user's Halo CE Quest launcher artwork changed unexpectedly")
     subprocess.run(["git", "diff", "--exit-code", "HEAD", "--"], cwd=ROOT, check=True, stdout=subprocess.DEVNULL)
     untracked = subprocess.check_output(["git", "ls-files", "--others", "--exclude-standard"], cwd=ROOT)
     if untracked.strip():
@@ -225,9 +229,9 @@ def main():
         if f"versionName='{version_name}'" not in badging:
             raise SystemExit("Wrong candidate version: " + str(path))
         version_code = re.search(r"versionCode='(\d+)'", badging)
-        required_candidate_code = 52 if candidate_at_least(args.label, 41) else 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
+        required_candidate_code = 53 if candidate_at_least(args.label, 42) else 52 if candidate_at_least(args.label, 41) else 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
         if candidate_at_least(args.label, 36) and (version_code is None or int(version_code[1]) < required_candidate_code):
-            raise SystemExit("Test" + ("41" if required_candidate_code == 52 else "40" if required_candidate_code == 51 else "39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
+            raise SystemExit("Test" + ("42" if required_candidate_code == 53 else "41" if required_candidate_code == 52 else "40" if required_candidate_code == 51 else "39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
                              + " Android version code must be at least " + str(required_candidate_code) + ": " + str(path))
         if args.stable and args.label == "1.0.16" and "versionCode='45'" not in badging:
             raise SystemExit("Wrong v1.0.16 Android version code: " + str(path))
@@ -238,6 +242,17 @@ def main():
                 raise SystemExit("APK ZIP checksum failure")
             reject_orphaned_apk_data(path, archive)
             names = archive.namelist()
+            adaptive_icon = "res/mipmap-anydpi-v26/ic_launcher.xml"
+            if adaptive_icon not in names:
+                raise SystemExit("Adaptive launcher icon is missing from APK: " + str(path))
+            icon_xml = (ROOT / "port/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml").read_text()
+            if "@mipmap/ic_launcher_background_art" not in icon_xml or "@mipmap/ic_launcher_foreground" not in icon_xml:
+                raise SystemExit("Adaptive launcher icon no longer references the supplied artwork layer")
+            for density in ["mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"]:
+                member = "res/mipmap-" + density + "-v4/ic_launcher_background_art.png"
+                source_icon = ROOT / "port/android/app/src/main/res" / ("mipmap-" + density) / "ic_launcher_background_art.png"
+                if member not in names or archive.read(member) != source_icon.read_bytes():
+                    raise SystemExit("APK launcher artwork differs from the checked-in Halo CE Quest icon: " + member)
             for asset in ["assets/fonts/Orbitron-Regular.ttf", "assets/fonts/OFL-Orbitron.txt"]:
                 if asset not in names:
                     raise SystemExit("Launcher font/license missing from APK: " + asset)
@@ -331,7 +346,10 @@ def main():
                     raise SystemExit("Test33 VR candidate identity marker missing")
             if candidate_at_least(args.label, 34):
                 if vr:
-                    current_upstream_markers = ([b"OpenCE Build 157 / network 24", b"test41 candidate 1.0.22-test41 code52"]
+                    current_upstream_markers = ([b"OpenCE Build 157 base / network 24", b"selected Build167 compatibility fixes",
+                                                 b"test42 candidate 1.0.23-test42 code53"]
+                        if candidate_at_least(args.label, 42) else
+                        [b"OpenCE Build 157 / network 24", b"test41 candidate 1.0.22-test41 code52"]
                         if candidate_at_least(args.label, 40) else
                         [b"OpenCE Build 157 / network 24", b"test39 candidate 1.0.20-test39 code50"]
                         if candidate_at_least(args.label, 39) else
@@ -359,7 +377,13 @@ def main():
                     if marker not in guest:
                         raise SystemExit("Test37 native compatibility gate missing: " + repr(marker))
                 guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt"))
-                guide_markers = ([b"1.0.22-test41", b"12 to 40 cm", b"physical NPC interaction rigs", b"NPC RIG SLOTS",
+                guide_markers = ([b"1.0.23-test42", b"all project changes made after v1.0.18", b"manual reload",
+                                  b"Export touch layout preset", b"Import touch layout preset", b"Show and enable this touch control",
+                                  b"SHAKE COOLING", b"CUSTOM NPC RIGS", b"MAG DEBRIS", b"LIFT VEHICLES",
+                                  b"NPC RESCUE", b"GRAB REACH", b"NPC RIG SLOTS", b"HOLSTER HAPTICS",
+                                  b"OpenCE Build157", b"Build167", b"network24"]
+                                 if candidate_at_least(args.label, 42) else
+                                 [b"1.0.22-test41", b"12 to 40 cm", b"physical NPC interaction rigs", b"NPC RIG SLOTS",
                                   b"pending invite did not complete a network join", b"Hosting remains on OpenCE network version 24",
                                   b"four remote machines", b"128-machine table", b"SHAKE COOLING",
                                   b"HAPTICS", b"0% to disable all vibration", b"NPC RESCUE", b"DROPPED MAGAZINES",
@@ -387,6 +411,25 @@ def main():
                 for marker in guide_markers:
                     if marker not in guide:
                         raise SystemExit("Test37 offline guide marker missing: " + repr(marker))
+            if candidate_at_least(args.label, 42):
+                for marker in [b"halo-ce-touch-layout", b"touch_visibility", b"visible_",
+                               b"Export touch layout preset", b"Import touch layout preset",
+                               b"Show and enable this touch control", b"Layout not imported"]:
+                    if marker not in dex:
+                        raise SystemExit("Test42 Android touch-layout feature missing from APK: " + repr(marker))
+                touch_guide = archive.read("assets/guide/touch.txt")
+                for marker in [b"Export touch layout preset", b"Import touch layout preset",
+                               b"Show and enable this touch control", b"64 KiB", b"SAVE", b"CANCEL"]:
+                    if marker not in touch_guide:
+                        raise SystemExit("Test42 touch-layout guide marker missing: " + repr(marker))
+            if candidate_at_least(args.label, 41) and vr:
+                controls_guide = archive.read("assets/guide/controls.txt")
+                for marker in [b"HOLSTER HAPTICS", b"vr.holster_haptics"]:
+                    if marker not in guest:
+                        raise SystemExit("Test41 holster haptics or reload-separation marker missing: " + repr(marker))
+                if b"reload and other haptics still follow the global" not in controls_guide:
+                    raise SystemExit("Test41 guide does not explain holster/reload haptics separation")
+            if candidate_at_least(args.label, 37):
                 for marker in [b"Browse multiplayer servers", b"Browse campaign co-op servers",
                                b"Network: All networks", b"unavailable; protocol not included"]:
                     if marker not in dex:
@@ -577,7 +620,9 @@ def main():
     base_label = re.sub(r"[a-z]$", "", args.label)
     if not args.stable and base_label != args.label:
         edition_docs += [base_label.upper()+"-DELIVERY.md", base_label.upper()+"-PROGRESS.md"]
-    active_candidate_docs = (["TEST41-DELIVERY-STATUS.md", "TEST41-PLAYER-NOTES.md", "TEST41-REQUIREMENT-DISPOSITION.md"]
+    active_candidate_docs = (["TEST42-DELIVERY-STATUS.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md"]
+                             if candidate_at_least(args.label, 42) else
+                             ["TEST41-DELIVERY-STATUS.md", "TEST41-PLAYER-NOTES.md", "TEST41-REQUIREMENT-DISPOSITION.md"]
                              if candidate_at_least(args.label, 41) else
                              ["TEST40-DELIVERY-STATUS.md", "TEST40-PLAYER-NOTES.md", "TEST40-REQUIREMENT-DISPOSITION.md"]
                              if candidate_at_least(args.label, 40) else
@@ -604,7 +649,9 @@ def main():
         documents += ["TEST37-PLAYER-NOTES.md", "TEST37-UPSTREAM-INTEGRATION.md"]
     if candidate_at_least(args.label, 39) and not args.stable:
         documents += ["TEST39-DEVICE-CHECKLIST.md", "TEST39-REQUIREMENT-DISPOSITION.md"]
-    if candidate_at_least(args.label, 41) and not args.stable:
+    if candidate_at_least(args.label, 42) and not args.stable:
+        documents += ["TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    elif candidate_at_least(args.label, 41) and not args.stable:
         documents += ["TEST41-DEVICE-CHECKLIST.md", "VR-INTERACTION-REQUIREMENTS.md"]
     elif candidate_at_least(args.label, 40) and not args.stable:
         documents += ["TEST40-DEVICE-CHECKLIST.md", "TEST40-PROGRESS.md", "VR-INTERACTION-REQUIREMENTS.md"]

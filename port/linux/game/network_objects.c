@@ -2168,6 +2168,18 @@ static void distributed_client_create_failed(
 	objects_client_retry_ticks = MIN(2 * objects_client_retry_ticks, CLIENT_RETRY_MAXIMUM_TICKS);
 }
 
+/* A network-created unit has no authoritative grenade count until the host's
+ * inventory update arrives. Do not let unit_new's tag defaults drive a local
+ * predicted throw in the meantime. */
+static void distributed_client_clear_unit_grenades(
+	long object_index)
+{
+	struct object_datum *object = object_get(object_index);
+	if (TEST_FLAG(_object_mask_unit, object->object.type))
+		csmemset(unit_get(object_index)->unit.grenade_counts, 0,
+			sizeof(unit_get(object_index)->unit.grenade_counts));
+}
+
 /* whether the object is this machine's own player's unit or the vehicle it
 drives (where they are is its own) */
 static boolean distributed_client_own_object(
@@ -2381,6 +2393,7 @@ static void distributed_client_create(
 		return;
 	}
 	objects_client_has[absolute_index] = object_index;
+	distributed_client_clear_unit_grenades(object_index);
 	distributed_client_apply_change(object_index, change);
 }
 

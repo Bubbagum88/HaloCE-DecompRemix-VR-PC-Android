@@ -1,12 +1,22 @@
 package com.halo.decomp;
 
 import android.content.Context;
+import android.content.Intent;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.WindowManager;
 import android.view.ViewGroup;
+import android.widget.Toast;
+
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
+import java.util.function.Consumer;
 
 import org.libsdl.app.SDLActivity;
 
@@ -14,13 +24,17 @@ import org.libsdl.app.SDLActivity;
  * The game: SDL3's activity, running libmain.so (port/android/host), which
  * loads the game image from the APK's assets.
  */
-public class HaloActivity extends SDLActivity {
+public class HaloActivity extends SDLActivity implements TouchControls.LayoutTransfer {
+    private static final int REQUEST_TOUCH_LAYOUT_EXPORT=0x4841;
+    private static final int REQUEST_TOUCH_LAYOUT_IMPORT=0x4842;
     /** lets system link's broadcasts in over Wi-Fi while the game runs */
     private WifiManager.MulticastLock multicastLock;
     private TouchControls touchControls;
     private GamepadSupport gamepads;
     private GyroAim gyro;
     private PvpPublisher pvpPublisher;
+    private String pendingTouchLayoutExport;
+    private Consumer<String> pendingTouchLayoutImport;
 
     @Override
     protected String[] getLibraries() {
@@ -61,6 +75,72 @@ public class HaloActivity extends SDLActivity {
     public boolean dispatchTouchEvent(MotionEvent event) {
         if(touchControls!=null && touchControls.dispatchMenuTouch(event,mSurface)) return true;
         return super.dispatchTouchEvent(event);
+    }
+
+    @Override
+    public void exportLayout(String contents) {
+        if(contents==null||contents.getBytes(StandardCharsets.UTF_8).length>TouchLayoutCodec.MAX_BYTES) {
+            Toast.makeText(this,"Touch layout file is too large to export.",Toast.LENGTH_LONG).show();return;
+        }
+        pendingTouchLayoutExport=contents;
+        Intent request=new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        request.addCategory(Intent.CATEGORY_OPENABLE);request.setType("text/plain");
+        request.putExtra(Intent.EXTRA_TITLE,"halo-ce-touch-layout.hcecontrols");
+        try { startActivityForResult(request,REQUEST_TOUCH_LAYOUT_EXPORT); }
+        catch(RuntimeException unavailable) {
+            pendingTouchLayoutExport=null;
+            Toast.makeText(this,"No document picker is available to export the layout.",Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    public void importLayout(Consumer<String> imported) {
+        pendingTouchLayoutImport=imported;
+        Intent request=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        request.addCategory(Intent.CATEGORY_OPENABLE);request.setType("*/*");
+        request.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"text/plain","application/octet-stream"});
+        try { startActivityForResult(request,REQUEST_TOUCH_LAYOUT_IMPORT); }
+        catch(RuntimeException unavailable) {
+            pendingTouchLayoutImport=null;
+            Toast.makeText(this,"No document picker is available to import a layout.",Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode,int resultCode,Intent data) {
+        super.onActivityResult(requestCode,resultCode,data);
+        if(requestCode==REQUEST_TOUCH_LAYOUT_EXPORT) {
+            String contents=pendingTouchLayoutExport;pendingTouchLayoutExport=null;
+            if(resultCode!=RESULT_OK||data==null||data.getData()==null||contents==null)return;
+            try(OutputStream output=getContentResolver().openOutputStream(data.getData(),"wt")) {
+                if(output==null)throw new java.io.IOException("document could not be opened");
+                output.write(contents.getBytes(StandardCharsets.UTF_8));output.flush();
+                Toast.makeText(this,"Touch layout exported.",Toast.LENGTH_LONG).show();
+            } catch(Exception failure) {
+                Toast.makeText(this,"Could not export touch layout: "+failure.getMessage(),Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
+        if(requestCode==REQUEST_TOUCH_LAYOUT_IMPORT) {
+            Consumer<String> callback=pendingTouchLayoutImport;pendingTouchLayoutImport=null;
+            if(resultCode!=RESULT_OK||data==null||data.getData()==null||callback==null)return;
+            try(java.io.InputStream input=getContentResolver().openInputStream(data.getData());
+                ByteArrayOutputStream bytes=new ByteArrayOutputStream()) {
+                if(input==null)throw new java.io.IOException("document could not be opened");
+                byte[] buffer=new byte[4096];int count;
+                while((count=input.read(buffer))!=-1) {
+                    if(bytes.size()>TouchLayoutCodec.MAX_BYTES-count)throw new java.io.IOException("layout file exceeds 64 KiB");
+                    bytes.write(buffer,0,count);
+                }
+                String contents=StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes.toByteArray())).toString();
+                callback.accept(contents);
+            } catch(CharacterCodingException malformed) {
+                Toast.makeText(this,"Layout not imported: file is not valid UTF-8.",Toast.LENGTH_LONG).show();
+            } catch(Exception failure) {
+                Toast.makeText(this,"Could not read touch layout: "+failure.getMessage(),Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     @Override

@@ -847,21 +847,32 @@ boolean saved_game_file_retrieve_last_used_multiplayer_variant_directory(
 	return success;
 }
 
+static void saved_game_file_copy_multiplayer_map_name(
+	char *destination,
+	char const *map_name)
+{
+	/* Caller map lists can be shorter than the fixed-size file record. */
+	csmemset(destination, 0, MAXIMUM_FILENAME_LENGTH+1);
+	csstrncpy(destination, map_name, MAXIMUM_FILENAME_LENGTH);
+}
+
 void saved_game_file_remember_last_used_multiplayer_map(
 	char const *map_name)
 {
 	struct file_reference file;
+	char name[MAXIMUM_FILENAME_LENGTH+1];
 
 	match_assert(
 		"c:\\halo\\SOURCE\\saved games\\saved_game_files.c",
 		1207,
 		map_name);
+	saved_game_file_copy_multiplayer_map_name(name, map_name);
 
 	if (file_reference_create_from_path(&file, "z:\\lastmpmp.txt", FALSE) &&
 		file_create(&file) &&
 		file_open(&file, FLAG(_permission_write_bit)))
 	{
-		if (!file_write(&file, MAXIMUM_FILENAME_LENGTH+1, map_name))
+		if (!file_write(&file, MAXIMUM_FILENAME_LENGTH+1, name))
 		{
 			error(_error_silent, "failed to write to '%s'", "z:\\lastmpmp.txt");
 		}

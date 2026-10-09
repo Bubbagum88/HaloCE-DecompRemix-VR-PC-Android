@@ -167,6 +167,10 @@ void memory_watch_forget(void *address, unsigned long size)
 	}
 }
 
+void memory_watch_begin_frame(void)
+{
+}
+
 /* ---------- crash reports */
 
 /* errors.c's: debug.txt, whose first lines (its reference address) place

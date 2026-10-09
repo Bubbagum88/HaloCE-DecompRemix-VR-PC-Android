@@ -177,7 +177,11 @@ public class DataCheck {
   File staging=lib.stage();check(lib.list().size()==3);lib.discard(staging);reject(()->lib.discard(base));
   File duplicate=maps(new File(base,"duplicate"),4);Files.copy(new File(duplicate,"ui.map").toPath(),new File(duplicate,"UI.MAP").toPath());
   if(!Files.isSameFile(new File(duplicate,"ui.map").toPath(),new File(duplicate,"UI.MAP").toPath()))reject(()->add(lib,duplicate,"duplicate name"));
-  check(GameDataLibrary.mapName("UI.MAP"));check(!GameDataLibrary.mapName("../ui.map"));check(!GameDataLibrary.mapName("a\\ui.map"));
+  check(GameDataLibrary.mapName("UI.MAP"));check(GameDataLibrary.mapName("[H2]_Lockout.map"));
+  check(GameDataLibrary.mapName("CE+map (test).map"));check(GameDataLibrary.mapName("my_map-1.map"));
+  check(!GameDataLibrary.mapName("../ui.map"));check(!GameDataLibrary.mapName("a\\ui.map"));check(!GameDataLibrary.mapName("a/ui.map"));
+  check(!GameDataLibrary.mapName("maps..bad.map"));check(!GameDataLibrary.mapName("CON.map"));
+  check(!GameDataLibrary.mapName("com1.map"));check(!GameDataLibrary.mapName("LPT9.map"));
   Thread.currentThread().interrupt();reject(()->GameDataLibrary.copy(new ByteArrayInputStream(new byte[1]),new File(base,"cancelled"),10));Thread.interrupted();
   reject(()->GameDataLibrary.copy(new ByteArrayInputStream(new byte[2]),new File(base,"oversize"),1));
   File marker=new File(base,"active-data.txt");

@@ -26,6 +26,7 @@ Built with the host's ABI, as the other posix_*.c.
 #include "psa/crypto.h"
 
 #include <errno.h>
+#include <limits.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -329,6 +330,42 @@ static int body_write(struct download *download, const unsigned char *data, size
 	return 1;
 }
 
+/* A chunk length is hexadecimal, optionally followed by an extension. A
+ * line without digits, with an invalid delimiter, or overflowing the target
+ * type is a malformed response rather than the terminal chunk. Kept
+ * separate so the parser can be exercised without a live update server. */
+static int update_chunk_size_parse(const char *line, unsigned long long *size)
+{
+	const unsigned char *cursor = (const unsigned char *)line;
+	unsigned long long value = 0;
+	int digits = 0;
+	while ((*cursor >= '0' && *cursor <= '9') || (*cursor >= 'a' && *cursor <= 'f') ||
+		(*cursor >= 'A' && *cursor <= 'F'))
+	{
+		unsigned digit = *cursor <= '9' ? *cursor - '0' : ((*cursor | 0x20) - 'a' + 10);
+		if (value > (ULLONG_MAX - digit) / 16)
+			return 0;
+		value = value * 16 + digit;
+		cursor++;
+		digits++;
+	}
+	if (!digits)
+		return 0;
+	while (*cursor == ' ' || *cursor == '\t')
+		cursor++;
+	if (*cursor == ';')
+	{
+		cursor++;
+		for (; *cursor; cursor++)
+			if (*cursor < 0x20 || *cursor > 0x7e)
+				return 0;
+	}
+	else if (*cursor)
+		return 0;
+	*size = value;
+	return 1;
+}
+
 /* the response's body, as long as its headers say, chunked or to the end */
 static int read_body(struct connection *connection, struct download *download, int chunked,
 	unsigned long long length, int have_length)
@@ -344,7 +381,11 @@ static int read_body(struct connection *connection, struct download *download, i
 
 			if (!connection_read_line(connection, line, sizeof(line)))
 				return 0;
-			remaining = strtoull(line, NULL, 16);
+			if (!update_chunk_size_parse(line, &remaining))
+				return 0;
+			if (download->received > MAXIMUM_DOWNLOAD_SIZE ||
+				remaining > MAXIMUM_DOWNLOAD_SIZE - download->received)
+				return 0;
 			if (!remaining)
 				return 1;
 			while (remaining)

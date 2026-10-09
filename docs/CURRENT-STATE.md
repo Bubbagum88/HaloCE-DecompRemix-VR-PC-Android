@@ -1,24 +1,19 @@
 # Current development state
 
-## Active private candidate: Test41 (2026-10-09)
+## Active private candidate: Test42 (2026-10-09)
 
-Candidate target is **1.0.22-test41 / Android code52**, based on OpenCE
-Build157/network24. The supplied second log enters a saved solo campaign after
-an invite attempt that never joined; solo setup assigns
-`_game_connection_local`. Test41 adds once-per-state-change session/config
-logs, a visible 12-40 cm **GRAB REACH** used by world, NPC and parkour wall
-contact, maps broad NPC root hits to nearby authored joints, and probes 16
-horizontal directions for climb contact. **NPC RIG SLOTS** sets the mod's
-articulated interaction pool to 1-8; it does not change Halo's native
-corpse-ragdoll limit. The separate load-haptics toggle is removed: HAPTICS
-scales every vibration, with zero disabling all. The NPC fixture now exercises
-production eligibility rather than a fake permissive stub. See
-[TEST41-DELIVERY-STATUS.md](TEST41-DELIVERY-STATUS.md),
-[TEST41-REQUIREMENT-DISPOSITION.md](TEST41-REQUIREMENT-DISPOSITION.md), and
-[TEST41-DEVICE-CHECKLIST.md](TEST41-DEVICE-CHECKLIST.md). Device acceptance is
-pending; public v1.0.18 and the Test40 package remain unchanged. PC/Steam Frame
-remains deferred. Final artifact hashes and checks will be recorded in
-[TEST41-DELIVERY.md](TEST41-DELIVERY.md).
+Candidate target is **1.0.23-test42 / Android code53**. It carries forward all
+project changes since public v1.0.18, including Tests38-41, the supplied Halo CE
+Quest icon, Android touch-layout preset export/import and per-control hide,
+the supplied USA XISO comparison, bundled offline guide updates, and selected OpenCE Build167
+compatibility fixes. The engine base remains Build157/network24; Build167 does
+not change the protocol. See [TEST42-REQUIREMENT-DISPOSITION.md](TEST42-REQUIREMENT-DISPOSITION.md)
+for every feature and limitation, [TEST42-OPENCE167-INTEGRATION.md](TEST42-OPENCE167-INTEGRATION.md)
+for the upstream boundary, and [TEST42-DEVICE-CHECKLIST.md](TEST42-DEVICE-CHECKLIST.md)
+for owner acceptance. Build/host tests are not headset acceptance. Public
+v1.0.18 and Test40/Test41 artifacts remain unchanged. Do not publish, install or
+launch the game. PC/Steam Frame remains deferred. Final hashes/checks go in
+[TEST42-DELIVERY.md](TEST42-DELIVERY.md).
 
 ## Superseded private candidate: Test40
 

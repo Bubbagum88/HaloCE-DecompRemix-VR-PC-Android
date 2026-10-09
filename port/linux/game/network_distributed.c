@@ -2135,6 +2135,22 @@ static void distributed_apply_predictions(
 	}
 }
 
+/* (a client) the host's teleporter moved a remote player's unit. Remember
+ * its landing pad so the local teleporter tick does not immediately send the
+ * remote player back to the pad they left. */
+static void distributed_note_host_teleporter_correction(
+	struct player_datum *player,
+	long unit_index,
+	real_point3d const *before)
+{
+	real_point3d const *after = &object_get(unit_index)->object.position;
+	if (distance_squared3d(before, after) > 1.0f)
+	{
+		player->teleporter_index = find_netgame_flag(after, 1.0f, 0.0f,
+			_netgame_flag_teleporter_source, NONE);
+	}
+}
+
 /* (a client) the host's word on a player's unit */
 static void distributed_handle_unit_state(
 	struct distributed_unit_state const *state)
@@ -2248,6 +2264,8 @@ static void distributed_handle_unit_state(
 	if (TEST_FLAG(state->flags, _distributed_unit_placed_bit) &&
 		object_get(unit_index)->object.parent_object_index == NONE)
 	{
+		real_point3d before = object_get(unit_index)->object.position;
+
 		if (local)
 			distributed_correct_own_unit(player, unit_index, state);
 		else
@@ -2255,6 +2273,7 @@ static void distributed_handle_unit_state(
 			distributed_apply_state(unit_index, state, &state->position, REMOTE_CORRECTION_TOLERANCE,
 				REMOTE_BLEND_DISTANCE, 0.0f, 0.0f);
 		}
+		distributed_note_host_teleporter_correction(player, unit_index, &before);
 	}
 }
 

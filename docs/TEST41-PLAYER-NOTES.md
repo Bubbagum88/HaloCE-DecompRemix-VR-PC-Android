@@ -29,6 +29,13 @@ session/settings change; look for `session=local(0)` during solo play and
 - The session log reports actual local/network mode, active interaction options,
   configured reach, pool capacity and haptics strength when they change. It does
   not prove an interaction succeeded; use the action checklist when retesting.
+- **HOLSTER HAPTICS** is an independent VR Controls on/off option. Turning it
+  off silences only weapon-hand feedback from entering a holster, drawing a gun,
+  or putting one away. It does not disable any of the four hip/shoulder holster
+  actions or zones. Manual reload remains on the free hand and keeps its own
+  magazine-pouch selection (left shoulder or hip by default, mirrored for a
+  left-hand gun); reload and every other vibration still use the master
+  **HAPTICS** strength.
 - After enabling an interaction or returning from a menu/reset, release the
   controller grip fully and squeeze again. World/NPC grabs intentionally require
   a fresh grip press after reset so a held controller cannot unexpectedly grab

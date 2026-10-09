@@ -218,6 +218,7 @@ static struct vr_menu_setting const vr_menu_controls[] =
 	{ "TWO HANDS", "vr.two_handed", _vr_setting_string, 3, { { "AUTO LOCK", "auto" }, { "SQUEEZE", "grip" }, { "OFF", "off" } } },
 	{ "WEAPONS", "vr.weapons", _vr_setting_multi, 3, { { "LOCKED", "vr.weapons=locked" }, { "PHYSICAL", "vr.weapons=physical;vr.physical_multiplayer=false" }, { "PHYSICAL + MP", "vr.weapons=physical;vr.physical_multiplayer=true" } } },
 	{ "HOLSTERS", "vr.holsters", _vr_setting_multi, 7, { { "OFF", "vr.holsters=false" }, { "10 CM", "vr.holsters=true;vr.holster_size=0.1" }, { "15 CM", "vr.holsters=true;vr.holster_size=0.15" }, { "20 CM", "vr.holsters=true;vr.holster_size=0.2" }, { "25 CM", "vr.holsters=true;vr.holster_size=0.25" }, { "30 CM", "vr.holsters=true;vr.holster_size=0.3" }, { "40 CM", "vr.holsters=true;vr.holster_size=0.4" } } },
+	{ "HOLSTER HAPTICS", "vr.holster_haptics", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     { "NPC RIG SLOTS", "vr.npc_max_ragdolls", _vr_setting_multi, 8, { { "1", "vr.npc_max_ragdolls=1" }, { "2", "vr.npc_max_ragdolls=2" }, { "3", "vr.npc_max_ragdolls=3" }, { "4", "vr.npc_max_ragdolls=4" }, { "5", "vr.npc_max_ragdolls=5" }, { "6", "vr.npc_max_ragdolls=6" }, { "7", "vr.npc_max_ragdolls=7" }, { "8", "vr.npc_max_ragdolls=8" } } },
     { "NPC GRAB", "vr.npc_interaction", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     { "NPC RESCUE", "vr.npc_rescue", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
@@ -379,7 +380,7 @@ static struct vr_menu_setting const vr_menu_effects[] =
 	VR_MENU_EFFECT("WEATHER", "graphics.weather"),
 	VR_MENU_EFFECT("LENS FLARES", "graphics.lens_flares"),
 	VR_MENU_EFFECT("CAMO", "graphics.camouflage_multipass"),
-	{ "REFRESH", "vr.refresh_rate", _vr_setting_real, 4, { { "72 HZ", "72" }, { "80 HZ", "80" }, { "90 HZ", "90" }, { "120 HZ", "120" } } },
+	{ "REFRESH", "vr.refresh_rate", _vr_setting_real, 5, { { "AUTO", "0" }, { "72 HZ", "72" }, { "80 HZ", "80" }, { "90 HZ", "90" }, { "120 HZ", "120" } } },
 };
 
 /* test20c/d: the visible hands (never the gun: one row turns both, the

@@ -59,6 +59,10 @@ unchanged. PC/Steam Frame remains deferred. Test41 is not published.
    the global `vr.haptics` scaler. The separate `WEIGHT HAPTICS` toggle is
    removed; bounded load feedback now follows that same master strength, and
    setting it to 0 disables every haptic effect.
+6. **Optional holster buzz:** added `HOLSTER HAPTICS`, enabled by default, to
+   mute only the weapon-hand buzz for holster entry, weapon draw and stow.
+   Holster positions/actions and free-hand magazine pouches stay independent;
+   reload and every other vibration remain controlled by global HAPTICS.
 
 ## Preserved behavior and evidence limits
 
@@ -72,8 +76,10 @@ world-axis rays missed. A source test now compiles the production NPC
 eligibility function (including player/script/animation/grenade/weapon-busy
 rejections) instead of a fake permissive stub; normal Grunt admission and the
 validated custom-rig path pass. It removes the separate load-haptics toggle and
-applies the HAPTICS master strength to that effect. None of these host checks
-establish that a Quest controller contact or motion completed in game.
+applies the HAPTICS master strength to that effect. The holster-only mute wraps
+four feedback sites without changing their hand/zone/action logic; reload keeps
+the free hand, pouch selection and global haptics path. None of these host
+checks establish that a Quest controller contact or motion completed in game.
 
 The session/config log confirms which mode and settings are active; it does not
 by itself prove a hand contacted a target or that a reload/rescue/parkour action

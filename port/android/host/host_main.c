@@ -15,8 +15,8 @@ maps/) is the app's external files directory,
 /sdcard/Android/data/<package>/files, where the launcher activity copies it
 on first run; saves go to its save/ subdirectory. The settings,
 config.toml, live there too (port/linux/src/port_config.c, which the game
-reads); this file reads only debug.sample_seconds from it, for the sampler
-that runs here.
+reads); this file reads debug.sample_seconds for the sampler and
+debug.memory_watch to choose page protection or page hashes.
 */
 
 #include "host.h"
@@ -35,6 +35,7 @@ that runs here.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/system_properties.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -354,6 +355,29 @@ static int config_sample_seconds(const char *path, char *text, size_t size)
 	return found;
 }
 
+static int config_boolean_or(const char *path, const char *name, int otherwise)
+{
+	toml_result_t result = toml_parse_file_ex(path);
+	int value = otherwise;
+
+	if (!result.ok)
+		return otherwise;
+	{
+		toml_datum_t datum = toml_seek(result.toptab, name);
+		if (datum.type == TOML_BOOLEAN)
+			value = datum.u.boolean ? 1 : 0;
+	}
+	toml_free(result);
+	return value;
+}
+
+static int native_bridge_active(void)
+{
+	char value[PROP_VALUE_MAX] = "";
+	__system_property_get("ro.dalvik.vm.native.bridge", value);
+	return value[0] && strcmp(value, "0") != 0;
+}
+
 /* POSIX TZ for the current local offset (the guest's musl has no zone
 database) */
 static void time_zone(char *buffer, size_t size)
@@ -511,6 +535,18 @@ static void *game_main(void *unused)
 		/* stacks in the log when the game stops showing frames */
 		host_debug_start_watchdog();
 	}
+	if (native_bridge_active())
+	{
+		host_memory_watch_use_hashes();
+		host_logf(HOST_LOG_INFO, "write tracking: page hashes (ARM translation)");
+	}
+	else if (!config_boolean_or(path, "debug.memory_watch", 1))
+	{
+		host_memory_watch_use_hashes();
+		host_logf(HOST_LOG_INFO, "write tracking: page hashes (debug.memory_watch = false)");
+	}
+	else
+		host_logf(HOST_LOG_INFO, "write tracking: page protection");
 	boot = make_boot(&environment);
 	host_logf(HOST_LOG_INFO, "data %s, saves %s", data_root, save_root);
 	host_run_guest_main(boot);

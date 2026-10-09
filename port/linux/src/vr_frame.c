@@ -334,6 +334,15 @@ static const float holster_places[HOLSTER_COUNT][3] =
 };
 static const char *const holster_names[HOLSTER_COUNT] = { "left shoulder", "right shoulder", "left hip", "right hip" };
 
+/* Holster buzzes are optional without changing holster zones/actions or the
+ * global HAPTICS strength. Physical reload pouch feedback is intentionally
+ * separate: it continues to use vr_haptic() directly. */
+static void holster_haptic(int hand, float amplitude, float seconds)
+{
+	if (config_boolean("vr.holster_haptics"))
+		vr_haptic(hand, amplitude, seconds);
+}
+
 /* an eye's view cut to the glasses window (vr.fov_mode
 "glasses"): vr.glasses_fov_h by vr.glasses_fov_v degrees about the eye's
 own forward, never wider than the runtime's (fov: left, right, up, down) */
@@ -479,7 +488,7 @@ static void choose_refresh_rate(void)
 	static double asked;
 	double hertz = config_real("vr.refresh_rate");
 
-	if (hertz > 0.0 && hertz != asked)
+	if (hertz >= 0.0 && hertz != asked)
 	{
 		asked = hertz;
 		platform_log("vr: display at %.0f Hz", host_xr_set_refresh_rate((float)hertz));
@@ -965,7 +974,7 @@ void vr_initialize(void)
 		return;
 	vr.initialized = 1;
 	config_vr_vehicle_defaults();
-	platform_log("vr: HaloCE Quest test41 candidate 1.0.22-test41 code52 (OpenCE Build 157 / network 24; configurable 12-40 cm physical grab reach, 8 bounded NPC rig slots, unified all-effects haptics control, explicit interaction-session diagnostics; prior systems retained; device acceptance pending)");
+	platform_log("vr: HaloCE Quest test42 candidate 1.0.23-test42 code53 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; all v1.0.18+ Test38-41 features retained; device acceptance pending)");
 	platform_log("vr: retained baseline history: HaloCE Quest test30 candidate 1.0.12 (the menus' face buttons as the Xbox's of the same letter: X deletes a profile; the co-op host's server name; test29: OpenCE build 144 netcode, network 21; the HUD head tap held by the temple, HUD and head tap on the HUD page, wrist HUD on the wrist and movable, moving with a hand while holding the gun in both, glasses FOV and resolution to 200%% (PR #1); test28: co-op games entered in progress keep their camera upright, release checks as OpenCE ships, co-op hosted for 2 to 128 players as OpenCE's Server Setup offers, gyro aim on phones as an option; test27: OpenCE build 138 netcode, network 20, with its co-op for up to 16 players; test26: co-op: death screams no longer stop the second player, cutscene characters placed and animated as on the first; HUD head tap, reticle toggle on the left stick click with crouch on the turning stick held down (or crouch kept on the click: Controls), optional wrist HUD, adjustable head taps; impact melee along the gun with a follow-through; fingers bend smoothly against walls; test25: vehicle seat and recentre diagnostics, first-person horizon option and seat glass, settings rows that fit, vehicle offset reset; test24b: comfort vignette, smooth speed and snap angle, SPV1 compatibility note; test24: co-op cutscenes animate for the second player; test23: remappable Quest buttons with the grenade on X; test22: co-op campaign host crash fixed, steady first-person vehicle view, left-hand ammo display, adjustable scopes, shot diagnostics; test21b: floating hands restored, torso-following arms, neck-pivot full body, auto two-hand lock, horn, online melee off, two-hand gun roll, pistol shots from the hand, reticle converges as shots do, per-gun aim, horn from either stick)");
 	if (!config_boolean("vr.enabled"))
 	{
@@ -1976,13 +1985,13 @@ static void update_gestures(void)
 			}
 		}
 		if (zone && zone != vr.holster_zone)
-			vr_haptic(w, 0.45f, 0.05f);
+			holster_haptic(w, 0.45f, 0.05f);
 		vr.holster_zone = zone;
 		vr.in_holster = zone != 0;
 		if (zone && vr.grip_pressed[w] && !physical_weapons())
 		{
 			vr.actions |= VR_ACTION_SWITCH_WEAPON;
-			vr_haptic(w, 0.6f, 0.06f);
+			holster_haptic(w, 0.6f, 0.06f);
 			platform_log("vr: weapons switched at the %s holster", holster_names[zone - 1]);
 		}
 	}
@@ -2016,7 +2025,7 @@ static void update_gestures(void)
 			{
 				vr.hand_state = HAND_HELD;
 				vr.pending_state = -1;
-				vr_haptic(w, 0.5f, 0.05f);
+				holster_haptic(w, 0.5f, 0.05f);
 				platform_log("vr: a weapon drawn from the %s holster", holster);
 			}
 			else
@@ -2034,7 +2043,7 @@ static void update_gestures(void)
 				vr.hand_state = HAND_EMPTY;
 				vr.actions |= VR_ACTION_SWITCH_WEAPON;
 				hand_pending(HAND_EMPTY);
-				vr_haptic(w, 0.6f, 0.06f);
+				holster_haptic(w, 0.6f, 0.06f);
 				platform_log("vr: the gun put away in the %s holster", holster);
 			}
 			else if (vr.two_hand_held && vr.grip_held[o])

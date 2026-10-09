@@ -14,13 +14,15 @@ guest needs, when it needs it:
   thread stacks), reserved in free gaps below 4 GB as they fill up.
 
 This file also implements guest memory write tracking (the interface of
-port/linux/src/memory_watch.c): the renderer write-protects the pages behind
-the textures it caches, and the SIGSEGV handler here records the first
-write to each. Other faults are reported (with guest-relative addresses) and
-passed on to the previous handler.
+port/linux/src/memory_watch.c): the renderer tracks writes to pages behind
+cached textures. Most Android processes use page protection and this
+SIGSEGV handler records writes; an ARM-translated guest uses page hashes
+(host_watch_hash.c). Other faults are reported and passed to the previous
+handler.
 */
 
 #include "host.h"
+#include "host_watch_hash.h"
 
 #include <errno.h>
 #include <pthread.h>
@@ -519,6 +521,21 @@ static uint8_t page_protected[WATCH_PAGE_COUNT];
 static uint32_t page_generation[WATCH_PAGE_COUNT];
 static volatile uint32_t current_generation = 1;
 static int watch_active;
+static int watch_hashing;
+static uint8_t page_hash_watched[WATCH_PAGE_COUNT];
+static uint64_t page_hash[WATCH_PAGE_COUNT];
+static uint32_t page_hashed_frame[WATCH_PAGE_COUNT];
+static struct watch_hash page_hashes =
+{
+	.base = (const uint8_t *)(uintptr_t)HALO_GUEST_WINDOW_BASE,
+	.page_count = WATCH_PAGE_COUNT,
+	.watched = page_hash_watched,
+	.hash = page_hash,
+	.hashed_frame = page_hashed_frame,
+	.generation = page_generation,
+	.current_generation = &current_generation,
+	.frame = 1,
+};
 
 static int in_window(uint64_t address)
 {
@@ -642,6 +659,11 @@ void host_memory_watch_initialize(void)
 	watch_active = 1;
 }
 
+void host_memory_watch_use_hashes(void)
+{
+	watch_hashing = 1;
+}
+
 void host_memory_watch_protect(uint32_t address, uint32_t size)
 {
 	uint64_t first, last, page;
@@ -652,6 +674,11 @@ void host_memory_watch_protect(uint32_t address, uint32_t size)
 	last = watch_page((uint64_t)address + size - 1);
 	if (last >= WATCH_PAGE_COUNT)
 		last = WATCH_PAGE_COUNT - 1;
+	if (watch_hashing)
+	{
+		watch_hash_protect(&page_hashes, (uint32_t)first, (uint32_t)last);
+		return;
+	}
 	for (page = first; page <= last; page++)
 	{
 		if (!page_protected[page])
@@ -678,6 +705,8 @@ uint32_t host_memory_watch_generation(uint32_t address, uint32_t size)
 	last = watch_page((uint64_t)address + size - 1);
 	if (last >= WATCH_PAGE_COUNT)
 		last = WATCH_PAGE_COUNT - 1;
+	if (watch_hashing)
+		return watch_hash_generation(&page_hashes, (uint32_t)first, (uint32_t)last);
 	for (page = first; page <= last; page++)
 	{
 		if (page_generation[page] > newest)
@@ -690,7 +719,7 @@ void host_memory_watch_prepare_write(uint32_t address, uint32_t size)
 {
 	uint64_t start = address, first, last, page;
 
-	if (!watch_active || !size)
+	if (!watch_active || watch_hashing || !size)
 		return;
 	if (start + size <= HALO_GUEST_WINDOW_BASE || start >= (uint64_t)HALO_GUEST_WINDOW_BASE + HALO_GUEST_WINDOW_SIZE)
 		return;
@@ -707,6 +736,12 @@ void host_memory_watch_prepare_write(uint32_t address, uint32_t size)
 	}
 }
 
+void host_memory_watch_begin_frame(void)
+{
+	if (watch_hashing)
+		watch_hash_begin_frame(&page_hashes);
+}
+
 void host_memory_watch_forget(uint32_t address, uint32_t size)
 {
 	uint64_t first, last, page;
@@ -717,6 +752,11 @@ void host_memory_watch_forget(uint32_t address, uint32_t size)
 	last = watch_page((uint64_t)address + size - 1);
 	if (last >= WATCH_PAGE_COUNT)
 		last = WATCH_PAGE_COUNT - 1;
+	if (watch_hashing)
+	{
+		watch_hash_forget(&page_hashes, (uint32_t)first, (uint32_t)last);
+		return;
+	}
 	for (page = first; page <= last; page++)
 	{
 		page_protected[page] = 0;

@@ -15,6 +15,10 @@
   Halo's native corpse ragdoll cap.
 - Unified controller vibration under the single **HAPTICS** strength. The
   separate load-haptics toggle was removed; zero disables the routed effects.
+- Added **HOLSTER HAPTICS** as a separate on/off exception for weapon-hand
+  holster entry/draw/stow buzzes. Holster actions and the free-hand reload
+  pouches remain separate; reload and other effects still follow master
+  HAPTICS.
 - Corrected interaction option dependencies and made the packaging script
   include Test41's own delivery, progress, requirement and device-checklist
   documents.

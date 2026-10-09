@@ -9,24 +9,20 @@ build.mkdir(parents=True, exist_ok=True)
 
 c = r'''
 #include <assert.h>
-#include <limits.h>
 #include <math.h>
 #include <stdio.h>
 #include "vr_magazine_debris_math.h"
 int main(void) {
     int active[VR_MAGAZINE_DEBRIS_CAPACITY] = {0};
-    unsigned age[VR_MAGAZINE_DEBRIS_CAPACITY] = {0};
     assert(VR_MAGAZINE_DEBRIS_CAPACITY == 32);
-    assert(vr_magazine_debris_choose_slot(active, age, VR_MAGAZINE_DEBRIS_CAPACITY) == 0);
+    assert(vr_magazine_debris_choose_slot(active, VR_MAGAZINE_DEBRIS_CAPACITY) == 0);
     active[0] = active[1] = active[2] = 1;
-    age[0] = 40; age[1] = 5; age[2] = 99;
-    assert(vr_magazine_debris_choose_slot(active, age, VR_MAGAZINE_DEBRIS_CAPACITY) == 3);
-    for (int i=3;i<VR_MAGAZINE_DEBRIS_CAPACITY;i++) active[i]=1,age[i]=(unsigned)i;
-    assert(vr_magazine_debris_choose_slot(active, age, VR_MAGAZINE_DEBRIS_CAPACITY) == 2);
-    assert(vr_magazine_debris_choose_slot(active, age, 0) == -1);
-    unsigned age_counter=UINT_MAX-1;
-    assert(vr_magazine_debris_advance_age(&age_counter) && age_counter==UINT_MAX);
-    assert(vr_magazine_debris_advance_age(&age_counter) && age_counter==UINT_MAX);
+    assert(vr_magazine_debris_choose_slot(active, VR_MAGAZINE_DEBRIS_CAPACITY) == 3);
+    for (int i=3;i<VR_MAGAZINE_DEBRIS_CAPACITY;i++) active[i]=1;
+    assert(vr_magazine_debris_choose_slot(active, VR_MAGAZINE_DEBRIS_CAPACITY) == -1);
+    active[11]=0;
+    assert(vr_magazine_debris_choose_slot(active, VR_MAGAZINE_DEBRIS_CAPACITY) == 11);
+    assert(vr_magazine_debris_choose_slot(active, 0) == -1);
     float speed[3]={.01f,.02f,.03f};
     assert(vr_magazine_debris_speed_valid(speed,.04f));
     speed[0]=NAN;assert(!vr_magazine_debris_speed_valid(speed,.04f));
@@ -39,7 +35,7 @@ int main(void) {
     assert(!vr_magazine_debris_spawn_allowed(1,1,1,64,0,.02f,.2f));
     assert(!vr_magazine_debris_spawn_allowed(1,1,1,64,1,NAN,.2f));
     assert(!vr_magazine_debris_spawn_allowed(1,1,1,64,1,.21f,.2f));
-    puts("PASS: persistent magazine pool, oldest-slot recycling, saturating age, finite speed and fail-closed spawn bounds");
+    puts("PASS: persistent map-session magazine pool, no eviction when full, finite speed and fail-closed spawn bounds");
 }
 '''
 src = build / "test.c"
@@ -75,6 +71,12 @@ assert "vr_manual_reload_debris_reset();" in map_init
 assert "vr_manual_reload_debris_reset();" in map_dispose
 assert "weapon_magazine_finish_reload" not in spawn + tick + render
 assert "VR_MAGAZINE_DEBRIS_LIFETIME_TICKS" not in reload
+assert "oldest visual" not in reload
+assert "existing drops retained, new visuals skipped" in reload
+assert "memcpy(slot->colors, source_weapon->object.outgoing_change_colors" in spawn
+assert "memcpy(slot->function_values, source_weapon->object.outgoing_function_values" in spawn
+assert "object_try_and_get_and_verify_type(slot->weapon" not in render
+assert "slot->colors, slot->function_values" in render
 assert "static boolean dropped_magazines_have_state" in reload
 reset = reload[reload.index("void vr_manual_reload_debris_reset"):reload.index("static void debris_spawn_from_reload")]
 assert "if (!dropped_magazines_have_state) return;" in reset
@@ -83,4 +85,4 @@ config = (ROOT / "port/linux/src/port_config.c").read_text()
 menu = (ROOT / "port/linux/game/vr_menu.c").read_text()
 assert re.search(r'"vr\.dropped_magazines",\s*_config_boolean,\s*"false"', config)
 assert '"MAG DEBRIS", "vr.dropped_magazines"' in menu
-print("PASS: visual-only offline spawn, native swept collision, persistent world-pass render, save/map lifecycle reset and no ammo mutation")
+print("PASS: visual-only offline spawn, native swept collision, weapon-independent map-session persistence without eviction, save/map lifecycle reset and no ammo mutation")

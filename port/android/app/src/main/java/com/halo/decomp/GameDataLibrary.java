@@ -57,7 +57,25 @@ final class GameDataLibrary {
         File dir=new File(versions,"partial-"+UUID.randomUUID().toString());
         if(!dir.mkdir())throw new IOException("Cannot create import staging folder");return dir;
     }
-    static boolean mapName(String name){return name!=null&&name.matches("(?i)[a-z0-9 _.-]{1,100}\\.map")&&!name.contains("..");}
+    /**
+     * Accept the same safe Custom Edition leaf-name characters as the native
+     * network map-name validator. The Android library handles leaf filenames
+     * only, so path separators remain forbidden; Windows device names are
+     * rejected too because imported profiles may later be used on desktop.
+     */
+    static boolean mapName(String name){
+        if(name==null||name.length()<5||name.length()>104||!name.regionMatches(true,name.length()-4,".map",0,4)||name.contains(".."))return false;
+        int stemEnd=name.length()-4;
+        if(stemEnd>100)return false;
+        for(int i=0;i<stemEnd;i++){
+            char c=name.charAt(i);
+            if(!((c>='a'&&c<='z')||(c>='A'&&c<='Z')||(c>='0'&&c<='9')||c=='_'||c=='-'||c=='.'||c==' '||c=='['||c==']'||c=='('||c==')'||c=='+'))return false;
+        }
+        for(int i=0;i<stemEnd;i++)if(name.charAt(i)=='.'||name.charAt(i)==' '){stemEnd=i;break;}
+        String stem=name.substring(0,stemEnd).toLowerCase(Locale.ROOT);
+        if(stem.equals("con")||stem.equals("prn")||stem.equals("aux")||stem.equals("nul"))return false;
+        return !(stem.length()==4&&(stem.startsWith("com")||stem.startsWith("lpt"))&&stem.charAt(3)>='0'&&stem.charAt(3)<='9');
+    }
     static void copy(InputStream in,File target,long limit) throws IOException {
         byte[] buffer=new byte[1024*1024];long total=0;
         try(OutputStream out=new FileOutputStream(target)) {for(int n;(n=in.read(buffer))!=-1;){

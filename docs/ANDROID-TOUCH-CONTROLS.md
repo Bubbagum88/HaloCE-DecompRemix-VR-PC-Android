@@ -41,11 +41,15 @@ held through Resume must lift before it can operate a gameplay control.
 
 ## Customize during play
 
-Tap **HUD** in the upper-left safe area. Held inputs are released. Drag any of the 19 controls. Selected controls turn amber. **Options** adjusts the selected control's horizontal/vertical position, size (65-160%) and opacity (15-100%). Its **Select a control** list can recover a control hidden under another control or the toolbar.
+Tap **HUD** in the upper-left safe area. Held inputs are released. Drag any of the 19 controls. Selected controls turn amber. **Options** adjusts the selected control's horizontal/vertical position, size (65-160%) and opacity (15-100%). Its **Select a control** list can recover a control hidden under another control or the toolbar. Select a control in that list and turn off **Show and enable this touch control** to remove it from gameplay drawing and touch handling. Hidden controls remain faintly visible and selectable in the editor, and can be restored there. Existing installs default every control to visible.
 
 Global options include scale (65-150%), opacity, independent horizontal/vertical sensitivity (0.25-3), radial dead zone (0-30%), floating movement origin, invert vertical aim, swipe versus held-stick aiming, optional drag-anywhere camera look, and blue/cyan/white/amber/green colors. Individual and global opacity multiply. Labels retain a minimum readability level.
 
 **Save** commits the layout and all options to private app preferences. **Cancel** restores the last saved settings. **Reset** restores defaults in the working editor; Save commits that reset, Cancel undoes it. Editing and options suppress gameplay input, but an online match continues; find somewhere safe first. Editing does not pause the server.
+
+### Export and import a touch layout
+
+From **HUD > OPTIONS**, use **Export touch layout preset** or **Import touch layout preset**. Android's document picker lets you save or choose a `.hcecontrols` file; no broad file-storage permission is needed. A preset contains the touch positions, sizes, visibility, appearance, touch/gyro sensitivity and touch behavior. It does not contain gamepad mappings, saves, game files or account data. Import previews into the unsaved editor: tap **SAVE** to apply it or **CANCEL** to discard it. A canceled picker leaves the layout alone. Imports are versioned and validated, limited to 64 KiB, and reject unknown or out-of-range fields. Keep a copy of presets you want to reuse or share.
 
 One full safe-area screen-width swipe turns 180 degrees at sensitivity 1. Start inside LOOK or FIRE, then drag beyond its circle if needed. Floating movement starts within MOVE and places the stick origin under that initial touch. Dead zone affects MOVE and held-stick look, not swipe look. Positions are normalized to the usable display and clamped to keep circles clear of edges and display cutouts. Resizing does not permanently rewrite saved positions.
 

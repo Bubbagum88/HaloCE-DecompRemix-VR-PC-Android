@@ -58,20 +58,24 @@ static struct {
 } reload;
 struct dropped_magazine {
     int active, node_count;
-    unsigned age;
-    long model, weapon, owner_unit;
+    long model, owner_unit;
     unsigned long long nodes;
     real radius;
     real_point3d center;
     real_vector3d velocity;
+    real_rgb_color colors[NUMBER_OF_OBJECT_CHANGE_COLORS];
+    real function_values[NUMBER_OF_OUTGOING_OBJECT_FUNCTIONS];
     real_matrix4x3 matrices[MAXIMUM_NODES_PER_MODEL];
 };
 static struct dropped_magazine dropped_magazines[VR_MAGAZINE_DEBRIS_CAPACITY];
 static boolean dropped_magazines_have_state;
+static boolean dropped_magazines_full_reported;
 static int cancelled_phase;
 static long cancelled_weapon;
 static boolean reload_local_weapon(long weapon_index, long *unit_out);
 static boolean reload_matrix_valid(real_matrix4x3 const *matrix);
+static long bounds_logged_weapon = NONE, bounds_logged_model = NONE;
+static boolean bounds_log_initialized;
 
 void vr_manual_reload_reset(void)
 {
@@ -90,15 +94,16 @@ void vr_manual_reload_debris_reset(void)
 	if (!dropped_magazines_have_state) return;
     memset(dropped_magazines, 0, sizeof(dropped_magazines));
 	dropped_magazines_have_state = FALSE;
+    dropped_magazines_full_reported = FALSE;
 }
 
 static void debris_spawn_from_reload(struct model *model, real_matrix4x3 *matrices)
 {
     int active[VR_MAGAZINE_DEBRIS_CAPACITY];
-    unsigned age[VR_MAGAZINE_DEBRIS_CAPACITY];
     int slot_index;
     real_matrix4x3 inverse, delta;
     struct dropped_magazine *slot;
+    struct object_datum *source_weapon;
     real bound = 0.0f;
     real scale;
     long unit_index = NONE;
@@ -108,6 +113,8 @@ static void debris_spawn_from_reload(struct model *model, real_matrix4x3 *matric
         reload.kind != RELOAD_MAGAZINE || !reload.component_nodes ||
         model->nodes.count <= 0 || model->nodes.count > MAXIMUM_NODES_PER_MODEL ||
         !reload.bounds_valid[0] || !reload_local_weapon(reload.weapon, &unit_index)) return;
+    source_weapon = object_try_and_get_and_verify_type(reload.weapon, _object_mask_weapon);
+    if (!source_weapon) return;
     if (!vr_magazine_debris_spawn_allowed(TRUE, TRUE, TRUE, model->nodes.count,
             reload.component_nodes, 0.01f, 0.20f)) return;
     matrix4x3_inverse(&reload.socket, &inverse);
@@ -124,22 +131,26 @@ static void debris_spawn_from_reload(struct model *model, real_matrix4x3 *matric
     if (!isfinite(bound) || bound < 0.001f || bound > 0.20f * vr_units_per_metre()) return;
     for (int i = 0; i < VR_MAGAZINE_DEBRIS_CAPACITY; ++i) {
         active[i] = dropped_magazines[i].active;
-        age[i] = dropped_magazines[i].age;
     }
-    slot_index = vr_magazine_debris_choose_slot(active, age, VR_MAGAZINE_DEBRIS_CAPACITY);
-    if (slot_index < 0) return;
+    slot_index = vr_magazine_debris_choose_slot(active, VR_MAGAZINE_DEBRIS_CAPACITY);
+    if (slot_index < 0) {
+        if (!dropped_magazines_full_reported) {
+            platform_log("VR reload debris: map-session pool full (%d); existing drops retained, new visuals skipped",
+                VR_MAGAZINE_DEBRIS_CAPACITY);
+            dropped_magazines_full_reported = TRUE;
+        }
+        return;
+    }
     slot = &dropped_magazines[slot_index];
-    if (slot->active)
-        platform_log("VR reload debris: pool full; replacing oldest visual slot=%d age=%u",
-            slot_index, slot->age);
     memset(slot, 0, sizeof(*slot));
     slot->model = reload.model;
-    slot->weapon = reload.weapon;
     slot->owner_unit = unit_index;
     slot->node_count = (int)model->nodes.count;
     slot->nodes = reload.component_nodes;
     slot->radius = bound;
     slot->active = 1;
+    memcpy(slot->colors, source_weapon->object.outgoing_change_colors, sizeof(slot->colors));
+    memcpy(slot->function_values, source_weapon->object.outgoing_function_values, sizeof(slot->function_values));
     for (short node = 0; node < model->nodes.count; ++node) {
         slot->matrices[node] = matrices[node];
         if (reload.component_nodes & (1ULL << node)) {
@@ -203,7 +214,6 @@ void vr_manual_reload_debris_tick(void)
             for (int axis = 0; axis < 3; ++axis)
                 slot->matrices[node].position.n[axis] += next.n[axis] - slot->center.n[axis];
         slot->center = next;
-        vr_magazine_debris_advance_age(&slot->age);
     }
 }
 
@@ -219,17 +229,15 @@ void vr_manual_reload_debris_render(void)
     if (!lighting) return;
     for (int index = 0; index < VR_MAGAZINE_DEBRIS_CAPACITY; ++index) {
         struct dropped_magazine *slot = &dropped_magazines[index];
-        struct object_datum *weapon;
         real pixels;
         if (!slot->active) continue;
-        weapon = (struct object_datum *)object_try_and_get_and_verify_type(slot->weapon, _object_mask_weapon);
-        if (!weapon || slot->node_count <= 0 || slot->node_count > MAXIMUM_NODES_PER_MODEL) {
+        if (slot->node_count <= 0 || slot->node_count > MAXIMUM_NODES_PER_MODEL) {
             memset(slot, 0, sizeof(*slot));
             continue;
         }
         pixels = render_frustum_sphere_diameter_in_pixels(&render.frustum, &slot->center, slot->radius);
         render_model(slot->model, pixels, slot->matrices, NULL,
-            weapon->object.outgoing_change_colors, weapon->object.outgoing_function_values,
+            slot->colors, slot->function_values,
             lighting, &slot->center, slot->radius, NULL,
             0x5A000000 + index, 0, 0);
     }
@@ -298,7 +306,14 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         reload.bounds_tried=1;
         reload.bounds_valid[0]=model_rigid_component_bounds(reload.model,reload.magazine,reload.component_nodes,&reload.bounds_min[0],&reload.bounds_max[0]);
         reload.bounds_valid[1]=model_rigid_node_bounds(reload.model,reload.chamber,&reload.bounds_min[1],&reload.bounds_max[1]);
-        platform_log("VR manual reload: authored contact bounds weapon=%ld magazine=%d chamber=%d",weapon_index,reload.bounds_valid[0],reload.bounds_valid[1]);
+        if (vr_mr_profile_changed(bounds_log_initialized, bounds_logged_weapon,
+                bounds_logged_model, weapon_index, reload.model)) {
+            platform_log("VR manual reload: authored contact bounds weapon=%ld model=%ld magazine=%d chamber=%d",
+                weapon_index,reload.model,reload.bounds_valid[0],reload.bounds_valid[1]);
+            bounds_logged_weapon=weapon_index;
+            bounds_logged_model=reload.model;
+            bounds_log_initialized=TRUE;
+        }
     }
     definition = weapon_definition_get(weapon->definition_index);
     if (weapon->weapon.state == _weapon_state_primary_recoil && !explicit_reload &&
