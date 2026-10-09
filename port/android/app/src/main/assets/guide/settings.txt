@@ -371,11 +371,16 @@ clipboard) that lets whoever has it join over the internet; opening a
 link (or copying one before switching to the game) joins. Only people
 with the invite can join. Off keeps system link to the local network.
 
+network.legacy_coop [boolean]
+Default: false
+Opt in to legacy network12-14 campaign clients. Old hosts omit scripted team allegiance; marine reticles/team behavior may be wrong.
+Uses old native presentation behavior without invented allegiance. Prefer network15-24. Hosting stays24.
+
 network.protocol_version [integer]
 Default: 24
 Client protocol target: 0 lists/joins all compatible PvP versions 11-24;
 11-24 selects one exact server version. This build always hosts as 24.
-Campaign and Custom Edition map joins require version 23 or newer. This
+Campaign needs15+, or consented legacy12-14; Custom Edition needs23+. This
 is read once when the game starts; restart after changing it. Invalid
 values fall back to the default, 24.
 
@@ -410,6 +415,11 @@ Public MQTT brokers through which the machines of an invite find each
 other and the server browser's listings travel (its messages are
 encrypted); comma-separated host:port, up to 4. The first is upstream's
 own broker (its brokers.txt); the earlier default list moves to this one.
+
+net.physical_interactions [boolean]
+Default: false
+Host permission for enhanced campaign physical interactions. Requires every peer to negotiate this port's optional extension.
+Off by default; unsupported or mixed peers retain ordinary campaign behavior.
 
 network.coop_public [boolean]
 Default: false
@@ -1053,6 +1063,163 @@ Default: true
 With vr.aim "hand": a zoomed weapon shows its zoom in a scope held at
 the gun (an extra view rendered while zoomed); your eyes stay unzoomed.
 
+vr.contact_max_separation [real]
+Default: 0.18
+Maximum visible hand/controller contact separation in metres (0.08 to 0.40). Deeply blocked hands fade instead of crossing collision.
+
+vr.grab_contact [string]
+Default: "auto"
+Offline physical contact radius: auto applies when world interaction is enabled; on always; off keeps existing close-contact behavior.
+
+vr.grab_radius [real]
+Default: 0.25
+Offline player contact radius in metres, clamped 0.18..0.60 and never above the native radius. Occupied space blocks radius expansion.
+
+vr.parkour_wallrun [boolean]
+Default: false
+Optional offline wall running. Native collision remains authoritative.
+
+vr.parkour_walljump [boolean]
+Default: false
+Optional offline wall jumping. Native collision remains authoritative.
+
+vr.parkour_climb [boolean]
+Default: false
+Optional offline grip climbing. Native collision remains authoritative.
+
+vr.wallrun_speed [real]
+Default: 1.25
+Wallrun speed multiplier, 1..2.
+
+vr.wallrun_duration [real]
+Default: 1.5
+Maximum wallrun duration in seconds, 0.5..3.
+
+vr.walljump_scale [real]
+Default: 1.0
+Walljump impulse multiplier, 0.5..1.5.
+
+vr.climb_launch_scale [real]
+Default: 1.0
+Climb release launch multiplier, 0..1.5.
+
+vr.contact_volumes [boolean]
+Default: true
+Use finger/palm volume contact; disable to use the prior ray-contact fallback.
+
+vr.contact_debug [boolean]
+Default: false
+Opt-in detailed contact diagnostics emitted outside render hooks.
+
+vr.vehicle_handles [boolean]
+Default: false
+Optional first-person virtual cockpit controls. Grip near a handle, turn physically; stick throttle remains.
+
+vr.vehicle_wheel_visible [boolean]
+Default: true
+Show virtual cockpit control geometry. Hiding it retains physical grip controls.
+
+vr.handle_warthog_forward [real]
+Default: 0.0
+Virtual warthog control forward; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_warthog_left [real]
+Default: 0.0
+Virtual warthog control left; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_warthog_up [real]
+Default: 0.0
+Virtual warthog control up; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_warthog_size [real]
+Default: 1.0
+Virtual warthog control size; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_ghost_forward [real]
+Default: 0.0
+Virtual ghost control forward; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_ghost_left [real]
+Default: 0.0
+Virtual ghost control left; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_ghost_up [real]
+Default: 0.0
+Virtual ghost control up; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_ghost_size [real]
+Default: 1.0
+Virtual ghost control size; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_scorpion_forward [real]
+Default: 0.0
+Virtual scorpion control forward; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_scorpion_left [real]
+Default: 0.0
+Virtual scorpion control left; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_scorpion_up [real]
+Default: 0.0
+Virtual scorpion control up; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_scorpion_size [real]
+Default: 1.0
+Virtual scorpion control size; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_banshee_forward [real]
+Default: 0.0
+Virtual banshee control forward; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_banshee_left [real]
+Default: 0.0
+Virtual banshee control left; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_banshee_up [real]
+Default: 0.0
+Virtual banshee control up; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.handle_banshee_size [real]
+Default: 1.0
+Virtual banshee control size; position in metres, size as multiplier. Readjust only while ungripped.
+
+vr.reload_shoulder [boolean]
+Default: true
+Manual reload pouch behind the free-hand shoulder. Automatically mirrors when the gun changes hands.
+
+vr.reload_hip [boolean]
+Default: true
+Manual reload pouch at the free-hand hip. Automatically mirrors when the gun changes hands.
+
+vr.manual_reload [boolean]
+Default: false
+Optional offline physical magazine reload for supported weapons; button reload remains available.
+
+vr.npc_max_ragdolls [integer]
+Default: 4
+Maximum simultaneously active physical NPC rigs (1-4), including settling/recovery; bounded per-tick work.
+
+vr.npc_interaction [boolean]
+Default: false
+Optional physical interaction with supported native NPC rigs. Co-op requires host permission and negotiated compatible peers; PvP stays native.
+
+vr.interaction_damage [boolean]
+Default: true
+Physical impact damage for explicitly grabbed objects only; requires optional physical interactions.
+
+vr.impact_threshold [real]
+Default: 2.0
+Minimum surface-normal impact speed in metres/second before physical damage.
+
+vr.impact_damage_cap [real]
+Default: 1.0
+Maximum impact damage as a multiple of the grabbing player native melee damage.
+
+vr.world_interaction [boolean]
+Default: false
+Optional loose weapon, equipment and movable prop grabbing. Grip close with a free hand.
+Two hands improve control. Co-op requires a consenting compatible host and peers; competitive multiplayer stays native.
+
 vr.scope_size [real]
 Default: 0.06
 How wide the scope is, in metres.
@@ -1088,6 +1255,150 @@ The sniper rifle scope moved right (in either hand) from its usual place, metres
 vr.scope_sniper_scale [real]
 Default: 1.0
 The sniper rifle scope's size as a share of vr.scope_size (1 = as usual).
+
+vr.scope_rocket_launcher_forward [real]
+Default: 0.0
+SPNKR native scope forward adjustment; applies when this weapon has zoom.
+
+vr.scope_rocket_launcher_up [real]
+Default: 0.0
+SPNKR native scope up adjustment; applies when this weapon has zoom.
+
+vr.scope_rocket_launcher_right [real]
+Default: 0.0
+SPNKR native scope right adjustment; applies when this weapon has zoom.
+
+vr.scope_rocket_launcher_scale [real]
+Default: 1.0
+SPNKR native scope scale adjustment; applies when this weapon has zoom.
+
+vr.scope_other_forward [real]
+Default: 0.0
+OTHER native scope forward adjustment; applies when this weapon has zoom.
+
+vr.scope_other_up [real]
+Default: 0.0
+OTHER native scope up adjustment; applies when this weapon has zoom.
+
+vr.scope_other_right [real]
+Default: 0.0
+OTHER native scope right adjustment; applies when this weapon has zoom.
+
+vr.scope_other_scale [real]
+Default: 1.0
+OTHER native scope scale adjustment; applies when this weapon has zoom.
+
+vr.scope_plasma_pistol_forward [real]
+Default: 0.0
+PLASMA PISTOL native scope forward adjustment; applies when this weapon has zoom.
+
+vr.scope_plasma_pistol_up [real]
+Default: 0.0
+PLASMA PISTOL native scope up adjustment; applies when this weapon has zoom.
+
+vr.scope_plasma_pistol_right [real]
+Default: 0.0
+PLASMA PISTOL native scope right adjustment; applies when this weapon has zoom.
+
+vr.scope_plasma_pistol_scale [real]
+Default: 1.0
+PLASMA PISTOL native scope scale adjustment; applies when this weapon has zoom.
+
+vr.scope_assault_rifle_forward [real]
+Default: 0.0
+ASSAULT RIFLE native scope forward adjustment; applies when this weapon has zoom.
+
+vr.scope_assault_rifle_up [real]
+Default: 0.0
+ASSAULT RIFLE native scope up adjustment; applies when this weapon has zoom.
+
+vr.scope_assault_rifle_right [real]
+Default: 0.0
+ASSAULT RIFLE native scope right adjustment; applies when this weapon has zoom.
+
+vr.scope_assault_rifle_scale [real]
+Default: 1.0
+ASSAULT RIFLE native scope scale adjustment; applies when this weapon has zoom.
+
+vr.scope_plasma_rifle_forward [real]
+Default: 0.0
+PLASMA RIFLE native scope forward adjustment; applies when this weapon has zoom.
+
+vr.scope_plasma_rifle_up [real]
+Default: 0.0
+PLASMA RIFLE native scope up adjustment; applies when this weapon has zoom.
+
+vr.scope_plasma_rifle_right [real]
+Default: 0.0
+PLASMA RIFLE native scope right adjustment; applies when this weapon has zoom.
+
+vr.scope_plasma_rifle_scale [real]
+Default: 1.0
+PLASMA RIFLE native scope scale adjustment; applies when this weapon has zoom.
+
+vr.scope_shotgun_forward [real]
+Default: 0.0
+SHOTGUN native scope forward adjustment; applies when this weapon has zoom.
+
+vr.scope_shotgun_up [real]
+Default: 0.0
+SHOTGUN native scope up adjustment; applies when this weapon has zoom.
+
+vr.scope_shotgun_right [real]
+Default: 0.0
+SHOTGUN native scope right adjustment; applies when this weapon has zoom.
+
+vr.scope_shotgun_scale [real]
+Default: 1.0
+SHOTGUN native scope scale adjustment; applies when this weapon has zoom.
+
+vr.scope_needler_forward [real]
+Default: 0.0
+NEEDLER native scope forward adjustment; applies when this weapon has zoom.
+
+vr.scope_needler_up [real]
+Default: 0.0
+NEEDLER native scope up adjustment; applies when this weapon has zoom.
+
+vr.scope_needler_right [real]
+Default: 0.0
+NEEDLER native scope right adjustment; applies when this weapon has zoom.
+
+vr.scope_needler_scale [real]
+Default: 1.0
+NEEDLER native scope scale adjustment; applies when this weapon has zoom.
+
+vr.scope_fuel_rod_forward [real]
+Default: 0.0
+FUEL ROD native scope forward adjustment; applies when this weapon has zoom.
+
+vr.scope_fuel_rod_up [real]
+Default: 0.0
+FUEL ROD native scope up adjustment; applies when this weapon has zoom.
+
+vr.scope_fuel_rod_right [real]
+Default: 0.0
+FUEL ROD native scope right adjustment; applies when this weapon has zoom.
+
+vr.scope_fuel_rod_scale [real]
+Default: 1.0
+FUEL ROD native scope scale adjustment; applies when this weapon has zoom.
+
+vr.scope_flamethrower_forward [real]
+Default: 0.0
+FLAMETHROWER native scope forward adjustment; applies when this weapon has zoom.
+
+vr.scope_flamethrower_up [real]
+Default: 0.0
+FLAMETHROWER native scope up adjustment; applies when this weapon has zoom.
+
+vr.scope_flamethrower_right [real]
+Default: 0.0
+FLAMETHROWER native scope right adjustment; applies when this weapon has zoom.
+
+vr.scope_flamethrower_scale [real]
+Default: 1.0
+FLAMETHROWER native scope scale adjustment; applies when this weapon has zoom.
 
 vr.button_jump [string]
 Default: "a"
