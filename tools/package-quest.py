@@ -352,8 +352,14 @@ def main():
                     if marker not in guest:
                         raise SystemExit("Test37 native compatibility gate missing: " + repr(marker))
                 guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt"))
-                for marker in [b"1.0.18-test37", b"network-version population selector",
-                               b"Hosting remains on network 24"]:
+                guide_markers = ([b"1.0.19-test38", b"Hosting stays network 24",
+                                  b"SHOULDER POUCH", b"HIP POUCH", b"four remote peers",
+                                  b"Manual reload and parkour remain solo-only",
+                                  b"optional legacy", b"12-14", b"PHYSICAL HANDLES"]
+                                 if candidate_at_least(args.label, 38) else
+                                 [b"1.0.18-test37", b"network-version population selector",
+                                  b"Hosting remains on network 24"])
+                for marker in guide_markers:
                     if marker not in guide:
                         raise SystemExit("Test37 offline guide marker missing: " + repr(marker))
                 for marker in [b"Browse multiplayer servers", b"Browse campaign co-op servers",
@@ -363,10 +369,11 @@ def main():
             if candidate_at_least(args.label, 36):
                 # Paragraph wrapping is presentation, not missing guidance.
                 guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt"))
-                for marker in [b"1.0.17-test36", b"OpenCE Build 157 / network 24",
-                               b"Two-hand aim centering diagnostics",
-                               b"Scope, aim, turret and vehicle behavior remain unchanged",
-                               b"A Halo-inspired launcher font is selectable"]:
+                for marker in ([] if candidate_at_least(args.label, 38) else
+                               [b"1.0.17-test36", b"OpenCE Build 157 / network 24",
+                                b"Two-hand aim centering diagnostics",
+                                b"Scope, aim, turret and vehicle behavior remain unchanged",
+                                b"A Halo-inspired launcher font is selectable"]):
                     if marker not in guide:
                         raise SystemExit("Test36 offline guide marker missing: " + repr(marker))
                 if b"Orbitron Regular" not in archive.read("assets/guide/credits.txt"):
