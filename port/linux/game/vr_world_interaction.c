@@ -123,6 +123,7 @@ static struct vehicle_datum *vehicle_lift_get(long index)
 		!(vehicle = vehicle_datum_try_and_get(index)) ||
 		vehicle->object.parent_object_index != NONE ||
 		vehicle->object.name_index != NONE ||
+		TEST_FLAG(vehicle->object.damage_flags, _object_dead_bit) ||
 		TEST_FLAG(vehicle->object.flags, _object_movie_star_bit) ||
 		vehicle->unit.driver_object_index != NONE ||
 		vehicle->unit.gunner_object_index != NONE)
@@ -170,6 +171,7 @@ static struct vehicle_datum *vehicle_lift_get(long index)
 	candidate.parented = vehicle->object.parent_object_index != NONE;
 	candidate.occupied = vehicle->unit.driver_object_index != NONE ||
 		vehicle->unit.gunner_object_index != NONE;
+	candidate.destroyed = TEST_FLAG(vehicle->object.damage_flags, _object_dead_bit);
 	candidate.scripted_or_mission_owned = vehicle->object.name_index != NONE ||
 		TEST_FLAG(vehicle->object.flags, _object_movie_star_bit);
 	candidate.mass_point_count = physics->mass_points.count;
@@ -194,64 +196,101 @@ static struct object_datum *interaction_grabbable(long index)
 	return NULL;
 }
 
-/* Apply only a tiny, capped global-up velocity response. The native vehicle
- * update retains gravity and swept collision; we never set position/rotation. */
+/* Follow the tracked hand anchors with a bounded native linear/angular
+ * velocity response. vehicle_accelerate wakes the native physics path; its
+ * built-in global-up yaw impulse is replaced with our bounded hand pose below.
+ * The engine still integrates position/orientation and resolves collision. */
 static boolean vehicle_lift_apply(long index, real_vector3d const *error,
-	int hands, real units, real *mobility_out)
+	int hand, int hand_count, real units, real *mobility_out)
 {
 	struct vehicle_datum *vehicle = vehicle_lift_get(index);
 	struct object_definition *definition;
-	real_vector3d up, current_vertical, requested_vertical, target_vertical, delta;
-	real speed, up_speed, horizontal_speed_squared, max_speed, vertical_limit;
-	real mobility, alpha, error_up, target_up;
+	struct physics_definition *physics;
+	real_vector3d requested_velocity, target_velocity, delta, up, gravity_velocity, target_forward, target_up;
+	real_vector3d angular, second, target_angular, local_line, object_line, hand_line;
+	real speed, angular_speed, gravity, mobility, alpha;
 	int axis;
-	if (!vehicle || !error || !mobility_out || (hands != 1 && hands != 2) ||
+	if (!vehicle || !error || !mobility_out || hand < 0 || hand > 1 ||
+		(hand_count != 1 && hand_count != 2) ||
 		!isfinite(units) || !(units > 0.0f && units < 100.0f) ||
 		!valid_real_vector3d(error) || !valid_real_vector3d(global_up3d))
+		return FALSE;
+	if (!hands[hand].active || hands[hand].index != index ||
+		(hand_count == 2 && (!hands[1 - hand].active || hands[1 - hand].index != index)))
 		return FALSE;
 	up = *global_up3d;
 	if (normalize3d(&up) < 0.99f || !valid_real_vector3d(&up))
 		return FALSE;
 	speed = magnitude3d(&vehicle->object.translational_velocity);
-	if (!isfinite(speed) || speed > units * 0.20f)
+	angular_speed = magnitude3d(&vehicle->object.angular_velocity);
+	if (!valid_real_vector3d(&vehicle->object.translational_velocity) ||
+		!valid_real_vector3d(&vehicle->object.angular_velocity) ||
+		!isfinite(speed) || speed > units * 0.20f ||
+		!isfinite(angular_speed) || angular_speed > 0.15f)
 		return FALSE;
-	up_speed = dot_product3d(&vehicle->object.translational_velocity, &up);
-	scale_vector3d(&up, up_speed, &current_vertical);
 	definition = object_definition_get(vehicle->definition_index);
-	if (!definition || !isfinite(definition->object.acceleration_scale))
+	if (!definition || definition->object.physics.index == NONE ||
+		!isfinite(definition->object.acceleration_scale))
+		return FALSE;
+	physics = physics_definition_get(definition->object.physics.index);
+	if (!physics || !isfinite(physics->gravity_scale) || physics->gravity_scale < 0.0f ||
+		physics->gravity_scale > 4.0f || !isfinite(global_gravity))
 		return FALSE;
 	mobility = PIN(definition->object.acceleration_scale, 0.25f, 2.0f);
-	alpha = (hands == 2 ? 0.50f : 0.35f) * (real)sqrt(mobility);
-	error_up = dot_product3d(error, &up);
-	requested_vertical = current_vertical;
-	for (axis = 0; axis < 3; ++axis)
-		requested_vertical.n[axis] += up.n[axis] * error_up * alpha;
-	if (!vr_vehicle_lift_target_velocity(current_vertical.n, requested_vertical.n,
-		hands, units, target_vertical.n))
+	alpha = (hand_count == 2 ? 0.50f : 0.35f) * (real)sqrt(mobility);
+	gravity = physics->gravity_scale * global_gravity;
+	if (!isfinite(gravity) || gravity > units * 0.20f)
 		return FALSE;
-	/* Leave the existing horizontal speed untouched while respecting the total
-	 * grab-speed envelope. */
-	horizontal_speed_squared = 0.0f;
+	/* The point constraint acts in all three world axes. Compensate exactly for
+	 * this vehicle physics tag's native downward gravity before its next step. */
 	for (axis = 0; axis < 3; ++axis)
+		requested_velocity.n[axis] = error->n[axis] * alpha;
+	scale_vector3d(&up, gravity, &gravity_velocity);
+	add_vectors3d(&requested_velocity, &gravity_velocity, &requested_velocity);
+	if (!valid_real_vector3d(&requested_velocity) ||
+		!vr_vehicle_lift_target_velocity(vehicle->object.translational_velocity.n,
+			requested_velocity.n, hand_count, units, target_velocity.n))
+		return FALSE;
+	for (axis = 0; axis < 3; ++axis)
+		delta.n[axis] = target_velocity.n[axis] - vehicle->object.translational_velocity.n[axis];
+	if (!valid_real_vector3d(&delta) || magnitude3d(&delta) > units * 0.0526f ||
+		!valid_real_vector3d(&vehicle->object.forward) ||
+		!valid_real_vector3d(&vehicle->object.up) ||
+		magnitude3d(&vehicle->object.forward) < 0.9f || magnitude3d(&vehicle->object.up) < 0.9f ||
+		!valid_real_vector3d(&hands[hand].forward) || !valid_real_vector3d(&hands[hand].up) ||
+		magnitude3d(&hands[hand].forward) < 0.9f || magnitude3d(&hands[hand].up) < 0.9f)
+		return FALSE;
+	/* Match the vehicle's grabbed orientation to its tracked hand. With two
+	 * hands, their line adds a second independent orientation constraint. */
+	world_vector(&hands[hand].forward, &hands[hand].up, &hands[hand].local_forward, &target_forward);
+	world_vector(&hands[hand].forward, &hands[hand].up, &hands[hand].local_up, &target_up);
+	if (!valid_real_vector3d(&target_forward) || !valid_real_vector3d(&target_up) ||
+		normalize3d(&target_forward) < 0.9f || normalize3d(&target_up) < 0.9f)
+		return FALSE;
+	cross_product3d(&vehicle->object.forward, &target_forward, &angular);
+	cross_product3d(&vehicle->object.up, &target_up, &second);
+	add_vectors3d(&angular, &second, &angular);
+	if (hand_count == 2)
 	{
-		real horizontal = vehicle->object.translational_velocity.n[axis] - up.n[axis] * up_speed;
-		horizontal_speed_squared += horizontal * horizontal;
+		vector_from_points3d(&hands[0].local_grab, &hands[1].local_grab, &local_line);
+		world_vector(&vehicle->object.forward, &vehicle->object.up, &local_line, &object_line);
+		vector_from_points3d(&hands[0].point, &hands[1].point, &hand_line);
+		if (!valid_real_vector3d(&object_line) || !valid_real_vector3d(&hand_line))
+			return FALSE;
+		if (normalize3d(&object_line) > 0.01f && normalize3d(&hand_line) > 0.01f)
+		{
+			cross_product3d(&object_line, &hand_line, &second);
+			for (axis = 0; axis < 3; ++axis)
+				angular.n[axis] = angular.n[axis] * 0.25f + second.n[axis];
+		}
 	}
-	max_speed = units * 0.20f;
-	if (!isfinite(horizontal_speed_squared) || horizontal_speed_squared > max_speed * max_speed)
+	if (!vr_vehicle_lift_angular_target(angular.n, mobility, target_angular.n))
 		return FALSE;
-	vertical_limit = (real)sqrt((double)max_speed * max_speed - horizontal_speed_squared);
-	if (!isfinite(vertical_limit))
-		return FALSE;
-	target_up = PIN(dot_product3d(&target_vertical, &up), -vertical_limit, vertical_limit);
-	scale_vector3d(&up, target_up, &target_vertical);
-	for (axis = 0; axis < 3; ++axis)
-		delta.n[axis] = target_vertical.n[axis] - current_vertical.n[axis];
-	if (!valid_real_vector3d(&delta) || magnitude3d(&delta) > units * 0.0526f)
-		return FALSE;
-	/* vehicle_accelerate adds a bounded velocity delta. A pure global-up input
-	 * has zero cross product with global_up3d, so it cannot inject yaw torque. */
+	/* vehicle_accelerate wakes native vehicle physics and applies the bounded
+	 * linear delta. Its built-in translation-to-yaw coupling is immediately
+	 * replaced by the tracked-hand angular target above. No transforms teleport. */
 	vehicle_accelerate(index, &delta);
+	vehicle->object.angular_velocity = target_angular;
 	*mobility_out = mobility;
 	return TRUE;
 }
@@ -381,11 +420,27 @@ static void release_hand(int hand, boolean throwing, real units,char const *reas
     struct world_hand *held = &hands[hand];
     struct object_datum *item = held->active ? grabbable(held->index) : NULL;
     if (held->active) {
-        if (throwing && item && item->object.type != _object_type_vehicle &&
-            !(hands[1-hand].active && hands[1-hand].index == held->index)) {
-            real_vector3d velocity = held->velocity;
-            if (vr_world_limit(velocity.n, units * 0.24f))
-                vr_world_object_velocity(held->index, &velocity, &item->object.angular_velocity);
+        if (throwing && item && !(hands[1-hand].active && hands[1-hand].index == held->index)) {
+            if (item->object.type == _object_type_vehicle) {
+                struct vehicle_datum *vehicle = vehicle_lift_get(held->index);
+                real_vector3d linear, angular;
+                if (vehicle) {
+                    if (!vr_vehicle_lift_release(vehicle->object.translational_velocity.n,
+                        vehicle->object.angular_velocity.n, units, linear.n, angular.n)) {
+                        linear = *global_zero_vector3d;
+                        angular = *global_zero_vector3d;
+                    }
+                    vehicle->object.translational_velocity = linear;
+                    vehicle->object.angular_velocity = angular;
+                    platform_log("VR world: vehicle free release hand=%d object=%08lx linear_speed_m_tick=%.3f angular_speed_tick=%.3f",
+                        hand, held->index, (float)magnitude3d(&linear) / units,
+                        (float)magnitude3d(&angular));
+                }
+            } else {
+                real_vector3d velocity = held->velocity;
+                if (vr_world_limit(velocity.n, units * 0.24f))
+                    vr_world_object_velocity(held->index, &velocity, &item->object.angular_velocity);
+            }
         }
 		platform_log("VR world: release hand=%d object=%08lx grip=%s throw=%d reason=%s",
 			hand, held->index, throwing?"up":"held", throwing, reason?reason:"unspecified");
@@ -556,7 +611,7 @@ void vr_world_interaction_tick(void)
 			held->strain_logged=TRUE;
 		} else if(magnitude3d(&error)<0.50f*units)held->strain_logged=FALSE;
         if (item->object.type == _object_type_vehicle) {
-            if (!vehicle_lift_apply(held->index, &error, count, units, &mobility)) {
+			if (!vehicle_lift_apply(held->index, &error, hand, count, units, &mobility)) {
 				if(!held->strain_logged)platform_log("VR world: vehicle lift paused hand=%d object=%08lx reason=outside-safe-envelope grip=held",
 					hand,held->index);
 				held->strain_logged=TRUE;

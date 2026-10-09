@@ -18,6 +18,13 @@ transient movement/trigger controls are suppressed; AI team and orders remain
 native. Immediate forced orders remain excluded. Co-op props use host-side
 contact verification and bounded target following.
 
+The existing default-off **LIFT VEHICLES** option now follows contact-held
+hands in translation and rotation for the validated unoccupied ground-vehicle
+subset. Native vehicle integration and collision remain active; release leaves
+bounded native velocity. Networked/destroyed/occupied vehicles and boat/aircraft
+solver families remain excluded. The focused vehicle math/source test passes;
+Quest motion/collision/release acceptance remains pending.
+
 Test44 ISO/XISO source guidance, Existing game data explanation and A10 reticle
 calibration remain. Engine base is OpenCE Build157/network24 with selected
 Build167 fixes. Run focused tests, all regression suites, both edition builds

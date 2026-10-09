@@ -100,8 +100,12 @@ and Java startup. Switching applies to the next launch. See
   32 discarded magazines remain visible through same-map checkpoint/core
   restores during the running session; map change, disabling MAG DEBRIS, or
   entering an online session clears them. When full, new visuals are skipped.
-  Vehicle lift is vertical and limited
-  to supported unoccupied vehicles. Rescue applies only to eligible live actors
+  Vehicle lift uses contact plus Grip to move and rotate a supported unoccupied
+  Warthog, Ghost, Scorpion or turret with one or two hands. Translation and
+  orientation are speed-capped; release lets the native vehicle solver continue
+  with gravity and collision. It is solo-only, does not teleport, and excludes
+  occupied, destroyed, parented, named/movie-star, boat, aircraft and networked
+  vehicles. Rescue applies only to eligible live actors
   in the documented fall/recovery state. Custom scenery uses validated
   collision bounds; it does not enable arbitrary BSP geometry or script-owned
   scenery.
@@ -193,7 +197,10 @@ pass the native head/pelvis, capsule, graph and non-flight checks. It reuses
 the authored graph; it is not universal retargeting for arbitrary mods or
 online custom-layout support. Dropped magazines are not serialized into save files, do not survive a
 map change, create ammo, or replicate; the 32 visual props survive only same-map
-state restores in the current process. Vehicle lifting does not carry, rotate or throw vehicles.
+state restores in the current process. Vehicle lifting supports bounded
+hand-driven translation and rotation for the listed ground vehicle classes;
+it does not teleport or add an extra throw impulse, and release retains only
+the capped native velocity.
 NPC rescue does not revive dead actors, override scripts or guarantee every
 mission encounter. These interactions still need Quest testing. Automated
 checks do not establish headset or live-server acceptance.

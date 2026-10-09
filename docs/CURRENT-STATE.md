@@ -13,6 +13,13 @@ be held through ordinary AI command lists, with only transient controls
 suppressed; their team/orders remain native. Forced immediate orders remain
 ineligible. The host applies the same bounded target-follow rule to co-op props.
 
+The existing default-off **LIFT VEHICLES** option now supports bounded
+hand-driven translation and rotation for the validated unoccupied Warthog,
+Ghost, Scorpion and turret subset. Native integration, gravity and collision
+remain in control; release leaves capped native velocity. Networked, destroyed,
+occupied, named/movie-star and unsupported solver families remain stock.
+Focused math/source checks pass; Quest handling still needs acceptance.
+
 The previous Test44 launcher storage guidance, protected Existing game data
 status and A10 reticle-based look calibration are retained. Engine base remains
 Build157/network24 with selected Build167 compatibility fixes. Physical Quest,

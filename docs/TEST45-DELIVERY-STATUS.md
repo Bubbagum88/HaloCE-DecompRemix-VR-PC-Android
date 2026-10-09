@@ -26,7 +26,15 @@ do not publish it.
   Quest/Android runtime audio and two-client sessions remain unverified.
 - Adds explicit acquisition, hold-start, tracking-rebase, constraint-strain,
   and release/cancellation-reason diagnostics.
-- Keeps up to 32 local visual discarded magazines through same-map checkpoint,
+- **Source-only follow-up, not included in the APK hashes below:** expands the
+  existing default-off **LIFT VEHICLES** toggle from vertical
+  nudging to bounded hand-driven translation and orientation for eligible
+  unoccupied Warthog, Ghost, Scorpion and turret classes. Native vehicle
+  integration and collision remain active; Grip release retains capped native
+  motion and adds no throw impulse. Boats, aircraft, destroyed/occupied,
+  parented, named/movie-star, unsupported and network vehicles remain stock.
+- **Source-only follow-up, not included in the APK hashes below:** keeps up to
+  32 local visual discarded magazines through same-map checkpoint,
   campaign-state and core restores in the running session. Map initialization
   and disposal, disabling MAG DEBRIS, and online-session gating still clear
   them. The props are not serialized into saves or replicated; when the fixed
@@ -64,6 +72,13 @@ second client, and live co-op remain unverified until device testing. These
 limitations are not represented as passed tests; use
 `TEST45-DEVICE-CHECKLIST.md` for acceptance steps. The candidate remains
 private and the public release is unchanged.
+
+The later vehicle-lifting source follow-up passes
+`tools/test_vr_vehicle_lift.py` under WSL Clang with ASan/UBSan and passes
+`git diff --check`. This focused C harness validates helper bounds and source
+guards; it does not compile the full Quest flavor or prove in-game vehicle
+physics. No APK was rebuilt for this follow-up. Device motion/collision/release
+checks are still required before treating the expanded vehicle path as accepted.
 
 ## Magazine-persistence follow-up (source only; not in the APK hashes above)
 

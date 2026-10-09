@@ -1,6 +1,8 @@
 ﻿# World interaction implementation and acceptance status
 
-The Test38 interaction foundation carries into the private Test40 candidate. Optional loose-object interaction, articulated NPC handling, and the four Test40 additions are OFF by default. Source implementation and automated checks cover only the bounded paths below; headset, campaign and real multiplayer acceptance are still required. This document does not claim universal NPC support or that every original acceptance scenario has passed.
+The Test38 interaction foundation carries into active private Test45. Optional loose-object interaction, articulated NPC handling and the Test40 additions are OFF by default. Source implementation and automated checks cover only the bounded paths below; headset, campaign and real multiplayer acceptance are still required. This document does not claim universal NPC support or that every original acceptance scenario has passed.
+
+**Artifact boundary:** the vehicle-lifting expansion and same-map magazine-persistence follow-up described below are source-only changes made after the APK hashes recorded in `TEST45-DELIVERY-STATUS.md`. They are not present in those APKs; no APK was rebuilt for these follow-ups. Treat their automated results as source evidence only until a new candidate is built and tested.
 
 ## Delivered architecture
 
@@ -14,7 +16,7 @@ The Test38 interaction foundation carries into the private Test40 candidate. Opt
 - Enhanced campaign sessions negotiate an optional interaction capability. The host validates player ownership, finite/range-limited input, session sequence and leases, and alone simulates root physics and damage. Both flat Android and VR hosts support that authority. NPC palettes are interpolated on upgraded clients with bounded bandwidth and lease expiry. Stock/mixed sessions retain their original behavior; enhanced NPC handling is not silently activated there. Legacy campaign protocol compatibility is a separate feature.
 - Save/load, map changes, tracking/focus loss, player death, vehicle entry and invalid ownership cancel transient holds. Before saving, live ownership is released; no frozen AI flags or solver format are added to checkpoints.
 
-## Test40 additions
+## Test40 and Test45 additions
 
 - **Custom NPC rigs:** `vr.custom_npc_rigs` admits a validated generic actor
   fallback in solo play for `_actor_none` and grounded custom `_actor_engineer`
@@ -28,14 +30,23 @@ The Test38 interaction foundation carries into the private Test40 candidate. Opt
   graph layouts remain refused. Real custom-tag headset coverage is pending.
 - **Discarded magazine visuals:** `vr.dropped_magazines` is a render-only,
   offline option for supported manual-reload magazine profiles. It uses a
-  fixed 32-slot pool with no timed expiry and replaces the oldest when full.
-  Map and game-state loads clear the visuals; they are not ammo, saved objects
-  or network messages.
-- **Vehicle lifting:** `vr.vehicle_lift` also requires `vr.world_interaction`.
-  It applies a capped vertical velocity response through native vehicle
-  acceleration for unoccupied, unnamed Warthog/Ghost/Scorpion/turret classes.
-  Native collision and gravity remain active. No horizontal carry/rotation or
-  network mutation is used.
+  fixed 32-slot pool with no timed expiry or eviction; when full, later drops
+  are skipped. Same-map checkpoint, campaign-state and core restores retain
+  these visuals in the current process after saved collision-owner handles are
+  detached. Map initialization/disposal, disabling the option and entering an
+  online session clear them. They are visual-only, not ammo, save-file objects
+  or network messages. This persistence follow-up is source-only and is absent
+  from the APK hashes in `TEST45-DELIVERY-STATUS.md`.
+- **Vehicle lifting (Test45):** default-off `vr.vehicle_lift` independently
+  admits contact-held, unoccupied, non-destroyed, unparented, unnamed
+  Warthog/Ghost/Scorpion/turret classes with validated physics. One/two tracked
+  hands drive bounded translation and angular velocity; the engine continues
+  to integrate transforms, gravity and collision. Grip release leaves only
+  capped native velocity; no teleport or extra throw impulse is applied.
+  Network sessions, boats, aircraft, named/movie-star and unsupported classes
+  retain stock behavior. `test_vr_vehicle_lift.py` covers helper math and
+  source guards; Quest acceptance remains pending. This expansion is
+  source-only and is absent from the APK hashes in `TEST45-DELIVERY-STATUS.md`.
 - **NPC rescue:** `vr.npc_rescue` watches eligible encounter actors in solo VR.
   After ten seconds of downward unsupported/out-of-map state, it moves an NPC
   only to a recorded grounded pose with a clear full standing capsule. It does
@@ -83,7 +94,7 @@ The Test38 interaction foundation carries into the private Test40 candidate. Opt
 | W33 | Multiple objects | Independent hand/object transactions and up to eight continuing NPC bodies in the mod's articulated interaction pool. |
 | W34 | World weapons | Native loose weapons; pickup ends invalid hold; no duplication or new inventory shortcut. |
 | W35 | Equipment | Eligible loose equipment; detonating projectiles/counter duplication excluded. |
-| W36 | Vehicles/huge objects | Test40 adds default-off vertical lifting for a validated, unoccupied subset; no horizontal carry or rotation. |
+| W36 | Vehicles/huge objects | Test45 adds default-off, contact-driven translation/orientation and bounded release velocity for validated unoccupied Warthog/Ghost/Scorpion/turret classes; no teleport, network manipulation, boats or aircraft. Quest acceptance pending. |
 | W37 | World collision | Native items, conservative prop OBB and swept NPC joint spheres; no universal mesh nonpenetration claim. |
 | W38 | Player collision | Native root collision retained; closer-contact margin is separately guarded by capsule clearance. |
 | W39 | Multiplayer | Native item state plus optional explicitly negotiated enhanced campaign channel. |
@@ -105,7 +116,7 @@ The Test38 interaction foundation carries into the private Test40 candidate. Opt
 | W55 | Debug tools | Logs and sanitizer harnesses; force/constraint visual overlay not implemented. |
 | W56 | Logging | Ownership/transition and aggregate simulation timing; avoid per-render spam. |
 | W57 | Automated checks | Real extracted production lifecycle/species/pool functions, solver sanitizers and guest compilation. |
-| W58 | Device checklist | Test40 checklist is recorded; all physical/campaign/network checks await owner testing. |
+| W58 | Device checklist | Test45 checklist is recorded; all physical/campaign/network checks await owner testing. |
 | W59 | Staging | Object foundation, solver, native ownership, recovery, impacts and negotiated network stages implemented. |
 | W60 | Reload/fingers | Shared exclusive grip owners prevent overlap; visible contact hooks integrate with fingers. |
 | W61 | Priority | Existing claims win; separate reload/vehicle/world/parkour/NPC ownership. |
@@ -113,10 +124,10 @@ The Test38 interaction foundation carries into the private Test40 candidate. Opt
 | W63 | Game safety | No actor spawning/deletion, inventory edits or collision-disable workaround; admission guards preserved. |
 | W64 | Out-of-bounds | Test40 adds optional local NPC recovery after a ten-second fall/outside-map dwell; no respawn/revive. |
 | W65 | Enjoyment | Requires player feedback on strength, recovery, collisions and comfort. |
-| W66 | Final acceptance | Test40 source coverage recorded; device acceptance remains pending, not implied. |
+| W66 | Final acceptance | Test45 source coverage recorded; device acceptance remains pending, not implied. |
 
 ## Validation and remaining acceptance
 
 `tools/test_vr_world_physics.py` exercises the actual spring/release/reset and articulated solver under AddressSanitizer/UndefinedBehaviorSanitizer, including 600-tick constraint/floor/recovery tests, 64-node self-collision budgets and invalid transaction rollback. `tools/test_vr_npc_interaction.py` extracts production species, ownership, pool, corpse classification, release, root velocity, snapshot and contact functions; it checks concurrent ownership, two-hand gates, round-robin snapshots, lifecycle and hook ordering. Both are registered in the project check runner. Actual guest compilation covers the NPC module in flat and VR plus modified native object, unit, biped and checkpoint hooks.
 
-Compilation and focused checks cannot establish every authored rig's visual quality, every mission script's behavior, physical comfort, Quest frame-time cost or real multiplayer synchronization. Unsupported species/rigs, arbitrary static scenery, full six-degree-of-freedom vehicle manipulation, visual force diagnostics and automatic recovery of actively script-owned NPCs remain unsupported. Test40's bounded features are described above; owner device/campaign testing remains pending.
+Compilation and focused checks cannot establish every authored rig's visual quality, every mission script's behavior, physical comfort, Quest frame-time cost or real multiplayer synchronization. Unsupported species/rigs, arbitrary static scenery, lifting vehicles outside the validated ground subset, network vehicle manipulation, visual force diagnostics and automatic recovery of actively script-owned NPCs remain unsupported. Test40–Test45 bounded features are described above; owner device/campaign testing remains pending.

@@ -2,8 +2,9 @@
  * Fail-closed math and lifecycle helpers for bounded VR vehicle lifting.
  *
  * This header does not access game objects, networking or transforms. A later
- * Gameplay integration applies the bounded velocity delta through the engine's
- * vehicle_accelerate path; authored gravity and collision remain native.
+ * Gameplay integration applies bounded linear/angular velocity through the
+ * engine's vehicle update; authored gravity, collision and transform
+ * integration remain native.
  */
 #ifndef HALO_VR_VEHICLE_LIFT_MATH_H
 #define HALO_VR_VEHICLE_LIFT_MATH_H
@@ -35,6 +36,7 @@ struct vr_vehicle_lift_candidate
 	int valid_native_physics;
 	int parented;
 	int occupied;
+	int destroyed;
 	int scripted_or_mission_owned;
 	int mass_point_count;
 	int powered_mass_point_count;
@@ -70,13 +72,34 @@ static void vr_vl_zero3(float v[3])
 	}
 }
 
+static int vr_vl_limit3(float v[3], double maximum)
+{
+	double length;
+	int n;
+	if (!v || !vr_vl_finite3(v) || !isfinite(maximum) || !(maximum > 0.0))
+	{
+		vr_vl_zero3(v);
+		return 0;
+	}
+	length = vr_vl_length3(v);
+	if (!isfinite(length))
+	{
+		vr_vl_zero3(v);
+		return 0;
+	}
+	if (length > maximum)
+		for (n = 0; n < 3; ++n)
+			v[n] = (float)((double)v[n] * maximum / length);
+	return vr_vl_finite3(v);
+}
+
 /* Unknown vehicle types, network sessions, occupied/scripted vehicles and
  * malformed native physics are rejected. No heuristic/tag-name fallback. */
 static int vr_vehicle_lift_eligible(struct vr_vehicle_lift_candidate const *c)
 {
 	if (!c || c->feature_enabled != 1 || c->offline_session != 1 ||
 		c->supported_vehicle_type != 1 || c->valid_native_physics != 1 ||
-		c->parented || c->occupied || c->scripted_or_mission_owned ||
+		c->parented || c->occupied || c->destroyed || c->scripted_or_mission_owned ||
 		c->mass_point_count < 1 ||
 		c->mass_point_count > VR_VEHICLE_LIFT_MAX_MASS_POINTS ||
 		c->powered_mass_point_count < 0 ||
@@ -95,8 +118,8 @@ static int vr_vehicle_lift_eligible(struct vr_vehicle_lift_candidate const *c)
  * Existing vehicle speed above the conservative lift envelope is rejected so
  * acquiring a fast vehicle cannot abruptly brake or redirect it.
  *
- * This is a velocity target only. It must not be applied by setting an object
- * position or by writing the vehicle's transform.
+ * This is a velocity target only. The engine must integrate it and resolve
+ * collision; never write the object's position or orientation directly.
  */
 static int vr_vehicle_lift_target_velocity(float const current[3],
 	float const requested[3], int hands, float units_per_metre, float out[3])
@@ -134,6 +157,46 @@ static int vr_vehicle_lift_target_velocity(float const current[3],
 		if (!isfinite(target[n]) || fabs(target[n]) > FLT_MAX)
 			return 0;
 		out[n] = (float)target[n];
+	}
+	return 1;
+}
+
+/* Map orientation error into a conservative angular velocity (radians/tick).
+ * The caller computes hand-to-object basis error from tracked poses. */
+static int vr_vehicle_lift_angular_target(float const error[3], float mobility,
+	float out[3])
+{
+	int n;
+	vr_vl_zero3(out);
+	if (!out || !vr_vl_finite3(error) || !isfinite(mobility) || mobility < 0.25f || mobility > 2.0f)
+		return 0;
+	for (n = 0; n < 3; ++n)
+		out[n] = error[n] * 0.12f * sqrtf(mobility);
+	return vr_vl_limit3(out, 0.08);
+}
+
+/* Let the native solver continue from a bounded free-release velocity. A
+ * malformed state is zeroed instead of being propagated into physics. */
+static int vr_vehicle_lift_release(float const linear[3], float const angular[3],
+	float units_per_metre, float linear_out[3], float angular_out[3])
+{
+	int n;
+	vr_vl_zero3(linear_out);
+	vr_vl_zero3(angular_out);
+	if (!linear_out || !angular_out || !vr_vl_finite3(linear) || !vr_vl_finite3(angular) ||
+		!isfinite(units_per_metre) || !(units_per_metre > 0.0f && units_per_metre < 100.0f))
+		return 0;
+	for (n = 0; n < 3; ++n)
+	{
+		linear_out[n] = linear[n];
+		angular_out[n] = angular[n];
+	}
+	if (!vr_vl_limit3(linear_out, (double)units_per_metre * 0.20) ||
+		!vr_vl_limit3(angular_out, 0.08))
+	{
+		vr_vl_zero3(linear_out);
+		vr_vl_zero3(angular_out);
+		return 0;
 	}
 	return 1;
 }

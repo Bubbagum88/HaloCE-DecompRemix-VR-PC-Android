@@ -939,7 +939,7 @@ static const struct config_setting config_settings[] =
 	{ "vr.interaction_reach", _config_real, "0.04", "HALO_VR_INTERACTION_REACH", _environment_value, _platform_vr,
 		"Tracked palm contact-sphere radius in metres for physical object/NPC grabs and climbing (0.02 to 0.08). Grip only acquires a target while the hand collision sphere overlaps its collision model or solid surface." },
 	{ "vr.vehicle_lift", _config_boolean, "false", "HALO_VR_VEHICLE_LIFT", _environment_value, _platform_vr,
-		"Optional offline vertical lifting of unoccupied, unnamed Warthog, Ghost, Scorpion and turret vehicles. Works independently of WORLD GRAB. Native gravity and collision remain active; no horizontal carry or rotation. Unsupported, occupied, scripted and network vehicles remain native." },
+		"Optional offline, contact-grabbed full-body lifting of unoccupied, unnamed Warthog, Ghost, Scorpion and turret vehicles; independent of WORLD GRAB. One/two hand motion controls bounded native translation and orientation; release leaves a speed-capped vehicle in native physics. No teleporting. Destroyed, occupied, parented, named/movie-star, unsupported and network vehicles remain native." },
 	{ "vr.scope_size", _config_real, "0.06", "HALO_VR_SCOPE_SIZE", _environment_value, _platform_vr,
 		"How wide the scope is, in metres." },
 	{ "vr.scope_pistol_forward", _config_real, "0.0", "HALO_VR_SCOPE_PISTOL_FORWARD", _environment_value, _platform_vr,

@@ -94,6 +94,7 @@ lifecycle=r'''
 #include <string.h>
 #include <math.h>
 #include "vr_world_math.h"
+#include "vr_vehicle_lift_math.h"
 typedef int boolean;
 typedef union {struct {float i,j,k;};float n[3];} real_vector3d;
 typedef real_vector3d real_point3d;
@@ -101,14 +102,21 @@ typedef float real;
 #define NONE (-1)
 #define VR_INTERACTION_WORLD 3
 enum {_object_type_none,_object_type_vehicle};
-struct object_datum {struct {real_vector3d angular_velocity;int type;} object;};
+struct object_state {real_vector3d translational_velocity,angular_velocity;int type;};
+struct object_datum {struct object_state object;};
+struct vehicle_datum {struct object_state object;};
 static struct object_datum item;
+static struct vehicle_datum vehicle;
+static real_vector3d zero_velocity;
+static real_vector3d const *global_zero_vector3d=&zero_velocity;
 static int probes,throws,releases;
 static real_vector3d applied;
 static struct object_datum *grabbable(long id){++probes;return id==42?&item:0;}
+static struct vehicle_datum *vehicle_lift_get(long id){return id==42?&vehicle:0;}
 static void vr_world_object_velocity(long id,real_vector3d const *linear,real_vector3d const *angular){assert(id==42);(void)angular;++throws;applied=*linear;}
 static void vr_interaction_release(int hand,int owner){assert(hand>=0&&hand<2&&owner==3);++releases;}
 static void platform_log(char const *format,...){(void)format;}
+static real magnitude3d(real_vector3d const *v){return sqrtf(v->i*v->i+v->j*v->j+v->k*v->k);}
 static long last_tick,last_unit;
 static int previous_grip[2];
 static unsigned long weight_haptic_at[2]={10,20};
@@ -120,7 +128,11 @@ int main(void){
  release_hand(0,1,1,"shared-hand");assert(throws==0&&hands[1].active);
  hands[1].velocity.i=100;release_hand(1,1,1,"grip-release");assert(throws==1&&fabsf(applied.i-.24f)<.00001f);
  hands[0].active=1;hands[0].index=42;hands[0].velocity.i=100;item.object.type=_object_type_vehicle;
- release_hand(0,1,1,"vehicle-release");assert(throws==1&&!hands[0].active);item.object.type=_object_type_none;
+ vehicle.object.translational_velocity.i=1.0f;vehicle.object.angular_velocity.j=.2f;
+ release_hand(0,1,1,"vehicle-release");assert(throws==1&&!hands[0].active);
+ assert(fabsf(magnitude3d(&vehicle.object.translational_velocity)-.20f)<.00001f);
+ assert(fabsf(magnitude3d(&vehicle.object.angular_velocity)-.08f)<.00001f);
+ item.object.type=_object_type_none;
  hands[0].active=1;hands[0].index=42;hands[0].velocity.i=NAN;
  release_hand(0,1,1,"invalid-velocity");assert(throws==1);
  hands[0].active=1;hands[0].index=999;int old=probes;

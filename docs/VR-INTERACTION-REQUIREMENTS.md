@@ -213,7 +213,7 @@ compatibility are demonstrated. No articulated-ragdoll capability is assumed.
 | W33 | Multiple object interactions | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W34 | Grabbing weapons from the world | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W35 | Grenades and equipment | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
-| W36 | Vehicles and extremely large objects | Test40 adds default-off, local vertical lifting for a validated unoccupied native subset. | No horizontal carry/rotation, boats/aircraft, named/scripted/occupied or network vehicles; see TEST40 disposition. |
+| W36 | Vehicles and extremely large objects | Test45 source expands default-off local lifting to bounded hand-driven translation/orientation and capped free release for validated unoccupied Warthog/Ghost/Scorpion/turret classes. | Uses native vehicle integration/gravity/collision; no teleport or network manipulation. Destroyed, occupied, parented, named/movie-star, unsupported, boat and aircraft cases retain stock behavior. Focused helper/source test passes; Quest acceptance and a full APK build remain pending. |
 | W37 | World collision | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W38 | Player-body collision considerations | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W39 | Co-op and multiplayer compatibility | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |

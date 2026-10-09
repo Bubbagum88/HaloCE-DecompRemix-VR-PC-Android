@@ -39,6 +39,24 @@ session, so use the cases below before treating the candidate as accepted.
 - [ ] Check tracking loss, disconnect and host teardown cancel safely with a
       clear log reason. Confirm ordinary PvP/co-op controls remain unchanged.
 
+## Quest VR: whole-vehicle lifting
+
+- [ ] In solo play, enable **LIFT VEHICLES** and contact an eligible parked
+      Warthog, Ghost, Scorpion and turret before squeezing Grip. Move each held
+      vehicle up/down and side-to-side; confirm it follows smoothly without
+      snapping or teleporting and collides with the world.
+- [ ] Use one hand to turn the vehicle by changing controller orientation, then
+      grip with the second hand and move the hands apart/together and around one
+      another. Confirm the vehicle rotates in response without a sudden spin.
+- [ ] Release Grip while the vehicle is moving. Confirm the hand detaches, the
+      vehicle continues under native gravity/collision, and its speed remains
+      controlled. Repeat after a large controller tracking discontinuity.
+- [ ] Confirm a destroyed vehicle, a vehicle with any filled seat, a parented
+      or named/movie-star vehicle, and a network-session vehicle cannot be
+      acquired or changed by the feature. Confirm boats and aircraft stay stock.
+- [ ] Confirm vehicle lifting still works with WORLD GRAB disabled, since it
+      has its own toggle. Test both hands and the global HAPTICS setting.
+
 ## Regression smoke checks
 
 - [ ] In **Server Setup > Teamplay Options**, confirm voice routing, lobby
