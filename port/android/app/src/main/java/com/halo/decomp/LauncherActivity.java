@@ -339,6 +339,10 @@ public class LauncherActivity extends Activity {
         play = menuButton(layout, "Play");
         play.setOnClickListener(v -> startFromMenu());
         menuButton(layout, gameDataButtonLabel()).setOnClickListener(v -> {if(!busy)dataManager().show();});
+        label(layout, "First-run imports become protected Existing game data. Use Game files & versions > Import ISO / XISO to add separately selectable sets.",
+            12, Color.rgb(180, 190, 205));
+        label(layout, "Picker-selected ISO/XISO files are imported as maps only. The launcher does not keep or delete the original image; delete it in Android Files. Only copies placed in the import inbox can be deleted here.",
+            12, Color.rgb(255, 190, 70));
 
         label(layout, "Community directory fallback · live reported populations · compatible versions only can join",
             13, Color.rgb(150, 160, 170));
@@ -630,8 +634,10 @@ public class LauncherActivity extends Activity {
         TextView message = new TextView(this);
         menuButton(layout, "Game files & versions").setOnClickListener(v -> dataManager().show());
         message.setText("Choose an Xbox disc image of Halo: Combat Evolved (an .iso or .xiso file) "
-            + "on this device. Its maps folder is copied into the app's storage (about 1.8 GB), "
-            + "and you can delete the image afterwards.\n\n"
+            + "on this device. Its supported maps are copied into app storage (about 1.8 GB). "
+            + "The launcher does not keep or delete the original ISO/XISO; it remains in its original location. "
+            + "Use Android Files to delete that source image if you want to reclaim its space. This first-run import appears later as protected Existing game data. "
+            + "Add separately selectable sets from Game files & versions after setup.\n\n"
             + "You can also copy a maps folder from a computer:\n"
             + "adb push <folder with maps>/. " + (dataRoot != null ? dataRoot.getAbsolutePath() : "") + "/");
         message.setTextColor(Color.rgb(200, 205, 210));

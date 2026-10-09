@@ -57,7 +57,7 @@ for key, kind, default in [('vr.gun_anchor', '_config_boolean', 'true'), ('vr.gu
                            ('vr.weapon_offset_back', '_config_real', '-0.20'), ('vr.weapon_pitch', '_config_real', '0.0')]:
     assert table.get(key) == (kind, default), (key, table.get(key))
 assert table.get('vr.npc_max_ragdolls') == ('_config_integer', '8')
-assert table.get('vr.interaction_reach') == ('_config_real', '0.25')
+assert table.get('vr.interaction_reach') == ('_config_real', '0.04')
 
 # --- static wiring
 ik = fn(render, 'vr_render_first_person_ik')
@@ -236,15 +236,16 @@ int main(void){
 menu_rows = re.sub(r'#define VR_MENU_TURNING_ROW (\{.*\})\n', r'\1,\n', menu)
 rows = re.findall(r'\{ "([A-Z +\-]+)", "[\w.]+", _vr_setting_multi, (\d+), \{ (.*?) \} \},', menu_rows)
 assert {r[0] for r in rows} >= {'TURNING', 'WEAPONS', 'HOLSTERS', 'HANDS', 'ARM RUN', 'MELEE', 'NPC RIG SLOTS'}, rows
-reach_row = next((line for line in menu.splitlines() if '"GRAB REACH"' in line), '')
-assert '_vr_setting_real, 5,' in reach_row, 'VR menu exposes five bounded physical-grab distances'
+reach_row = next((line for line in menu.splitlines() if '"HAND CONTACT"' in line), '')
+assert '_vr_setting_real, 4,' in reach_row, 'VR menu exposes bounded palm contact radii'
 reach_values = re.findall(r'\{ "([^"]+)", "([^"]+)" \}', reach_row)
-assert reach_values == [('12 CM', '0.12'), ('18 CM', '0.18'), ('25 CM', '0.25'),
-                        ('30 CM', '0.30'), ('40 CM', '0.40')], reach_values
+assert reach_values == [('2 CM', '0.02'), ('4 CM', '0.04'), ('6 CM', '0.06'),
+                        ('8 CM', '0.08')], reach_values
+assert 'current = current < 0.02 ? 0.02 : current > 0.08 ? 0.08 : current;' in menu, 'legacy reach configs display their clamped contact radius'
 domains = {'vr.arms': {'ik', 'hidden', 'animated'}, 'vr.hand_tracking': {'ik', 'floating', 'floating_arms'},
            'vr.melee': {'impact', 'swing'},
            'vr.weapons': {'locked', 'physical'}, 'vr.npc_max_ragdolls': {str(n) for n in range(1, 9)},
-           'vr.interaction_reach': {'0.12', '0.18', '0.25', '0.30', '0.40'}}
+           'vr.interaction_reach': {'0.02', '0.04', '0.06', '0.08'}}
 for label, count, values in rows:
     pairs = re.findall(r'\{ "([^"]+)", "([^"]+)" \}', values)
     assert len(pairs) == int(count) <= 12, label

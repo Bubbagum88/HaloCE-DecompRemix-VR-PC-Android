@@ -7,25 +7,36 @@ and the existing native action-animation handoff remain available.
 ## Player operation
 
 Enable **Manual reload** in VR Controls. In a local game, use the free hand's
-grip to take the magazine from a supported weapon, pull it clear, and release.
-Grip near the free-hand-side hip or shoulder to retrieve its replacement.
+selected **Reload Input** to take the magazine from a supported weapon, pull it
+clear, and release. **Controls → Buttons → Reload Input** selects Grip (the
+default) or Trigger. Trigger selection reads the free controller's analog
+trigger with press/release hysteresis; it applies only to manual reload and
+does not remap weapon firing, world/NPC grabbing, or other grip interactions.
+First touch the configured free-hand-side hip or shoulder pickup point with
+the hand-contact sphere, then press the selected input to retrieve its
+replacement. Touching the weapon's authored magazine or chamber bounds is
+required for those interactions too; controller aim and a broad proximity
+reach do not acquire reload parts. **HAND CONTACT** sets the shared 2-8 cm
+contact radius (4 cm by default).
 Shoulder and hip retrieval each have an independent toggle (both default on).
 Pouches automatically follow the free-hand side: left with a right-hand gun,
 right with a left-hand gun. Bring the replacement
 to the weapon's socket with its orientation aligned (a short haptic pulse), then
-release grip. It seats smoothly over 0.10 seconds before the finishing mechanism
+release the selected input. It seats smoothly over 0.10 seconds before the finishing mechanism
 becomes available. Finish with the weapon's mechanism below.
-Grip must be pressed anew at each grab; holding it while passing a socket does
-not automatically acquire the object.
+The selected input must be pressed anew while contact is present at each grab;
+holding it before reaching a part or pickup point does not automatically acquire
+the object. Magazine seating is a separate placement step: the already-held
+magazine must align with the authored socket and release there.
 
 | Weapon | Physical part | Finish |
 |---|---|---|
-| Assault rifle | Magazine | Grip operating handle, pull backward relative to gun, release |
-| Pistol | Magazine | Grip slide, pull backward relative to gun, release |
-| Sniper rifle | Magazine and attached bullet mesh | Grip operating handle, pull backward relative to gun, release |
-| Shotgun | One shell from hip/shoulder; no fictitious removable magazine | Insert shell, then grip/pull/release pump; one native round per cycle |
-| SPNKR | Tube assembly | After insertion, grip and release the push-bar latch at its authored node |
-| Flamethrower | Fuel canister | After insertion, grip and release the cover at its authored node |
+| Assault rifle | Magazine | Hold the selected input at the operating handle, pull backward relative to gun, release |
+| Pistol | Magazine | Hold the selected input at the slide, pull backward relative to gun, release |
+| Sniper rifle | Magazine and attached bullet mesh | Hold the selected input at the operating handle, pull backward relative to gun, release |
+| Shotgun | One shell from hip/shoulder; no fictitious removable magazine | Insert shell, then hold the selected input and pull/release the pump; one native round per cycle |
+| SPNKR | Tube assembly | After insertion, hold/release the selected input at the push-bar latch's authored node |
+| Flamethrower | Fuel canister | After insertion, hold/release the selected input at the cover's authored node |
 | Needler | Crystal bundle retrieved from hip/shoulder | Align the authored needle cluster and insert; native replenishment commits after seating, with no fictitious bolt |
 | Plasma pistol/rifle | Native battery/heat behavior retained | Stock tags have zero reload capacity/count; no invented battery refill |
 | Gravity/fuel-rod/custom weapons | Native behavior retained | No validated player first-person reload profile in these supplied maps |
@@ -113,16 +124,17 @@ executes the actual finger query routing and cap/recovery state under sanitizers
 | Requirement | Source disposition | Remaining validation |
 |---|---|---|
 | M1 optional manual reload | Off-by-default local-game setting, seven authored profiles | Headset operation |
-| M2 retrieval | Fresh grip at independently enabled hip/shoulder, automatically on the free-hand side | Physical comfort/reach |
+| M2 retrieval | Fresh input edge while the shared hand-contact sphere overlaps the enabled hip/shoulder pickup point on the free-hand side | Physical comfort and point placement |
 | M3 magazine models | Existing authored mesh and rigid node subtrees | Stereo alignment |
-| M4 removal | Grip, relative separation, release; shotgun is loose-shell exception | Reach/tolerance tuning |
-| M5 insertion | Socket distance and forward/up alignment, haptic feedback, release and 0.10-second seating blend | Natural fit on device |
+| M4 removal | Hand-contact sphere overlaps authored magazine bounds, then grip, relative separation and release; shotgun is loose-shell exception | Contact fit on device |
+| M5 insertion | Held part aligns with its authored socket and forward/up axes, with haptic feedback, release and 0.10-second seating blend | Natural fit on device |
 | M6 ammo synchronization | One native commit; online native fallback | Real save/checkpoint and multiplayer regression |
 | M7 chambering | Gun-relative handle/slide/pump; authored latch grip for assemblies | Device movement and ergonomics |
 | M8 per-weapon definitions | Seven exact first-person tags; battery/non-player native behaviors above | Additional custom-tag definitions |
 | M9 two-hand interaction | Exclusive grip ownership clears support lock while manipulating | Both handednesses in headset |
 | M10 cancellation | Lifecycle, explicit button, stale/invalid pose and tracking checks | Interrupt every stage on device |
 | M11 haptics | Bounded transition pulses using existing haptic scaling | User preference/device result |
+| Reload input | Grip is the default; optional free-hand analog Trigger is selectable in Controls → Buttons | Automated mode/threshold checks; both inputs need headset confirmation |
 
 `tools/test_manual_reload.py` exercises the physical sequence, grip-edge rules,
 missed sockets, incomplete handle pulls, cancellation from every phase,

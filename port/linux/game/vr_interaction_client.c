@@ -52,7 +52,9 @@ void vr_interaction_client_tick(boolean ready, boolean npc_ready)
 {
     short local=local_player_get_next(NONE);long player=local!=NONE?local_player_get_player_index(local):NONE;
     struct player_datum *p=player!=NONE?player_get(player):NULL;unsigned int buttons;float triggers[2],sticks[4];
-    int valid=ready&&p&&p->unit_index!=NONE&&vr_aiming()&&vr_controller(&buttons,triggers,sticks);
+    /* Hand interactions are driven by tracked contact and Grip, independent
+     * of weapon aim mode. Requiring aim made touch-and-grip unusable in co-op. */
+    int valid=ready&&p&&p->unit_index!=NONE&&vr_controller(&buttons,triggers,sticks);
     if(!valid||local_unit!=p->unit_index){vr_interaction_client_reset();if(!valid)return;local_unit=p->unit_index;local_player=player;}
     real_point3d camera;unit_get_camera_position(local_unit,&camera);
     for(int h=0;h<2;h++) {

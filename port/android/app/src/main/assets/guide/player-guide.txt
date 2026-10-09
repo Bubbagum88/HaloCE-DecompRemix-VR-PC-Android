@@ -1,9 +1,32 @@
-# Test43 private candidate: 1.0.24-test43
+# Test44 private candidate: 1.0.25-test44
 
 Private Quest VR and Android test build. Public v1.0.18 remains the accepted
-release; Test43 has not been published or device-tested. It carries forward all
-project changes made after v1.0.18 through Test42, plus the launcher game-data
-changes below. PC/Steam Frame remains deferred.
+release; Test44 has not been published or device-tested. It carries forward all
+project changes made after v1.0.18 through Test43, plus the source-file guidance
+and A10 calibration refinement below. PC/Steam Frame remains deferred.
+
+## Changes in Test44
+
+- The first-run screen, main launcher and **Game files & versions** manager now
+  explain that picker-selected ISO/XISO files import supported maps
+  only. The original image remains in its original location; the launcher does
+  not keep or delete it. Use Android Files to remove that original file. Only a
+  copy placed in `game-versions/inbox` can be deleted from the launcher.
+- The first-run import is installed as the protected **Existing game data**
+  base set. The manager explains that its disabled **Currently selected** row
+  is expected when it is the only set; use **Import ISO / XISO** or **Scan
+  inbox** to add separately selectable managed sets. The base row cannot be
+  deleted or replaced from the manager.
+- In Halo CE's opening A10 look-calibration sequence, the directional checks
+  and scripted look-at checks follow the current hand-aim reticle ray when the
+  rendered ray is fresh and valid. Outside A10 and in head-aim mode, the
+  existing head-based behavior remains. In hand-aim mode, invalid/stale ray
+  data pauses calibration progress until a valid rendered ray is available.
+- No other mission's script visibility, AI behavior, weapon aim, reticle render,
+  saves, networking, Android touch input, or Safe Geometry behavior is changed.
+
+This is source/test verified only. Calibration still requires Quest testing to
+confirm the in-game tutorial's authored timing and target sequence.
 
 ## Game-data selection and storage
 
@@ -19,7 +42,8 @@ changes below. PC/Steam Frame remains deferred.
   import. An ISO/XISO selected directly through Android's file picker is not
   retained; the source ISO/XISO stays where you selected it. Source folders
   also remain untouched.
-- Byte-identical map sets deduplicate to one profile. The verified USA Original,
+- Byte-identical managed map sets deduplicate to one profile; Existing game data
+  is a separate protected base row. The verified USA Original,
   Rev 1 and Rev 2 XISOs contain identical bytes for their 24 maps, so importing
   them does not create three distinct selectable map sets. Other images remain
   separately selectable when their imported maps differ. Filenames do not
@@ -55,7 +79,7 @@ and Java startup. Switching applies to the next launch. See
   in the documented fall/recovery state. Custom scenery uses validated
   collision bounds; it does not enable arbitrary BSP geometry or script-owned
   scenery.
-- **GRAB REACH:** selectable from 12 to 40 cm. **NPC RIG SLOTS** controls 1-8
+- **HAND CONTACT:** sets a small palm collision radius (2, 4, 6, or 8 cm), not a reach ray. World objects and NPCs can be grabbed only when the tracked hand volume overlaps their collision model. To climb, touch a solid vertical surface with a free hand, then squeeze Grip. **NPC RIG SLOTS** controls 1-8
   mod interaction rigs, not Halo's native corpse count. Source review found no
   native corpse-count slider or fixed simultaneous corpse cap; per-corpse
   settling duration and general object/memory cleanup are separate.
@@ -119,7 +143,7 @@ This guide describes the published **Halo CE Quest VR + Android v1.0.18 / OpenCE
 
 Use the Android APK for a phone/tablet and the Quest APK for standalone VR. On Quest, enable Developer Mode and sideload with SideQuest or ADB. Install over the existing project app so imported game data, saves and settings remain. Do not uninstall or clear app data. Supply your own supported Xbox Halo CE game files; none are included.
 
-The main launcher shows the selected game-data label and how many distinct sets are installed; tap it to switch. **Game files & versions** opens the full manager, where you can import an ISO/XISO or extracted game folder, inspect the recognized cache build and select or rename a set. You can delete an inactive imported copy there; deletion removes that set's maps, config and local saves, while the active set and existing/base game data are protected. Deleting a copied ISO/XISO from the import inbox is a separate action. Images selected from Android's file picker remain at their original location and are not stored by the launcher. Exact byte-identical map sets share one profile, so labels alone do not create separate runtime revisions. The **Versions & updates** page checks the project's compatible releases and provides official upstream downloads separately. Upstream files are not applied blindly to the integrated VR/network runtime.
+The main launcher shows the selected game-data label and how many distinct sets are installed; tap it to switch. **Game files & versions** opens the full manager, where you can import an ISO/XISO or extracted game folder, inspect the recognized cache build and select or rename a set. You can delete an inactive imported copy there; deletion removes that set's maps, config and local saves, while the active set and existing/base game data are protected. Deleting a copied ISO/XISO from the import inbox is a separate action. Images selected through Android's file picker are imported as maps only: the launcher does not retain or delete the original ISO/XISO, which remains at its original location. Use Android Files to delete that source image. The initial setup image appears as protected **Existing game data**; use the manager's **Import ISO / XISO** or **Scan inbox** controls to add separately selectable managed sets. Exact byte-identical managed map sets share one profile, while the Existing game data base row remains separate; labels alone do not create separate runtime revisions. The **Versions & updates** page checks the project's compatible releases and provides official upstream downloads separately. Upstream files are not applied blindly to the integrated VR/network runtime.
 
 ## Browse, join and host in game
 

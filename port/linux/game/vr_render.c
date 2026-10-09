@@ -19,6 +19,7 @@ built from the game's camera and the headset's pose (port/linux/src/vr.h).
 #include "physics/collisions.h"
 #include "physics/collision_features.h"
 #include "camera/director.h"
+#include "main/main.h"
 #include "units/units.h"
 #include "models/model_animation_definitions.h"
 #include "units/unit_definitions.h"
@@ -1446,6 +1447,38 @@ void vr_render_weapon_camera(
 	}
 }
 
+/* The first mission's opening light checks need to follow the visible gun
+ * reticle, not just the headset. Other maps and head-aim mode return to the
+ * existing path; hand-aim calibration waits if its cached ray is unavailable. */
+int vr_script_calibration_reticle_ray(float origin[3], float direction[3])
+{
+	char *map_name = main_get_map_name();
+	double age;
+	float ray_origin[3], ray_direction[3];
+	real length;
+	int axis;
+	if (!map_name || strcmp(map_name, "a10") != 0 || !vr_hand_aiming())
+		return 0;
+	if (!origin || !direction || !vr_render.stereo || vr_render.cinematic_view || vr_render.seat.seated)
+		return -1;
+	age = vr_pose_time() - vr_render.reticle_time;
+	if (!isfinite(age) || age < 0.0 || age >= 0.10) return -1;
+	for (axis = 0; axis < 3; axis++)
+	{
+		ray_origin[axis] = vr_render.reticle_origin.n[axis];
+		ray_direction[axis] = vr_render.reticle_direction.n[axis];
+		if (!isfinite(ray_origin[axis]) || !isfinite(ray_direction[axis])) return -1;
+	}
+	length = (real)sqrtf(ray_direction[0] * ray_direction[0] + ray_direction[1] * ray_direction[1] + ray_direction[2] * ray_direction[2]);
+	if (!isfinite(length) || length < 0.5f) return -1;
+	for (axis = 0; axis < 3; axis++)
+	{
+		origin[axis] = ray_origin[axis];
+		direction[axis] = ray_direction[axis] / length;
+	}
+	return 1;
+}
+
 boolean vr_script_can_see_point(long unit_index, const real_point3d *point, real field_of_view, boolean *result)
 {
 	short local = local_player_get_next(NONE);
@@ -1457,6 +1490,13 @@ boolean vr_script_can_see_point(long unit_index, const real_point3d *point, real
 	if (player_index == NONE || player_get(player_index)->unit_index != unit_index || !unit_try_and_get(unit_index)) return FALSE;
 	unit_get_camera_position(unit_index, &camera);
 	if (!vr_script_head_view(camera.n, eye.n, forward.n)) return FALSE;
+	/* Limit the hand-ray override to A10's look-at calibration. In hand-aim
+	 * mode, an unavailable render ray waits rather than granting progress from
+	 * head direction; all other paths retain native/head-gaze behavior. */
+	{
+		int ray = vr_script_calibration_reticle_ray(eye.n, forward.n);
+		if (ray < 0) { *result = FALSE; return TRUE; }
+	}
 	vector_from_points3d(&eye, point, &direction);
 	normalize3d(&direction);
 	*result = dot_product3d(&direction, &forward) > cosine(field_of_view);
@@ -3067,15 +3107,19 @@ static void vr_limit_hand_compliance(struct animation_graph *graph,real_matrix4x
     real visibility=vr_hand_compliance_step(&state[controller],vr_length(&difference)/units,
         config_real("vr.contact_max_separation"),(real)dt,reset);
     time[controller]=now;last_unit[controller]=unit;last_graph[controller]=graph;epoch[controller]=vr_contact_epoch;
-    /* Hide the whole matching arm coherently, never a severed wrist/forearm.
-     * The held gun is excluded; local presentation never moves collision. */
+    /* Fade the arm when its animation pose cannot follow the tracked hand,
+     * but preserve the terminal hand and finger subtree at its collision-
+     * constrained pose. The held gun is excluded; this is render-only. */
     short gun=vr_find_node(graph,"frame","gun");
     for(short node=0;node<MIN(graph->nodes.count,MAXIMUM_NODES_PER_ANIMATION);node++)
         if(vr_node_under(graph,node,arm) && !vr_node_under(graph,node,gun)) {
+            real node_visibility=vr_hand_compliance_node_visibility(visibility,
+                vr_node_under(graph,node,hand));
             if(node!=arm)for(int coordinate=0;coordinate<3;coordinate++)
-                matrices[node].position.n[coordinate]=matrices[arm].position.n[coordinate]+
-                    (matrices[node].position.n[coordinate]-matrices[arm].position.n[coordinate])*visibility;
-            matrices[node].scale*=visibility;
+                matrices[node].position.n[coordinate]=vr_hand_compliance_node_position(
+                    matrices[arm].position.n[coordinate],matrices[node].position.n[coordinate],
+                    visibility,vr_node_under(graph,node,hand));
+            matrices[node].scale*=node_visibility;
         }
 }
 

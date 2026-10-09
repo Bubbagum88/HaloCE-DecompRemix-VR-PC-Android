@@ -21,6 +21,7 @@ static struct { int active,menus_active,grip_pressed[2],grip_released[2],grip_he
  int two_hand_held,two_handed,support_near,weapon_hand,actions; float support_dwell;
 } vr;
 static int interaction_owner[2];
+static int interaction_trigger_held[2];
 '''
 cases = r'''
 int main(void) {
@@ -57,6 +58,16 @@ int main(void) {
  }
  assert(!vr_interaction_claim(-1,1)&&!vr_interaction_claim(2,1));
  assert(!vr_interaction_claim(0,0)&&!vr_interaction_claim(0,VR_INTERACTION_COUNT));
+ /* Alternate manual-reload input shares the same exclusive owner slot while
+  * ordinary features still require grip through the legacy wrapper. */
+ vr.grip_held[0]=0;interaction_trigger_held[0]=1;
+ assert(vr_interaction_trigger(0));
+ assert(vr_interaction_claim_input(0,VR_INTERACTION_RELOAD,vr_interaction_trigger(0)));
+ assert(!vr_interaction_claim_input(0,VR_INTERACTION_WORLD,vr_interaction_trigger(0)));
+ vr_interaction_release(0,VR_INTERACTION_RELOAD);
+ interaction_trigger_held[0]=0;assert(!vr_interaction_trigger(0));
+ assert(!vr_interaction_claim_input(0,VR_INTERACTION_RELOAD,vr_interaction_trigger(0)));
+ vr.grip_held[0]=1;
  vr.active=0;assert(!vr_interaction_claim(0,1));
  return 0;
 }

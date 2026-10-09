@@ -1,26 +1,34 @@
 # Current development state
 
-## Active private candidate: Test43 (2026-10-09)
+## Active private candidate: Test44 (2026-10-09)
 
-Candidate target is **1.0.24-test43 / Android code54**. It carries forward all
-project changes since public v1.0.18, including Tests38-42, the supplied Halo CE
-Quest icon, touch-layout export/import and per-control hide, supplied USA XISO
-comparison, and selected OpenCE Build167 compatibility fixes. The launcher now
-shows the active data-set choice on the main screen and supports switching
-among distinct imported map sets. Inactive managed copies and ISO/XISO files
-copied to the import inbox can be deleted through guarded controls. Active and
-base/existing data are protected; the original file selected through Android's
-picker stays at its source location. Byte-identical sets remain deduplicated,
-and filename-only revision labels are not treated as verified identities.
+Candidate target is **1.0.25-test44 / Android code55** on
+`test39-interaction-completion`. It carries forward all changes since public
+v1.0.18 and Test43. The focused changes clarify that picker-selected ISO/XISO
+imports copy maps only; the original stays in its original location and must
+be removed through Android Files. The launcher can remove only an image copy
+placed in its import inbox. The disabled active **Existing game data** row is
+explained as protected status. In the opening A10 tutorial, fresh valid
+hand-reticle rays drive calibration look actions and point checks; other maps
+and head-aim mode keep existing head-based behavior. Stale/invalid hand rays
+pause calibration checks rather than crediting head motion. No other script/AI
+path is intended to change.
 
-The engine base remains Build157/network24. See
-[TEST43-REQUIREMENT-DISPOSITION.md](TEST43-REQUIREMENT-DISPOSITION.md) and
-[TEST43-DEVICE-CHECKLIST.md](TEST43-DEVICE-CHECKLIST.md); Test42 retains the
-upstream boundary and cumulative prior feature record. Automated tests/builds
-are not headset acceptance. Public v1.0.18 and earlier candidate artifacts
-remain unchanged. Do not publish, install or launch the game. PC/Steam Frame
-remains deferred. Final hashes/checks go in
-[TEST43-DELIVERY-STATUS.md](TEST43-DELIVERY-STATUS.md).
+Contact acquisition is contact-volume driven: local and host-validated co-op
+NPC/enemy and loose-object grabs require overlap with authored collision models
+plus a fresh Grip edge; climbing requires contact with a solid surface plus a
+fresh Grip edge. Manual reload uses part-bound/pouch contact and socket-bound
+contact; optional vehicle handles use their virtual contact points. Aim
+direction or a target-search ray cannot initiate these actions. The shared palm
+collider is 2–8 cm (4 cm default); camera LOS is a safety guard after contact,
+not target selection. Physical headset acceptance is pending.
+
+The engine base remains Build157/network24 with selected Build167 compatibility
+fixes. See [TEST44-REQUIREMENT-DISPOSITION.md](TEST44-REQUIREMENT-DISPOSITION.md),
+[TEST44-DEVICE-CHECKLIST.md](TEST44-DEVICE-CHECKLIST.md), and
+[TEST44-DELIVERY-STATUS.md](TEST44-DELIVERY-STATUS.md). Test43 artifacts remain
+preserved. Automated tests/builds are not headset or Android storage acceptance.
+Do not publish, install or launch the game. PC/Steam Frame remains deferred.
 
 ## Superseded private candidate: Test40
 

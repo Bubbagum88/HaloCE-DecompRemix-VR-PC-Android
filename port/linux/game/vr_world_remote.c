@@ -7,6 +7,8 @@
 #include "objects/object_definitions.h"
 #include "units/units.h"
 #include "physics/collisions.h"
+#include "physics/collision_models.h"
+#include "physics/collision_bsp.h"
 #include "physics/physics.h"
 #include "network_interaction.h"
 #include "vr_world_interaction.h"
@@ -14,6 +16,7 @@
 #include "vr_world_props.h"
 #include "vr_interaction_impact.h"
 #include "../src/port_config.h"
+#include <float.h>
 #include <string.h>
 static struct remote_grip {
     boolean active;
@@ -54,21 +57,25 @@ static boolean remote_owner_valid(long player_index,long unit_index)
 }
 static long find_candidate(struct network_interaction_hand const *request)
 {
-    struct object_iterator it; struct object_datum *item; struct collision_result hit;
-    real best=.12f*units(); long result=NONE; int count=0;
+    struct object_iterator it; struct object_datum *item;
+    real contact_radius=(real)vr_world_hand_contact_radius((float)config_real("vr.interaction_reach"),(float)units());
+    real best=FLT_MAX; long result=NONE; int count=0;
+    real_vector3d stationary={0};
     object_iterator_new(&it,_object_mask_weapon|_object_mask_equipment|_object_mask_scenery,0);
     while((item=object_iterator_next(&it))!=NULL) {
-        real_vector3d ray; real distance;
+        real_vector3d delta; real distance;
+        struct collision_model_instance model;
+        struct collision_model_test_pill_result model_hit;
         if(!vr_world_object_get(it.index)) continue;
-        vector_from_points3d(&request->position,&item->object.bounding_sphere_center,&ray);
-        if(magnitude3d(&ray)>item->object.bounding_sphere_radius+best) continue;
+        vector_from_points3d(&request->position,&item->object.bounding_sphere_center,&delta);
+        distance=magnitude3d(&delta);
+        if(distance>item->object.bounding_sphere_radius+contact_radius || distance>=best) continue;
         if(++count>32) break;
-        if(!collision_test_vector(FLAG(_collision_test_front_facing_surfaces_bit)|
-            FLAG(_collision_test_back_facing_surfaces_bit)|FLAG(_collision_test_structure_bit)|
-            FLAG(_collision_test_objects_bit)|_collision_test_objects_all_types_flags,
-            &request->position,&ray,request->unit,&hit) || hit.type!=_collision_result_object || hit.object_index!=it.index) continue;
-        vector_from_points3d(&request->position,&hit.point,&ray);distance=magnitude3d(&ray);
-        if(distance<best) {best=distance;result=it.index;}
+        /* The sphere is broad phase only. Host acquisition requires overlap
+         * between the client's tracked palm volume and this native model. */
+        if(!collision_model_instance_new(&model,it.index) ||
+            !collision_model_test_pill(&model,&request->position,&stationary,contact_radius,&model_hit)) continue;
+        best=distance;result=it.index;
     }
     return result;
 }
@@ -82,6 +89,7 @@ boolean vr_world_interaction_remote(struct network_interaction_hand const *reque
     real_point3d camera, contact;
     struct collision_result hit;
     real u=units();
+    real contact_radius=(real)vr_world_hand_contact_radius((float)config_real("vr.interaction_reach"),(float)u);
     if(!request || request->hand>1 || !network_interaction_host_ready()) return FALSE;
     if(!remote_owner_valid(request->player,request->unit)) {
         vr_world_interaction_remote_cancel(request->player,request->hand);return FALSE;
@@ -110,19 +118,20 @@ boolean vr_world_interaction_remote(struct network_interaction_hand const *reque
         if(game_time_get()>r->tick) for(i=0;i<3;++i)
             r->velocity.n[i]=r->velocity.n[i]*.55f+vector.n[i]*.45f/(game_time_get()-r->tick);
     } else {
+        struct collision_model_instance model;
+        struct collision_model_test_pill_result model_hit;
+        real_vector3d stationary={0};
         if(!request->pressed) return FALSE;
         if(!(item=vr_world_object_get(request->object))) return FALSE;
         for(i=0;i<256;++i) if(remote[i].active && remote[i].object==request->object && remote[i].player!=request->player) return FALSE;
         if(vr_world_interaction_object(0)==request->object || vr_world_interaction_object(1)==request->object) return FALSE;
         vector_from_points3d(&request->position,&item->object.bounding_sphere_center,&vector);
-        if(magnitude3d(&vector)>item->object.bounding_sphere_radius+.12f*u ||
-            !collision_test_vector(FLAG(_collision_test_front_facing_surfaces_bit)|
-                FLAG(_collision_test_back_facing_surfaces_bit)|FLAG(_collision_test_structure_bit)|
-                FLAG(_collision_test_objects_bit)|_collision_test_objects_all_types_flags,
-                &request->position,&vector,request->unit,&hit) ||
-            hit.type!=_collision_result_object || hit.object_index!=request->object) return FALSE;
-        contact=hit.point;vector_from_points3d(&request->position,&contact,&vector);
-        if(magnitude3d(&vector)>.12f*u) return FALSE;
+        if(magnitude3d(&vector)>item->object.bounding_sphere_radius+contact_radius ||
+            !collision_model_instance_new(&model,request->object) ||
+            !collision_model_test_pill(&model,&request->position,&stationary,contact_radius,&model_hit)) return FALSE;
+        /* The palm is the contact anchor. LOS below only prevents gripping
+         * through an intervening wall; a ray never selects the object. */
+        contact=request->position;
         unit_get_camera_position(request->unit,&camera);vector_from_points3d(&camera,&contact,&vector);
         if(collision_test_vector(_collision_test_for_line_of_sight_flags,&camera,&vector,request->unit,&hit) &&
             !(hit.type==_collision_result_object && hit.object_index==request->object)) return FALSE;

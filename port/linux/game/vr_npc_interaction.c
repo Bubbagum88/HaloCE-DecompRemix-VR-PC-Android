@@ -15,6 +15,8 @@
 #include "units/biped_definitions.h"
 #include "items/weapons.h"
 #include "physics/collisions.h"
+#include "physics/collision_models.h"
+#include "physics/collision_bsp.h"
 #include "physics/physics.h"
 #include "../src/vr.h"
 #include "../src/port_config.h"
@@ -336,29 +338,29 @@ static long probe_remote(real_point3d const *point,real_point3d const *camera,lo
     struct object_iterator it;
     struct unit_datum *unit;
     struct collision_result hit;
+    struct collision_model_instance model;
+    struct collision_model_test_pill_result model_hit;
     struct vr_articulated_native capture;
     real_vector3d delta;
-    real reach=(real)vr_world_interaction_reach((float)config_real("vr.interaction_reach"),.32808399f);
+    real contact_radius=(real)vr_world_hand_contact_radius((float)config_real("vr.interaction_reach"),.32808399f);
+    real_vector3d stationary={0.0f,0.0f,0.0f};
     int budget=0;
     object_iterator_new(&it,_object_mask_biped,0);
     while((unit=object_iterator_next(&it))!=NULL) {
         struct npc_state *existing=state_for_object(it.index);
         real_point3d contact;
-        real_point3d ray_start;
         int node,mapped=FALSE;
         if((required!=NONE&&required!=it.index) || (existing&&existing!=npc_current&&(existing->held[0]||existing->held[1])&&
            !(existing->is_remote&&existing->player==remote.player)) || !eligible(it.index)) continue;
         vector_from_points3d(point,&unit->object.bounding_sphere_center,&delta);
-        if(magnitude3d(&delta)>unit->object.bounding_sphere_radius+reach) continue;
+        if(magnitude3d(&delta)>unit->object.bounding_sphere_radius+contact_radius) continue;
         if(++budget>16) break;
-        if(normalize3d(&delta)<.00001f) continue;
-        point_from_line3d(point,&delta,-reach,&ray_start);
-        vector_from_points3d(&ray_start,&unit->object.bounding_sphere_center,&delta);
-        if(!collision_test_vector(_collision_test_for_line_of_sight_flags|FLAG(_collision_test_back_facing_surfaces_bit),&ray_start,&delta,player_unit,&hit) ||
-           hit.type!=_collision_result_object || hit.object_index!=it.index) continue;
-        contact=hit.point;node=hit.node_index;
-        vector_from_points3d(point,&contact,&delta);
-        if(magnitude3d(&delta)>reach) continue;
+        if(!collision_model_instance_new(&model,it.index) ||
+           !collision_model_test_pill(&model,point,&stationary,contact_radius,&model_hit)) continue;
+        /* A biped is selectable only when the tracked hand's collision sphere
+         * overlaps its authored model. A center ray, aim direction, or broad
+         * reach radius is never sufficient. */
+        contact=*point;node=model_hit.node_index;
         vector_from_points3d(camera,&contact,&delta);
         if(collision_test_vector(_collision_test_for_line_of_sight_flags,camera,&delta,player_unit,&hit) &&
            !(hit.type==_collision_result_object&&hit.object_index==it.index)) continue;
@@ -502,7 +504,7 @@ static void tick_player(int use_remote,long player)
     unsigned int buttons;
     float triggers[2],thumbs[4];
     if(!authority() || (!use_remote && (!vr_active() || !config_boolean("vr.npc_interaction") ||
-       !vr_controller(&buttons,triggers,thumbs) || !vr_aiming())) ||
+       !vr_controller(&buttons,triggers,thumbs))) ||
        !u || u->object.parent_object_index!=NONE || TEST_FLAG(u->object.damage_flags,_object_dead_bit) ||
        cinematic_in_progress() || (!use_remote&&director_inhibited_input(local)) || !(units>0)) {
         cancel_one();return;
@@ -520,7 +522,7 @@ static void tick_player(int use_remote,long player)
             npc_pool[slot].is_remote==use_remote&&npc_pool[slot].held[h]) {npc_current=&npc_pool[slot];npc.tick=tick;break;}
         int pressed,released,grip=use_remote?remote.held[h]:vr_interaction_grip(h,&pressed,&released);
         real_point3d point;
-        real reach=(real)vr_world_interaction_reach((float)config_real("vr.interaction_reach"),(float)units);
+        real contact_radius=(real)vr_world_hand_contact_radius((float)config_real("vr.interaction_reach"),(float)units);
         real_vector3d forward,up,delta;
         pressed=grip&&!edges[h];edges[h]=grip;
         if(use_remote) point=remote.point[h];
@@ -547,12 +549,14 @@ static void tick_player(int use_remote,long player)
             struct object_iterator it;
             struct unit_datum *candidate;
             struct collision_result hit;
+            struct collision_model_instance model;
+            struct collision_model_test_pill_result model_hit;
+            real_vector3d stationary={0.0f,0.0f,0.0f};
             int budget=0,scanned=0,eligible_count=0,surface_hits=0;
             int graph_rejects=0,node_rejects=0,capacity_rejects=0,acquired=0;
             object_iterator_new(&it,_object_mask_biped,0);
             while((candidate=object_iterator_next(&it))!=NULL) {
                 int node,mapped=FALSE;
-                real_point3d ray_start;
                 struct npc_state *existing=state_for_object(it.index),*destination;
                 ++scanned;
                 if((npc.active&&npc.minimum_hands>1&&npc.index!=it.index) ||
@@ -564,18 +568,13 @@ static void tick_player(int use_remote,long player)
                 destination=existing?existing:(!npc.active?npc_current:free_state());
                 if(!destination){++capacity_rejects;continue;}
                 vector_from_points3d(&point,&candidate->object.bounding_sphere_center,&delta);
-                if(magnitude3d(&delta)>candidate->object.bounding_sphere_radius+reach) continue;
+                if(magnitude3d(&delta)>candidate->object.bounding_sphere_radius+contact_radius) continue;
                 if(++budget>16) break;
-                if(normalize3d(&delta)<.00001f) continue;
-                point_from_line3d(&point,&delta,-reach,&ray_start);
-                vector_from_points3d(&ray_start,&candidate->object.bounding_sphere_center,&delta);
-                if(!collision_test_vector(_collision_test_for_line_of_sight_flags|FLAG(_collision_test_back_facing_surfaces_bit),&ray_start,&delta,unit,&hit) ||
-                   hit.type!=_collision_result_object || hit.object_index!=it.index) continue;
+                if(!collision_model_instance_new(&model,it.index) ||
+                   !collision_model_test_pill(&model,&point,&stationary,contact_radius,&model_hit)) continue;
                 ++surface_hits;
-                vector_from_points3d(&point,&hit.point,&delta);
-                if(magnitude3d(&delta)>reach) continue;
-                node=hit.node_index;
-                real_point3d contact=hit.point;
+                node=model_hit.node_index;
+                real_point3d contact=point;
                 vector_from_points3d(&camera,&contact,&delta);
                 if(collision_test_vector(_collision_test_for_line_of_sight_flags,&camera,&delta,unit,&hit) &&
                    !(hit.type==_collision_result_object && hit.object_index==it.index)) continue;
@@ -619,9 +618,9 @@ static void tick_player(int use_remote,long player)
                 acquired=1;
                 break;
             }
-            if(!acquired)platform_log("VR NPC: grab miss hand=%d scanned=%d eligible=%d surfaces=%d graph_rejects=%d node_rejects=%d no_rig_slot=%d reach=%.2f m custom_rigs=%d",
+            if(!acquired)platform_log("VR NPC: contact grab miss hand=%d scanned=%d eligible=%d collision_overlaps=%d graph_rejects=%d node_rejects=%d no_rig_slot=%d contact_radius=%.2f cm custom_rigs=%d",
                 h,scanned,eligible_count,surface_hits,graph_rejects,node_rejects,capacity_rejects,
-                (float)reach/(float)units,config_boolean("vr.custom_npc_rigs"));
+                (float)contact_radius*100.0f/(float)units,config_boolean("vr.custom_npc_rigs"));
         }
     }
 }

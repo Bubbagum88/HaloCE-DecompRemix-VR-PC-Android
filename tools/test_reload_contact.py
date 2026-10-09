@@ -24,6 +24,7 @@ assert 'gripping && !vr_finger_reload_only' in render
 assert 'vr_manual_reload_trace(from->n,v->n,extra_radius,&component)' in render
 stub=r'''
 #include <assert.h>
+#include <float.h>
 #include <math.h>
 #include <string.h>
 #include <stddef.h>
@@ -50,6 +51,7 @@ static int config_boolean(char const*k){(void)k;return enabled;}
 static int vr_active(void){return active;}
 static int game_connection(void){return network;}
 static double vr_pose_time(void){return now;}
+static int valid_real_point3d(real_point3d const*p){return p&&isfinite(p->x)&&isfinite(p->y)&&isfinite(p->z);}
 static void reload_refresh_held_pose(void){}
 static float dot_product3d(real_vector3d const*a,real_vector3d const*b){return a->i*b->i+a->j*b->j+a->k*b->k;}
 static float normalize3d(real_vector3d*v){float s=sqrtf(dot_product3d(v,v));if(s>0)for(int a=0;a<3;a++)v->n[a]/=s;return s;}
@@ -68,12 +70,20 @@ static struct model model;
 static struct model*model_definition_get(long index){(void)index;return &model;}
 static int rasterizer_model_buffer_data(struct buffer const*v,struct buffer const*t,void const**out,void const**indices){(void)t;*out=v->data;*indices=NULL;return 1;}
 '''
-code=stub+function(manual,'static boolean reload_matrix_valid(')+function(manual,'int vr_manual_reload_trace(')
+code=stub+function(manual,'static boolean reload_matrix_valid(')+function(manual,'static boolean reload_component_bounds_touch(')+function(manual,'int vr_manual_reload_trace(')
 code+=function(manual,'int vr_manual_reload_hand(')
 code+=function(models,'boolean model_rigid_component_bounds(')+function(models,'boolean model_rigid_node_bounds(')
 code+=r'''
 int main(void){
  struct collision_result hit;float from[3]={-2,0,0},delta[3]={4,0,0};
+ reload.bounds_valid[0]=1;reload.socket=reload.held=identity();
+ reload.bounds_min[0]=(real_point3d){-.005f,-.005f,-.005f};reload.bounds_max[0]=(real_point3d){.005f,.005f,.005f};
+ assert(reload_component_bounds_touch(&reload.socket,&reload.held,0)); /* component surfaces touch */
+ reload.held.position.x=.01f;assert(reload_component_bounds_touch(&reload.socket,&reload.held,0)); /* exact surface contact */
+ reload.held.position.x=.014f;assert(reload_component_bounds_touch(&reload.socket,&reload.held,.005f)); /* 4 mm tolerance */
+ reload.held.position.x=.016f;assert(!reload_component_bounds_touch(&reload.socket,&reload.held,.005f)); /* 6 mm gap, no seat */
+ reload.held.position.x=.02f;assert(!reload_component_bounds_touch(&reload.socket,&reload.held,.005f)); /* origin is within old 4.5 cm zone but bounds do not touch */
+ reload.held=identity();
  reload.ready=1;reload.sample_time=now;reload.bounds_valid[0]=1;
  reload.socket=reload.held=reload.charge=reload.gun=identity();
  for(int a=0;a<3;a++){reload.bounds_min[0].n[a]=-.5f;reload.bounds_max[0].n[a]=.5f;}

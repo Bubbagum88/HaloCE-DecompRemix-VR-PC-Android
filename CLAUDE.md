@@ -1,24 +1,35 @@
 # Agent and contributor continuation
 
-## Active private Test43 candidate (2026-10-09)
+## Active private Test44 candidate (2026-10-09)
 
-Continue on `test39-interaction-completion`; target private `1.0.24-test43`,
-Android code54. Carry forward every project change after public v1.0.18,
-including Tests38-42, the custom app icon, touch-layout export/import and
-per-control hide, supplied USA XISO comparison, and selected OpenCE Build167
-fixes. Test43 makes game-data selection prominent on the main launcher, lets
-users switch among distinct imported map sets, and safely delete inactive
-managed copies and inbox image copies. Exact byte-identical map sets still share
-one profile; the launcher does not infer disc revision from filenames. The
-engine base stays Build157/network24.
+Continue on `test39-interaction-completion`; target private `1.0.25-test44`,
+Android code55. Carry forward all changes since public v1.0.18 and Test43.
+Test44 clarifies throughout launcher onboarding, the main screen and the game
+data manager that Android picker-selected ISO/XISO images are not retained or
+deleted; only their supported maps are imported, and the original image must be
+removed through Android Files. Inbox image copies remain deletable in the app.
+The A10 opening look calibration uses a fresh validated hand reticle ray for
+look actions and point-gaze checks; outside A10 and in head-aim mode it preserves
+head-based behavior. During hand aim, stale/invalid rays pause calibration
+progress rather than crediting head movement. No other mission or AI behavior
+should change. Engine base remains Build157/network24 with selected Build167
+compatibility fixes.
 
-Read `docs/TEST43-DELIVERY-STATUS.md`, `docs/TEST43-REQUIREMENT-DISPOSITION.md`,
-`docs/TEST43-PLAYER-NOTES.md`, and `docs/TEST43-DEVICE-CHECKLIST.md`, plus the
-Test42 OpenCE integration and VR disposition. Build and run the complete
-source checks, then package both Quest/VR and flat Android APKs with matching
-build/source ZIPs. Do not publish, install or launch the game. Preserve all
-existing network, VR, mobile, save and Safe Geometry behavior. PC/Steam Frame
-remains deferred; headset/device acceptance remains pending.
+All contact-acquisition interactions are actual contact-volume checks followed
+by a fresh Grip or configured reload-input edge. NPC/enemy and loose-object
+grabs use authored collision models in solo play and are checked again by the
+co-op host; parkour requires hand-volume overlap with a solid surface. Aim
+direction and target-search rays cannot acquire a grab. The shared hand-contact
+radius is a palm collider (2–8 cm, 4 cm default); any retained LOS check is only
+an obstruction/safety guard after contact is confirmed.
+
+Read `docs/TEST44-DELIVERY-STATUS.md`, `docs/TEST44-REQUIREMENT-DISPOSITION.md`,
+`docs/TEST44-PLAYER-NOTES.md`, and `docs/TEST44-DEVICE-CHECKLIST.md`, plus the
+Test43/42 records. Run targeted checks, all regressions, both Quest/VR and flat
+Android builds, then package both APKs with matching build/source ZIPs. Do not
+publish, install or launch the game. Preserve existing network, VR, mobile,
+saves, co-op and Safe Geometry behavior. PC/Steam Frame remains deferred;
+headset/device acceptance remains pending.
 
 ## Superseded private Test42 candidate (2026-10-09)
 

@@ -1,6 +1,8 @@
 #ifndef VR_MANUAL_RELOAD_MATH_H
 #define VR_MANUAL_RELOAD_MATH_H
 
+#include <string.h>
+
 /* Pure transaction state. Ammo belongs to the engine and is never stored here. */
 enum { VR_MR_IDLE, VR_MR_OLD_HELD, VR_MR_NEED_MAG, VR_MR_NEW_HELD,
     VR_MR_NEED_CHAMBER, VR_MR_CHAMBER_HELD, VR_MR_SEATING };
@@ -11,6 +13,20 @@ struct vr_mr_input {
     int valid, held, near_mag, near_pouch, near_chamber, magazine_out,
         chamber_pulled, can_load, explicit_reload, loose_round, seated, no_chamber;
 };
+/* Grip is the compatibility default. Unknown/missing config values fail back
+ * to grip so a typo cannot leave manual reload without an input. */
+static int vr_mr_input_uses_trigger(char const *source)
+{
+    return source && strcmp(source, "trigger") == 0;
+}
+/* Analog trigger hysteresis prevents vibration/noise at the activation point
+ * from repeatedly starting and cancelling a reload. Invalid analog values
+ * fail closed. */
+static int vr_mr_trigger_held(int was_held, float value)
+{
+    if (!(value >= 0.0f && value <= 1.0f)) return 0;
+    return value > (was_held ? 0.55f : 0.75f);
+}
 static float vr_mr_pull_distance(float start_x, float current_x)
 {
     return start_x-current_x;

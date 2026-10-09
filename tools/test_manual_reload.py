@@ -6,19 +6,36 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 source = (ROOT / "source/items/weapons.c").read_text()
 reload_source = (ROOT / "port/linux/game/vr_manual_reload.c").read_text()
+input_source = (ROOT / "port/linux/src/vr_frame.c").read_text()
+config_source = (ROOT / "port/linux/src/port_config.c").read_text()
+menu_source = (ROOT / "port/linux/game/vr_menu.c").read_text()
 assert "vr_mr_profile_changed(bounds_log_initialized, bounds_logged_weapon" in reload_source
 assert "bounds_logged_model, weapon_index, reload.model" in reload_source
 assert "model=%ld magazine=%d chamber=%d" in reload_source
 assert "bounds_log_initialized=TRUE" in reload_source
+assert 'config_string("vr.reload_input")' in reload_source
+assert 'reload_hand_touches_part(0,&reload.socket,&hand)' in reload_source
+assert 'reload_hand_touches_part(1,&reload.charge,&hand)' in reload_source
+assert 'reload_near(&hand,&hip,contact_radius)' in reload_source
+assert 'reload_near(&hand,&shoulder,contact_radius)' in reload_source
+assert '0.09f*units' not in reload_source and '0.075f*units' not in reload_source
+assert '0.19f*units' not in reload_source and '0.16f*units' not in reload_source
+assert "vr_interaction_trigger(hand_index)" in reload_source
+assert "vr_interaction_claim_input(hand_index, VR_INTERACTION_RELOAD, input.held)" in reload_source
+assert '"vr.reload_input", _config_string, "\\"grip\\""' in config_source
+assert '{ "RELOAD INPUT", "vr.reload_input", _vr_setting_string, 2, { { "GRIP", "grip" }, { "TRIGGER", "trigger" } } }' in menu_source
+assert "vr_mr_trigger_held(interaction_trigger_held[hand], vr.frame.trigger[hand])" in input_source
 start = source.index("static void weapon_magazine_finish_reload(\n", source.index("static void weapon_magazine_finish_reload(\n") + 1)
 end = source.index("\nstatic void weapon_magazine_start_chamber", start)
 finish = source[start:end]
 
 code = r'''
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include "port/linux/game/vr_manual_reload_math.h"
+#include "port/linux/game/vr_reload_contact_math.h"
 struct weapon_magazine { short rounds_loaded,rounds_total,state,state_timer; } mag;
 struct weapon_magazine_definition { unsigned flags; short rounds_reloaded,rounds_loaded_maximum; } md;
 struct weapon_definition { struct { int magazines; } weapon; } wd;
@@ -41,10 +58,22 @@ static int step(struct vr_mr_state *s,int held,int near_mag,int pouch,int chambe
 }
 int main(void){
  struct vr_mr_state s={0};
+ { float lo[3]={-.02f,-.03f,-.01f},hi[3]={.02f,.03f,.01f},p[3]={.055f,0,0},zero[3]={0,0,0},fraction,normal[3];
+   assert(vr_reload_sphere_touches_box(p,lo,hi,.04f)); /* physical palm overlaps authored part bounds */
+   p[0]=.061f;assert(!vr_reload_sphere_touches_box(p,lo,hi,.04f)); /* old 9 cm center reach is rejected */
+   p[0]=.02f;p[1]=.03f;p[2]=.01f;assert(vr_reload_sphere_touches_box(p,lo,hi,0));
+   assert(vr_reload_box(p,zero,lo,hi,0,&fraction,normal));
+   p[0]=NAN;assert(!vr_reload_sphere_touches_box(p,lo,hi,.04f)); }
  assert(vr_mr_profile_changed(0,0,0,17,29));
  assert(!vr_mr_profile_changed(1,17,29,17,29));
  assert(vr_mr_profile_changed(1,17,29,18,29));
  assert(vr_mr_profile_changed(1,17,29,17,30));
+ assert(!vr_mr_input_uses_trigger("grip") && !vr_mr_input_uses_trigger(NULL));
+ assert(!vr_mr_input_uses_trigger("invalid")); /* unknown config safely uses default Grip */
+ assert(vr_mr_input_uses_trigger("trigger"));
+ assert(!vr_mr_trigger_held(0,0.75f) && vr_mr_trigger_held(0,0.751f));
+ assert(vr_mr_trigger_held(1,0.56f) && !vr_mr_trigger_held(1,0.55f));
+ assert(!vr_mr_trigger_held(0,NAN) && !vr_mr_trigger_held(0,-0.01f) && !vr_mr_trigger_held(0,1.01f));
  assert(step(&s,1,0,0,0,0,0)==VR_MR_NONE); /* grip away from gun */
  assert(step(&s,1,1,0,0,0,0)==VR_MR_NONE); /* held grip never auto-locks */
  step(&s,0,1,0,0,0,0);

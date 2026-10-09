@@ -31,7 +31,7 @@ enum{_collision_result_structure=1,_collision_result_object=2};
 enum{_object_dead_bit,_biped_no_collision_bit,_unit_suspended_bit,_unit_control_jump_bit,_biped_airborne_bit};
 enum{VR_INTERACTION_NONE,VR_INTERACTION_RELOAD,VR_INTERACTION_VEHICLE,VR_INTERACTION_WORLD,VR_INTERACTION_PARKOUR};
 enum{_game_connection_local,_object_mask_scenery=8};
-struct collision_result{int type;float t;real_point3d point;real_plane3d plane;long object_index;};
+struct collision_result{int type;float t;real_point3d point;real_plane3d plane;long object_index,surface_index;unsigned char flags,breakable_surface_index;short material_index;};
 struct object_fields{long parent_object_index;unsigned damage_flags;real_point3d position;real_vector3d forward;};
 struct object_datum{struct object_fields object;};
 struct biped_datum{long definition_index;struct object_fields object;
@@ -45,15 +45,15 @@ static real_point3d hands[2]={{.n={.20f,0,1}},{.n={.20f,0,1}}};
 static real_vector3d gaze={.n={0,1,0}};
 static real_vector3d wall_normal={.n={1,0,0}};static float wall_offset;
 static int config_boolean(char const*k){return !strcmp(k,"vr.parkour_wallrun")?enabled[0]:!strcmp(k,"vr.parkour_walljump")?enabled[1]:enabled[2];}
-static float config_real(char const*k){return !strcmp(k,"vr.wallrun_duration")?1.5f:!strcmp(k,"vr.wallrun_speed")?1.25f:!strcmp(k,"vr.interaction_reach")?.25f:1;}
-static float vr_world_interaction_reach(float metres,float units){if(metres<.12f)metres=.12f;if(metres>.40f)metres=.40f;return metres*units;}
+static float config_real(char const*k){return !strcmp(k,"vr.wallrun_duration")?1.5f:!strcmp(k,"vr.wallrun_speed")?1.25f:!strcmp(k,"vr.interaction_reach")?.04f:1;}
+static float vr_world_hand_contact_radius(float metres,float units){if(metres<.02f)metres=.02f;if(metres>.08f)metres=.08f;return metres*units;}
 static short local_player_get_next(short x){(void)x;return 0;}
 static long local_player_get_player_index(short x){(void)x;return 0;}
 static struct player_datum *player_get(long x){(void)x;return &player;}
 static struct biped_datum *biped_try_and_get(long x){return x==42?&body:NULL;}
 static struct biped_datum *biped_get(long x){assert(x==42);return &body;}
 static struct biped_definition *biped_definition_get(long x){(void)x;return &definition;}
-static int vr_active(void){return 1;}static int vr_aiming(void){return 1;}
+static int vr_active(void){return 1;}
 static int vr_controller(unsigned*b,float*t,float*s){(void)b;(void)t;(void)s;return focused;}
 static int game_connection(void){return network;}static int game_time_get_paused(void){return paused;}
 static long game_time_get(void){return now;}static int cinematic_in_progress(void){return cinematic;}
@@ -87,6 +87,20 @@ static int collision_test_vector(unsigned flags,real_point3d const*p,real_vector
  r->object_index=0x12345678; /* poison: production BSP collision does not set this */
  return 1;
 }
+static int touch_surface,overflow_features,contact_gathers,contact_tests;
+static struct collision_plane { real_plane3d plane; long object_index,surface_index; unsigned char flags,breakable_surface_index; short material_index; } touch_plane;
+enum {_collision_feature_sphere,_collision_feature_cylinder,_collision_feature_prism,NUMBER_OF_COLLISION_FEATURE_TYPES};
+#define MAXIMUM_COLLISION_FEATURES_PER_TEST 256
+struct collision_feature_list { short count[NUMBER_OF_COLLISION_FEATURE_TYPES]; };
+static int collision_get_features_in_sphere(unsigned flags,real_point3d const*center,real radius,real height,real width,long ignore,struct collision_feature_list*features){
+ (void)center;(void)ignore;assert((flags&FLAG(_collision_test_structure_bit))!=0);assert(radius>0&&fabsf(height)<.0001f&&fabsf(width-radius)<.0001f);contact_gathers++;memset(features,0,sizeof(*features));
+ if(touch_surface)features->count[_collision_feature_prism]=overflow_features?MAXIMUM_COLLISION_FEATURES_PER_TEST:1;return touch_surface;
+}
+static int collision_features_test_point(struct collision_feature_list const*features,real_point3d const*point,struct collision_plane*collision){
+ (void)point;contact_tests++;if(!touch_surface||features->count[_collision_feature_prism]<=0)return 0;*collision=touch_plane;return 1;
+}
+static float plane3d_distance_to_point(real_plane3d const*plane,real_point3d const*point){return plane->n.i*point->x+plane->n.j*point->y+plane->n.k*point->z-plane->d;}
+static void point_from_line3d(real_point3d const*point,real_vector3d const*vector,float distance,real_point3d*out){for(int axis=0;axis<3;axis++)out->n[axis]=point->n[axis]+vector->n[axis]*distance;}
 static struct object_datum*object_try_and_get_and_verify_type(long x,int mask){(void)x;(void)mask;lookups++;return NULL;}
 '''
 checks = r'''
@@ -97,14 +111,26 @@ static real_vector3d tick(float x,float y,float z){
 int main(void){
  body.object.parent_object_index=NONE;body.object.position.x=.22f;body.object.forward.i=1;
  vr_parkour_reset();
- /* At the full 25 cm reach, a wall 22.5 degrees between the old world-axis
-    probes is outside each cardinal ray but inside the diagonal contact ray. */
- wall_normal=(real_vector3d){.n={.9238795f,.3826834f,0}};
- real_point3d oblique_hand={.n={.25f*.9238795f,.25f*.3826834f,1}};
- struct collision_result oblique_hit;
- assert(parkour_grab_surface(42,&oblique_hand,1,&oblique_hit));
- assert(fabsf(oblique_hit.t-1.0f)<.001f);
- wall_normal=(real_vector3d){.n={1,0,0}};wall_offset=0;queries=0;
+ /* Contact acquisition asks the collision volume at the actual hand point.
+    It does not search outward or depend on controller aim. */
+ touch_plane.plane.n=(real_vector3d){.n={.9238795f,.3826834f,0}};touch_plane.object_index=NONE;touch_surface=1;
+ struct collision_result contact_hit;int initial_rays=queries;
+ assert(parkour_grab_surface(42,&hands[0],1,&contact_hit));
+ assert(contact_gathers==1&&contact_tests==1&&queries==initial_rays);
+ assert(fabsf(plane3d_distance_to_point(&contact_hit.plane,&contact_hit.point))<.00001f);
+ touch_surface=0;assert(!parkour_grab_surface(42,&hands[0],1,&contact_hit));assert(queries==initial_rays);
+ touch_surface=1;touch_plane.plane.n=(real_vector3d){.n={0,0,1}};
+ assert(!parkour_grab_surface(42,&hands[0],1,&contact_hit)); /* floor is not a wall grip */
+ touch_plane.plane.n=(real_vector3d){.n={1,0,0}};overflow_features=1;
+ assert(!parkour_grab_surface(42,&hands[0],1,&contact_hit));overflow_features=0;
+ wall_normal=(real_vector3d){.n={1,0,0}};touch_plane.plane.n=wall_normal;touch_surface=1;wall_offset=0;queries=0;
+ /* Grip first, contact second must not latch. Release, touch the wall, then
+    press Grip: that is the only acquisition sequence. */
+ enabled[2]=1;touch_surface=0;grip[0]=0;vr_parkour_reset();tick(0,0,0);
+ grip[0]=1;tick(0,0,0);assert(!parkour.hand[0].active);
+ touch_surface=1;tick(0,0,0);assert(!parkour.hand[0].active);
+ grip[0]=0;tick(0,0,0);grip[0]=1;tick(0,0,0);assert(parkour.hand[0].active);
+ grip[0]=0;tick(0,0,0);vr_parkour_reset();enabled[2]=0;
  real_vector3d v=tick(.1f,.2f,.3f);assert(v.i==.1f&&v.j==.2f&&v.k==.3f&&queries==0);
  enabled[2]=1;network=1;v=tick(.1f,.2f,.3f);assert(v.k==.3f&&queries==0);network=0;
  tick(0,0,0);grip[0]=1;v=tick(0,0,0);
@@ -140,7 +166,7 @@ int main(void){
  assert(vr_pk_bound(NAN,1,0,2)==1);float bad[3]={INFINITY,0,0};vr_pk_cap(bad,1);assert(bad[0]==0);
  float floor[3]={0,0,1};assert(!vr_pk_vertical(floor));
  float into[3]={-1,0,0},normal[3]={1,0,0},out[3];vr_pk_leap(into,normal,1,.4f,out);assert(out[0]>0&&out[2]>=.4f);
- puts("PASS: production parkour off/network isolation, poisoned BSP objects, grip/focus ownership, climb, bounded run and jump exhaustion");
+ puts("PASS: production parkour contact-only climb, no-aim gate, overflow/floor rejection, grip/focus ownership, bounded run and jump exhaustion");
 }
 '''
 with tempfile.TemporaryDirectory(prefix="vr-parkour-") as temp:

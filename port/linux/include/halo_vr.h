@@ -23,6 +23,9 @@ void vr_render_reset_vehicle_view(void);
 void vr_render_reset_contacts(void);
 union real_point3d;
 boolean vr_script_can_see_point(long unit_index, const union real_point3d *point, real field_of_view, boolean *result);
+/* A10 calibration ray: 1=fresh hand reticle, 0=head mode/non-A10, -1=hand
+ * mode but ray unavailable, so calibration must wait rather than use the head. */
+int vr_script_calibration_reticle_ray(float origin[3], float direction[3]);
 /* Head-only tutorial directions: up/down/left/right bits 0/1/2/3. */
 unsigned int vr_head_look_actions(void);
 void vr_head_look_reset(void);

@@ -22,11 +22,11 @@ static void matrix4x3_transform_point(real_matrix4x3 const*m,real_point3d const*
 #define VR_INTERACTION_WORLD 3
 #define VR_INTERACTION_NPC 5
 struct player_datum{long unit_index;};static struct player_datum player={10};
-static int focused=1,grips[2],tracked[2]={1,1},owners[2],twohanded,empty=1;
+static int focused=1,aiming=1,grips[2],tracked[2]={1,1},owners[2],twohanded,empty=1;
 static int sends,cancels,releases,lastheld;
 static short local_player_get_next(int x){return 0;}static long local_player_get_player_index(int x){return 0;}
 static struct player_datum*player_get(long p){return &player;}
-static int vr_aiming(void){return 1;}static int vr_controller(unsigned int*b,float*t,float*s){return focused;}
+static int vr_aiming(void){return aiming;}static int vr_controller(unsigned int*b,float*t,float*s){return focused;}
 static void unit_get_camera_position(long u,real_point3d*p){memset(p,0,sizeof(*p));}
 static int vr_interaction_grip(int h,void*p,void*r){return grips[h];}
 static int vr_interaction_owner(int h){return owners[h];}
@@ -43,6 +43,7 @@ static void tick_client(int ready,int npc_ready){now+=250;vr_interaction_client_
 """
 main=r"""
 int main(void){
+ aiming=0; /* contact-driven co-op must work while weapon aiming is disabled */
  grips[0]=1;tick_client(1,1);assert(sends==1); /* other released hand only */
  now+=50;vr_interaction_client_tick(1,1);assert(sends==1); /* unchanged release heartbeat is rate limited */
  grips[0]=0;tick_client(1,1);grips[0]=1;tick_client(1,1);
@@ -66,3 +67,4 @@ p=O/'input.c';p.write_text(prefix+s+main)
 subprocess.run(['clang','-std=gnu11','-O1','-fsanitize=address,undefined',str(p),'-o',str(O/'input')],check=True)
 subprocess.run([str(O/'input')],check=True)
 print('PASS: production remote input cancels on ineligibility/focus/tracking, requires fresh grip, rejects stale/wrong-unit results')
+assert 'vr_aiming()' not in s

@@ -23,12 +23,12 @@ static int failed_sweep(void *unused,float const old[3],float radius,float next[
 int main(void){
  for(int local=0;local<2;++local)for(int server=0;server<2;++server)for(int campaign=0;campaign<2;++campaign)
    assert(vr_world_authority(local,server,campaign)==(local||(server&&campaign)));
- assert(fabsf(vr_world_interaction_reach(.12f,1.f)-.12f)<.00001f);
- assert(fabsf(vr_world_interaction_reach(.25f,1.f)-.25f)<.00001f);
- assert(fabsf(vr_world_interaction_reach(.99f,1.f)-.40f)<.00001f);
- assert(fabsf(vr_world_interaction_reach(.01f,1.f)-.12f)<.00001f);
- assert(vr_world_interaction_reach(NAN,1.f)==0.f);
- assert(vr_world_interaction_reach(.25f,0.f)==0.f);
+ assert(fabsf(vr_world_hand_contact_radius(.02f,1.f)-.02f)<.00001f);
+ assert(fabsf(vr_world_hand_contact_radius(.04f,1.f)-.04f)<.00001f);
+ assert(fabsf(vr_world_hand_contact_radius(.99f,1.f)-.08f)<.00001f);
+ assert(fabsf(vr_world_hand_contact_radius(.01f,1.f)-.02f)<.00001f);
+ assert(vr_world_hand_contact_radius(NAN,1.f)==0.f);
+ assert(vr_world_hand_contact_radius(.04f,0.f)==0.f);
  float error[3]={1,0,0},current[3]={0,0,0},light[3],heavy[3],two[3];
  assert(vr_world_spring(error,current,2,1,1,0,light));
  assert(vr_world_spring(error,current,.25f,1,1,0,heavy));
@@ -143,12 +143,28 @@ for marker in ['case _game_connection_local: return "local";',
                'case _game_connection_network_client: return "network-client";',
                'case _game_connection_network_server: return "network-server";',
                'session=%s(%d) in_game=%d map_loaded=%d vr=%d coop=%d',
-               'reach=%dcm npc_rig_slots=%d/%d',
+               'contact_radius=%dcm npc_rig_slots=%d/%d',
                'interaction_diag_haptics_milli == haptics_milli']:
     assert marker in world, marker
 campaign=(ROOT/'source/main/main.c').read_text()
 assert 'main_globals.connection = _game_connection_local;' in campaign
+world_candidate=world[world.index('static long candidate('):world.index('void vr_world_interaction_tick(void)')]
+assert 'collision_model_test_pill(&model, point, &stationary, contact_radius' in world_candidate
+assert world_candidate.index('collision_model_test_pill(') < world_candidate.index('collision_test_vector(')
+assert 'Keep LOS solely as a through-wall guard' in world_candidate
+world_tick=world[world.index('void vr_world_interaction_tick(void)'):]
+assert 'if (!held->active && grip && pressed && vr_interaction_owner(hand)==VR_INTERACTION_NONE)' in world_tick
+npc_source=(ROOT/'port/linux/game/vr_npc_interaction.c').read_text()
+npc_tick=npc_source[npc_source.index('static void tick_player('):npc_source.index('void vr_npc_interaction_tick(void)')]
+assert 'if(!pressed || npc.held[h] || npc.recovery' in npc_tick
+assert npc_tick.index('if(!pressed || npc.held[h]') < npc_tick.index('collision_model_test_pill(')
+network=(ROOT/'port/linux/game/network_interaction.c').read_text()
+assert 'else if(r->pressed||!r->held)' in network # host only attempts new press or observes release
+assert 'vr_npc_interaction_remote(r->player,hand,r->held,r->position.n)' in network
 npc=(ROOT/'port/linux/game/vr_npc_interaction.c').read_text()
-assert 'vr_world_interaction_reach((float)config_real("vr.interaction_reach")' in npc
+assert 'vr_world_hand_contact_radius((float)config_real("vr.interaction_reach")' in npc
+assert 'collision_model_test_pill(&model,&point,&stationary,contact_radius,&model_hit)' in npc
+assert '!vr_aiming()' not in npc
 assert '.12f*units' not in npc and '.12f*.32808399f' not in npc
-print('PASS: solo is explicitly local; session diagnostics run before feature gates; NPC grabs use the configured bounded reach')
+assert 'contact grab miss' in npc
+print('PASS: solo is local; diagnostics run before feature gates; world/NPC acquisition requires hand-sphere overlap, never target rays')

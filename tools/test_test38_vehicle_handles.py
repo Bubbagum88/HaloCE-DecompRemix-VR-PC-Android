@@ -19,11 +19,13 @@ typedef union {struct {float x,y,z;};float n[3];} real_point3d;
 typedef union {struct {float i,j,k;};float n[3];} real_vector3d;
 typedef struct {real_vector3d forward,left,up;real_point3d position;}real_matrix4x3;
 #define VR_INTERACTION_VEHICLE 2
+#define PIN(x,l,h) ((x)<(l)?(l):((x)>(h)?(h):(x)))
 static struct {long unit;int kind,valid,log_pending,down[2];real_matrix4x3 root;real_point3d center,target[2];float radius,angle;struct vr_wheel_grip grip[2];}vr_wheel;
 static struct {real_point3d game_camera_position;}vr_render;
 static const char *vr_wheel_keys[]={"warthog","ghost","scorpion","banshee"};
 #define platform_log(...) ((void)0)
 static int input_valid=1;
+static float config_real(char const*k){assert(!strcmp(k,"vr.interaction_reach"));return .04f;}
 static int eligible=1,held[2],pressed[2],released[2],tracked[2]={1,1},owner[2],buzz;static real_point3d pose[2];
 static int vr_controller(unsigned int*b,float*t,float*s){return input_valid;}
 static void vr_vehicle_handles_clear(void){for(int h=0;h<2;h++){vr_wheel.down[h]=1;vr_wheel.grip[h].held=0;owner[h]=0;}}
@@ -47,6 +49,10 @@ int main(void){
  vr_wheel.root.forward=(real_vector3d){{1,0,0}};vr_wheel.root.left=(real_vector3d){{0,1,0}};vr_wheel.root.up=(real_vector3d){{0,0,1}};
  vr_wheel.target[0]=(real_point3d){{0,.2f,0}};vr_wheel.target[1]=(real_point3d){{0,-.2f,0}};
  real_vector3d f={{1,0,0}};hands(0);assert(!vr_vehicle_handles_update(1,&f));
+ /* A Grip press at 10 cm is not contact with the virtual wheel. Release, move
+  * to the target, and squeeze again before the wheel can be acquired. */
+ pose[0].x=.10f;held[0]=pressed[0]=1;assert(!vr_vehicle_handles_update(1,&f));assert(!owner[0]&&!vr_wheel.grip[0].held);
+ held[0]=pressed[0]=0;assert(!vr_vehicle_handles_update(1,&f));pose[0].x=0;
  held[0]=held[1]=pressed[0]=pressed[1]=1;assert(vr_vehicle_handles_update(1,&f));assert(buzz==2&&fabsf(f.j)<1e-6);
  pressed[0]=pressed[1]=0;hands(.4f);assert(vr_vehicle_handles_update(1,&f));assert(fabsf(atan2f(f.j,f.i)-.4f)<1e-5);
  held[1]=0;released[1]=1;hands(.6f);assert(vr_vehicle_handles_update(1,&f));assert(!owner[1]&&owner[0]==2);assert(fabsf(atan2f(f.j,f.i)-.6f)<1e-5);
@@ -87,4 +93,7 @@ assert 'saved_debug' in fn('vr_render_vehicle_controls') and 'rasterizer_debug_d
 assert 'vr.vehicle_wheel_visible' not in fn('vr_vehicle_handles_update')
 assert 'vr_first_person_vehicles()' in fn('vr_vehicle_handles_enabled') and 'vr_render.seat.driver' in fn('vr_vehicle_handles_enabled')
 assert 'vr_interaction_release(h,VR_INTERACTION_VEHICLE)' in fn('vr_vehicle_handles_clear')
+assert 'config_real("vr.interaction_reach")' in fn('vr_vehicle_handles_update')
+assert 'distance<=contact_radius' in fn('vr_vehicle_handles_update')
+assert 'distance<0.16f' not in fn('vr_vehicle_handles_update')
 print('PASS: first-person-driver eligibility, independent hidden wheel/control option, eye-only native mesh and restored render flag')

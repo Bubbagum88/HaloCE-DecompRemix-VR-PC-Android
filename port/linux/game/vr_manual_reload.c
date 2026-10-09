@@ -249,6 +249,19 @@ static boolean reload_near(real_point3d const *a, real_point3d const *b, real ra
     return radius > 0 && x*x+y*y+z*z <= radius*radius;
 }
 
+static boolean reload_hand_touches_part(int part, real_matrix4x3 const *transform, real_point3d const *hand)
+{
+    real_point3d local;
+    real radius, units=vr_units_per_metre();
+    if(part<0 || part>1 || !reload.bounds_valid[part] || !transform || !hand ||
+        !reload_matrix_valid(transform) || !(units>0.0f))return FALSE;
+    double configured_contact=config_real("vr.interaction_reach");
+    radius=(real)(isfinite(configured_contact)?PIN(configured_contact,0.02,0.08):0.04)*units;
+    matrix4x3_inverse_transform_point(transform,hand,&local);
+    return vr_reload_sphere_touches_box(local.n,reload.bounds_min[part].n,
+        reload.bounds_max[part].n,radius/transform->scale);
+}
+
 static boolean reload_local_weapon(long weapon_index, long *unit_out)
 {
     short local = local_player_get_next(NONE);
@@ -288,6 +301,7 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     struct weapon_magazine_definition *magazine_definition;
     struct vr_mr_input input = {0};
     int event, hand_index = 1-vr_weapon_hand();
+    boolean trigger_input = FALSE;
     unsigned int buttons;float triggers[2],thumbs[4];
     boolean current = reload_local_weapon(weapon_index, &unit_index);
     /* Other world/NPC weapons must not cancel the local transaction. */
@@ -295,12 +309,13 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         if (reload.weapon == weapon_index) vr_manual_reload_reset();
         return 0;
     }
-    if (!vr_active() || !vr_aiming() || !vr_controller(&buttons,triggers,thumbs) || !config_boolean("vr.manual_reload") ||
+    if (!vr_active() || !vr_controller(&buttons,triggers,thumbs) || !config_boolean("vr.manual_reload") ||
         game_connection() != _game_connection_local || !(units > 0) || vr_hand_empty() ||
         !reload.ready || reload.weapon != weapon_index || reload.hand != hand_index ||
         vr_pose_time()-reload.sample_time > 0.25 || vr_pose_time()<reload.sample_time) {
         vr_manual_reload_reset(); return 0;
     }
+    trigger_input = vr_mr_input_uses_trigger(config_string("vr.reload_input"));
     weapon = weapon_get(weapon_index);
     if (!reload.bounds_tried) {
         reload.bounds_tried=1;
@@ -347,7 +362,11 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         shoulder.n[axis] = head.n[axis] + left.n[axis]*0.20f*units - head_forward.n[axis]*0.10f*units;
     }
     hip.z -= 0.55f*units; shoulder.z -= 0.15f*units;
-    input.held = vr_interaction_grip(hand_index, NULL, NULL);
+    /* The selected input applies only to the free-hand manual-reload state
+     * machine. Other grab systems and game firing continue to use their usual
+     * grip/weapon-trigger paths. */
+    input.held = trigger_input ? vr_interaction_trigger(hand_index) :
+        vr_interaction_grip(hand_index, NULL, NULL);
     input.valid = vr_interaction_owner(hand_index) == VR_INTERACTION_NONE ||
         vr_interaction_owner(hand_index) == VR_INTERACTION_RELOAD;
     input.explicit_reload = explicit_reload;
@@ -358,21 +377,25 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     if (reload.state.phase == VR_MR_IDLE &&
         (TEST_FLAG(weapon->weapon.control_flags, _weapon_control_primary_trigger_bit) ||
          TEST_FLAG(weapon->weapon.control_flags, _weapon_control_secondary_trigger_bit))) input.can_load = FALSE;
-    input.near_mag = reload_near(&hand, &reload.socket.position, 0.09f*units);
+    /* Pickup begins only when the free hand's contact sphere overlaps the
+     * authored magazine bounds. A center-to-socket reach radius is not touch. */
+    input.near_mag = reload_hand_touches_part(0,&reload.socket,&hand);
     if (reload.state.phase == VR_MR_NEW_HELD) {
         real alignment = dot_product3d(&reload.held.forward, &reload.socket.forward);
         real up_alignment = dot_product3d(&reload.held.up, &reload.socket.up);
-        input.near_mag = reload_near(&reload.held.position, &reload.socket.position, (reload.aligned ? 0.055f : 0.045f)*units) &&
+        input.near_mag = reload_component_bounds_touch(&reload.socket,&reload.held,0.005f*units) &&
             alignment > (reload.aligned ? 0.65f : 0.7f) && up_alignment > (reload.aligned ? 0.65f : 0.7f);
     }
-    input.near_chamber = reload_near(&hand, &reload.charge.position, 0.075f*units);
+    input.near_chamber = reload_hand_touches_part(1,&reload.charge,&hand);
+    double configured_contact=config_real("vr.interaction_reach");
+    real contact_radius=(real)(isfinite(configured_contact)?PIN(configured_contact,0.02,0.08):0.04)*units;
     input.near_pouch = vr_mr_pouch_enabled(config_boolean("vr.reload_hip"),config_boolean("vr.reload_shoulder"),
-        reload_near(&hand,&hip,0.19f*units),reload_near(&hand,&shoulder,0.16f*units));
+        reload_near(&hand,&hip,contact_radius),reload_near(&hand,&shoulder,contact_radius));
     if (reload.state.phase == VR_MR_NEW_HELD) {
         if (input.near_mag && !reload.aligned) vr_haptic(hand_index, 0.20f, 0.025f);
         reload.aligned = input.near_mag;
     } else reload.aligned = FALSE;
-    input.magazine_out = reload.have_attachment && !reload_near(&reload.held.position, &reload.socket.position, 0.06f*units);
+    input.magazine_out = reload.have_attachment && !reload_component_bounds_touch(&reload.socket,&reload.held,0.005f*units);
     if (reload.state.phase == VR_MR_CHAMBER_HELD) {
         real_point3d local_hand;
         matrix4x3_inverse_transform_point(&reload.gun, &hand, &local_hand);
@@ -414,7 +437,7 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         reload.insertion_time = vr_pose_time();
     }
     if (event == VR_MR_BEGIN || event == VR_MR_PICKUP || event == VR_MR_CHARGE) {
-        if (!vr_interaction_claim(hand_index, VR_INTERACTION_RELOAD)) {
+        if (!vr_interaction_claim_input(hand_index, VR_INTERACTION_RELOAD, input.held)) {
             vr_manual_reload_reset(); return 0;
         }
         reload.grip_time=vr_pose_time();
@@ -440,8 +463,9 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     }
     if (reload.have_attachment) matrix4x3_multiply(&hand_matrix, &reload.attachment, &reload.held);
     if (event != VR_MR_NONE) {
-        platform_log("VR manual reload: weapon=%ld event=%d phase=%d rounds=%d reserve=%d", weapon_index,
-            event, reload.state.phase, magazine->rounds_loaded, magazine->rounds_total);
+        platform_log("VR manual reload: input=%s weapon=%ld event=%d phase=%d rounds=%d reserve=%d",
+            trigger_input ? "trigger" : "grip", weapon_index, event, reload.state.phase,
+            magazine->rounds_loaded, magazine->rounds_total);
         vr_haptic(hand_index, event == VR_MR_COMMIT ? 0.65f : 0.35f, 0.045f);
     }
     if (!input.held || event == VR_MR_CANCEL || event == VR_MR_COMMIT)
@@ -468,6 +492,38 @@ static boolean reload_matrix_valid(real_matrix4x3 const *m)
     for (int row=0; row<4; ++row) for (int axis=0; axis<3; ++axis)
         if (!(m->n[row][axis] > -1000000 && m->n[row][axis] < 1000000)) return FALSE;
     return TRUE;
+}
+
+static boolean reload_component_bounds_touch(real_matrix4x3 const *socket,real_matrix4x3 const *held,real radius)
+{
+    real_point3d held_min={FLT_MAX,FLT_MAX,FLT_MAX},held_max={-FLT_MAX,-FLT_MAX,-FLT_MAX};
+    real radius_local,distance2=0.0f;
+    if(!reload.bounds_valid[0] || !socket || !held || !reload_matrix_valid(socket) ||
+        !reload_matrix_valid(held) || !isfinite(radius) || radius<0.0f)return FALSE;
+    radius_local=radius/socket->scale;
+    if(!isfinite(radius_local))return FALSE;
+    /* Transform the held magazine's authored bounds into socket space. A
+     * successful seat needs actual component-bound contact, not origin range. */
+    for(int corner=0;corner<8;corner++) {
+        real_point3d part,world,local;
+        for(int axis=0;axis<3;axis++)
+            part.n[axis]=(corner&(1<<axis))?reload.bounds_max[0].n[axis]:reload.bounds_min[0].n[axis];
+        if(!valid_real_point3d(&part))return FALSE;
+        matrix4x3_transform_point(held,&part,&world);
+        matrix4x3_inverse_transform_point(socket,&world,&local);
+        if(!valid_real_point3d(&world)||!valid_real_point3d(&local))return FALSE;
+        for(int axis=0;axis<3;axis++) {
+            if(local.n[axis]<held_min.n[axis])held_min.n[axis]=local.n[axis];
+            if(local.n[axis]>held_max.n[axis])held_max.n[axis]=local.n[axis];
+        }
+    }
+    for(int axis=0;axis<3;axis++) {
+        real gap=0.0f;
+        if(held_max.n[axis]<reload.bounds_min[0].n[axis])gap=reload.bounds_min[0].n[axis]-held_max.n[axis];
+        else if(held_min.n[axis]>reload.bounds_max[0].n[axis])gap=held_min.n[axis]-reload.bounds_max[0].n[axis];
+        distance2+=gap*gap;
+    }
+    return isfinite(distance2)&&distance2<=radius_local*radius_local;
 }
 
 static void reload_refresh_held_pose(void)

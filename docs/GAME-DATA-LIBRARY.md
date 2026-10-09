@@ -9,7 +9,8 @@ manager, including before first import.
    an extracted game's root, or a parent containing extracted game roots/images.
 3. Alternatively put images or folders containing `maps` in the displayed
    `game-versions/inbox` folder, then choose **Scan inbox**. Scanning is shallow;
-   a `maps` folder directly in the inbox also works. Source files are retained.
+   a `maps` folder directly in the inbox also works. The launcher keeps inbox
+   files until you delete them from the inbox list.
 4. Choose **Use this set** beside a detected set. The active set is marked
    **Currently selected**; the main launcher also shows the active label and
    total number of installed sets. **Rename** changes a personal label; it does
@@ -20,12 +21,22 @@ manager, including before first import.
    from this control. A confirmation names the set and fingerprint.
 6. ISO/XISO files copied into `game-versions/inbox` can be deleted from the
    inbox list after import to reclaim that image copy. Images selected directly
-   from Android's file picker are not retained by the launcher; their source
-   remains in its original location. Extracted source folders are also left
-   untouched.
+   from Android's file picker are imported as maps only: the launcher does not
+   retain or delete the original ISO/XISO, which stays in its original location.
+   Use Android Files to delete the source image. Extracted source folders are
+   also left untouched.
+
+The first-run picker imports supported maps into the base data root, displayed
+as **Existing game data**. That base set is protected and is not a managed
+profile. If it is the only row, the disabled **Currently selected** row is
+expected; it is a status indicator, not a delete or import control. Use **Import
+ISO / XISO** or **Scan inbox** in **Game files & versions** to add separately
+selectable managed sets. Identical managed sets deduplicate with one another;
+the Existing game data base row remains separate.
 
 Selection applies at the next game launch. Quit to the launcher before switching.
-Existing data remains selectable as **Existing game data**. There is no need to
+Existing data remains selectable as **Existing game data** and is protected from
+deletion. There is no need to
 move, overwrite or re-import the original installation. Each new set uses its
 own maps, saves and config; current settings are copied once at import. Existing
 progress remains with its original set. Switching back restores access to it.
@@ -36,8 +47,9 @@ app storage unless the VR installation already uses its supported shared root.
 
 Imports read actual Xbox v5 cache headers: PAL `01.01.14.2342` and NTSC
 `01.10.12.2276` / `01.08.15.1749`. The set lists detected region/build(s), hashes
-every map and computes a combined SHA-256 fingerprint at import. Equal sets
-deduplicate. Mods or manual file edits can change those bytes afterward; use
+every map and computes a combined SHA-256 fingerprint at import. Equal managed
+sets deduplicate with one another; the first-run Existing game data base row is
+kept separate. Mods or manual file edits can change those bytes afterward; use
 Game data & compatibility to read current headers and recompute fingerprints.
 UI must be a recognized menu cache; unsupported cache builds/types are rejected
 for managed imports. Resource files (bitmaps/sounds/loc) are hashed separately.

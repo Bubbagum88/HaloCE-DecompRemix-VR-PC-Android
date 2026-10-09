@@ -108,9 +108,9 @@ for sig in ['static int species(', 'static int custom_rig_graph_valid(', 'static
     c+=function(sig)+'\n'
 c+=r'''
 int main(void){
- assert(vr_world_interaction_reach(.12f,1.f)==.12f);
- assert(vr_world_interaction_reach(.40f,1.f)==.40f);
- assert(vr_world_interaction_reach(.99f,1.f)==.40f);
+ assert(vr_world_hand_contact_radius(.02f,1.f)==.02f);
+ assert(vr_world_hand_contact_radius(.08f,1.f)==.08f);
+ assert(vr_world_hand_contact_radius(.99f,1.f)==.08f);
  assert(vr_world_authority(1,0,0));
  int hands;float mobility;
  assert(species(_actor_grunt,&hands,&mobility)&&hands==1&&mobility==.5f);
@@ -291,7 +291,12 @@ assert '!npc.is_remote && npc.started && !npc.recovery' in palette
 assert 'vr_world_interaction_weight_feedback(h,npc.mobility' in palette
 assert 'node->position[k]-node->previous[k]' in palette
 assert 'magnitude3d(&strain)/units' in palette
-assert 'hit.type!=_collision_result_object || hit.object_index!=it.index' in source
+assert 'collision_model_test_pill(&model,&point,&stationary,contact_radius,&model_hit)' in source
+assert 'collision_test_vector(_collision_test_for_line_of_sight_flags' in source # occlusion only, after overlap
+local_tick=function('static void tick_player(')
+assert 'if(!pressed || npc.held[h] || npc.recovery' in local_tick
+assert local_tick.index('if(!pressed || npc.held[h]') < local_tick.index('collision_model_test_pill(')
+assert '!vr_aiming()' not in source
 assert 'actor_set_active(' not in source and 'meta.frozen' not in source
 assert 'unit_port_resurrect(' not in source
 assert 'biped_start_limp_body_physics(index)' in source
@@ -307,4 +312,15 @@ for marker in ['_actor_engineer','_actor_player','_actor_monitor','_actor_sentin
                '_actor_definition_flying_bit','_actor_definition_swarm_actor_bit','actor->meta.swarm',
                'game_connection()!=_game_connection_local']:
     assert marker in custom_source,marker
+remote_probe=source[source.index('static long probe_remote(real_point3d const *point,real_point3d const *camera,long player_unit,long required,int hand)\n{'):source.index('static void reset_one(')]
+assert 'collision_model_test_pill(&model,point,&stationary,contact_radius,&model_hit)' in remote_probe
+assert remote_probe.index('collision_model_test_pill(') < remote_probe.index('collision_test_vector(')
+remote_submit=source[source.index('int vr_npc_interaction_remote(long player_index'):source.index('void vr_npc_interaction_remote_cancel(')]
+assert 'probe_remote(&point,&camera,player->unit_index,required,hand)' in remote_submit
+assert 'remote.candidate[hand]=selected' in remote_submit
+npc_tick=function('static void tick_player(')
+assert '(use_remote&&remote.candidate[h]!=it.index)' in npc_tick
+network=(ROOT/'port/linux/game/network_interaction.c').read_text()
+assert 'else if(r->pressed||!r->held)' in network
+assert 'vr_npc_interaction_remote(r->player,hand,r->held,r->position.n)' in network
 print('PASS: NPC native palette/action/capsule hook order, offline/type/focus/BSP-ID guards, no destructive AI toggle')

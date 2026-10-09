@@ -1,31 +1,42 @@
 ## Current release checkpoint — v1.0.18 (2026-10-08)
 
-## Active private Test43 candidate (2026-10-09)
+## Active private Test44 candidate (2026-10-09)
 
-Candidate **1.0.24-test43 / code54** on `test39-interaction-completion` adds
-visible main-launcher selection among installed distinct game-data sets and
-safe deletion of inactive imported copies and ISO/XISO copies stored in the
-import inbox. It carries forward every change since public v1.0.18, including
-Tests38-42, the icon, touch-layout export/import and per-control hide, supplied
-USA image comparison, and selected OpenCE Build167 compatibility fixes. The
-engine base remains Build157/network24. Byte-identical map sets continue to
-deduplicate; the UI does not claim filename-based revision recognition.
+Candidate **1.0.25-test44 / code55** on `test39-interaction-completion` carries
+forward all work since public v1.0.18 and Test43. It clarifies ISO/XISO source
+ownership across the first-run screen, main launcher and game-data manager:
+picker selection imports supported maps only; the original image stays in its
+original location, is not retained/deleted by the launcher, and can be removed
+in Android Files. Only an image copied into the import inbox can be deleted
+inside the launcher. It also explains that the disabled active Existing game
+data row is a protected status indicator.
 
-Delete operations must refuse base/existing data, the active imported set,
-malformed selections and paths outside the managed library. Directly selected
-ISO/XISO source files remain at their original location. Deleting an inactive
-managed set removes its maps, that set's config and saves. Switching writes the
-existing atomic `active-data.txt` marker read by launcher and native startup.
-Preserve all previously working VR, Android, saves, network and Safe Geometry
-behavior. PC/Steam Frame remains deferred. Package both APKs and matching
-build/source ZIPs for owner testing only; do not publish, install or launch the
-game. Device acceptance remains pending.
+The opening A10 tutorial's directional and script look checks use the fresh,
+validated hand-aim reticle ray. The override is A10-only; it uses the prior
+head path outside A10 and in head-aim mode. During hand aim, stale/invalid ray
+data pauses calibration checks rather than crediting head movement. No general
+mission visibility or AI behavior is intended to change. Engine base remains OpenCE Build157/network24
+with selected Build167 compatibility fixes. Test43's package remains preserved.
 
-See [TEST43-DELIVERY-STATUS.md](TEST43-DELIVERY-STATUS.md),
-[TEST43-REQUIREMENT-DISPOSITION.md](TEST43-REQUIREMENT-DISPOSITION.md),
-[TEST43-PLAYER-NOTES.md](TEST43-PLAYER-NOTES.md), and
-[TEST43-DEVICE-CHECKLIST.md](TEST43-DEVICE-CHECKLIST.md). Test42 remains
-preserved in its own delivery and requirement records.
+Contact actions in Test44 must stay strictly touch-then-press: NPC/enemy and
+object grabs use tracked palm-volume overlap against authored collision models
+in solo and host-validated co-op; climbing requires overlap with a solid
+surface; reload and optional vehicle handles use their authored/virtual contact
+geometry. A fresh Grip or configured reload-input edge is required. Aim rays do
+not acquire targets. Automated source/host-oracle checks pass; two-headset and
+physical Quest acceptance cases remain pending in the device checklist.
+
+Preserve existing VR, Android, saves, network, co-op and Safe Geometry behavior.
+PC/Steam Frame remains deferred. Run the focused launcher/calibration checks,
+the full regression suite, both edition builds and the candidate package gate.
+Deliver both APKs and matching build/source ZIPs for owner testing only; do not
+publish, install or launch the game. Device acceptance remains pending.
+
+See [TEST44-DELIVERY-STATUS.md](TEST44-DELIVERY-STATUS.md),
+[TEST44-REQUIREMENT-DISPOSITION.md](TEST44-REQUIREMENT-DISPOSITION.md),
+[TEST44-PLAYER-NOTES.md](TEST44-PLAYER-NOTES.md), and
+[TEST44-DEVICE-CHECKLIST.md](TEST44-DEVICE-CHECKLIST.md). Test43 and earlier
+candidate artifacts remain preserved.
 
 ## Superseded private Test39 candidate (2026-10-08)
 

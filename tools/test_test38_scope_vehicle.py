@@ -81,7 +81,7 @@ enum { VR_INTERACTION_NONE, VR_INTERACTION_RELOAD, VR_INTERACTION_VEHICLE, VR_IN
 static int interaction_owner[2];
 static struct {int active,menus_active,grip_held[2],grip_pressed[2],grip_released[2],weapon_hand,two_hand_held,two_handed,support_near;float support_dwell;unsigned actions;struct {unsigned flags,hand_valid[2];}frame;}vr;
 '''
-for name in ('vr_interaction_owner','vr_interaction_grip','vr_interaction_claim','vr_interaction_release'):code+=fn(frame,name)
+for name in ('vr_interaction_owner','vr_interaction_grip','vr_interaction_claim_input','vr_interaction_claim','vr_interaction_release'):code+=fn(frame,name)
 code+=r'''
 int main(void){int p,r;vr.active=1;vr.frame.flags=1;vr.frame.hand_valid[0]=vr.frame.hand_valid[1]=1;vr.grip_held[0]=vr.grip_held[1]=1;vr.grip_pressed[0]=1;vr.weapon_hand=1;
 assert(vr_interaction_grip(0,&p,&r)&&p&&!r);assert(!vr_interaction_claim(-1,1));assert(!vr_interaction_claim(2,1));

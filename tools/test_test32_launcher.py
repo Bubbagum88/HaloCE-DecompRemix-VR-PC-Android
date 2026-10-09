@@ -189,12 +189,22 @@ def main():
                       '"Reset settings to defaults"', 'RunLog.destination()', 'ModInstaller.SPV1']:
         assert essential in main_menu, essential
     assert 'menuButton(layout, gameDataButtonLabel())' in main_menu
+    for marker in ['Picker-selected ISO/XISO files are imported as maps only',
+                   'does not keep or delete the original image', 'delete it in Android Files',
+                   'Only copies placed in the import inbox can be deleted here',
+                   'First-run imports become protected Existing game data']:
+        assert marker.lower() in main_menu.lower(), marker
+    assert 'The launcher does not keep or delete the original ISO/XISO' in launcher
+    assert 'Use Android Files to delete that source image' in launcher
     data_button = launcher[launcher.index('private String gameDataButtonLabel()'):launcher.index('private void buildMenu()')]
     assert 'GameDataLibrary.activeRoot(baseRoot())' in data_button and '" sets"' in data_button
     data_manager = (JAVA / 'GameDataManager.java').read_text()
     for marker in ['Use this set:', 'Currently selected:', 'Delete imported copy',
                    'Delete (select another set first)', 'source ISO/XISO are not deleted', 'deleteInboxImage(image)',
-                   'byte-identical imports share one profile']:
+                   'byte-identical managed imports share one profile', 'IMPORTANT:',
+                   'the launcher does not retain or delete it', 'Use Android Files to delete that source image',
+                   'Only image copies placed in the import inbox can be deleted',
+                   'If that is your only row, this is expected', 'Existing game data base row stays separate']:
         assert marker.lower() in data_manager.lower(), marker
     assert 'passOnInvite(getIntent())' in launcher and 'writeInvite(intent.getData().toString())' in launcher
     assert 'play.setOnClickListener(v -> startFromMenu())' in main_menu

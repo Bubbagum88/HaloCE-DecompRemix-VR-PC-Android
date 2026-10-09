@@ -226,7 +226,7 @@ static struct vr_menu_setting const vr_menu_controls[] =
     { "IMPACT CAP", "vr.impact_damage_cap", _vr_setting_real, 4, { { "25%", "0.25" }, { "50%", "0.5" }, { "100%", "1" }, { "150%", "1.5" } } },
     { "IMPACT DAMAGE", "vr.interaction_damage", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "WORLD GRAB", "vr.world_interaction", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-	{ "GRAB REACH", "vr.interaction_reach", _vr_setting_real, 5, { { "12 CM", "0.12" }, { "18 CM", "0.18" }, { "25 CM", "0.25" }, { "30 CM", "0.30" }, { "40 CM", "0.40" } } },
+	{ "HAND CONTACT", "vr.interaction_reach", _vr_setting_real, 4, { { "2 CM", "0.02" }, { "4 CM", "0.04" }, { "6 CM", "0.06" }, { "8 CM", "0.08" } } },
 	{ "LIFT VEHICLES", "vr.vehicle_lift", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "SHAKE COOLING", "vr.cooldown_shake", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "CUSTOM SCENERY", "vr.custom_scenery_grab", _vr_setting_multi, 2, { { "OFF", "vr.custom_scenery_grab=false" }, { "ON", "vr.custom_scenery_grab=true;vr.world_interaction=true" } } },
@@ -442,6 +442,7 @@ static struct vr_menu_setting const vr_menu_buttons[] =
     { "SHOULDER POUCH", "vr.reload_shoulder", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     { "HIP POUCH", "vr.reload_hip", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     { "MANUAL RELOAD", "vr.manual_reload", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    { "RELOAD INPUT", "vr.reload_input", _vr_setting_string, 2, { { "GRIP", "grip" }, { "TRIGGER", "trigger" } } },
     { "USE / RELOAD", "vr.button_action", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
     { "MELEE", "vr.button_melee", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
     { "CROUCH", "vr.button_crouch", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
@@ -650,9 +651,17 @@ static long vr_menu_value_index(
 			break;
 		case _vr_setting_real:
 		case _vr_setting_real_choice:
-			if (fabs(config_real(setting->key) - atof(value)) < 0.001)
+		{
+			double current = config_real(setting->key);
+			/* Old configs stored 12-40 cm as ray reach. The same key now
+			 * stores a 2-8 cm palm-contact radius; display its bounded effective
+			 * value instead of leaving HAND CONTACT marked CUSTOM. */
+			if (!strcmp(setting->key, "vr.interaction_reach"))
+				current = current < 0.02 ? 0.02 : current > 0.08 ? 0.08 : current;
+			if (fabs(current - atof(value)) < 0.001)
 				return index;
 			break;
+		}
 		case _vr_setting_string:
 			if (!strcmp(config_string(setting->key), value))
 				return index;

@@ -10,6 +10,8 @@
 #include "items/items.h"
 #include "objects/object_definitions.h"
 #include "physics/collisions.h"
+#include "physics/collision_models.h"
+#include "physics/collision_bsp.h"
 #include "physics/physics.h"
 #include "physics/physics_definitions.h"
 #include "units/units.h"
@@ -27,6 +29,7 @@
 #include "network_coop.h"
 #include "network_interaction.h"
 #include "vr_vehicle_lift_math.h"
+#include <float.h>
 #include <math.h>
 #include <string.h>
 
@@ -47,7 +50,7 @@ static int interaction_diag_vr = -1;
 static int interaction_diag_coop = -1;
 static int interaction_diag_game = -1;
 static int interaction_diag_map = -1;
-static int interaction_diag_reach_cm = -1;
+static int interaction_diag_contact_cm = -1;
 static int interaction_diag_slots = -1;
 static int interaction_diag_haptics_milli = -1;
 static long interaction_diag_tick = NONE;
@@ -325,7 +328,7 @@ static void interaction_log_session_state(void)
 	int coop = network_coop_active();
 	int in_game = game_in_progress();
 	int map_loaded = game_map_loaded();
-	int reach_cm = (int)(PIN((real)config_real("vr.interaction_reach"), 0.12f, 0.40f) * 100.0f + 0.5f);
+	int contact_cm = (int)(PIN((real)config_real("vr.interaction_reach"), 0.02f, 0.08f) * 100.0f + 0.5f);
 	int slots = (int)config_integer("vr.npc_max_ragdolls");
 	int haptics_milli = (int)(PIN((real)config_real("vr.haptics"), 0.0f, 1.0f) * 1000.0f + 0.5f);
 	long tick = game_time_get();
@@ -334,7 +337,7 @@ static void interaction_log_session_state(void)
 	if (interaction_diag_connection == connection && interaction_diag_features == features &&
 		interaction_diag_vr == active && interaction_diag_coop == coop &&
 		interaction_diag_game == in_game && interaction_diag_map == map_loaded &&
-		interaction_diag_reach_cm == reach_cm && interaction_diag_slots == slots &&
+		interaction_diag_contact_cm == contact_cm && interaction_diag_slots == slots &&
 		interaction_diag_haptics_milli == haptics_milli &&
 		(tick >= interaction_diag_tick || interaction_diag_tick == NONE))
 		return;
@@ -344,16 +347,16 @@ static void interaction_log_session_state(void)
 	interaction_diag_coop = coop;
 	interaction_diag_game = in_game;
 	interaction_diag_map = map_loaded;
-	interaction_diag_reach_cm = reach_cm;
+	interaction_diag_contact_cm = contact_cm;
 	interaction_diag_slots = slots;
 	interaction_diag_haptics_milli = haptics_milli;
 	interaction_diag_tick = tick;
-	platform_log("VR interactions: session=%s(%d) in_game=%d map_loaded=%d vr=%d coop=%d world_grab=%d vehicle_lift=%d npc_grab=%d npc_rescue=%d custom_rigs=%d custom_scenery=%d mag_debris=%d manual_reload=%d reach=%dcm npc_rig_slots=%d/%d haptics=%.2f%s",
+	platform_log("VR interactions: session=%s(%d) in_game=%d map_loaded=%d vr=%d coop=%d world_grab=%d vehicle_lift=%d npc_grab=%d npc_rescue=%d custom_rigs=%d custom_scenery=%d mag_debris=%d manual_reload=%d contact_radius=%dcm npc_rig_slots=%d/%d haptics=%.2f%s",
 		interaction_connection_name(connection), connection, in_game, map_loaded, active, coop,
 		features & 1 ? 1 : 0, features & 2 ? 1 : 0, features & 4 ? 1 : 0,
 		features & 8 ? 1 : 0, features & 16 ? 1 : 0, features & 32 ? 1 : 0,
 		features & 64 ? 1 : 0, features & 128 ? 1 : 0,
-		reach_cm, slots, VR_NPC_INTERACTION_POOL_SIZE, (float)config_real("vr.haptics"),
+		contact_cm, slots, VR_NPC_INTERACTION_POOL_SIZE, (float)config_real("vr.haptics"),
 		connection == _game_connection_local ? "" : "; local-only interactions suppressed in this network/film session");
 }
 #define grabbable interaction_grabbable
@@ -403,11 +406,13 @@ static long candidate(real_point3d const *point, real_point3d const *camera, lon
 {
     struct object_iterator iterator;
     struct object_datum *item;
-    real best = (real)vr_world_interaction_reach((float)config_real("vr.interaction_reach"), (float)units);
+    real contact_radius = (real)vr_world_hand_contact_radius((float)config_real("vr.interaction_reach"), (float)units);
+    real best_center_distance = FLT_MAX;
     long selected = NONE;
     int narrow_tests=0;
     real_vector3d ray;
     struct collision_result hit;
+    real_vector3d stationary = { 0.0f, 0.0f, 0.0f };
     unsigned long mask = 0;
     if (world_grab_enabled())
         mask |= _object_mask_weapon | _object_mask_equipment | _object_mask_scenery;
@@ -417,27 +422,29 @@ static long candidate(real_point3d const *point, real_point3d const *camera, lon
     while ((item = object_iterator_next(&iterator)) != NULL) {
         boolean is_vehicle = item->object.type == _object_type_vehicle;
         real distance;
+        struct collision_model_instance model;
+        struct collision_model_test_pill_result model_hit;
         if (is_vehicle && !vehicle_lift_enabled()) continue;
         if (!grabbable(iterator.index) || vr_world_interaction_remote_owned(iterator.index)) continue;
         vector_from_points3d(point, &item->object.bounding_sphere_center, &ray);
         distance = magnitude3d(&ray);
-        if (distance > item->object.bounding_sphere_radius + best ||
-            (!is_vehicle && distance > 0.8f * units)) continue;
+        if (distance > item->object.bounding_sphere_radius + contact_radius) continue;
         if (++narrow_tests>32) break;
-        if (collision_test_vector(FLAG(_collision_test_front_facing_surfaces_bit) |
-            FLAG(_collision_test_back_facing_surfaces_bit) | FLAG(_collision_test_structure_bit) |
-            FLAG(_collision_test_objects_bit) | _collision_test_objects_all_types_flags,
-            point, &ray, unit, &hit)) {
-            if (hit.type != _collision_result_object || hit.object_index != iterator.index) continue;
-            vector_from_points3d(point, &hit.point, &ray);
-            distance = magnitude3d(&ray);
-        } else continue; /* A bounding sphere is only broad phase, not a surface. */
-        if (distance < best) {
-            real_point3d surface=hit.point;
-            vector_from_points3d(camera,&surface,&ray);
-            if (collision_test_vector(_collision_test_for_line_of_sight_flags,camera,&ray,unit,&hit) &&
-                !(hit.type==_collision_result_object && hit.object_index==iterator.index)) continue;
-            best=distance; selected=iterator.index; *contact=surface;
+        /* The bounding sphere only rejects distant objects. Acquisition
+         * requires the tracked hand's finite collision sphere to overlap the
+         * object's authored collision model; no hand-to-target ray selects it. */
+        if (!collision_model_instance_new(&model, iterator.index) ||
+            !collision_model_test_pill(&model, point, &stationary, contact_radius, &model_hit)) continue;
+        vector_from_points3d(point, &item->object.bounding_sphere_center, &ray);
+        distance = magnitude3d(&ray);
+        /* Keep LOS solely as a through-wall guard for a hand pose that has
+         * penetrated the player's visible world collision. It cannot acquire
+         * a target; model overlap above is mandatory. */
+        vector_from_points3d(camera, point, &ray);
+        if (collision_test_vector(_collision_test_for_line_of_sight_flags, camera, &ray, unit, &hit) &&
+            !(hit.type == _collision_result_object && hit.object_index == iterator.index)) continue;
+        if (distance < best_center_distance) {
+            best_center_distance = distance; selected = iterator.index; *contact = *point;
         }
     }
     return selected;
@@ -458,7 +465,7 @@ void vr_world_interaction_tick(void)
         !vr_world_authority(game_connection()==_game_connection_local,
             game_connection()==_game_connection_network_server,network_coop_active()) ||
         (game_connection()!=_game_connection_local && !network_interaction_host_ready()) ||
-        cinematic_in_progress() || !vr_aiming() || !(units > 0)) { vr_world_interaction_reset(); return; }
+        cinematic_in_progress() || !(units > 0)) { vr_world_interaction_reset(); return; }
     local = local_player_get_next(NONE);
     player = local != NONE ? local_player_get_player_index(local) : NONE;
     unit = player != NONE ? player_get(player)->unit_index : NONE;
@@ -504,8 +511,8 @@ void vr_world_interaction_tick(void)
                 local_vector(&forward,&up,&item->object.up,&held->local_up);
                 vr_haptic(hand,0.25f,0.035f);
                 platform_log("VR world: grab hand=%d object=%08lx second=%d",hand,index,hands[1-hand].active&&hands[1-hand].index==index);
-            } else platform_log("VR world: grab miss hand=%d reach=%.2f m world=%d vehicle_lift=%d (no eligible surface in reach/line of sight)",
-                hand,(float)vr_world_interaction_reach((float)config_real("vr.interaction_reach"),(float)units),
+            } else platform_log("VR world: contact grab miss hand=%d radius=%.2f cm world=%d vehicle_lift=%d (hand sphere did not overlap an eligible collision model)",
+                hand,(float)vr_world_hand_contact_radius((float)config_real("vr.interaction_reach"),(float)units)*100.0f/(float)units,
                 world_grab_enabled(),vehicle_lift_enabled());
         }
     }

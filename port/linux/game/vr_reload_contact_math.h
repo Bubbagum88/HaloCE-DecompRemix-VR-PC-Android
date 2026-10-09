@@ -26,4 +26,20 @@ static int vr_reload_box(float const from[3],float const delta[3],float const lo
     if(face<0)return 0;
     normal[0]=normal[1]=normal[2]=0;normal[face]=sign;*fraction=enter;return 1;
 }
+
+/* A tracked palm is a sphere: contact with a model part's authored bounds is
+ * based on the closest point on that box, not a large center-distance reach. */
+static inline int vr_reload_sphere_touches_box(float const point[3],float const lo[3],float const hi[3],float radius)
+{
+    float distance2=0.0f;
+    if(!isfinite(radius)||radius<0.0f)return 0;
+    for(int axis=0;axis<3;axis++) {
+        float delta=0.0f;
+        if(!isfinite(point[axis])||!isfinite(lo[axis])||!isfinite(hi[axis])||lo[axis]>hi[axis])return 0;
+        if(point[axis]<lo[axis])delta=lo[axis]-point[axis];
+        else if(point[axis]>hi[axis])delta=point[axis]-hi[axis];
+        distance2+=delta*delta;
+    }
+    return isfinite(distance2)&&distance2<=radius*radius;
+}
 #endif

@@ -15,6 +15,7 @@ swapchain images, whose GL texture names work in this context as they are.
 #include "vr.h"
 #include "vr_alignment.h"
 #include "vr_scope_profiles.h"
+#include "../game/vr_manual_reload_math.h"
 
 #include "guest_host.h"
 #include "halo_android_abi.h"
@@ -24,6 +25,10 @@ swapchain images, whose GL texture names work in this context as they are.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Implemented by vr_render.c; keep this narrow declaration here because the
+ * frame module is included before the game-side `real` type headers. */
+extern int vr_script_calibration_reticle_ray(float origin[3], float direction[3]);
 
 /* test21: the kinds of gun with their own aim adjustment (VR_GUN_*): the
 config key's part and the menu's name */
@@ -974,7 +979,7 @@ void vr_initialize(void)
 		return;
 	vr.initialized = 1;
 	config_vr_vehicle_defaults();
-	platform_log("vr: HaloCE Quest test43 candidate 1.0.24-test43 code54 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; game-data set selection and safe deletion; all v1.0.18+ Test38-42 features retained; device acceptance pending)");
+	platform_log("vr: HaloCE Quest test44 candidate 1.0.25-test44 code55 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; managed game-data selection and explicit picker-source guidance; A10 look calibration follows fresh hand reticle; contact-driven NPC, object, climbing, reload and wheel-hand acquisition; all v1.0.18+ Test38-43 features retained; device acceptance pending)");
 	platform_log("vr: retained baseline history: HaloCE Quest test30 candidate 1.0.12 (the menus' face buttons as the Xbox's of the same letter: X deletes a profile; the co-op host's server name; test29: OpenCE build 144 netcode, network 21; the HUD head tap held by the temple, HUD and head tap on the HUD page, wrist HUD on the wrist and movable, moving with a hand while holding the gun in both, glasses FOV and resolution to 200%% (PR #1); test28: co-op games entered in progress keep their camera upright, release checks as OpenCE ships, co-op hosted for 2 to 128 players as OpenCE's Server Setup offers, gyro aim on phones as an option; test27: OpenCE build 138 netcode, network 20, with its co-op for up to 16 players; test26: co-op: death screams no longer stop the second player, cutscene characters placed and animated as on the first; HUD head tap, reticle toggle on the left stick click with crouch on the turning stick held down (or crouch kept on the click: Controls), optional wrist HUD, adjustable head taps; impact melee along the gun with a follow-through; fingers bend smoothly against walls; test25: vehicle seat and recentre diagnostics, first-person horizon option and seat glass, settings rows that fit, vehicle offset reset; test24b: comfort vignette, smooth speed and snap angle, SPV1 compatibility note; test24: co-op cutscenes animate for the second player; test23: remappable Quest buttons with the grenade on X; test22: co-op campaign host crash fixed, steady first-person vehicle view, left-hand ammo display, adjustable scopes, shot diagnostics; test21b: floating hands restored, torso-following arms, neck-pivot full body, auto two-hand lock, horn, online melee off, two-hand gun roll, pistol shots from the hand, reticle converges as shots do, per-gun aim, horn from either stick)");
 	if (!config_boolean("vr.enabled"))
 	{
@@ -1746,6 +1751,7 @@ static void update_hud_tap(int hand, float seconds)
 
 /* Claims are local input ownership, never network state or weapon inventory. */
 static int interaction_owner[2];
+static int interaction_trigger_held[2];
 int vr_interaction_owner(int hand)
 {
     if (hand < 0 || hand > 1) return VR_INTERACTION_NONE;
@@ -1764,11 +1770,18 @@ int vr_interaction_grip(int hand, int *pressed, int *released)
     if (released) *released = vr.grip_released[hand];
     return vr.grip_held[hand];
 }
-int vr_interaction_claim(int hand, int owner)
+int vr_interaction_trigger(int hand)
+{
+    if (hand < 0 || hand > 1 || !vr.active || vr.menus_active ||
+        !(vr.frame.flags & HALO_XR_FRAME_FOCUSED) || !(vr.frame.hand_valid[hand] & 1)) return 0;
+    return interaction_trigger_held[hand];
+}
+int vr_interaction_claim_input(int hand, int owner, int input_held)
 {
     int current;
     if (hand < 0 || hand > 1 || owner <= VR_INTERACTION_NONE || owner >= VR_INTERACTION_COUNT ||
-        !vr_interaction_grip(hand, NULL, NULL) || (vr.frame.flags & HALO_XR_FRAME_RECENTRED)) return 0;
+        !input_held || !vr.active || vr.menus_active || !(vr.frame.flags & HALO_XR_FRAME_FOCUSED) ||
+        !(vr.frame.hand_valid[hand] & 1) || (vr.frame.flags & HALO_XR_FRAME_RECENTRED)) return 0;
     current = vr_interaction_owner(hand);
     if (current != VR_INTERACTION_NONE && current != owner) return 0;
     interaction_owner[hand] = owner;
@@ -1777,6 +1790,10 @@ int vr_interaction_claim(int hand, int owner)
     if (hand == vr.weapon_hand)
         vr.actions &= ~(VR_ACTION_SWITCH_WEAPON | VR_ACTION_DROP_WEAPON | VR_ACTION_GRAB_WEAPON);
     return 1;
+}
+int vr_interaction_claim(int hand, int owner)
+{
+    return vr_interaction_claim_input(hand, owner, vr_interaction_grip(hand, NULL, NULL));
 }
 void vr_interaction_release(int hand, int owner)
 {
@@ -1794,6 +1811,7 @@ static void update_gestures(void)
 
 	if (!(vr.frame.flags & HALO_XR_FRAME_FOCUSED))
 	{
+		interaction_trigger_held[0] = interaction_trigger_held[1] = 0;
 		reset_hud_tap();
 		vr.two_hand_held = 0;
 		vr.support_near = 0;
@@ -1804,6 +1822,8 @@ static void update_gestures(void)
 	for (hand = 0; hand < 2; hand++)
 	{
 		int held = vr.grip_held[hand] ? vr.frame.squeeze[hand] > 0.7f : vr.frame.squeeze[hand] > 0.8f;
+		interaction_trigger_held[hand] = (vr.frame.hand_valid[hand] & 1)
+			? vr_mr_trigger_held(interaction_trigger_held[hand], vr.frame.trigger[hand]) : 0;
 
 		vr.grip_pressed[hand] = held && !vr.grip_held[hand];
 		vr.grip_released[hand] = !held && vr.grip_held[hand];
@@ -3500,8 +3520,8 @@ int vr_heading_forward(float out_forward[3])
 	return 1;
 }
 
-/* Script checks run before stereo rendering: use this frame's tracked head,
- * not the previous rendered camera or the weapon's looking vector. */
+/* Script checks use this frame's tracked head, except A10 look calibration,
+ * which can use the current fresh rendered hand-reticle ray below. */
 static int vr_script_head_valid(void)
 {
 	const unsigned int needed = HALO_XR_FRAME_SHOULD_RENDER | HALO_XR_FRAME_VIEWS_VALID | HALO_XR_FRAME_FOCUSED;
@@ -3517,23 +3537,28 @@ int vr_script_head_view(const float position[3], float out_position[3], float ou
 	return 1;
 }
 
-static struct { int valid; float yaw, pitch; } tutorial_look;
-void vr_head_look_reset(void) { tutorial_look.valid = 0; }
+static struct { int valid, source; float yaw, pitch; } tutorial_look;
+void vr_head_look_reset(void) { tutorial_look.valid = 0; tutorial_look.source = 0; }
 
 unsigned int vr_head_look_actions(void)
 {
-	float forward[3], yaw, pitch, delta;
+	float forward[3], origin[3], yaw, pitch, delta;
+	int source = 0, reticle;
 	unsigned int actions = 0;
 	if (!vr_script_head_valid()) { vr_head_look_reset(); return 0; }
 	head_forward(forward);
+	/* In the opening A10 calibration, use the visible hand-aim reticle. If its
+	 * render ray is unavailable, wait for one instead of counting head motion. */
+	reticle = vr_script_calibration_reticle_ray(origin, forward);
+	if (reticle < 0) { vr_head_look_reset(); return 0; }
+	if (reticle > 0) source = 1;
 	yaw = atan2f(forward[1], forward[0]);
 	pitch = atan2f(forward[2], hypotf(forward[0], forward[1]));
 	if (!isfinite(yaw) || !isfinite(pitch)) { vr_head_look_reset(); return 0; }
-	if (!tutorial_look.valid || (vr.frame.flags & HALO_XR_FRAME_RECENTRED)) {
-		tutorial_look.valid = 1; tutorial_look.yaw = yaw; tutorial_look.pitch = pitch; return 0;
+	if (!tutorial_look.valid || tutorial_look.source != source || (vr.frame.flags & HALO_XR_FRAME_RECENTRED)) {
+		tutorial_look.valid = 1; tutorial_look.source = source; tutorial_look.yaw = yaw; tutorial_look.pitch = pitch; return 0;
 	}
-	/* Accumulate slow deliberate movement as well as fast turns. World turns,
-	 * weapon movement and controller grip cannot pass the head-look test. */
+	/* Accumulate slow deliberate movement as well as fast turns. */
 	delta = wrap_angle(yaw - tutorial_look.yaw);
 	if (fabsf(delta) > 0.02f) { actions |= delta > 0 ? 4u : 8u; tutorial_look.yaw = yaw; }
 	delta = pitch - tutorial_look.pitch;

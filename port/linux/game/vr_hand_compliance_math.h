@@ -2,6 +2,23 @@
 #define VR_HAND_COMPLIANCE_MATH_H
 #include <math.h>
 struct vr_hand_compliance { float visibility;int hidden; };
+/* Arm compliance may fade the limb when its animation pose cannot follow the
+ * tracked controller. Keep the hand subtree at its already collision-limited
+ * pose so it remains visible and does not snap back toward the elbow. */
+static float vr_hand_compliance_node_visibility(float visibility,int in_hand_subtree)
+{
+    if(in_hand_subtree)return 1.0f;
+    if(!isfinite(visibility))return 0.0f;
+    if(visibility<0.0f)return 0.0f;
+    if(visibility>1.0f)return 1.0f;
+    return visibility;
+}
+static float vr_hand_compliance_node_position(float arm_position,float node_position,
+    float visibility,int in_hand_subtree)
+{
+    float node_visibility=vr_hand_compliance_node_visibility(visibility,in_hand_subtree);
+    return arm_position+(node_position-arm_position)*node_visibility;
+}
 static float vr_hand_compliance_step(struct vr_hand_compliance *state,float separation,float limit,float dt,int reset)
 {
     if(!isfinite(limit)||limit<.08f||limit>.40f)limit=.18f;

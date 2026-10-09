@@ -91,6 +91,8 @@ static int vr_vehicle_handles_prepare(long unit_index)
 static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
 {
     real total=0;int count=0;
+    double configured_contact=config_real("vr.interaction_reach");
+    real contact_radius=(real)(isfinite(configured_contact)?PIN(configured_contact,0.02,0.08):0.04);
     unsigned int buttons;float triggers[2],thumbs[4];
     if(!vr_controller(&buttons,triggers,thumbs)) { vr_vehicle_handles_clear(); return 0; }
     if(!vr_vehicle_handles_prepare(unit))return 0;
@@ -113,7 +115,11 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
             vector_from_points3d(&vr_wheel.target[h],&hand,&d);distance=magnitude3d(&d)/vr_units_per_metre();
         } else local[0]=local[1]=0;
         if(vr_wheel.grip[h].held && vr_interaction_owner(h)!=VR_INTERACTION_VEHICLE)vr_wheel.grip[h].held=0;
-        if(!vr_wheel.grip[h].held && press && tracked && distance<0.16f && vr_interaction_claim(h,VR_INTERACTION_VEHICLE)) {
+        /* The virtual wheel is a target surface, so Grip acquires it only when
+         * the tracked hand's contact sphere reaches the configured contact
+         * radius. Keep the larger distance only as a post-grab release guard. */
+        if(!vr_wheel.grip[h].held && press && tracked && isfinite(distance) &&
+            distance<=contact_radius && vr_interaction_claim(h,VR_INTERACTION_VEHICLE)) {
             vr_wheel_grip_start(&vr_wheel.grip[h],local,vr_wheel.angle);vr_haptic(h,0.35f,0.035f);
         }
         if(vr_wheel.grip[h].held) {

@@ -5,15 +5,15 @@ static int vr_world_authority(int local, int server, int campaign)
 {
     return local || (server && campaign);
 }
-/* Close-range hand interaction stays deliberately bounded. A wall/object LOS
- * query remains mandatory at the call site, so increasing this radius never
- * permits reaching through solid geometry. */
-static inline float vr_world_interaction_reach(float metres, float units_per_metre)
+/* Contact tolerance for the tracked palm collider. This is a sphere radius,
+ * not a ray reach: callers must verify overlap with the contacted collision
+ * model or world surface before Grip can acquire it. */
+static inline float vr_world_hand_contact_radius(float metres, float units_per_metre)
 {
     if (!isfinite(metres) || !isfinite(units_per_metre) || units_per_metre <= 0.0f)
         return 0.0f;
-    if (metres < 0.12f) metres = 0.12f;
-    if (metres > 0.40f) metres = 0.40f;
+    if (metres < 0.02f) metres = 0.02f;
+    if (metres > 0.08f) metres = 0.08f;
     return metres * units_per_metre;
 }
 /* Velocities are world units/tick (the native item_update convention). */

@@ -4,6 +4,13 @@ import subprocess
 import tempfile
 ROOT=Path(__file__).resolve().parents[1]
 source=(ROOT/'port/linux/game/vr_render.c').read_text()
+compliance_start=source.index('static void vr_limit_hand_compliance(')
+compliance_brace=source.index('{',compliance_start);compliance_end=compliance_brace+1;compliance_depth=1
+while compliance_depth:compliance_depth+=(source[compliance_end]=='{')-(source[compliance_end]=='}');compliance_end+=1
+compliance=source[compliance_start:compliance_end]
+assert 'vr_hand_compliance_node_visibility(visibility,' in compliance
+assert 'vr_hand_compliance_node_position(' in compliance
+assert 'vr_node_under(graph,node,hand)' in compliance
 contact_start=source.index('static void vr_hand_contact_feedback(')
 contact_brace=source.index('{',contact_start);contact_end=contact_brace+1;contact_depth=1
 while contact_depth:contact_depth+=(source[contact_end]=='{')-(source[contact_end]=='}');contact_end+=1
@@ -51,6 +58,15 @@ int main(void){
  assert(vr_hand_compliance_step(&s,NAN,.18f,0,1)==0);
  assert(vr_hand_compliance_step(&s,.1f,NAN,0,1)==1);
  assert(vr_hand_compliance_step(&s,.5f,.18f,0,1)==0); /* reset cannot flash a distant hand */
+ /* Compliance fades the arm but preserves the hand/finger subtree at its
+    solved, collision-constrained pose. */
+ assert(vr_hand_compliance_node_visibility(0,1)==1);
+ assert(vr_hand_compliance_node_visibility(.35f,1)==1);
+ assert(vr_hand_compliance_node_visibility(.35f,0)==.35f);
+ assert(vr_hand_compliance_node_visibility(NAN,0)==0);
+ assert(fabsf(vr_hand_compliance_node_position(1.0f,.2f,0,1)-.2f)<1e-6f);
+ assert(fabsf(vr_hand_compliance_node_position(1.0f,.2f,.35f,1)-.2f)<1e-6f);
+ assert(fabsf(vr_hand_compliance_node_position(1.0f,.2f,.35f,0)-.72f)<1e-6f);
  real_point3d point={{0}};real_vector3d vector={{1,0,0}};struct collision_result hit;
  vr_finger_reload_only=1;assert(vr_finger_trace(&point,&vector,-1,&hit)&&hit.t==.4f&&reload_calls==1&&!generic_calls&&!owned_calls);
  vr_finger_reload_only=0;vr_finger_owned_valid=1;
