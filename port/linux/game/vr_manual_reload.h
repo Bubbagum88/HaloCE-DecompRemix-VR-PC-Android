@@ -6,6 +6,7 @@ struct collision_result;
 enum { VR_MANUAL_SUPPRESS_AUTO = 1, VR_MANUAL_BLOCK_FIRE = 2, VR_MANUAL_COMMIT = 4 };
 void vr_manual_reload_reset(void);
 void vr_manual_reload_debris_reset(void);
+void vr_manual_reload_debris_prepare_for_state_restore(void);
 void vr_manual_reload_debris_tick(void);
 void vr_manual_reload_debris_render(void);
 void vr_manual_reload_note_weapon(long weapon_index);

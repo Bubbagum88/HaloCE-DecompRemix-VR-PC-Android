@@ -35,7 +35,10 @@ int main(void) {
     assert(!vr_magazine_debris_spawn_allowed(1,1,1,64,0,.02f,.2f));
     assert(!vr_magazine_debris_spawn_allowed(1,1,1,64,1,NAN,.2f));
     assert(!vr_magazine_debris_spawn_allowed(1,1,1,64,1,.21f,.2f));
-    puts("PASS: persistent map-session magazine pool, no eviction when full, finite speed and fail-closed spawn bounds");
+    assert(vr_magazine_debris_owner_after_state_restore(1, 17, -1) == -1);
+    assert(vr_magazine_debris_owner_after_state_restore(1, -1, -1) == -1);
+    assert(vr_magazine_debris_owner_after_state_restore(0, 17, -1) == 17);
+    puts("PASS: bounded map-session magazine pool, same-map restore owner rebasing, finite speed and fail-closed spawn bounds");
 }
 '''
 src = build / "test.c"
@@ -55,6 +58,8 @@ tick = reload[reload.index("void vr_manual_reload_debris_tick"):reload.index("vo
 render = reload[reload.index("void vr_manual_reload_debris_render"):reload.index("static boolean reload_near")]
 map_init = objects[objects.index("void objects_initialize_for_new_map"):objects.index("void objects_dispose_from_old_map")]
 map_dispose = objects[objects.index("void objects_dispose_from_old_map"):objects.index("void objects_dispose(")]
+before_load = state[state.index("static void game_state_call_before_load_procs"):state.index("static void game_state_call_after_load_procs")]
+after_load = state[state.index("static void game_state_call_after_load_procs"):state.index("void game_state_dispose")]
 assert 'config_boolean("vr.dropped_magazines")' in spawn
 assert 'game_connection() != _game_connection_local' in spawn
 assert 'reload.kind != RELOAD_MAGAZINE' in spawn
@@ -66,7 +71,10 @@ assert "_render_model_first_person_bit" not in render
 assert "vr_manual_reload_debris_tick();" in objects
 assert "vr_manual_reload_debris_render();" in renderer
 assert re.search(r"else\s*\{\s*process_rendered_objects\(&data\);\s*#ifdef HALO_VR\s*[^}]*vr_manual_reload_debris_render\(\);", renderer)
-assert state.count("vr_manual_reload_debris_reset();") >= 2
+assert "vr_manual_reload_debris_prepare_for_state_restore();" in before_load
+assert before_load.index("vr_manual_reload_debris_prepare_for_state_restore();") < before_load.index("(*proc)();")
+assert "vr_manual_reload_debris_reset();" not in before_load + after_load
+assert "vr_manual_reload_debris_reset();" not in state
 assert "vr_manual_reload_debris_reset();" in map_init
 assert "vr_manual_reload_debris_reset();" in map_dispose
 assert "weapon_magazine_finish_reload" not in spawn + tick + render
@@ -85,4 +93,5 @@ config = (ROOT / "port/linux/src/port_config.c").read_text()
 menu = (ROOT / "port/linux/game/vr_menu.c").read_text()
 assert re.search(r'"vr\.dropped_magazines",\s*_config_boolean,\s*"false"', config)
 assert '"MAG DEBRIS", "vr.dropped_magazines"' in menu
-print("PASS: visual-only offline spawn, native swept collision, weapon-independent map-session persistence without eviction, save/map lifecycle reset and no ammo mutation")
+assert "VR_MAGAZINE_DEBRIS_CAPACITY = 32" in (ROOT / "port/linux/game/vr_magazine_debris_math.h").read_text()
+print("PASS: visual-only offline spawn, native swept collision, retention across same-map state restores, clear on map lifecycle/disable/online, 32-slot no-eviction cap and no ammo mutation")

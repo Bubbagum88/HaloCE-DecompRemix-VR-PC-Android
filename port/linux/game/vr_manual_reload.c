@@ -99,6 +99,26 @@ void vr_manual_reload_debris_reset(void)
     dropped_magazines_full_reported = FALSE;
 }
 
+void vr_manual_reload_debris_prepare_for_state_restore(void)
+{
+	int retained = 0;
+	int detached_owners = 0;
+	for (int index = 0; index < VR_MAGAZINE_DEBRIS_CAPACITY; ++index) {
+		struct dropped_magazine *slot = &dropped_magazines[index];
+		if (!slot->active) continue;
+		retained++;
+		if (slot->owner_unit != NONE) {
+			slot->owner_unit = vr_magazine_debris_owner_after_state_restore(
+				TRUE, slot->owner_unit, NONE);
+			detached_owners++;
+		}
+	}
+	if (retained > 0) {
+		platform_log("VR reload debris: retaining %d map-local visual magazines across same-map state restore; detached %d old collision-owner handles",
+			retained, detached_owners);
+	}
+}
+
 static void debris_spawn_from_reload(struct model *model, real_matrix4x3 *matrices)
 {
     int active[VR_MAGAZINE_DEBRIS_CAPACITY];

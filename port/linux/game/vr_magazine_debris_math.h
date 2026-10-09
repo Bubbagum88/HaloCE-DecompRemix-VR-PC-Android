@@ -39,4 +39,12 @@ static int vr_magazine_debris_spawn_allowed(int enabled, int local_session,
     return 1;
 }
 
+/* Object datum indices may be reassigned while a same-map save/checkpoint is
+ * restored. Keep the visual drop, but stop treating its former owner index as
+ * a live collision exclusion after that transition. */
+static long vr_magazine_debris_owner_after_state_restore(int active, long owner, long none)
+{
+    return active ? none : owner;
+}
+
 #endif

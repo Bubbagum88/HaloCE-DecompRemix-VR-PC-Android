@@ -1,8 +1,9 @@
 # Test40 requirement disposition
 
-This is the current source-scope record for the four items previously listed
-as unfinished. It separates implemented bounded behavior from broader
-compatibility and device acceptance.
+Historical Test40 source-scope snapshot for the four items previously listed
+as unfinished. Its implementation details are superseded where later candidate
+records differ; for the current magazine-persistence behavior, see
+`TEST45-REQUIREMENT-DISPOSITION.md`.
 
 | Requirement | Test40 status | Remaining limitation / evidence |
 |---|---|---|

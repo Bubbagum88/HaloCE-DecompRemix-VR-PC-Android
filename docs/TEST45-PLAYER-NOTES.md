@@ -96,9 +96,11 @@ and Java startup. Switching applies to the next launch. See
   in solo play. It does not alter normal firing heat rules online.
 - **CUSTOM SCENERY / CUSTOM NPC RIGS / MAG DEBRIS / LIFT VEHICLES / NPC RESCUE:**
   optional custom scenery/NPC graph paths, magazine debris, bounded vehicle
-  lifting and mission-NPC recovery. Magazine debris is visual, local and reset
-  on map change. Up to 32 discarded magazines remain visible for the loaded
-  map; when full, new visuals are skipped. Vehicle lift is vertical and limited
+  lifting and mission-NPC recovery. Magazine debris is visual and local. Up to
+  32 discarded magazines remain visible through same-map checkpoint/core
+  restores during the running session; map change, disabling MAG DEBRIS, or
+  entering an online session clears them. When full, new visuals are skipped.
+  Vehicle lift is vertical and limited
   to supported unoccupied vehicles. Rescue applies only to eligible live actors
   in the documented fall/recovery state. Custom scenery uses validated
   collision bounds; it does not enable arbitrary BSP geometry or script-owned
@@ -187,8 +189,9 @@ found no native simultaneous corpse-count cap to raise: eligible bodies run a
 settling solver for a bounded duration, while general object/memory pressure
 may reclaim eligible off-screen garbage. Custom rig support is bounded to known
 or validated humanoid graph layouts, not universal retargeting for arbitrary
-mods. Dropped magazines do not persist in saves, survive a map change, create
-ammo, or replicate. Vehicle lifting does not carry, rotate or throw vehicles.
+mods. Dropped magazines are not serialized into save files, do not survive a
+map change, create ammo, or replicate; the 32 visual props survive only same-map
+state restores in the current process. Vehicle lifting does not carry, rotate or throw vehicles.
 NPC rescue does not revive dead actors, override scripts or guarantee every
 mission encounter. These interactions still need Quest testing. Automated
 checks do not establish headset or live-server acceptance.

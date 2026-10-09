@@ -258,7 +258,10 @@ static void game_state_call_before_load_procs(
 #ifdef HALO_VR
 	/* Release transient interaction ownership while old IDs are still valid. */
 	vr_manual_reload_reset();
-	vr_manual_reload_debris_reset();
+	/* Detached magazine visuals belong to the loaded map, not the restored
+	 * checkpoint. Keep them, but forget collision owner datums that may be
+	 * reassigned by the restore. New-map/dispose hooks still clear the pool. */
+	vr_manual_reload_debris_prepare_for_state_restore();
 	vr_npc_rescue_reset();
 	vr_parkour_reset();
 	vr_world_interaction_reset();
@@ -288,7 +291,6 @@ static void game_state_call_after_load_procs(
 	 * before any callback can consume saved objects or touch hand state. */
 	vr_world_interaction_reset();
 	vr_manual_reload_reset();
-	vr_manual_reload_debris_reset();
 	vr_npc_rescue_reset();
 	vr_parkour_reset();
 #endif

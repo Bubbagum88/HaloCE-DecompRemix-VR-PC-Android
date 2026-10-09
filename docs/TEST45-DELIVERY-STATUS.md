@@ -26,6 +26,11 @@ do not publish it.
   Quest/Android runtime audio and two-client sessions remain unverified.
 - Adds explicit acquisition, hold-start, tracking-rebase, constraint-strain,
   and release/cancellation-reason diagnostics.
+- Keeps up to 32 local visual discarded magazines through same-map checkpoint,
+  campaign-state and core restores in the running session. Map initialization
+  and disposal, disabling MAG DEBRIS, and online-session gating still clear
+  them. The props are not serialized into saves or replicated; when the fixed
+  pool fills, new visuals are skipped rather than evicting old ones.
 
 ## Validation record
 
@@ -59,3 +64,12 @@ second client, and live co-op remain unverified until device testing. These
 limitations are not represented as passed tests; use
 `TEST45-DEVICE-CHECKLIST.md` for acceptance steps. The candidate remains
 private and the public release is unchanged.
+
+## Magazine-persistence follow-up (source only; not in the APK hashes above)
+
+Same-map checkpoint, campaign-state and core restores now retain the bounded
+local magazine visuals in the running process. The focused magazine-debris,
+manual-reload and interaction-lifecycle tests pass. No APK was rebuilt for this
+follow-up, so the artifact hashes above still describe the earlier packaged
+source and must not be presented as containing this change. Quest lifecycle and
+performance acceptance remain pending.

@@ -4,6 +4,10 @@ This is the carry-forward ledger requested for the first candidate after public
 v1.0.18. It separates shipped source, verified host coverage, and behavior that
 still needs Quest/device acceptance.
 
+This ledger describes the Test42 candidate snapshot. The later Test45 magazine
+follow-up supersedes its statement that checkpoint/save restores clear dropped
+magazine visuals; see `TEST45-REQUIREMENT-DISPOSITION.md` for current behavior.
+
 | Area from v1.0.18 onward | Candidate status | Limits and evidence |
 |---|---|---|
 | v1.0.18 baseline | Retained: network-version client selector, busiest-first browser, revision/game-data library, updater and separate upstream downloads, in-game OpenCE browser/setup, Safe Geometry migration, mobile touch/gamepad, VR settings and custom logo. | Test37/current launcher, Safe Geometry, Android and networking suites remain in the cumulative regression runner. No universal ISO/revision or every-server guarantee. |
