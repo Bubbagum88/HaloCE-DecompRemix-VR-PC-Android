@@ -51,6 +51,7 @@ float vr_cooldown_shake_rate(long weapon_index)
     real_vector3d relative,delta;
     double now,elapsed;
     float units,speed,previous_speed,direction_cosine;
+    int axis;
     short current_slot;
     long current_weapon;
     if(!config_boolean("vr.cooldown_shake") || game_connection()!=_game_connection_local ||
@@ -87,7 +88,7 @@ float vr_cooldown_shake_rate(long weapon_index)
     }
     /* Subtract head translation so walking or room-scale drift alone does not
      * count as shaking the weapon. */
-    for(int i=0;i<3;i++) relative.n[i]=position[i]-camera.n[i];
+    for(axis=0;axis<3;axis++) relative.n[axis]=position[axis]-camera.n[axis];
     now=(double)system_milliseconds()*0.001;
     if(!isfinite(now) || shake.weapon!=weapon_index || shake.unit!=unit_index || !shake.valid ||
        now<=shake.sample_time || now-shake.sample_time>0.15) {
@@ -96,7 +97,7 @@ float vr_cooldown_shake_rate(long weapon_index)
         shake.last_reversal_time=0;shake.reversal_count=0;shake.valid=1;return 1.0f;
     }
     elapsed=now-shake.sample_time;
-    for(int i=0;i<3;i++)delta.n[i]=(relative.n[i]-shake.relative.n[i])/units;
+    for(axis=0;axis<3;axis++)delta.n[axis]=(relative.n[axis]-shake.relative.n[axis])/units;
     scale_vector3d(&delta,1.0f/(real)elapsed,&delta);
     speed=magnitude3d(&delta);
     previous_speed=magnitude3d(&shake.velocity);
