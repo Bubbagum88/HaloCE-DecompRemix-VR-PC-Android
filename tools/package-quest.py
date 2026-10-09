@@ -398,7 +398,7 @@ def main():
                 guide_markers = ([b"1.0.27-test46", b"all project changes made after v1.0.18",
                                   b"opence build167 voice chat", b"microphone permission", b"voice volume",
                                   b"vehicle lift uses contact plus grip to move and rotate",
-                                  b"same-map checkpoint, campaign-state and core restores",
+                                  b"32 discarded magazines remain visible through same-map checkpoint/core restores",
                                   b"friendly marines and crew", b"npc rescue", b"npc rig slots",
                                   b"picker-selected iso/xiso", b"launcher does not keep or delete", b"android files",
                                   b"a10 look-calibration", b"rendered ray is fresh and valid", b"outside a10",
