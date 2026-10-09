@@ -31,6 +31,7 @@ render = (ROOT / "port/linux/game/vr_render.c").read_text()
 # compare against: one curl for all three joints poses exactly as it did
 render_1_0_7 = subprocess.check_output(["git", "show", "9bca3958:port/linux/game/vr_render.c"], cwd=ROOT, text=True)
 frame = (ROOT / "port/linux/src/vr_frame.c").read_text()
+assert not re.search(r"\bNONE\b", frame), "the VR platform frame must use its own -1 invalid-index sentinel"
 prelude = r'''
 #include <assert.h>
 #include <math.h>

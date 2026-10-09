@@ -168,7 +168,7 @@ static struct
 	int physical_setting, physical_allowed, gun_held, x_hold_switched;
 	/* physical weapons: what the weapon hand holds (HAND_*), the weapon the
 	game has in it (vr_note_weapon), a change of it this side asked for and
-	what the hand then holds (pending_state, NONE none; until pending_until),
+	what the hand then holds (pending_state, -1 means none; until pending_until),
 	and how long a gun the game put in the hand has gone ungripped */
 	int hand_state, pending_state;
 	long noted_weapon, pending_expected_weapon, holster_unit, holster_draw_request;
@@ -1037,9 +1037,9 @@ void vr_initialize(void)
 	vr.noted_weapon = -1;
 	vr.gun_class = -1;
 	vr.pending_state = -1;
-	vr.pending_expected_weapon = NONE;
-	vr.holster_unit = NONE;
-	vr.holster_draw_request = NONE;
+	vr.pending_expected_weapon = -1;
+	vr.holster_unit = -1;
+	vr.holster_draw_request = -1;
 	vr_holster_slots_clear(vr.holster_weapon);
 	vr.hand_state = HAND_LOOSE;
 	vr.force_render = config_boolean("vr.force_render");
@@ -1310,7 +1310,7 @@ up): when the game makes it, the hand holds `state` */
 static void hand_pending(int state)
 {
 	vr.pending_state = state;
-	vr.pending_expected_weapon = NONE;
+	vr.pending_expected_weapon = -1;
 	vr.pending_until = now_ms() * 1e-3 + PENDING_SECONDS;
 }
 
@@ -1320,12 +1320,12 @@ void vr_note_weapon(long unit_index, long weapon_index, long const inventory[4])
 	if (unit_index < 0 || !inventory)
 	{
 		vr_holster_slots_clear(vr.holster_weapon);
-		vr.holster_unit = NONE;
-		vr.noted_weapon = NONE;
+		vr.holster_unit = -1;
+		vr.noted_weapon = -1;
 		vr.pending_state = -1;
-		vr.pending_expected_weapon = NONE;
-		vr.holster_draw_request = NONE;
-		vr.noted_weapon = NONE;
+		vr.pending_expected_weapon = -1;
+		vr.holster_draw_request = -1;
+		vr.noted_weapon = -1;
 		vr.hand_state = HAND_LOOSE;
 		vr.gun_held = 0;
 		return;
@@ -1335,18 +1335,18 @@ void vr_note_weapon(long unit_index, long weapon_index, long const inventory[4])
 		vr_holster_slots_clear(vr.holster_weapon);
 		vr.holster_unit = unit_index;
 		vr.pending_state = -1;
-		vr.pending_expected_weapon = NONE;
-		vr.holster_draw_request = NONE;
+		vr.pending_expected_weapon = -1;
+		vr.holster_draw_request = -1;
 		vr.hand_state = HAND_LOOSE;
 		vr.gun_held = 0;
 	}
 	vr_holster_prune(vr.holster_weapon, inventory, 4);
-	if (vr.pending_expected_weapon != NONE && now_ms() * 1e-3 > vr.pending_until)
+	if (vr.pending_expected_weapon != -1 && now_ms() * 1e-3 > vr.pending_until)
 	{
 		platform_log("vr: holster draw timed out for weapon=%ld; hand remains empty", vr.pending_expected_weapon);
-		vr.pending_expected_weapon = NONE;
+		vr.pending_expected_weapon = -1;
 		vr.pending_state = -1;
-		vr.holster_draw_request = NONE;
+		vr.holster_draw_request = -1;
 	}
 
 	if (weapon_index == vr.noted_weapon)
@@ -1363,7 +1363,7 @@ void vr_note_weapon(long unit_index, long weapon_index, long const inventory[4])
 		return;
 	}
 	vr.noted_weapon = weapon_index;
-	if (vr.pending_expected_weapon != NONE && weapon_index != vr.pending_expected_weapon)
+	if (vr.pending_expected_weapon != -1 && weapon_index != vr.pending_expected_weapon)
 	{
 		vr.hand_state = HAND_EMPTY;
 		vr.gun_held = 0;
@@ -1382,7 +1382,7 @@ void vr_note_weapon(long unit_index, long weapon_index, long const inventory[4])
 	else
 		state = vr.grip_held[vr.weapon_hand] ? HAND_HELD : HAND_LOOSE;
 	vr.pending_state = -1;
-	vr.pending_expected_weapon = NONE;
+	vr.pending_expected_weapon = -1;
 	vr.ungripped_seconds = 0.0f;
 	vr.ungripped_warned = 0;
 	if (state != vr.hand_state && physical_weapons())
@@ -1394,7 +1394,7 @@ void vr_note_weapon(long unit_index, long weapon_index, long const inventory[4])
 long vr_take_holster_draw_request(void)
 {
 	long weapon = vr.holster_draw_request;
-	vr.holster_draw_request = NONE;
+	vr.holster_draw_request = -1;
 	return weapon;
 }
 
@@ -1402,9 +1402,9 @@ void vr_holster_draw_request_failed(long weapon_index)
 {
 	if (vr.pending_expected_weapon != weapon_index) return;
 	platform_log("vr: holster draw unavailable for weapon=%ld; keeping hand empty", weapon_index);
-	vr.pending_expected_weapon = NONE;
+	vr.pending_expected_weapon = -1;
 	vr.pending_state = -1;
-	vr.holster_draw_request = NONE;
+	vr.holster_draw_request = -1;
 	vr.hand_state = HAND_EMPTY;
 	vr.gun_held = 0;
 }
@@ -2143,11 +2143,11 @@ static void update_gestures(void)
 			{
 				vr.hand_state = HAND_HELD;
 			}
-			else if (vr.in_holster && vr.noted_weapon != NONE)
+			else if (vr.in_holster && vr.noted_weapon != -1)
 			{
 				int zone = vr.holster_zone - 1, mapped_elsewhere = 0, index;
-				long stored = zone >= 0 && zone < HOLSTER_COUNT ? vr.holster_weapon[zone] : NONE;
-				if (stored != NONE && stored != vr.noted_weapon)
+				long stored = zone >= 0 && zone < HOLSTER_COUNT ? vr.holster_weapon[zone] : -1;
+				if (stored != -1 && stored != vr.noted_weapon)
 				{
 					vr.pending_state = HAND_HELD;
 					vr.pending_expected_weapon = stored;
@@ -2160,7 +2160,7 @@ static void update_gestures(void)
 				{
 					vr.hand_state = HAND_HELD;
 					vr.pending_state = -1;
-					vr.pending_expected_weapon = NONE;
+					vr.pending_expected_weapon = -1;
 					platform_log("vr: exact weapon=%ld drawn from %s holster", stored, holster);
 				}
 				else
@@ -2176,7 +2176,7 @@ static void update_gestures(void)
 						vr_holster_store(vr.holster_weapon, zone, vr.noted_weapon);
 						vr.hand_state = HAND_HELD;
 						vr.pending_state = -1;
-						vr.pending_expected_weapon = NONE;
+						vr.pending_expected_weapon = -1;
 						platform_log("vr: unassigned inventory weapon=%ld drawn at %s; its holster now remembers it",
 							vr.noted_weapon, holster);
 					}
@@ -2197,7 +2197,7 @@ static void update_gestures(void)
 			if (vr.in_holster)
 			{
 				long stored_weapon = vr.noted_weapon;
-				if (stored_weapon != NONE)
+				if (stored_weapon != -1)
 					vr_holster_store(vr.holster_weapon, vr.holster_zone - 1, stored_weapon);
 				vr.hand_state = HAND_EMPTY;
 				vr.actions |= VR_ACTION_SWITCH_WEAPON;
