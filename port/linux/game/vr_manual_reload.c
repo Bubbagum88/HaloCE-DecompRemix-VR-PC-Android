@@ -16,6 +16,7 @@
 #include "models/models.h"
 #include "tag_files/tag_files.h"
 #include "physics/collisions.h"
+#include "physics/collision_features.h"
 #include "physics/physics.h"
 #include "render/render.h"
 #include "render/render_cameras_internal.h"
