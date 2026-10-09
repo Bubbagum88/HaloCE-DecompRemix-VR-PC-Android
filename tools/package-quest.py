@@ -383,7 +383,7 @@ def main():
                     if marker not in guest:
                         raise SystemExit("Test37 native compatibility gate missing: " + repr(marker))
                 guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt")).lower()
-                guide_markers = ([b"1.0.24-test43", b"all project changes made after v1.0.18", b"game-data set selection",
+                guide_markers = ([b"1.0.24-test43", b"all project changes made after v1.0.18", b"game-data selection and storage",
                                   b"Delete imported copy", b"source ISO/XISO stays where you selected it",
                                   b"manual reload", b"export or import a versioned layout", b"show and enable this touch control",
                                   b"SHAKE COOLING", b"CUSTOM NPC RIGS", b"MAG DEBRIS", b"LIFT VEHICLES",
