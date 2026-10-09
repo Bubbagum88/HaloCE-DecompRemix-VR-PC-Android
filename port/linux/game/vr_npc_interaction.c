@@ -21,6 +21,7 @@
 #include "vr_npc_interaction.h"
 #include "vr_articulated_native.h"
 #include "vr_world_math.h"
+#include "vr_world_interaction.h"
 #include "network_interaction.h"
 #include "vr_interaction_impact.h"
 #include <math.h>
@@ -58,6 +59,10 @@ static struct remote_state {long player,candidate[2];int valid,held[2],seen[2],e
 #define remote (*remote_current)
 static int local_edges[2]={1,1};
 static struct {long definition;short type;int valid;} species_cache[64];
+/* Cache only graph profiles that passed live capture plus pelvis/branch
+ * validation. A failed capture may be transient (for example during a pose
+ * update), so failures are deliberately retried rather than cached. */
+static struct {long definition;int valid;} custom_rig_graph_cache[64];
 static void cancel_one(void);
 static struct npc_state *free_state(void)
 {
@@ -160,6 +165,73 @@ static int species(short type,int *hands,real *mobility)
         *hands=2;*mobility=.25f;return TRUE;
     }
 }
+static int custom_rig_graph_valid(struct unit_datum *unit,long index)
+{
+    struct biped_definition *definition;
+    struct vr_articulated_native rig;
+    int pelvis,children=0,slot=-1;
+    if(!unit || index==NONE || unit->definition_index==NONE)return FALSE;
+    for(int n=0;n<NUMBEROF(custom_rig_graph_cache);++n) {
+        if(custom_rig_graph_cache[n].valid && custom_rig_graph_cache[n].definition==unit->definition_index)return TRUE;
+        if(!custom_rig_graph_cache[n].valid && slot<0)slot=n;
+    }
+    /* Native capture validates the loaded animation-graph block, parent
+     * indices, finite authored axes/ranges, current matrices and the 64-node
+     * bound. Count alone is not evidence of a safe articulated biped graph. */
+    if(!vr_articulated_native_capture(index,&rig) || rig.body.count<4 ||
+       rig.body.count>VR_ARTICULATED_NODES || rig.body.nodes[0].parent!=-1)return FALSE;
+    definition=biped_definition_get(unit->definition_index);
+    if(!definition)return FALSE;
+    pelvis=definition->biped.runtime_pelvis_node_index;
+    if(pelvis<0 || pelvis>=rig.body.count)return FALSE;
+    for(int n=1;n<rig.body.count;++n) {
+        int parent=rig.body.nodes[n].parent;
+        if(parent<0 || parent>=n)return FALSE;
+        if(parent==pelvis)++children;
+    }
+    /* Require a real split below the authored pelvis; a chain of arbitrary
+     * nodes is not admitted as a humanoid rig. */
+    if(children<2)return FALSE;
+    if(slot>=0) {
+        custom_rig_graph_cache[slot].definition=unit->definition_index;
+        custom_rig_graph_cache[slot].valid=1;
+    }
+    return TRUE;
+}
+static int custom_humanoid_rig(short type,struct unit_datum *unit,long index,int *hands,real *mobility)
+{
+    struct actor_datum *actor;
+    struct actor_definition *actor_definition;
+    short race;
+	/* Unclassified rig fallbacks are local-only. Known species continue to use
+	 * their existing negotiated path; custom graph layouts are never assumed to
+	 * match another peer's tag revision. */
+	if(!config_boolean("vr.custom_npc_rigs") || game_connection()!=_game_connection_local)return FALSE;
+    /* Keep known non-humanoid, special-purpose and already-classified actor
+     * types out of the generic path. Invalid raw enum values are not treated
+     * as _actor_none; actor_type_get_* itself clamps them to that enum. */
+    if(type==_actor_player || type==_actor_engineer || type==_actor_infection_form ||
+       type==_actor_carrier_form || type==_actor_monitor || type==_actor_sentinel ||
+       type==_actor_mounted_weapon || type!=_actor_none || !unit || index==NONE)return FALSE;
+    if(actor_type_get_swarm(type))return FALSE;
+    race=actor_type_get_race(type);
+    if(race!=_race_human && race!=_race_covenant && race!=_race_floodcombat)return FALSE;
+    actor=unit->unit.actor_index!=NONE?actor_try_and_get(unit->unit.actor_index):NULL;
+    if(!actor || actor->meta.swarm || actor->meta.definition_index==NONE)return FALSE;
+    actor_definition=actor_definition_get(actor->meta.definition_index);
+    if(!actor_definition || TEST_FLAG(actor_definition->flags,_actor_definition_flying_bit) ||
+       TEST_FLAG(actor_definition->flags,_actor_definition_swarm_actor_bit))return FALSE;
+    if(!custom_rig_graph_valid(unit,index))return FALSE;
+    /* Unknown humanoid profiles are deliberately conservative: both hands
+     * must be engaged and their mobility is no stronger than the validated
+     * Elite-family path. */
+    *hands=2;*mobility=.25f;
+    return TRUE;
+}
+static int interaction_profile(short type,struct unit_datum *unit,long index,int *hands,real *mobility)
+{
+    return species(type,hands,mobility) || custom_humanoid_rig(type,unit,index,hands,mobility);
+}
 static void surface_offset(int hand,real_vector3d *offset)
 {
     matrix4x3_transform_vector(&npc.rig.captured[npc.node[hand]],&npc.offset[hand],offset);
@@ -215,7 +287,7 @@ static struct unit_datum *eligible(long index)
        (!dead&&u->unit.animation.state>_unit_state_land_hard && !(state&&state->getting_up&&
         (u->unit.animation.state==_unit_state_resurrect_front||u->unit.animation.state==_unit_state_resurrect_back)))) return NULL;
     a=u->unit.actor_index!=NONE?actor_try_and_get(u->unit.actor_index):NULL;
-    if(!species(unit_species(u,index),&required_hands,&mobility) ||
+    if(!interaction_profile(unit_species(u,index),u,index,&required_hands,&mobility) ||
        (!dead&&(!a || !a->meta.active || a->state.command_list_index!=NONE || a->state.command_list_immediate))) return NULL;
     weapon=unit_inventory_get_weapon(index,u->unit.current_weapon_index);
     w=weapon!=NONE?weapon_try_and_get(weapon):NULL;
@@ -286,6 +358,7 @@ void vr_npc_interaction_reset(void)
     for(int n=0;n<NPC_POOL_SIZE;++n) {npc_current=&npc_pool[n];reset_one();}
     memset(remote_pool,0,sizeof(remote_pool));local_edges[0]=local_edges[1]=1;
     memset(species_cache,0,sizeof(species_cache));
+    memset(custom_rig_graph_cache,0,sizeof(custom_rig_graph_cache));
 }
 void vr_npc_interaction_cancel(void)
 {
@@ -481,7 +554,8 @@ static void tick_player(int use_remote,long player)
                     matrix4x3_inverse(&npc.rig.captured[npc.torso_node],&inverse);
                     matrix4x3_transform_vector(&inverse,&candidate->object.forward,&npc.body_forward_local);
                 }
-                species((short)npc.species_type,&npc.minimum_hands,&npc.mobility);
+                if(!interaction_profile((short)npc.species_type,candidate,it.index,
+                    &npc.minimum_hands,&npc.mobility)) {cancel_one();break;}
                 npc.settling=0;
                 if(npc.held[0]+npc.held[1]>=npc.minimum_hands) npc.started=1;
                 {
@@ -613,6 +687,23 @@ void vr_npc_interaction_palette(long index)
         }
     }
     for(n=0;n<npc.rig.body.count;++n) native[n]=npc.rig.captured[n];
+	/* Local hands get the same optional, rate-limited load feedback as held
+	 * props. Measure solver displacement/movement at the actually pinned limb;
+	 * remote-owned bodies never buzz this headset. */
+	if(!npc.is_remote && npc.started && !npc.recovery && units > 0.0f) {
+		for(h=0;h<2;++h) if(npc.held[h] && npc.node[h]>=0 && npc.node[h]<npc.rig.body.count) {
+			real_vector3d offset, strain, movement;
+			struct vr_articulated_node *node=&npc.rig.body.nodes[npc.node[h]];
+			surface_offset(h,&offset);
+			for(k=0;k<3;++k) {
+				strain.n[k]=npc.target[h].n[k]-offset.n[k]-node->position[k];
+				movement.n[k]=node->position[k]-node->previous[k];
+			}
+			vr_world_interaction_weight_feedback(h,npc.mobility,
+				(float)(magnitude3d(&strain)/units),
+				(float)(magnitude3d(&movement)*(real)TICKS_PER_SECOND/units));
+		}
+	}
     {
         unsigned long elapsed=system_milliseconds()-started;
         timing_total+=elapsed;timing_maximum=MAX(timing_maximum,elapsed);

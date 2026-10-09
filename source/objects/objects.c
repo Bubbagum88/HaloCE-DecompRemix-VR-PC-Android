@@ -55,9 +55,13 @@ OBJECTS.C
 #include "units/units.h"
 #include "vr_world_interaction.h"
 #include "vr_npc_interaction.h"
+#include "vr_npc_rescue.h"
 #include "network_interaction.h"
 #include "vr_interaction_impact.h"
 #include "vr_world_props.h"
+#ifdef HALO_VR
+#include "vr_manual_reload.h"
+#endif
 #ifdef HALO_VR
 #include "halo_vr.h"
 #endif
@@ -1075,7 +1079,10 @@ void objects_initialize_for_new_map(
 	vr_interaction_impact_reset();
 	vr_world_props_reset();
 	vr_npc_interaction_reset();
+	vr_npc_rescue_reset();
 #ifdef HALO_VR
+	/* Detached magazine render instances hold map-local model and weapon IDs. */
+	vr_manual_reload_debris_reset();
 	vr_render_reset_contacts();
 #endif
 	damage_initialize_for_new_map();
@@ -1108,7 +1115,10 @@ void objects_dispose_from_old_map(
 	vr_interaction_impact_reset();
 	vr_world_props_reset();
 	vr_npc_interaction_reset();
+	vr_npc_rescue_reset();
 #ifdef HALO_VR
+	/* Drop map-local model/object references before the old cache is torn down. */
+	vr_manual_reload_debris_reset();
 	vr_render_reset_contacts();
 #endif
 	damage_dispose_from_old_map();
@@ -4481,6 +4491,10 @@ void objects_update(
 	vr_world_interaction_remote_tick();
 	vr_world_props_tick();
 	vr_npc_interaction_tick();
+	vr_npc_rescue_tick();
+#ifdef HALO_VR
+	vr_manual_reload_debris_tick();
+#endif
 	
 	last_active_cluster_bits = object_globals->last_active_cluster_bits;
 	active_cluster_bits = object_globals->active_cluster_bits;

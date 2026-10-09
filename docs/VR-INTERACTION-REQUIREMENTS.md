@@ -1,4 +1,23 @@
-# Test38 source freeze and packaging override - 2026-10-08
+# Test40 current source disposition — 2026-10-08
+
+The current private candidate is **Test40 / 1.0.21-test40 / code51**. The
+latest user instruction is to complete the four previously deferred areas,
+validate them and package both APKs for owner testing. The current implementation
+and boundaries are recorded in [TEST40-DELIVERY-STATUS.md](TEST40-DELIVERY-STATUS.md),
+[TEST40-REQUIREMENT-DISPOSITION.md](TEST40-REQUIREMENT-DISPOSITION.md), and
+[TEST40-DEVICE-CHECKLIST.md](TEST40-DEVICE-CHECKLIST.md). PC/Steam Frame remains
+deferred. The old Test38/Test39 packaging holds below are historical and do
+not override the Test40 work scope. Public v1.0.18 remains unchanged.
+
+Test40 addresses custom humanoid rig fallback, persistent map-session magazine
+visuals, bounded vertical vehicle lifting, and local NPC recovery. The build
+does not claim arbitrary skeleton remapping, saved/networked magazine objects,
+full vehicle rotation/horizontal carry, NPC revival, or universal custom-tag
+compatibility. Device acceptance remains pending.
+
+---
+
+# Historical Test38 source freeze and packaging override - 2026-10-08
 
 The owner's latest usage-limit override is to finish current work and package
 both private APKs now. This supersedes the earlier full-scope packaging hold.
@@ -158,7 +177,7 @@ compatibility are demonstrated. No articulated-ragdoll capability is assumed.
 | W33 | Multiple object interactions | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W34 | Grabbing weapons from the world | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W35 | Grenades and equipment | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
-| W36 | Vehicles and extremely large objects | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
+| W36 | Vehicles and extremely large objects | Test40 adds default-off, local vertical lifting for a validated unoccupied native subset. | No horizontal carry/rotation, boats/aircraft, named/scripted/occupied or network vehicles; see TEST40 disposition. |
 | W37 | World collision | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W38 | Player-body collision considerations | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W39 | Co-op and multiplayer compatibility | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
@@ -180,15 +199,15 @@ compatibility are demonstrated. No articulated-ragdoll capability is assumed.
 | W55 | Debug tools | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W56 | Logging | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W57 | Automated testing | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
-| W58 | Device test plan | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
+| W58 | Device test plan | Test40-specific device checklist is written; execution pending owner testing. | Automated test/build results are not headset, mission or network acceptance. |
 | W59 | Recommended implementation order | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W60 | Interaction with the previously requested manual reload and finger systems | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W61 | Interaction priority model | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
-| W62 | Haptics | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
+| W62 | Haptics | Test40 carries acquisition/reload/parkour feedback and one-shot fingertip collision pulses; optional, capped and rate-limited solo load feedback now covers held props, supported NPC limbs and vehicle lifting. | `vr.weight_haptics` stays OFF by default; device strength/comfort acceptance remains pending. |
 | W63 | Avoid game-breaking behavior | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
-| W64 | Out-of-bounds protection | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
+| W64 | Out-of-bounds protection | Test40 adds default-off local recovery of eligible live encounter NPCs after sustained unsupported falling. | Ten-second dwell; only a last-grounded position with a clear standing capsule; no respawn/revive or active-script takeover. |
 | W65 | Physical interaction should remain fun | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
-| W66 | Final acceptance requirement | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
+| W66 | Final acceptance requirement | Source and automated checks recorded for Test40; owner device/campaign acceptance pending. | Do not advance accepted/public pointer until explicit owner acceptance. |
 
 ## Evidence required at delivery
 

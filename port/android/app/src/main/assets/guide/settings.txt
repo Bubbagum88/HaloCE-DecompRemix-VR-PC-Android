@@ -1195,13 +1195,17 @@ vr.manual_reload [boolean]
 Default: false
 Optional offline physical magazine reload for supported weapons; button reload remains available.
 
+vr.dropped_magazines [boolean]
+Default: false
+Keep ejected supported rifle/pistol/sniper magazines as local visual debris until the map changes; the oldest is replaced when the 32-magazine pool fills. No ammo, save, or network state is created.
+
 vr.cooldown_shake [boolean]
 Default: false
 Offline VR toggle: shake the currently held overheated weapon to speed its authored cooling. Automatically disabled online.
 
 vr.weight_haptics [boolean]
 Default: false
-Optional pulsed VR feedback for object resistance and spring strain; local only, capped and rate limited.
+Optional pulsed VR feedback for held props, supported NPC limbs and vehicle lifting; solo-only, capped and rate limited. Grab/contact event pulses remain active independently.
 
 vr.custom_scenery_grab [boolean]
 Default: false
@@ -1209,7 +1213,11 @@ Opt in to bounded collision-box grabbing of eligible unnamed custom scenery. Scr
 
 vr.custom_npc_rigs [boolean]
 Default: false
-Opt in to validated custom humanoid biped animation graphs. Unknown, swarm, scripted, unsafe or malformed actors remain refused.
+Solo-only fallback for unclassified humanoid biped graphs after hierarchy validation. Existing known species are unchanged; unknown, swarm, scripted, unsafe or malformed rigs remain refused.
+
+vr.npc_rescue [boolean]
+Default: false
+Optional solo VR recovery for eligible live encounter NPCs falling unsupported for 10 seconds. Returns them to a clear last-grounded pose; does not respawn, revive, or override active scripts.
 
 vr.npc_max_ragdolls [integer]
 Default: 4
@@ -1235,6 +1243,10 @@ vr.world_interaction [boolean]
 Default: false
 Optional loose weapon, equipment and movable prop grabbing. Grip close with a free hand.
 Two hands improve control. Co-op requires a consenting compatible host and peers; competitive multiplayer stays native.
+
+vr.vehicle_lift [boolean]
+Default: false
+Optional offline vertical lifting of unoccupied, unnamed Warthog, Ghost, Scorpion and turret vehicles. Requires WORLD GRAB. Native gravity and collision remain active; no horizontal carry or rotation. Unsupported, occupied, scripted and network vehicles remain native.
 
 vr.scope_size [real]
 Default: 0.06

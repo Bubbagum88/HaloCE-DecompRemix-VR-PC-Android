@@ -94,7 +94,8 @@ typedef real_vector3d real_point3d;
 typedef float real;
 #define NONE (-1)
 #define VR_INTERACTION_WORLD 3
-struct object_datum {struct {real_vector3d angular_velocity;} object;};
+enum {_object_type_none,_object_type_vehicle};
+struct object_datum {struct {real_vector3d angular_velocity;int type;} object;};
 static struct object_datum item;
 static int probes,throws,releases;
 static real_vector3d applied;
@@ -112,6 +113,8 @@ int main(void){
  hands[0].active=hands[1].active=1;hands[0].index=hands[1].index=42;
  release_hand(0,1,1);assert(throws==0&&hands[1].active);
  hands[1].velocity.i=100;release_hand(1,1,1);assert(throws==1&&fabsf(applied.i-.24f)<.00001f);
+ hands[0].active=1;hands[0].index=42;hands[0].velocity.i=100;item.object.type=_object_type_vehicle;
+ release_hand(0,1,1);assert(throws==1&&!hands[0].active);item.object.type=_object_type_none;
  hands[0].active=1;hands[0].index=42;hands[0].velocity.i=NAN;
  release_hand(0,1,1);assert(throws==1);
  hands[0].active=1;hands[0].index=999;int old=probes;

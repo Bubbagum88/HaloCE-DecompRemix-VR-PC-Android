@@ -16,11 +16,15 @@
 #include "models/models.h"
 #include "tag_files/tag_files.h"
 #include "physics/collisions.h"
+#include "physics/physics.h"
+#include "render/render.h"
+#include "render/render_cameras_internal.h"
 #include "../src/port_config.h"
 #include "../src/vr.h"
 #include "vr_manual_reload.h"
 #include "vr_manual_reload_math.h"
 #include "vr_reload_contact_math.h"
+#include "vr_magazine_debris_math.h"
 
 void platform_log(char const *format, ...);
 enum { RELOAD_MAGAZINE, RELOAD_SHELL, RELOAD_TUBES, RELOAD_CANISTER, RELOAD_CRYSTALS };
@@ -42,14 +46,31 @@ static struct {
     double sample_time, insertion_time, grip_time;
     real_matrix4x3 socket, charge, gun, attachment, held, insertion_local;
     real_point3d charge_start;
+    real_point3d previous_hand;
+    real_vector3d hand_velocity;
     real_point3d camera;
     real chamber_travel;
     unsigned long long component_nodes;
     int bounds_tried, bounds_valid[2];
+    int hand_sample_valid, debris_pending;
     real_point3d bounds_min[2], bounds_max[2];
 } reload;
+struct dropped_magazine {
+    int active, node_count;
+    unsigned age;
+    long model, weapon, owner_unit;
+    unsigned long long nodes;
+    real radius;
+    real_point3d center;
+    real_vector3d velocity;
+    real_matrix4x3 matrices[MAXIMUM_NODES_PER_MODEL];
+};
+static struct dropped_magazine dropped_magazines[VR_MAGAZINE_DEBRIS_CAPACITY];
+static boolean dropped_magazines_have_state;
 static int cancelled_phase;
 static long cancelled_weapon;
+static boolean reload_local_weapon(long weapon_index, long *unit_out);
+static boolean reload_matrix_valid(real_matrix4x3 const *matrix);
 
 void vr_manual_reload_reset(void)
 {
@@ -61,6 +82,156 @@ void vr_manual_reload_reset(void)
     memset(&reload, 0, sizeof(reload));
     reload.weapon = reload.model = NONE;
     reload.magazine = reload.chamber = NONE;
+}
+
+void vr_manual_reload_debris_reset(void)
+{
+	if (!dropped_magazines_have_state) return;
+    memset(dropped_magazines, 0, sizeof(dropped_magazines));
+	dropped_magazines_have_state = FALSE;
+}
+
+static void debris_spawn_from_reload(struct model *model, real_matrix4x3 *matrices)
+{
+    int active[VR_MAGAZINE_DEBRIS_CAPACITY];
+    unsigned age[VR_MAGAZINE_DEBRIS_CAPACITY];
+    int slot_index;
+    real_matrix4x3 inverse, delta;
+    struct dropped_magazine *slot;
+    real bound = 0.0f;
+    real scale;
+    long unit_index = NONE;
+    if (!model || !matrices || !reload.debris_pending) return;
+    reload.debris_pending = 0;
+    if (!config_boolean("vr.dropped_magazines") || game_connection() != _game_connection_local ||
+        reload.kind != RELOAD_MAGAZINE || !reload.component_nodes ||
+        model->nodes.count <= 0 || model->nodes.count > MAXIMUM_NODES_PER_MODEL ||
+        !reload.bounds_valid[0] || !reload_local_weapon(reload.weapon, &unit_index)) return;
+    if (!vr_magazine_debris_spawn_allowed(TRUE, TRUE, TRUE, model->nodes.count,
+            reload.component_nodes, 0.01f, 0.20f)) return;
+    matrix4x3_inverse(&reload.socket, &inverse);
+    matrix4x3_multiply(&reload.held, &inverse, &delta);
+    if (!reload_matrix_valid(&delta)) return;
+    scale = fabsf(matrices[reload.magazine].scale * delta.scale);
+    if (!isfinite(scale) || scale < 0.001f || scale > 100.0f) return;
+    for (int axis = 0; axis < 3; ++axis) {
+        real maximum = MAX(fabsf(reload.bounds_min[0].n[axis]), fabsf(reload.bounds_max[0].n[axis]));
+        if (!isfinite(maximum)) return;
+        bound += maximum * maximum;
+    }
+    bound = sqrtf(bound) * scale;
+    if (!isfinite(bound) || bound < 0.001f || bound > 0.20f * vr_units_per_metre()) return;
+    for (int i = 0; i < VR_MAGAZINE_DEBRIS_CAPACITY; ++i) {
+        active[i] = dropped_magazines[i].active;
+        age[i] = dropped_magazines[i].age;
+    }
+    slot_index = vr_magazine_debris_choose_slot(active, age, VR_MAGAZINE_DEBRIS_CAPACITY);
+    if (slot_index < 0) return;
+    slot = &dropped_magazines[slot_index];
+    if (slot->active)
+        platform_log("VR reload debris: pool full; replacing oldest visual slot=%d age=%u",
+            slot_index, slot->age);
+    memset(slot, 0, sizeof(*slot));
+    slot->model = reload.model;
+    slot->weapon = reload.weapon;
+    slot->owner_unit = unit_index;
+    slot->node_count = (int)model->nodes.count;
+    slot->nodes = reload.component_nodes;
+    slot->radius = bound;
+    slot->active = 1;
+    for (short node = 0; node < model->nodes.count; ++node) {
+        slot->matrices[node] = matrices[node];
+        if (reload.component_nodes & (1ULL << node)) {
+            matrix4x3_multiply(&delta, &matrices[node], &slot->matrices[node]);
+            if (!reload_matrix_valid(&slot->matrices[node])) { memset(slot, 0, sizeof(*slot)); return; }
+        } else {
+            slot->matrices[node].scale = 0.0f;
+        }
+    }
+    slot->center = slot->matrices[reload.magazine].position;
+    slot->velocity = reload.hand_velocity;
+    if (!vr_magazine_debris_speed_valid(slot->velocity.n, 0.24f * vr_units_per_metre()))
+        slot->velocity = *global_zero_vector3d;
+    dropped_magazines_have_state = TRUE;
+    platform_log("VR reload debris: spawned visual magazine slot=%d model=%ld nodes=%d radius=%.4f online=0",
+        slot_index, slot->model, slot->node_count, slot->radius);
+}
+
+void vr_manual_reload_debris_tick(void)
+{
+    if (!config_boolean("vr.dropped_magazines") || game_connection() != _game_connection_local) {
+        vr_manual_reload_debris_reset();
+        return;
+    }
+    for (int index = 0; index < VR_MAGAZINE_DEBRIS_CAPACITY; ++index) {
+        struct dropped_magazine *slot = &dropped_magazines[index];
+        real_point3d next;
+        real_vector3d clipped, displacement;
+        struct collision_plane planes[4];
+        short collisions;
+        if (!slot->active) continue;
+        if (slot->node_count <= 0 || slot->node_count > MAXIMUM_NODES_PER_MODEL ||
+            !isfinite(slot->radius) || slot->radius <= 0.0f || slot->radius > 0.20f * vr_units_per_metre() ||
+            !valid_real_point3d(&slot->center) || !valid_real_vector3d(&slot->velocity)) {
+            memset(slot, 0, sizeof(*slot));
+            continue;
+        }
+        slot->velocity.k -= global_gravity;
+        if (!vr_magazine_debris_speed_valid(slot->velocity.n, 0.30f * vr_units_per_metre())) {
+            slot->velocity = *global_zero_vector3d;
+        }
+        displacement = slot->velocity;
+        collisions = collision_move_sphere(_collision_test_for_bipeds_dead_flags,
+            &slot->center, &displacement, slot->radius, slot->owner_unit,
+            &next, &clipped, 4, planes);
+        if (!valid_real_point3d(&next) || !valid_real_vector3d(&clipped)) {
+            memset(slot, 0, sizeof(*slot));
+            continue;
+        }
+        if (collisions > 0) {
+            slot->velocity = clipped;
+            for (short plane = 0; plane < collisions && plane < 4; ++plane) {
+                if (planes[plane].plane.n.k > 0.5f) {
+                    slot->velocity.i *= 0.72f;
+                    slot->velocity.j *= 0.72f;
+                    if (fabsf(slot->velocity.k) < 0.015f * vr_units_per_metre()) slot->velocity.k = 0.0f;
+                }
+            }
+        }
+        for (short node = 0; node < slot->node_count; ++node) if (slot->nodes & (1ULL << node))
+            for (int axis = 0; axis < 3; ++axis)
+                slot->matrices[node].position.n[axis] += next.n[axis] - slot->center.n[axis];
+        slot->center = next;
+        vr_magazine_debris_advance_age(&slot->age);
+    }
+}
+
+void vr_manual_reload_debris_render(void)
+{
+    short local = local_player_get_next(NONE);
+    long player = local != NONE ? local_player_get_player_index(local) : NONE;
+    long unit = player != NONE ? player_get(player)->unit_index : NONE;
+    struct render_lighting *lighting;
+    if (game_connection() != _game_connection_local || unit == NONE ||
+        !config_boolean("vr.dropped_magazines")) return;
+    lighting = object_get_cached_render_lighting(unit, 100.0f);
+    if (!lighting) return;
+    for (int index = 0; index < VR_MAGAZINE_DEBRIS_CAPACITY; ++index) {
+        struct dropped_magazine *slot = &dropped_magazines[index];
+        struct object_datum *weapon;
+        real pixels;
+        if (!slot->active) continue;
+        weapon = (struct object_datum *)object_try_and_get_and_verify_type(slot->weapon, _object_mask_weapon);
+        if (!weapon || slot->node_count <= 0 || slot->node_count > MAXIMUM_NODES_PER_MODEL) {
+            memset(slot, 0, sizeof(*slot));
+            continue;
+        }
+        pixels = render_frustum_sphere_diameter_in_pixels(&render.frustum, &slot->center, slot->radius);
+        render_model(slot->model, pixels, slot->matrices, NULL,
+            weapon->object.outgoing_change_colors, weapon->object.outgoing_function_values,
+            lighting, &slot->center, slot->radius, NULL,
+            0x5A000000 + index, 0, 0);
+    }
 }
 
 static boolean reload_near(real_point3d const *a, real_point3d const *b, real radius)
@@ -200,7 +371,27 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
             reload.chamber_travel = 0;
         }
     }
-    event = vr_mr_step(&reload.state, &input);
+    {
+        real_vector3d change;
+        int moving = reload.state.phase == VR_MR_OLD_HELD || reload.state.phase == VR_MR_NEW_HELD;
+        if (moving && reload.hand_sample_valid) {
+            vector_from_points3d(&reload.previous_hand, &hand, &change);
+            for (int axis = 0; axis < 3; ++axis)
+                reload.hand_velocity.n[axis] = reload.hand_velocity.n[axis] * 0.35f + change.n[axis] * 0.65f;
+            if (!vr_magazine_debris_speed_valid(reload.hand_velocity.n, 0.24f * units))
+                reload.hand_velocity = *global_zero_vector3d;
+        } else if (!moving) {
+            reload.hand_velocity = *global_zero_vector3d;
+        }
+        reload.previous_hand = hand;
+        reload.hand_sample_valid = TRUE;
+    }
+    {
+        int previous_phase = reload.state.phase;
+        event = vr_mr_step(&reload.state, &input);
+        if (event == VR_MR_DISCARD && previous_phase == VR_MR_OLD_HELD)
+            reload.debris_pending = TRUE;
+    }
     if (event == VR_MR_INSERT) {
         matrix4x3_inverse(&reload.gun, &inverse);
         matrix4x3_multiply(&inverse, &reload.held, &reload.insertion_local);
@@ -409,6 +600,9 @@ void vr_manual_reload_model(long weapon_index, long model_index, real_matrix4x3 
         matrix4x3_from_point_and_vectors(&reload.held,&position,&forward,&up);
         reload.held.scale = from.scale*(1-t)+reload.socket.scale*t;
     }
+    /* Capture the authored ejected magazine before NEED_MAG hides its subtree.
+     * This clone is render-only and never participates in ammo accounting. */
+    if (reload.debris_pending) debris_spawn_from_reload(model, matrices);
     if (reload.state.phase == VR_MR_OLD_HELD || reload.state.phase == VR_MR_NEW_HELD || reload.state.phase == VR_MR_SEATING) {
         real_matrix4x3 inverse, delta;
         matrix4x3_inverse(&reload.socket, &inverse);

@@ -1,6 +1,28 @@
 ## Current release checkpoint — v1.0.18 (2026-10-08)
 
-## Active private Test39 candidate (2026-10-08)
+## Active private Test40 candidate (2026-10-08)
+
+Continue on `test39-interaction-completion`; target private **1.0.21-test40 / code51**.
+Finish the four previously deferred interaction items, include haptics for
+vehicle lifting and supported NPC handling, and package both flat Android and
+Quest/VR APKs for private owner testing. Do not publish, install or launch the
+game. PC/Steam Frame stays deferred; public v1.0.18 stays unchanged.
+
+Read [TEST40-DELIVERY-STATUS.md](TEST40-DELIVERY-STATUS.md),
+[TEST40-REQUIREMENT-DISPOSITION.md](TEST40-REQUIREMENT-DISPOSITION.md),
+[TEST40-PROGRESS.md](TEST40-PROGRESS.md) and
+[TEST40-DEVICE-CHECKLIST.md](TEST40-DEVICE-CHECKLIST.md). The four additions
+are custom humanoid fallback, persistent map-session visual magazines,
+bounded vertical vehicle lifting and solo mission-NPC recovery. Each is
+default-off and limited as documented. The existing WEIGHT HAPTICS option now
+covers held props, supported NPC limbs and vehicle lifting; event/collision
+pulses remain. Host checks do not equal headset or campaign acceptance.
+
+Preserve the Test39 network/co-op and accepted VR/Android behavior. The prior
+Test39 candidate and its artifacts remain archived below and in its delivery
+record.
+
+## Superseded private Test39 candidate (2026-10-08)
 
 Continue on `test39-interaction-completion`; target private `1.0.20-test39`,
 Android code50. The owner explicitly asked to package both Quest/VR and flat

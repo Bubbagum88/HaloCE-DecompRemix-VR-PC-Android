@@ -112,6 +112,7 @@ symbols in this file:
 #include "vr_world_props.h"
 #ifdef HALO_VR
 #include "vr_manual_reload.h"
+#include "vr_npc_rescue.h"
 #include "vr_parkour.h"
 #include "halo_vr.h"
 #endif
@@ -257,6 +258,8 @@ static void game_state_call_before_load_procs(
 #ifdef HALO_VR
 	/* Release transient interaction ownership while old IDs are still valid. */
 	vr_manual_reload_reset();
+	vr_manual_reload_debris_reset();
+	vr_npc_rescue_reset();
 	vr_parkour_reset();
 	vr_world_interaction_reset();
 	vr_render_reset_vehicle_view();
@@ -285,6 +288,8 @@ static void game_state_call_after_load_procs(
 	 * before any callback can consume saved objects or touch hand state. */
 	vr_world_interaction_reset();
 	vr_manual_reload_reset();
+	vr_manual_reload_debris_reset();
+	vr_npc_rescue_reset();
 	vr_parkour_reset();
 #endif
 	for (i =NUMBEROF(after_load_procs); i>0; i--, proc++)

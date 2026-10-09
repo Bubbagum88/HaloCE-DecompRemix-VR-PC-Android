@@ -1,27 +1,26 @@
 # Agent and contributor continuation
 
-## Active private Test39 candidate (2026-10-08)
+## Active private Test40 candidate (2026-10-08)
 
-Continue on `test39-interaction-completion`; target private `1.0.20-test39`,
-Android code50. Finish the user's active scope and package both Quest/VR and
-flat Android builds. Do not publish, install or launch the game. PC/Steam Frame
+Continue on `test39-interaction-completion`; target private `1.0.21-test40`,
+Android code51. Complete source validation and package both Quest/VR and flat
+Android builds. Do not publish, install or launch the game. PC/Steam Frame
 remains deferred.
 
-The private Test39 artifacts are in
-`D:\HaloQuest\builds\test39-20261008-v1.0.20-test39-final`. APK runtime source
-is `55805e29`; the archive's final documentation source may be a later
-docs-only commit recorded in its manifest. Both flavors built and passed the
-84-suite regression run, cache-format pytest and package gates. Read
-`docs/TEST39-DELIVERY.md` for APK hashes; device/runtime acceptance is pending.
+Read `docs/TEST40-DELIVERY-STATUS.md`, `docs/TEST40-REQUIREMENT-DISPOSITION.md`,
+`docs/TEST40-PROGRESS.md` and `docs/TEST40-DEVICE-CHECKLIST.md`. This candidate
+addresses the four previously deferred requests: opt-in custom humanoid rig
+fallback, map-session visual magazine debris, bounded vertical lifting for a
+validated vehicle subset, and solo NPC recovery after a ten-second unsupported
+fall. The haptics pass also routes the existing opt-in weight feedback to
+supported NPC handling and vehicle lifting while preserving collision-contact
+pulses. Their exact limits are in the status/disposition documents; do not claim
+universal skeleton mapping, saved/networked magazines, full 6-DoF vehicle
+manipulation, NPC respawn or recovery of script-owned actors.
 
-Read `docs/TEST39-DELIVERY-STATUS.md`, `docs/TEST39-REQUIREMENT-DISPOSITION.md`,
-`docs/TEST39-INTERACTION-NETWORK.md` and `docs/TEST39-DEVICE-CHECKLIST.md`.
-SHAKE COOLING is an explicit VR Controls OFF/ON toggle, default OFF, solo-only.
-Preserve prior behavior with it OFF. World-object co-op interactions may
-negotiate above four remote machines; articulated NPC pose sync remains capped
-at four. This does not certify a 128-player campaign. Manual reload and parkour
-remain solo-only. Public v1.0.18 remains accepted; source/build/package checks
-do not establish device or live-network acceptance.
+All four controls are OFF by default. Public v1.0.18 remains accepted. Device,
+campaign, co-op and performance acceptance remain pending. Preserve Test39's
+working network, co-op, VR and Android baseline and all earlier releases.
 
 
 ## Current public release: v1.0.18 (2026-10-08)

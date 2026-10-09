@@ -1,6 +1,6 @@
 ﻿# World interaction implementation and acceptance status
 
-This build contains optional loose-object interaction and articulated NPC handling. Both are OFF by default. Source implementation and automated checks are complete for the bounded paths below; headset, campaign and real multiplayer acceptance are still required. This document does not claim universal NPC support or that every original acceptance scenario has passed.
+The Test38 interaction foundation carries into the private Test40 candidate. Optional loose-object interaction, articulated NPC handling, and the four Test40 additions are OFF by default. Source implementation and automated checks cover only the bounded paths below; headset, campaign and real multiplayer acceptance are still required. This document does not claim universal NPC support or that every original acceptance scenario has passed.
 
 ## Delivered architecture
 
@@ -13,6 +13,29 @@ This build contains optional loose-object interaction and articulated NPC handli
 - Confirmed native collision contacts can produce capped, debounced host-authoritative impact damage through the native melee damage definition. Relative normal speed and mobility determine the bounded scale. NPC floor impacts retain native falling damage; the added NPC path handles confirmed nonfloor impacts, avoiding a second floor-damage event.
 - Enhanced campaign sessions negotiate an optional interaction capability. The host validates player ownership, finite/range-limited input, session sequence and leases, and alone simulates root physics and damage. Both flat Android and VR hosts support that authority. NPC palettes are interpolated on upgraded clients with bounded bandwidth and lease expiry. Stock/mixed sessions retain their original behavior; enhanced NPC handling is not silently activated there. Legacy campaign protocol compatibility is a separate feature.
 - Save/load, map changes, tracking/focus loss, player death, vehicle entry and invalid ownership cancel transient holds. Before saving, live ownership is released; no frozen AI flags or solver format are added to checkpoints.
+
+## Test40 additions
+
+- **Custom NPC rigs:** `vr.custom_npc_rigs` admits a validated unclassified
+  humanoid fallback in solo play. It uses the loaded graph and pelvis split;
+  it is not an arbitrary skeleton retargeting registry. Known native actor
+  species retain their prior profiles, and unknown/non-humanoid/scripted or
+  malformed graphs stay refused.
+- **Discarded magazine visuals:** `vr.dropped_magazines` is a render-only,
+  offline option for supported manual-reload magazine profiles. It uses a
+  fixed 32-slot pool with no timed expiry and replaces the oldest when full.
+  Map and game-state loads clear the visuals; they are not ammo, saved objects
+  or network messages.
+- **Vehicle lifting:** `vr.vehicle_lift` also requires `vr.world_interaction`.
+  It applies a capped vertical velocity response through native vehicle
+  acceleration for unoccupied, unnamed Warthog/Ghost/Scorpion/turret classes.
+  Native collision and gravity remain active. No horizontal carry/rotation or
+  network mutation is used.
+- **NPC rescue:** `vr.npc_rescue` watches eligible encounter actors in solo VR.
+  After ten seconds of downward unsupported/out-of-map state, it moves an NPC
+  only to a recorded grounded pose with a clear full standing capsule. It does
+  not reset the biped or rewrite AI/mission goals; active scripted, dead,
+  flying/swarm, cinematic, seated and unsafe actors are refused.
 
 ## Requirement matrix
 
@@ -55,7 +78,7 @@ This build contains optional loose-object interaction and articulated NPC handli
 | W33 | Multiple objects | Independent hand/object transactions and up to four continuing NPC bodies. |
 | W34 | World weapons | Native loose weapons; pickup ends invalid hold; no duplication or new inventory shortcut. |
 | W35 | Equipment | Eligible loose equipment; detonating projectiles/counter duplication excluded. |
-| W36 | Vehicles/huge objects | Whole-vehicle lifting excluded; vehicle handle control is a separate feature. |
+| W36 | Vehicles/huge objects | Test40 adds default-off vertical lifting for a validated, unoccupied subset; no horizontal carry or rotation. |
 | W37 | World collision | Native items, conservative prop OBB and swept NPC joint spheres; no universal mesh nonpenetration claim. |
 | W38 | Player collision | Native root collision retained; closer-contact margin is separately guarded by capsule clearance. |
 | W39 | Multiplayer | Native item state plus optional explicitly negotiated enhanced campaign channel. |
@@ -77,18 +100,18 @@ This build contains optional loose-object interaction and articulated NPC handli
 | W55 | Debug tools | Logs and sanitizer harnesses; force/constraint visual overlay not implemented. |
 | W56 | Logging | Ownership/transition and aggregate simulation timing; avoid per-render spam. |
 | W57 | Automated checks | Real extracted production lifecycle/species/pool functions, solver sanitizers and guest compilation. |
-| W58 | Device checklist | Original physical/campaign/network acceptance checklist remains unexecuted for this candidate. |
+| W58 | Device checklist | Test40 checklist is recorded; all physical/campaign/network checks await owner testing. |
 | W59 | Staging | Object foundation, solver, native ownership, recovery, impacts and negotiated network stages implemented. |
 | W60 | Reload/fingers | Shared exclusive grip owners prevent overlap; visible contact hooks integrate with fingers. |
 | W61 | Priority | Existing claims win; separate reload/vehicle/world/parkour/NPC ownership. |
-| W62 | Haptics | Acquisition feedback exists; continuous weight/resistance haptics not implemented. |
+| W62 | Haptics | Acquisition/reload/parkour feedback and one-shot fingertip collision pulses remain; optional, capped, rate-limited solo weight haptics cover held props, supported NPC limbs and vehicle lifting. Device comfort remains pending. |
 | W63 | Game safety | No actor spawning/deletion, inventory edits or collision-disable workaround; admission guards preserved. |
-| W64 | Out-of-bounds | Invalid/outside-map objects refused; reach/teleport cancellation. No mission-NPC rescue/respawn system. |
+| W64 | Out-of-bounds | Test40 adds optional local NPC recovery after a ten-second fall/outside-map dwell; no respawn/revive. |
 | W65 | Enjoyment | Requires player feedback on strength, recovery, collisions and comfort. |
-| W66 | Final acceptance | Source coverage recorded; remaining limitations above and device acceptance are explicit, not declared complete. |
+| W66 | Final acceptance | Test40 source coverage recorded; device acceptance remains pending, not implied. |
 
 ## Validation and remaining acceptance
 
 `tools/test_vr_world_physics.py` exercises the actual spring/release/reset and articulated solver under AddressSanitizer/UndefinedBehaviorSanitizer, including 600-tick constraint/floor/recovery tests, 64-node self-collision budgets and invalid transaction rollback. `tools/test_vr_npc_interaction.py` extracts production species, ownership, pool, corpse classification, release, root velocity, snapshot and contact functions; it checks concurrent ownership, two-hand gates, round-robin snapshots, lifecycle and hook ordering. Both are registered in the project check runner. Actual guest compilation covers the NPC module in flat and VR plus modified native object, unit, biped and checkpoint hooks.
 
-Compilation and these focused checks cannot establish every authored rig's visual quality, every mission script's behavior, physical comfort, Quest frame-time cost or real multiplayer synchronization. Those remain explicit testing items. Unsupported species/rigs, arbitrary static scenery, whole-vehicle lifting, continuous weight haptics, visual force diagnostics and mission-NPC rescue are not advertised as completed. This candidate is packaged for the user's requested testing, not as proof of all W58 acceptance cases.
+Compilation and focused checks cannot establish every authored rig's visual quality, every mission script's behavior, physical comfort, Quest frame-time cost or real multiplayer synchronization. Unsupported species/rigs, arbitrary static scenery, full six-degree-of-freedom vehicle manipulation, visual force diagnostics and automatic recovery of actively script-owned NPCs remain unsupported. Test40's bounded features are described above; owner device/campaign testing remains pending.

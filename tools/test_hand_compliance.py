@@ -4,6 +4,12 @@ import subprocess
 import tempfile
 ROOT=Path(__file__).resolve().parents[1]
 source=(ROOT/'port/linux/game/vr_render.c').read_text()
+contact_start=source.index('static void vr_hand_contact_feedback(')
+contact_brace=source.index('{',contact_start);contact_end=contact_brace+1;contact_depth=1
+while contact_depth:contact_depth+=(source[contact_end]=='{')-(source[contact_end]=='}');contact_end+=1
+contact=source[contact_start:contact_end]
+assert 'vr_contact_pulse(&state[controller], vr_pose_time(), touching)' in contact
+assert 'vr_haptic(controller, PIN(strength, 0.05f, 0.35f), 0.025f)' in contact
 start=source.index('static boolean vr_finger_trace(');brace=source.index('{',start);end=brace+1;depth=1
 while depth:depth+=(source[end]=='{')-(source[end]=='}');end+=1
 query=source[start:end]

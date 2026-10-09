@@ -63,6 +63,8 @@ assert '"CUSTOM SCENERY", "vr.custom_scenery_grab"' in menu
 assert '"CUSTOM NPC RIGS", "vr.custom_npc_rigs"' in menu
 assert 'game_connection()!=_game_connection_local' in world
 assert 'vr_haptic(hand,amplitude,0.12f)' in world
+assert 'void vr_world_interaction_weight_feedback(int hand, float mobility,' in world
+assert 'vr_world_interaction_weight_feedback(hand, mobility, (float)(strain / units), (float)speed);' in world
 reset = world[world.index('void vr_world_interaction_reset(void)'):]
 assert 'weight_haptic_at[0]=weight_haptic_at[1]=0' in reset
 assert 'vr.cooldown_shake", _config_boolean, "false"' in config

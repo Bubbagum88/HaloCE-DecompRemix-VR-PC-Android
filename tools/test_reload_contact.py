@@ -7,8 +7,15 @@ manual=(ROOT/'port/linux/game/vr_manual_reload.c').read_text()
 models=(ROOT/'source/models/models.c').read_text()
 render=(ROOT/'port/linux/game/vr_render.c').read_text()
 def function(text,name):
-    start=text.index(name);start=text.rfind('\n',0,start)+1
-    brace=text.index('{',start);depth=1;end=brace+1
+    cursor=0
+    while True:
+        match=text.find(name,cursor)
+        if match<0: raise AssertionError(f'missing function definition: {name}')
+        brace=text.find('{',match);semi=text.find(';',match)
+        if brace>=0 and (semi<0 or brace<semi): break
+        cursor=match+len(name)
+    start=text.rfind('\n',0,match)+1
+    depth=1;end=brace+1
     while depth:
         depth+=(text[end]=='{')-(text[end]=='}');end+=1
     return text[start:end]
