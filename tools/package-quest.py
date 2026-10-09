@@ -617,7 +617,9 @@ def main():
         "editions": {record["package"]: {"apk": record["file"], "sha256": record["sha256"],
             "bytes": record["bytes"], "version_code": record["version_code"], "min_sdk": record["min_sdk"]} for record in records}}
     (output / "compatibility.json").write_text(json.dumps(compatibility, indent=2)+"\n")
-    edition_docs=["RELEASE-"+args.label+".md", "RELEASE-PROVENANCE-"+args.label+".md"] if args.stable else [args.label.upper()+"-DELIVERY.md", args.label.upper()+"-PROGRESS.md"]
+    edition_docs=( ["RELEASE-"+args.label+".md", "RELEASE-PROVENANCE-"+args.label+".md"] if args.stable else
+                   [] if candidate_at_least(args.label, 42) else
+                   [args.label.upper()+"-DELIVERY.md", args.label.upper()+"-PROGRESS.md"] )
     # a lettered candidate (test21b) ships its base candidate's notes too
     base_label = re.sub(r"[a-z]$", "", args.label)
     if not args.stable and base_label != args.label:
