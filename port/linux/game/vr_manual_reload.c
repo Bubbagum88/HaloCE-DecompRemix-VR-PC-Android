@@ -74,6 +74,8 @@ static int cancelled_phase;
 static long cancelled_weapon;
 static boolean reload_local_weapon(long weapon_index, long *unit_out);
 static boolean reload_matrix_valid(real_matrix4x3 const *matrix);
+static boolean reload_component_bounds_touch(real_matrix4x3 const *socket,
+	real_matrix4x3 const *held, real radius);
 static long bounds_logged_weapon = NONE, bounds_logged_model = NONE;
 static boolean bounds_log_initialized;
 
@@ -498,26 +500,27 @@ static boolean reload_component_bounds_touch(real_matrix4x3 const *socket,real_m
 {
     real_point3d held_min={FLT_MAX,FLT_MAX,FLT_MAX},held_max={-FLT_MAX,-FLT_MAX,-FLT_MAX};
     real radius_local,distance2=0.0f;
+    int corner,axis;
     if(!reload.bounds_valid[0] || !socket || !held || !reload_matrix_valid(socket) ||
         !reload_matrix_valid(held) || !isfinite(radius) || radius<0.0f)return FALSE;
     radius_local=radius/socket->scale;
     if(!isfinite(radius_local))return FALSE;
     /* Transform the held magazine's authored bounds into socket space. A
      * successful seat needs actual component-bound contact, not origin range. */
-    for(int corner=0;corner<8;corner++) {
+    for(corner=0;corner<8;corner++) {
         real_point3d part,world,local;
-        for(int axis=0;axis<3;axis++)
+        for(axis=0;axis<3;axis++)
             part.n[axis]=(corner&(1<<axis))?reload.bounds_max[0].n[axis]:reload.bounds_min[0].n[axis];
         if(!valid_real_point3d(&part))return FALSE;
         matrix4x3_transform_point(held,&part,&world);
         matrix4x3_inverse_transform_point(socket,&world,&local);
         if(!valid_real_point3d(&world)||!valid_real_point3d(&local))return FALSE;
-        for(int axis=0;axis<3;axis++) {
+        for(axis=0;axis<3;axis++) {
             if(local.n[axis]<held_min.n[axis])held_min.n[axis]=local.n[axis];
             if(local.n[axis]>held_max.n[axis])held_max.n[axis]=local.n[axis];
         }
     }
-    for(int axis=0;axis<3;axis++) {
+    for(axis=0;axis<3;axis++) {
         real gap=0.0f;
         if(held_max.n[axis]<reload.bounds_min[0].n[axis])gap=reload.bounds_min[0].n[axis]-held_max.n[axis];
         else if(held_min.n[axis]>reload.bounds_max[0].n[axis])gap=held_min.n[axis]-reload.bounds_max[0].n[axis];
