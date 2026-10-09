@@ -33,15 +33,26 @@ deferred.
 
 ## Verification
 
-Automated results, build manifests and artifact hashes will be recorded here
-after both APK workflows and the package gate complete. Device acceptance is
-pending. Passing source tests and package checks cannot verify the authored A10
-tutorial sequence on a headset.
+- `tools/run-quest-checks.py`: all suites passed. The Quest and flat build
+  workflows each reran the full regression gate successfully.
+- Quest and flat APK builds both succeeded from runtime source commit
+  `547f1234`. The Quest build was cleaned and rebuilt after the packaging gate
+  detected stale ZIP records; the final clean artifact passed the orphan-data
+  check and contains the VR scope/settings markers.
+- `tools/package-quest.py`: passed signing-certificate, package/version/ABI,
+  APK integrity, launcher art, content, networking and app-class parity checks.
+  The two APKs share version code 55 and min SDK 28.
+- Focused contact tests passed for solo and host-validated co-op enemy/object
+  grabs, fresh Grip edges, parkour contact, reload part/socket contact and
+  virtual vehicle handles. The device checklist remains pending: automated
+  collision/API tests do not prove Quest hand feel or two-headset co-op behavior.
+- No APK was installed or game launched. This remains a private test candidate,
+  not a published release.
 
 | Edition | File | Bytes | SHA-256 |
 | --- | --- | ---: | --- |
-| Quest / VR | pending | pending | pending |
-| Android / flat | pending | pending | pending |
+| Quest / VR | `HaloCE-Quest-VR-1.0.25-test44-Quest.apk` | 35,436,978 | `15b74913a541cbd2ca79e537eae97a735806a1d6ef551e1cd2628487a31e647a` |
+| Android / flat | `HaloCE-Quest-VR-1.0.25-test44-Android.apk` | 33,271,891 | `ded2a6850b525da23161c7bdbed1475b32669a38bd119a6242c834f5c15cde49` |
 
-Candidate package directory: pending. No publication, installation or game
-launch is authorized.
+Candidate package directory: `D:\HaloQuest\builds\test44-20261009-v1.0.25-test44-contact-verified-final`.
+No publication, installation or game launch is authorized.
