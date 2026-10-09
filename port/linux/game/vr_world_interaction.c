@@ -175,6 +175,7 @@ static boolean vehicle_lift_apply(long index, real_vector3d const *error,
 	real_vector3d up, current_vertical, requested_vertical, target_vertical, delta;
 	real speed, up_speed, horizontal_speed_squared, max_speed, vertical_limit;
 	real mobility, alpha, error_up, target_up;
+	int axis;
 	if (!vehicle || !error || !mobility_out || (hands != 1 && hands != 2) ||
 		!isfinite(units) || !(units > 0.0f && units < 100.0f) ||
 		!valid_real_vector3d(error) || !valid_real_vector3d(global_up3d))
@@ -194,7 +195,7 @@ static boolean vehicle_lift_apply(long index, real_vector3d const *error,
 	alpha = (hands == 2 ? 0.50f : 0.35f) * (real)sqrt(mobility);
 	error_up = dot_product3d(error, &up);
 	requested_vertical = current_vertical;
-	for (int axis = 0; axis < 3; ++axis)
+	for (axis = 0; axis < 3; ++axis)
 		requested_vertical.n[axis] += up.n[axis] * error_up * alpha;
 	if (!vr_vehicle_lift_target_velocity(current_vertical.n, requested_vertical.n,
 		hands, units, target_vertical.n))
@@ -202,7 +203,7 @@ static boolean vehicle_lift_apply(long index, real_vector3d const *error,
 	/* Leave the existing horizontal speed untouched while respecting the total
 	 * grab-speed envelope. */
 	horizontal_speed_squared = 0.0f;
-	for (int axis = 0; axis < 3; ++axis)
+	for (axis = 0; axis < 3; ++axis)
 	{
 		real horizontal = vehicle->object.translational_velocity.n[axis] - up.n[axis] * up_speed;
 		horizontal_speed_squared += horizontal * horizontal;
@@ -215,7 +216,7 @@ static boolean vehicle_lift_apply(long index, real_vector3d const *error,
 		return FALSE;
 	target_up = PIN(dot_product3d(&target_vertical, &up), -vertical_limit, vertical_limit);
 	scale_vector3d(&up, target_up, &target_vertical);
-	for (int axis = 0; axis < 3; ++axis)
+	for (axis = 0; axis < 3; ++axis)
 		delta.n[axis] = target_vertical.n[axis] - current_vertical.n[axis];
 	if (!valid_real_vector3d(&delta) || magnitude3d(&delta) > units * 0.0526f)
 		return FALSE;
@@ -358,7 +359,7 @@ void vr_world_interaction_tick(void)
     long player, unit, tick = game_time_get();
     real units = vr_units_per_metre();
     real_point3d camera;
-    int hand;
+    int hand, h, n;
     unsigned int buttons;
     float triggers[2],thumbs[4];
     if (!vr_active() || !config_boolean("vr.world_interaction") ||
@@ -394,7 +395,7 @@ void vr_world_interaction_tick(void)
         if (held->sample_valid) {
             vector_from_points3d(&held->previous, &point, &change);
             if (magnitude3d(&change) > 0.45f*units) { release_hand(hand,FALSE,units); continue; }
-            for (int n=0;n<3;++n) held->velocity.n[n] = held->velocity.n[n]*0.55f + change.n[n]*0.45f;
+            for (n=0;n<3;++n) held->velocity.n[n] = held->velocity.n[n]*0.55f + change.n[n]*0.45f;
         }
         held->previous = held->point = point; held->forward=forward; held->up=up; held->sample_valid=TRUE;
         if (held->active && (!grip || !grabbable(held->index) || vr_interaction_owner(hand)!=VR_INTERACTION_WORLD)) {
@@ -419,13 +420,13 @@ void vr_world_interaction_tick(void)
         struct world_hand *held=&hands[hand];
         struct object_datum *item;
         real_vector3d error = {0}, offset, target_forward, target_up, angular, second, velocity;
-        int count=0, h;
+        int count=0;
         real mobility;
         if (!held->active || (hand==1 && hands[0].active && hands[0].index==held->index)) continue;
         item=grabbable(held->index); if (!item) continue;
         for (h=0;h<2;++h) if (hands[h].active && hands[h].index==held->index) {
             world_vector(&item->object.forward,&item->object.up,(real_vector3d *)&hands[h].local_grab,&offset);
-            for (int n=0;n<3;++n) error.n[n] += hands[h].point.n[n]-item->object.position.n[n]-offset.n[n];
+            for (n=0;n<3;++n) error.n[n] += hands[h].point.n[n]-item->object.position.n[n]-offset.n[n];
             ++count;
         }
         scale_vector3d(&error,1.0f/count,&error);
@@ -469,7 +470,7 @@ void vr_world_interaction_tick(void)
             vector_from_points3d(&hands[0].point,&hands[1].point,&hand_line);
             if (normalize3d(&object_line)>0.01f && normalize3d(&hand_line)>0.01f) {
                 cross_product3d(&object_line,&hand_line,&second);
-                for (int n=0;n<3;++n) angular.n[n]=angular.n[n]*0.25f+second.n[n];
+                for (n=0;n<3;++n) angular.n[n]=angular.n[n]*0.25f+second.n[n];
             }
         }
         scale_vector3d(&angular,0.12f,&angular);

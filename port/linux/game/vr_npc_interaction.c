@@ -169,9 +169,9 @@ static int custom_rig_graph_valid(struct unit_datum *unit,long index)
 {
     struct biped_definition *definition;
     struct vr_articulated_native rig;
-    int pelvis,children=0,slot=-1;
+    int pelvis,children=0,slot=-1,n;
     if(!unit || index==NONE || unit->definition_index==NONE)return FALSE;
-    for(int n=0;n<NUMBEROF(custom_rig_graph_cache);++n) {
+    for(n=0;n<NUMBEROF(custom_rig_graph_cache);++n) {
         if(custom_rig_graph_cache[n].valid && custom_rig_graph_cache[n].definition==unit->definition_index)return TRUE;
         if(!custom_rig_graph_cache[n].valid && slot<0)slot=n;
     }
@@ -184,7 +184,7 @@ static int custom_rig_graph_valid(struct unit_datum *unit,long index)
     if(!definition)return FALSE;
     pelvis=definition->biped.runtime_pelvis_node_index;
     if(pelvis<0 || pelvis>=rig.body.count)return FALSE;
-    for(int n=1;n<rig.body.count;++n) {
+    for(n=1;n<rig.body.count;++n) {
         int parent=rig.body.nodes[n].parent;
         if(parent<0 || parent>=n)return FALSE;
         if(parent==pelvis)++children;
@@ -589,10 +589,12 @@ void vr_npc_interaction_palette(long index)
     struct unit_datum *u;
     real_matrix4x3 *native;
     struct vr_articulated_pin pins[2];
-    int count=0,n,k;
+    real units;
+    int count=0,n,k,h;
     unsigned long started;
     if(!owns(index)) return;
     started=system_milliseconds();
+    units=interaction_units();
     {
         struct player_datum *owner=player_try_and_get(npc.player);
         if(owner) vr_interaction_impact_track(index,owner->unit_index,npc.mobility,interaction_units());
@@ -690,7 +692,7 @@ void vr_npc_interaction_palette(long index)
 	/* Local hands get the same optional, rate-limited load feedback as held
 	 * props. Measure solver displacement/movement at the actually pinned limb;
 	 * remote-owned bodies never buzz this headset. */
-	if(!npc.is_remote && npc.started && !npc.recovery && units > 0.0f) {
+	if(!npc.is_remote && npc.started && !npc.recovery && isfinite(units) && units > 0.0f) {
 		for(h=0;h<2;++h) if(npc.held[h] && npc.node[h]>=0 && npc.node[h]<npc.rig.body.count) {
 			real_vector3d offset, strain, movement;
 			struct vr_articulated_node *node=&npc.rig.body.nodes[npc.node[h]];
