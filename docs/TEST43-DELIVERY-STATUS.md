@@ -20,18 +20,24 @@ PC/Steam Frame remains deferred.
 
 Focused managed-data tests: 97 checks passed, covering selection agreement with
 native startup, profile isolation, safe deletion, inbox deletion, malformed
-markers and traversal rejection. Launcher tests: 55 state/policy checks passed
-and the full Android+SDL Java sources compile against the Android API. The
-complete serial regression runner passed all 92 suites with no failures; the
-strengthened managed-data fixture was rerun afterward and passed all 97 checks.
-Both APK package gates are recorded below after the final build.
+markers, traversal rejection and symlink-target preservation. Launcher tests:
+55 state/policy checks passed and the full Android+SDL Java sources compile
+against the Android API. The complete serial regression runner passed all 92
+suites with no failures; the strengthened managed-data fixture was rerun
+afterward and passed all 97 checks. Both edition builds each reran all 92 suites
+with no failures. Both APKs passed compaction checks preserving every payload
+entry hash and signing certificate, plus APK alignment. The final APK metadata,
+cross-edition parity and archive checks are performed by the package gate.
 
 | Edition | File | Bytes | SHA-256 |
 | --- | --- | ---: | --- |
-| Quest / VR | pending | pending | pending |
-| Android / flat | pending | pending | pending |
+| Quest / VR | `HaloCE-Quest-VR-1.0.24-test43.apk` | 35,536,126 | `d88fd1561ee1050caa31f7d06d2e3c532f510c959dde4a11ef90b4cea76a37ef` |
+| Android / flat | `HaloCE-Android-1.0.24-test43.apk` | 33,373,359 | `d737a9daf89031ebcbc3ebf1a623e1fd471ee7d23f850ef68fc30ec02d66018e` |
 
-Matching build/source ZIP paths and final package manifest: pending.
+Final package directory: `D:\HaloQuest\builds\test43-20261009-v1.0.24-test43-game-data-manager`.
+Matching archives: `HaloCE-Quest-test43-build.zip` and
+`HaloCE-Quest-test43-source.zip`. The package gate generates `manifest.json`,
+`compatibility.json` and `SHA256SUMS.txt` in the same directory.
 
 Source checks do not confirm device storage-provider behavior, visible selector
 UX, app update preservation or live gameplay. Device acceptance remains
