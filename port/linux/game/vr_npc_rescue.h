@@ -32,7 +32,7 @@ struct vr_npc_rescue_eligibility
 	int not_swarm;
 	int not_movie_star;
 	int no_custom_animation;
-	int no_script_ownership;
+	int script_state_resumable;
 	int connected_to_map;
 	int collision_enabled;
 	int not_recording_possessed;
@@ -49,7 +49,7 @@ static inline int vr_npc_rescue_is_eligible(
 		state->squad_valid && state->unparented && state->not_in_vehicle &&
 		state->not_dead && state->not_flying && state->not_swarm &&
 		state->not_movie_star && state->no_custom_animation &&
-		state->no_script_ownership && state->connected_to_map &&
+		state->script_state_resumable && state->connected_to_map &&
 		state->collision_enabled && state->not_recording_possessed &&
 		state->not_deleted_when_deactivated;
 }

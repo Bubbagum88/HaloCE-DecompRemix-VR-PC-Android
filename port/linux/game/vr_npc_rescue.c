@@ -193,8 +193,12 @@ static boolean vr_npc_rescue_candidate_eligibility(
 	check.actor_attached = actor && actor->meta.unit_index == object_index &&
 		actor->meta.encounter_index != NONE;
 	check.actor_live = actor && actor->meta.active && !actor->meta.erase_next_tick;
-	check.no_script_ownership = actor && actor->state.command_list_index == NONE &&
-		!actor->state.command_list_immediate && actor->state.action != _actor_action_obey;
+	/* An ordinary queued command list can resume from the restored safe pose.
+	 * Do not move actors currently obeying a scripted command or marked for
+	 * immediate command-list ownership; those states can encode a cutscene or
+	 * a timing-sensitive mission transition even outside a cinematic camera. */
+	check.script_state_resumable = actor && !actor->state.command_list_immediate &&
+		actor->state.action != _actor_action_obey;
 	check.not_flying = actor && !actor->state.flying && actor->meta.definition_index != NONE &&
 		unit->definition_index != NONE;
 	check.not_swarm = actor && !actor->meta.swarm && unit->unit.swarm_actor_index == NONE &&

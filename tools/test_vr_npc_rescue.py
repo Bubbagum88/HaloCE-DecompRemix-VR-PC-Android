@@ -44,7 +44,7 @@ int main(void)
     e.not_swarm = 0; assert(!vr_npc_rescue_is_eligible(&e)); e.not_swarm = 1;
     e.not_movie_star = 0; assert(!vr_npc_rescue_is_eligible(&e)); e.not_movie_star = 1;
     e.no_custom_animation = 0; assert(!vr_npc_rescue_is_eligible(&e)); e.no_custom_animation = 1;
-    e.no_script_ownership = 0; assert(!vr_npc_rescue_is_eligible(&e)); e.no_script_ownership = 1;
+    e.script_state_resumable = 0; assert(!vr_npc_rescue_is_eligible(&e)); e.script_state_resumable = 1;
     e.connected_to_map = 0; assert(!vr_npc_rescue_is_eligible(&e)); e.connected_to_map = 1;
     e.collision_enabled = 0; assert(!vr_npc_rescue_is_eligible(&e)); e.collision_enabled = 1;
     e.not_recording_possessed = 0; assert(!vr_npc_rescue_is_eligible(&e)); e.not_recording_possessed = 1;
@@ -110,6 +110,11 @@ assert "biped_approximate_surface_index" in rescue
 assert "collision_test_pill" in rescue
 assert "object_set_position(" in rescue
 assert "object_activate(object_index)" in rescue
+assert re.search(
+    r"check\.script_state_resumable\s*=\s*actor\s*&&\s*!actor->state\.command_list_immediate\s*&&\s*actor->state\.action\s*!=\s*_actor_action_obey",
+    rescue,
+), "ordinary queued mission orders should resume after rescue; immediate/active obey states stay excluded"
+assert "actor->state.command_list_index == NONE" not in rescue, "a queued ordinary command list must not blanket-block rescue"
 for forbidden in ("object_reset(", "unit_port_resurrect(", "actor_set_active(",
                   "unit_interaction_recover(", "actor_move_halt(", "network_send("):
     assert forbidden not in rescue, f"rescue must preserve native mission/AI state: {forbidden}"
