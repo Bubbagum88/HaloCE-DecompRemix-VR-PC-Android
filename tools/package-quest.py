@@ -378,9 +378,9 @@ def main():
                                b"leaving pregame lobby: host version"]:
                     if marker not in guest:
                         raise SystemExit("Test37 native compatibility gate missing: " + repr(marker))
-                guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt"))
+                guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt")).lower()
                 guide_markers = ([b"1.0.23-test42", b"all project changes made after v1.0.18", b"manual reload",
-                                  b"Export touch layout preset", b"Import touch layout preset", b"Show and enable this touch control",
+                                  b"export or import a versioned layout", b"show and enable this touch control",
                                   b"SHAKE COOLING", b"CUSTOM NPC RIGS", b"MAG DEBRIS", b"LIFT VEHICLES",
                                   b"NPC RESCUE", b"GRAB REACH", b"NPC RIG SLOTS", b"HOLSTER HAPTICS",
                                   b"OpenCE Build157", b"Build167", b"network24"]
@@ -411,7 +411,7 @@ def main():
                                  [b"1.0.18-test37", b"network-version population selector",
                                   b"Hosting remains on network 24"])
                 for marker in guide_markers:
-                    if marker not in guide:
+                    if marker.lower() not in guide:
                         raise SystemExit("Test37 offline guide marker missing: " + repr(marker))
             if candidate_at_least(args.label, 42):
                 for marker in [b"halo-ce-touch-layout", b"touch_visibility", b"visible_",

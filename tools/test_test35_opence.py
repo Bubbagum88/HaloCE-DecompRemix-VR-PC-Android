@@ -35,6 +35,8 @@ assert 'Engine base: OpenCE Build 157 / network 24, with selected compatibility 
 package_script = read("tools/package-quest.py")
 assert 'b"Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167"' in package_script
 assert 'if candidate_at_least(args.label, 42) else' in package_script
+assert 'archive.read("assets/guide/player-guide.txt")).lower()' in package_script
+assert 'b"export or import a versioned layout"' in package_script
 assert '"runtime_accepted": False' in package_script
 assert 'args.stable and args.label == "1.0.16"' in package_script
 assert 'args.stable and args.label == "1.0.18"' in package_script
