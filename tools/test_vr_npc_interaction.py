@@ -29,7 +29,8 @@ enum {NPC_POOL_SIZE=4,NPC_REMOTE_PLAYERS=128};
 typedef float real;
 typedef union {float n[3];struct{float x,y,z;};} real_vector3d;
 typedef struct {float values[13];} real_matrix4x3;
-enum {_actor_elite,_actor_jackal,_actor_grunt,_actor_hunter,_actor_engineer,_actor_assassin,_actor_player,_actor_marine,_actor_crew,_actor_combat_form,_actor_infection_form,_actor_carrier_form,_actor_monitor,_actor_sentinel};
+enum {_actor_elite,_actor_jackal,_actor_grunt,_actor_hunter,_actor_engineer,_actor_assassin,_actor_player,_actor_marine,_actor_crew,_actor_combat_form,_actor_infection_form,_actor_carrier_form,_actor_monitor,_actor_sentinel,_actor_none};
+enum {_race_player=1,_race_human=2,_race_covenant=4,_race_floodcombat=8,_race_sentinel=64};
 static struct npc_state {int active,recovery,settling,minimum_hands,started,is_remote,species_type;float mobility;long index,tick,player;int held[2],edge[2],node[2];real_vector3d target[2],offset[2],root_anchor[2],velocity[2];struct{struct vr_articulated_body body;real_matrix4x3 captured[64];}rig;} npc_pool[4],*npc_current=&npc_pool[0];
 #define npc (*npc_current)
 static struct remote_state {long player,candidate[2];int valid,held[2],seen[2],edge[2];real_vector3d point[2];} remote_pool[128];
@@ -38,6 +39,10 @@ static int local_edges[2]={1,1};
 static struct unit_datum {long definition_index;struct{real_vector3d position,translational_velocity;}object;struct{long actor_index;}unit;} unit;
 struct actor_datum {struct{short type;}meta;};static struct actor_datum actor;
 static struct actor_datum *actor_try_and_get(long index){return index==7?&actor:0;}
+static int custom_rigs,swarm_types[32],actor_races[32];
+static int config_boolean(char const *name){assert(!strcmp(name,"vr.custom_npc_rigs"));return custom_rigs;}
+static short actor_type_get_race(short type){return type>=0&&type<32?actor_races[type]:0;}
+static int actor_type_get_swarm(short type){return type>=0&&type<32?swarm_types[type]:1;}
 struct actor_definition {short type;};static struct actor_definition actors[2];
 struct actor_variant_definition {struct{long index;}actor_reference,unit_reference;};static struct actor_variant_definition variants[2];
 struct tag_iterator {int index;};static int variant_count,tag_scans;
@@ -71,6 +76,14 @@ int main(void){
  assert(species(_actor_hunter,&hands,&mobility)&&hands==2&&mobility==.12f);
  assert(species(_actor_marine,&hands,&mobility)&&hands==1);
  assert(!species(_actor_sentinel,&hands,&mobility)&&!species(_actor_infection_form,&hands,&mobility));
+ actor_races[_actor_engineer]=_race_covenant;actor_races[_actor_assassin]=_race_covenant;
+ actor_races[_actor_monitor]=_race_sentinel;actor_races[_actor_sentinel]=_race_sentinel;
+ assert(!species(_actor_engineer,&hands,&mobility));custom_rigs=1;
+ assert(!species(_actor_engineer,&hands,&mobility));
+ assert(species(_actor_assassin,&hands,&mobility)&&hands==2&&mobility==.25f);
+ assert(!species(_actor_monitor,&hands,&mobility));swarm_types[_actor_engineer]=1;
+ assert(!species(_actor_engineer,&hands,&mobility));swarm_types[_actor_assassin]=1;
+ assert(!species(_actor_assassin,&hands,&mobility));custom_rigs=0;
  npc.active=1;npc.index=7;npc.held[0]=npc.held[1]=1;owner[0]=5;owner[1]=3;lookups=0;
  vr_npc_interaction_reset();assert(!npc.active&&owner[0]==0&&owner[1]==3&&lookups==0);
  assert(npc.edge[0]&&npc.edge[1]&&npc.index==-1);
@@ -134,7 +147,7 @@ assert update.index('persistent_control_timer>0')<update.index('vr_npc_interacti
 bipeds=(ROOT/'source/units/bipeds.c').read_text()
 assert bipeds.index('vr_npc_interaction_velocity(physics->biped_index')<bipeds.index('collision_count = collision_move_pill(')
 assert 'vr_controller(&buttons,triggers,thumbs)' in source
-assert 'network_interaction_host_ready()' in source
+assert 'network_interaction_npc_ready()' in source
 assert 'species(unit_species(u,index)' in source
 assert 'hit.type!=_collision_result_object || hit.object_index!=it.index' in source
 assert 'actor_set_active(' not in source and 'meta.frozen' not in source

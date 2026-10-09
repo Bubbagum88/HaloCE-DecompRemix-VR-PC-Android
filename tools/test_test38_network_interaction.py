@@ -25,8 +25,8 @@ typedef struct{float q[4];}real_quaternion;
 #define TRUE 1
 #define FALSE 0
 #define NONE -1
-#define HALO_PORT_MAXIMUM_NETWORK_MACHINES 8
-#define MAXIMUM_TRACKED_PLAYERS 4
+#define HALO_PORT_MAXIMUM_NETWORK_MACHINES 128
+#define MAXIMUM_TRACKED_PLAYERS 128
 #define NUMBEROF(x) (sizeof(x)/sizeof((x)[0]))
 #define VALID_INDEX(i,n) ((i)>=0&&(i)<(n))
 #define MAX(a,b) ((a)>(b)?(a):(b))
@@ -37,7 +37,8 @@ struct distributed_message_header{byte data[12];};
 struct player_datum{int32_t unit_index;};
 struct unit_datum{struct{int32_t player_index;}unit;struct{int type,parent_object_index,damage_flags;struct{int size;}node_matrices;real_point3d position;}object;};
 static int connection=1,permission=1,coop=1,clients=1,sent,world_calls,npc_calls,cancels,accepted=1;
-static uint32_t now=100;static struct player_datum players[4];static struct unit_datum units[4];
+static uint32_t now=100;static struct player_datum players[128];static struct unit_datum units[128];
+static byte sent_body[128],sent_caps[4][128];static int cap_count;static byte sent_type;
 static uint32_t system_milliseconds(void){return now;}
 static int game_connection(void){return connection;}static int network_coop_active(void){return coop;}
 static int config_boolean(char const*k){assert(!strcmp(k,"net.physical_interactions"));return permission;}
@@ -47,7 +48,7 @@ static short distributed_client_machines(int32_t*m,short max){assert(max>=client
 static struct player_datum*distributed_player(short p){return p>=0&&p<clients?&players[p]:NULL;}
 static int distributed_machine_has_player(int32_t m,short p){return m==p&&m<clients;}
 static int32_t distributed_player_from_byte(byte p){return p;}static byte distributed_player_to_byte(int32_t p){return p;}
-static int distributed_object_index_valid(int32_t u){return u>=0&&u<4;}
+static int distributed_object_index_valid(int32_t u){return u>=0&&u<128;}
 static struct unit_datum*unit_try_and_get(int32_t u){return distributed_object_index_valid(u)?&units[u]:NULL;}
 static struct unit_datum*unit_get(int32_t u){assert(distributed_object_index_valid(u));return &units[u];}
 static void unit_get_camera_position(int32_t u,real_point3d*p){*p=units[u].object.position;}
@@ -57,7 +58,7 @@ static int distributed_point_valid(real_point3d const*p,float bound){return isfi
 static int distributed_transform_valid(real_point3d const*p,real_vector3d const*f,real_vector3d const*u,void*v,void*w,real_vector3d*outf,real_vector3d*outu){if(!distributed_point_valid(p,32768)||!isfinite(magnitude3d(f))||!isfinite(magnitude3d(u)))return 0;*outf=*f;*outu=*u;return 1;}
 static void cross_product3d(real_vector3d const*a,real_vector3d const*b,real_vector3d*c){*c=(real_vector3d){{a->j*b->k-a->k*b->j,a->k*b->i-a->i*b->k,a->i*b->j-a->j*b->i}};}
 static void distributed_send(void*p,byte t,short c,word size,int dest){sent++;}
-static void distributed_send_to_machine(int32_t m,void*p,byte t,short c,word size){sent++;}
+static void distributed_send_to_machine(int32_t m,void*p,byte t,short c,word size){sent++;sent_type=t;if(size>=sizeof(struct distributed_message_header)&&size-sizeof(struct distributed_message_header)<=sizeof(sent_body)){byte*body=(byte*)p+sizeof(struct distributed_message_header);memcpy(sent_body,body,size-sizeof(struct distributed_message_header));if(t==_distributed_message_vr_capability&&size-sizeof(struct distributed_message_header)==24)memcpy(sent_caps[cap_count++%4],body,24);}}
 static real_matrix4x3 testroot,palette[64];
 static real_matrix4x3*object_get_node_matrices(int32_t u){return palette;}
 static real_matrix4x3*object_get_world_matrix(int32_t u,real_matrix4x3*m){*m=testroot;return m;}
@@ -75,17 +76,18 @@ void vr_world_interaction_remote_cancel(int32_t p,int h){cancels++;}
 int vr_npc_interaction_remote(int32_t p,int h,int held,float const*w){npc_calls++;return 0;}
 void vr_npc_interaction_remote_cancel(int32_t p,int h){cancels++;}
 int vr_npc_interaction_snapshot(int32_t*i,int*c,real_matrix4x3*m,int cap){return 0;}
-void vr_interaction_client_reset(void){}void vr_interaction_client_tick(boolean b){}
+void vr_interaction_client_reset(void){}void vr_interaction_client_tick(boolean b,boolean n){}
 void vr_interaction_client_result(int32_t u,byte h,byte f,uint32_t s,int32_t object,float const local[3]){}
 int vr_world_interaction_remote_contact(int32_t p,int hand,int32_t*object,float local[3]){return 0;}
 int vr_npc_interaction_remote_contact(int32_t p,int hand,int32_t*object,float world[3]){return 0;}
 void platform_log(char const*f,...){}
 """
 main=r"""
-static void handshake(void){network_interaction_tick();struct ni_header ack;ni_header_init(&ack,NI_ACK,ni_peers[0].nonce,0);network_interaction_receive(0,38,&ack,1,sizeof(ack));assert(network_interaction_host_ready());}
-static void input(uint32_t seq,int held){struct ni_hand_wire w={0};ni_header_init(&w.h,NI_HAND,ni_peers[0].nonce,seq);w.unit=0;w.player=0;w.hand=0;w.held=held;w.features=1;w.forward.i=1;w.up.k=1;network_interaction_receive(0,37,&w,1,sizeof(w));}
+static void handshake_machine(int machine){network_interaction_tick();struct ni_header ack;ni_header_init(&ack,NI_ACK,ni_peers[machine].nonce,0);network_interaction_receive(machine,38,&ack,1,sizeof(ack));}
+static void handshake(void){handshake_machine(0);assert(network_interaction_host_ready());assert(network_interaction_npc_ready());}
+static void input(uint32_t seq,int held){struct ni_hand_wire w={0};ni_header_init(&w.h,NI_HAND,ni_peers[0].nonce,seq);w.unit=0;w.player=0;w.hand=0;w.held=held;w.features=3;w.forward.i=1;w.up.k=1;network_interaction_receive(0,37,&w,1,sizeof(w));}
 int main(void){
- players[0].unit_index=0;units[0].unit.player_index=0;units[0].object.type=1;units[0].object.parent_object_index=NONE;
+ for(int i=0;i<128;i++){players[i].unit_index=i;units[i].unit.player_index=i;units[i].object.type=1;units[i].object.parent_object_index=NONE;}
  network_interaction_reset();assert(!network_interaction_host_ready());handshake();
  input(1,1);network_interaction_tick();assert(world_calls==0); /* held at join no press */
  input(2,0);network_interaction_tick();assert(world_calls==1);
@@ -94,7 +96,24 @@ int main(void){
  now+=301;network_interaction_tick();assert(cancels==2&&!ni_hands[0][0].valid);
  old=world_calls;input(5,1);network_interaction_tick();assert(world_calls==old); /* timeout requires real release */
  input(6,0);network_interaction_tick();input(7,1);network_interaction_tick();assert(ni_hands[0][0].active);
- clients=5;assert(!network_interaction_host_ready());clients=2;players[1].unit_index=1;assert(!network_interaction_host_ready());network_interaction_tick();assert(!ni_hands[0][0].active);clients=1;
+ clients=5;now+=2000;network_interaction_tick();for(int i=1;i<5;i++)handshake_machine(i);
+ assert(network_interaction_host_ready());assert(!network_interaction_npc_ready());
+ assert(sent_type==_distributed_message_vr_capability&&cap_count>=2);
+ struct ni_header confirm,npc_confirm;
+ memcpy(&confirm,sent_caps[(cap_count-2)%4],sizeof(confirm));
+ memcpy(&npc_confirm,sent_caps[(cap_count-1)%4],sizeof(npc_confirm));
+ assert(confirm.kind==NI_CONFIRM&&confirm.sequence==1&&npc_confirm.kind==NI_NPC_CONFIRM&&npc_confirm.sequence==0);
+ connection=_game_connection_network_client;ni_host_nonce=confirm.nonce;ni_host_ready=ni_host_npc_ready=FALSE;
+ network_interaction_receive(NONE,_distributed_message_vr_capability,&confirm,1,sizeof(confirm));
+ network_interaction_receive(NONE,_distributed_message_vr_capability,&npc_confirm,1,sizeof(npc_confirm));
+ assert(ni_host_ready&&!ni_host_npc_ready&&!network_interaction_npc_ready());connection=_game_connection_network_server;
+ int world_before=world_calls;input(8,0);network_interaction_tick();input(9,1);network_interaction_tick();
+ assert(world_calls==world_before+2&&npc_calls>0&&ni_hands[0][0].active); /* NPC denied; world remains available above four peers */
+ ni_peers[1].ready=FALSE;assert(!network_interaction_host_ready());ni_peers[1].ready=TRUE;
+ clients=2;assert(network_interaction_host_ready()&&network_interaction_npc_ready());
+ now+=301;network_interaction_tick();assert(!ni_hands[0][0].active);clients=1;
+ clients=128;now+=2000;network_interaction_tick();for(int i=5;i<128;i++)handshake_machine(i);
+ assert(network_interaction_host_ready()&&!network_interaction_npc_ready()); /* bounded world authority handles full native machine limit */
  permission=0;assert(!network_interaction_host_ready());permission=1;
  struct ni_hand_wire w={0};ni_header_init(&w.h,NI_HAND,ni_peers[0].nonce,100);w.unit=0;w.features=1;w.forward.i=1;w.up.k=1;
  uint32_t seq=ni_hands[0][0].sequence;
@@ -111,7 +130,7 @@ int main(void){
  j.node=0;j.count=65;network_interaction_receive(NONE,37,&j,1,sizeof(j));assert(ni_poses[0].sequence==1);
  j.count=2;j.position.x=NAN;network_interaction_receive(NONE,37,&j,1,sizeof(j));assert(ni_poses[0].sequence==1);
  j.position.x=0;j.h.seed++;network_interaction_receive(NONE,37,&j,1,sizeof(j));assert(ni_poses[0].sequence==1);
- assert(network_interaction_palette_owned(2));network_interaction_palette(2);
+ ni_host_ready=ni_host_npc_ready=TRUE;assert(network_interaction_palette_owned(2));network_interaction_palette(2);
  real_matrix4x3 stock[2]={0};assert(network_interaction_render(2,stock)!=stock);now+=501;assert(!network_interaction_palette_owned(2));assert(network_interaction_render(2,stock)==stock);
  puts("PASS: actual network handshake, sender/epoch/lease/range/replay validation, fresh grips, mixed-peer fallback and bounded joint assembly");
 }

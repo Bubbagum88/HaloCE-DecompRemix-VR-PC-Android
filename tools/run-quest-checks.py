@@ -41,7 +41,7 @@ SUITES = [
     'test_test36_opence157',
     'test_test37_network_profiles', 'test_test37_launcher', 'test_test37_wire',
     'test_test38_network_interaction', 'test_test38_network_input', 'test_legacy_coop_layouts', 'test_test38_scope_vehicle', 'test_test38_vehicle_handles',
-    'test_test38_contact', 'test_test38_contact_volume', 'test_test38_close_contact', 'test_manual_reload', 'test_vr_world_physics', 'test_vr_npc_interaction', 'test_vr_parkour', 'test_interaction_lifecycle', 'test_manual_reload_palette', 'test_interaction_impact', 'test_prop_collision', 'test_hand_compliance', 'test_world_remote', 'test_vr_world_props', 'test_prop_native_sync', 'test_reload_contact',
+    'test_test38_contact', 'test_test38_contact_volume', 'test_test38_close_contact', 'test_manual_reload', 'test_vr_world_physics', 'test_vr_npc_interaction', 'test_vr_parkour', 'test_interaction_lifecycle', 'test_manual_reload_palette', 'test_interaction_impact', 'test_prop_collision', 'test_hand_compliance', 'test_world_remote', 'test_vr_world_props', 'test_prop_native_sync', 'test_reload_contact', 'test_vr_optional_feedback',
 ]
 
 def main():

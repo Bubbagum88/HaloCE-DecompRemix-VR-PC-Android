@@ -79,7 +79,8 @@ NETWORK_STRING = re.compile(rb"Internet play|browser: |signalling|UPnP|upnp|STUN
 VR_BUILD_IDENTITIES = {
     b"vr: HaloCE Quest test37 candidate 1.0.18-test37 code47 (OpenCE Build 157 / network 24; launcher network-version browser and population selector; upstream analog trigger, Custom Edition spawn facing, PC vehicle set and solo lobby start; scope/turret behavior retained; Safe geometry and accepted VR settings retained)",
     b"vr: HaloCE Quest 1.0.18 release code48 (OpenCE Build 157 / network 24; launcher network-version browser and population selector; upstream analog trigger, Custom Edition spawn facing, PC vehicle set and host-alone lobby start; scope/turret behavior retained; Safe geometry and accepted VR settings retained)",
-    b"vr: HaloCE Quest test38 candidate 1.0.19-test38 code49 (OpenCE Build 157 / network 24; legacy co-op15-24; optional physical interactions and vehicle controls; scope profiles and mounted reticle; device acceptance pending)"
+    b"vr: HaloCE Quest test38 candidate 1.0.19-test38 code49 (OpenCE Build 157 / network 24; legacy co-op15-24; optional physical interactions and vehicle controls; scope profiles and mounted reticle; device acceptance pending)",
+    b"vr: HaloCE Quest test39 candidate 1.0.20-test39 code50 (OpenCE Build 157 / network 24; offline shake cooling and weight haptics toggles; expanded bounded co-op world interactions; custom scenery and validated alternate NPC rig opt-ins; device acceptance pending)"
 }
 
 
@@ -222,9 +223,9 @@ def main():
         if f"versionName='{version_name}'" not in badging:
             raise SystemExit("Wrong candidate version: " + str(path))
         version_code = re.search(r"versionCode='(\d+)'", badging)
-        required_candidate_code = 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
+        required_candidate_code = 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
         if candidate_at_least(args.label, 36) and (version_code is None or int(version_code[1]) < required_candidate_code):
-            raise SystemExit("Test" + ("38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
+            raise SystemExit("Test" + ("39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
                              + " Android version code must be at least " + str(required_candidate_code) + ": " + str(path))
         if args.stable and args.label == "1.0.16" and "versionCode='45'" not in badging:
             raise SystemExit("Wrong v1.0.16 Android version code: " + str(path))
@@ -328,7 +329,9 @@ def main():
                     raise SystemExit("Test33 VR candidate identity marker missing")
             if candidate_at_least(args.label, 34):
                 if vr:
-                    current_upstream_markers = ([b"OpenCE Build 157 / network 24", b"test38 candidate 1.0.19-test38 code49"]
+                    current_upstream_markers = ([b"OpenCE Build 157 / network 24", b"test39 candidate 1.0.20-test39 code50"]
+                        if candidate_at_least(args.label, 39) else
+                        [b"OpenCE Build 157 / network 24", b"test38 candidate 1.0.19-test38 code49"]
                         if candidate_at_least(args.label, 38) else
                         [b"OpenCE Build 157 / network 24", b"test37 candidate 1.0.18-test37 code47"]
                         if candidate_at_least(args.label, 37) else
@@ -352,7 +355,11 @@ def main():
                     if marker not in guest:
                         raise SystemExit("Test37 native compatibility gate missing: " + repr(marker))
                 guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt"))
-                guide_markers = ([b"1.0.19-test38", b"Hosting stays network 24",
+                guide_markers = ([b"1.0.20-test39", b"Hosting remains network version 24", b"SHAKE COOLING",
+                                  b"WEIGHT HAPTICS", b"four remote machines", b"128-machine table",
+                                  b"alternate Assassin actor enum", b"OFF by default"]
+                                 if candidate_at_least(args.label, 39) else
+                                 [b"1.0.19-test38", b"Hosting stays network 24",
                                   b"SHOULDER POUCH", b"HIP POUCH", b"four remote peers",
                                   b"Manual reload and parkour remain solo-only",
                                   b"optional legacy", b"12-14", b"PHYSICAL HANDLES"]
@@ -480,6 +487,11 @@ def main():
                 raise SystemExit("Negotiated avatar support missing")
             if vr and (b"HANDS ONLY" not in guest or b"NEXT PAGE (%ld/%ld)" not in guest):
                 raise SystemExit("Body modes or paged settings missing")
+            if vr and candidate_at_least(args.label, 39):
+                for marker in [b"SHAKE COOLING", b"WEIGHT HAPTICS", b"CUSTOM SCENERY",
+                               b"CUSTOM NPC RIGS", b"vr.cooldown_shake", b"vr.weight_haptics"]:
+                    if marker not in guest:
+                        raise SystemExit("Test39 VR option missing from guest: " + repr(marker))
             identity = ("HaloCE Quest " + args.label + (" release" if args.stable else " candidate")).encode("ascii")
             if (identity in guest) != vr:
                 raise SystemExit("VR/flat guest identity mismatch")
@@ -535,7 +547,7 @@ def main():
     base_label = re.sub(r"[a-z]$", "", args.label)
     if not args.stable and base_label != args.label:
         edition_docs += [base_label.upper()+"-DELIVERY.md", base_label.upper()+"-PROGRESS.md"]
-    documents = edition_docs+["TEST38-DELIVERY-STATUS.md", "TEST38-PLAYER-NOTES.md", "TEST38-DEVICE-CHECKLIST.md", "WORLD-INTERACTION-STATUS.md", "MANUAL-RELOAD.md", "VR-LOOSE-PROPS.md", "VR-PARKOUR.md", "TEST38-INTERACTION-NETWORK.md", "GAME-DATA-LIBRARY.md", "TEST15-DELIVERY.md", "TEST15-PROGRESS.md", "TEST15-UPSTREAM.md", "DATA-COMPATIBILITY.md", "CURRENT-STATE.md", "PLAYER-GUIDE.md", "CONTROLS-AND-OPTIONS.md", "COOP-COMPATIBILITY-AUDIT.md", "NETWORK-VR-AVATARS.md", "CAMPAIGN-PROTOCOL-WIP.md",
+    documents = edition_docs+["TEST39-DELIVERY-STATUS.md", "TEST39-PLAYER-NOTES.md", "TEST39-INTERACTION-NETWORK.md", "TEST38-DELIVERY-STATUS.md", "TEST38-PLAYER-NOTES.md", "TEST38-DEVICE-CHECKLIST.md", "WORLD-INTERACTION-STATUS.md", "MANUAL-RELOAD.md", "VR-LOOSE-PROPS.md", "VR-PARKOUR.md", "TEST38-INTERACTION-NETWORK.md", "GAME-DATA-LIBRARY.md", "TEST15-DELIVERY.md", "TEST15-PROGRESS.md", "TEST15-UPSTREAM.md", "DATA-COMPATIBILITY.md", "CURRENT-STATE.md", "PLAYER-GUIDE.md", "CONTROLS-AND-OPTIONS.md", "COOP-COMPATIBILITY-AUDIT.md", "NETWORK-VR-AVATARS.md", "CAMPAIGN-PROTOCOL-WIP.md",
                  "ANDROID-TOUCH-CONTROLS.md", "ANDROID-GAMEPAD.md", "COOP-PLAYER-LIMITS.md", "MULTIPLAYER-BROWSER.md"]
     documents = list(dict.fromkeys(documents))
     if candidate_at_least(args.label, 31) and not args.stable:
@@ -555,6 +567,8 @@ def main():
         documents += ["TEST36-PLAYER-NOTES.md", "TEST36-UPSTREAM-INTEGRATION.md"]
     if candidate_at_least(args.label, 37) and not args.stable:
         documents += ["TEST37-PLAYER-NOTES.md", "TEST37-UPSTREAM-INTEGRATION.md"]
+    if candidate_at_least(args.label, 39) and not args.stable:
+        documents += ["TEST39-DEVICE-CHECKLIST.md", "TEST39-REQUIREMENT-DISPOSITION.md"]
     for doc in documents:
         shutil.copy2(ROOT / "docs" / doc, output / doc)
     for notice in ["CREDITS.md", "THIRD-PARTY-NOTICES.txt", "LICENSE.md"]:

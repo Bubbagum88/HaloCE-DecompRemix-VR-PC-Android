@@ -58,7 +58,8 @@ static struct object_datum *prop_get(long index)
         TEST_FLAG(o->object.flags,_object_no_collisions_bit) ||
         !TEST_FLAG(o->object.flags,_object_connected_to_map_bit) || TEST_FLAG(o->object.flags,_object_outside_of_map_bit) ||
         !valid_real_vector3d_axes2(&o->object.forward,&o->object.up) ||
-        !(o->object.scale>.001f && o->object.scale<100) || !prop_name(tag_get_name(o->definition_index)))return NULL;
+        !(o->object.scale>.001f && o->object.scale<100) ||
+        (!prop_name(tag_get_name(o->definition_index))&&!config_boolean("vr.custom_scenery_grab")))return NULL;
     definition=object_definition_get(o->definition_index);
     if(definition->object.animation_graph.index!=NONE || definition->object.physics.index!=NONE ||
         definition->object.collision_model.index==NONE)return NULL;

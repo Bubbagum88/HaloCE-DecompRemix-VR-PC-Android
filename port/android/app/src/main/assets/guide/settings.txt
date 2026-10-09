@@ -1195,6 +1195,22 @@ vr.manual_reload [boolean]
 Default: false
 Optional offline physical magazine reload for supported weapons; button reload remains available.
 
+vr.cooldown_shake [boolean]
+Default: false
+Offline VR toggle: shake the currently held overheated weapon to speed its authored cooling. Automatically disabled online.
+
+vr.weight_haptics [boolean]
+Default: false
+Optional pulsed VR feedback for object resistance and spring strain; local only, capped and rate limited.
+
+vr.custom_scenery_grab [boolean]
+Default: false
+Opt in to bounded collision-box grabbing of eligible unnamed custom scenery. Scripted, animated, unsafe or malformed tags remain refused.
+
+vr.custom_npc_rigs [boolean]
+Default: false
+Opt in to validated custom humanoid biped animation graphs. Unknown, swarm, scripted, unsafe or malformed actors remain refused.
+
 vr.npc_max_ragdolls [integer]
 Default: 4
 Maximum simultaneously active physical NPC rigs (1-4), including settling/recovery; bounded per-tick work.

@@ -1,21 +1,20 @@
 # Agent and contributor continuation
 
-## Active private Test38 packaging (2026-10-08)
+## Active private Test39 candidate (2026-10-08)
 
-Continue on `test38-interactions-compatibility`; target private
-`1.0.19-test38`, code49. The owner's latest usage-limit override is to finish
-current work and package both APKs now, superseding the earlier full-scope
-packaging hold. Source is frozen; complete validation and packaging without
-expanding features. Do not publish or install.
+Continue on `test39-interaction-completion`; target private `1.0.20-test39`,
+Android code50. Finish the user's active scope and package both Quest/VR and
+flat Android builds. Do not publish, install or launch the game. PC/Steam Frame
+remains deferred.
 
-Read `docs/TEST38-DELIVERY-STATUS.md` for the exact completed, restricted,
-remaining and unstarted work, and preserve `docs/TEST38-DEVICE-CHECKLIST.md`.
-Seven manual-reload profiles, world/NPC interactions and optional parkour are
-implemented but await device acceptance. Campaign networks 15-24 use the normal
-compatibility path; 12-14 require the explicit legacy opt-in. Enhanced co-op
-interactions support at most four remote peers; native co-op capacity is separate.
-Public v1.0.18 remains the accepted baseline. Passing source/build/package checks
-does not establish headset or live-network acceptance.
+Read `docs/TEST39-DELIVERY-STATUS.md`, `docs/TEST39-REQUIREMENT-DISPOSITION.md`,
+`docs/TEST39-INTERACTION-NETWORK.md` and `docs/TEST39-DEVICE-CHECKLIST.md`.
+SHAKE COOLING is an explicit VR Controls OFF/ON toggle, default OFF, solo-only.
+Preserve prior behavior with it OFF. World-object co-op interactions may
+negotiate above four remote machines; articulated NPC pose sync remains capped
+at four. This does not certify a 128-player campaign. Manual reload and parkour
+remain solo-only. Public v1.0.18 remains accepted; source/build/package checks
+do not establish device or live-network acceptance.
 
 
 ## Current public release: v1.0.18 (2026-10-08)

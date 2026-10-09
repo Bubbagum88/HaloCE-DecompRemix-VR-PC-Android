@@ -224,6 +224,10 @@ static struct vr_menu_setting const vr_menu_controls[] =
     { "IMPACT CAP", "vr.impact_damage_cap", _vr_setting_real, 4, { { "25%", "0.25" }, { "50%", "0.5" }, { "100%", "1" }, { "150%", "1.5" } } },
     { "IMPACT DAMAGE", "vr.interaction_damage", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "WORLD GRAB", "vr.world_interaction", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	{ "SHAKE COOLING", "vr.cooldown_shake", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	{ "WEIGHT HAPTICS", "vr.weight_haptics", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	{ "CUSTOM SCENERY", "vr.custom_scenery_grab", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	{ "CUSTOM NPC RIGS", "vr.custom_npc_rigs", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "AIM", "vr.aim", _vr_setting_string, 2, { { "HAND", "hand" }, { "HEAD", "head" } } },
 	{ "CONTROLS", "vr.controls", _vr_setting_string, 2, { { "VR", "vr" }, { "XBOX", "pad" } } },
 	/* test26: the left stick's click: the reticle's toggle or crouch, as before */

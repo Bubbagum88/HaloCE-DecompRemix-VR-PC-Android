@@ -104,6 +104,7 @@ static void vr_interaction_release(int hand,int owner){assert(hand>=0&&hand<2&&o
 #define platform_log(...) ((void)0)
 static long last_tick,last_unit;
 static int previous_grip[2];
+static unsigned long weight_haptic_at[2]={10,20};
 ''' + state + '\n' + function('release_hand') + '\n' + function('vr_world_interaction_reset') + r'''
 int main(void){
  hands[0].active=1;hands[0].index=42;hands[0].velocity.i=100;
@@ -115,6 +116,7 @@ int main(void){
  release_hand(0,1,1);assert(throws==1);
  hands[0].active=1;hands[0].index=999;int old=probes;
  vr_world_interaction_reset();assert(probes==old&&throws==1&&!hands[0].active&&last_tick==NONE&&last_unit==NONE);
+ assert(weight_haptic_at[0]==0&&weight_haptic_at[1]==0);
  assert(previous_grip[0]&&previous_grip[1]);
 }
 '''

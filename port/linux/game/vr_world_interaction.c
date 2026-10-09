@@ -16,6 +16,7 @@
 #include "../src/port_config.h"
 #include "vr_world_interaction.h"
 #include "vr_world_math.h"
+#include "vr_weight_feedback_math.h"
 #include "vr_world_props.h"
 #include "vr_interaction_impact.h"
 #include "network_coop.h"
@@ -32,6 +33,26 @@ static struct world_hand {
 } hands[2];
 static long last_tick = NONE, last_unit = NONE;
 static int previous_grip[2] = {1,1};
+static unsigned long weight_haptic_at[2];
+unsigned long system_milliseconds(void);
+
+static void weight_feedback(int hand, float mobility, real strain, real_vector3d const *velocity, real units)
+{
+    unsigned long now;
+    real speed;
+    float amplitude;
+    if(hand<0||hand>1||!config_boolean("vr.weight_haptics")||!(units>0)||
+       game_connection()!=_game_connection_local)return;
+    now=system_milliseconds();
+    if(weight_haptic_at[hand]&&now-weight_haptic_at[hand]<120)return;
+    speed=magnitude3d(velocity)*(real)TICKS_PER_SECOND/units;
+    amplitude=vr_weight_feedback_amplitude(mobility,strain/units,speed);
+    if(amplitude<=0)return;
+    weight_haptic_at[hand]=now;
+    /* Refresh a low-amplitude 120 ms action at the same cadence so the load
+     * sensation feels sustained rather than like isolated impact taps. */
+    vr_haptic(hand,amplitude,0.12f);
+}
 
 static void local_vector(real_vector3d const *forward, real_vector3d const *up,
     real_vector3d const *world, real_vector3d *local)
@@ -88,6 +109,7 @@ void vr_world_interaction_reset(void)
         vr_interaction_release(hand, VR_INTERACTION_WORLD);
     memset(hands, 0, sizeof(hands));
     previous_grip[0]=previous_grip[1]=1;
+    weight_haptic_at[0]=weight_haptic_at[1]=0;
     last_tick = last_unit = NONE;
 }
 static long candidate(real_point3d const *point, real_point3d const *camera, long unit, real units,
@@ -209,6 +231,9 @@ void vr_world_interaction_tick(void)
         if (!vr_world_spring(error.n,item->object.translational_velocity.n,mobility,count,units,global_gravity,velocity.n)) {
             release_hand(hand,FALSE,units); continue;
         }
+        if(count==1) weight_feedback(hand,mobility,magnitude3d(&error),&velocity,units);
+        else for(h=0;h<2;h++) if(hands[h].active&&hands[h].index==held->index)
+            weight_feedback(h,mobility,magnitude3d(&error),&velocity,units);
         world_vector(&held->forward,&held->up,&held->local_forward,&target_forward);
         world_vector(&held->forward,&held->up,&held->local_up,&target_up);
         cross_product3d(&item->object.forward,&target_forward,&angular);

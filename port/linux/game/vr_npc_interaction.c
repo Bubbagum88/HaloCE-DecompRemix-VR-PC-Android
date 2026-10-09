@@ -85,7 +85,7 @@ static real interaction_units(void) {return npc.is_remote?.32808399f:vr_units_pe
 static int authority(void)
 {
     return game_connection()==_game_connection_local ||
-        (config_boolean("net.physical_interactions") && network_interaction_host_ready());
+        (config_boolean("net.physical_interactions") && network_interaction_npc_ready());
 }
 int vr_npc_interaction_remote(long player_index,int hand,int held,const float world[3])
 {
@@ -95,7 +95,7 @@ int vr_npc_interaction_remote(long player_index,int hand,int held,const float wo
     real_vector3d delta;
     unsigned int slot=(unsigned int)player_index&0xffff;
     if(hand<0 || hand>1 || !world || !config_boolean("net.physical_interactions") ||
-       !network_interaction_host_ready() || slot>=NPC_REMOTE_PLAYERS || !select_owner(player_index,TRUE,hand)) return FALSE;
+       !network_interaction_npc_ready() || slot>=NPC_REMOTE_PLAYERS || !select_owner(player_index,TRUE,hand)) return FALSE;
     remote_current=&remote_pool[slot];
     player=player_try_and_get(player_index);
     unit=player?(struct unit_datum *)object_try_and_get_and_verify_type(player->unit_index,_object_mask_biped):NULL;
@@ -150,7 +150,14 @@ static int species(short type,int *hands,real *mobility)
     case _actor_elite:case _actor_combat_form:*hands=2;*mobility=.25f;return TRUE;
     case _actor_hunter:*hands=2;*mobility=.12f;return TRUE;
     case _actor_carrier_form:*hands=2;*mobility=.2f;return TRUE;
-    default:return FALSE; /* flying/swarm/non-biped actors need separate rigs */
+    default:
+        /* The Assassin actor enum aliases the native Elite actor behavior and
+         * rig family. The opt-in permits that alternate authored variant only;
+         * race alone is not enough to infer a safe humanoid skeleton. */
+        if(!config_boolean("vr.custom_npc_rigs") || type!=_actor_assassin ||
+           actor_type_get_swarm(type) || actor_type_get_race(type)!=_race_covenant)
+            return FALSE;
+        *hands=2;*mobility=.25f;return TRUE;
     }
 }
 static void surface_offset(int hand,real_vector3d *offset)

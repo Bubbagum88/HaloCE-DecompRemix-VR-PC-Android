@@ -1,21 +1,28 @@
 ## Current release checkpoint — v1.0.18 (2026-10-08)
 
-## Active private Test38 packaging (2026-10-08)
+## Active private Test39 candidate (2026-10-08)
 
-Continue on `test38-interactions-compatibility`; target private
-`1.0.19-test38`, code49. The owner's latest usage-limit override is to finish
-current work and package both APKs now, superseding the earlier full-scope
-packaging hold. Source is frozen; complete validation and packaging without
-expanding features. Do not publish or install.
+Continue on `test39-interaction-completion`; target private `1.0.20-test39`,
+Android code50. The owner explicitly asked to package both Quest/VR and flat
+Android builds after working through the prior interaction scope; do not
+publish, install, launch the game, or change the public release. PC/Steam Frame
+remains deferred.
 
-Read `docs/TEST38-DELIVERY-STATUS.md` for the exact completed, restricted,
-remaining and unstarted work, and preserve `docs/TEST38-DEVICE-CHECKLIST.md`.
-Seven manual-reload profiles, world/NPC interactions and optional parkour are
-implemented but await device acceptance. Campaign networks 15-24 use the normal
-compatibility path; 12-14 require the explicit legacy opt-in. Enhanced co-op
-interactions support at most four remote peers; native co-op capacity is separate.
-Public v1.0.18 remains the accepted baseline. Passing source/build/package checks
-does not establish headset or live-network acceptance.
+Read `docs/TEST39-DELIVERY-STATUS.md` for the completed/restricted/unstarted
+ledger, `docs/TEST39-REQUIREMENT-DISPOSITION.md` for every retained request,
+`docs/TEST39-INTERACTION-NETWORK.md` for the compatibility change, and
+`docs/TEST39-DEVICE-CHECKLIST.md` for owner testing. New **SHAKE COOLING** is an
+explicit OFF/ON VR Controls toggle, defaults OFF, and is solo-only. Verify that
+it does not alter native weapon heat rules or activate online. Preserve the
+prior scope, reticle, reload, VR menu, Android controls, save and network
+behavior.
+
+World-object interaction can negotiate above four remote machines within the
+128-machine table when the host enables it and every peer negotiates. This is
+not 128-player campaign acceptance; articulated NPC palette sync remains
+limited to four remote machines. Manual reload and parkour remain solo-only.
+Public v1.0.18 is still the accepted baseline. Automated tests/builds do not
+establish headset, Android-device, heat-weapon or live-network acceptance.
 
 
 The owner authorized and published [v1.0.18](https://github.com/moistman42069/HaloCE-Quest-VR/releases/tag/v1.0.18) as Latest. It is Android code48, OpenCE Build157/network24, with the Test37 network-version selector and population-sorted launcher listings. The exact release assets and checks are in `docs/RELEASE-PROVENANCE-1.0.18.md`; full user-facing instructions are in `docs/RELEASE-1.0.18.md`. Prior releases and the GitHub About description are preserved.

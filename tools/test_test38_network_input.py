@@ -35,28 +35,31 @@ static int vr_two_handed(void){return twohanded;}
 static void vr_interaction_release(int h,int o){if(owners[h]==o)owners[h]=0;releases++;}
 static int vr_interaction_claim(int h,int o){if(!focused||!tracked[h]||!grips[h])return 0;owners[h]=o;return 1;}
 static int vr_hand_world(int h,float*c,float*p,float*f,float*u){memset(p,0,12);memset(f,0,12);memset(u,0,12);return tracked[h];}
-static int config_boolean(char const*k){return !strcmp(k,"vr.world_interaction");}
+static int config_boolean(char const*k){return !strcmp(k,"vr.world_interaction")||!strcmp(k,"vr.npc_interaction");}
 static void network_interaction_client_send(byte h,byte held,byte f,long p,long u,real_point3d const*point,real_vector3d const*fw,real_vector3d const*up){sends++;lastheld=held;}
 static void network_interaction_client_cancel(byte h,long p,long u){cancels++;}
+static void vr_interaction_client_tick(boolean ready,boolean npc_ready);
+static void tick_client(int ready,int npc_ready){now+=250;vr_interaction_client_tick(ready,npc_ready);}
 """
 main=r"""
 int main(void){
- grips[0]=1;vr_interaction_client_tick(1);assert(sends==1); /* other released hand only */
- grips[0]=0;vr_interaction_client_tick(1);grips[0]=1;vr_interaction_client_tick(1);
+ grips[0]=1;tick_client(1,1);assert(sends==1); /* other released hand only */
+ now+=50;vr_interaction_client_tick(1,1);assert(sends==1); /* unchanged release heartbeat is rate limited */
+ grips[0]=0;tick_client(1,1);grips[0]=1;tick_client(1,1);
  vr_interaction_client_result(10,0,1,1,12,(float[3]){.1f,.2f,.3f});assert(owners[0]==3);
- int before=sends;twohanded=1;vr_interaction_client_tick(1);assert(sends==before+1&&cancels==1&&owners[0]==0);
- twohanded=0;before=sends;vr_interaction_client_tick(1);assert(sends==before+1); /* held return cannot emit fake release */
- grips[0]=0;vr_interaction_client_tick(1);grips[0]=1;vr_interaction_client_tick(1);vr_interaction_client_result(10,0,1,2,12,(float[3]){.1f,.2f,.3f});
- tracked[0]=0;before=cancels;vr_interaction_client_tick(1);assert(cancels==before+1);
- tracked[0]=1;before=sends;vr_interaction_client_tick(1);assert(sends==before+1);
- focused=0;before=sends;vr_interaction_client_tick(1);assert(sends==before&&owners[0]==0);
- focused=1;before=sends;vr_interaction_client_tick(1);assert(sends==before+1);
- grips[0]=0;vr_interaction_client_tick(1);grips[0]=1;vr_interaction_client_tick(1);
+ int before=sends;twohanded=1;tick_client(1,1);assert(sends==before+1&&cancels==1&&owners[0]==0);
+ twohanded=0;before=sends;tick_client(1,1);assert(sends==before+1); /* held return cannot emit fake release */
+ grips[0]=0;tick_client(1,1);grips[0]=1;tick_client(1,1);vr_interaction_client_result(10,0,1,2,12,(float[3]){.1f,.2f,.3f});
+ tracked[0]=0;before=cancels;tick_client(1,1);assert(cancels==before+1);
+ tracked[0]=1;before=sends;tick_client(1,1);assert(sends==before+1);
+ focused=0;before=sends;tick_client(1,1);assert(sends==before&&owners[0]==0);
+ focused=1;before=sends;tick_client(1,1);assert(sends==before+1);
+ grips[0]=0;tick_client(1,1);grips[0]=1;tick_client(1,1);
  vr_interaction_client_result(10,0,1,8,12,(float[3]){.1f,.2f,.3f});assert(owners[0]==3);vr_interaction_client_result(10,0,0,7,12,(float[3]){.1f,.2f,.3f});assert(owners[0]==3);
  vr_interaction_client_result(11,0,0,9,12,(float[3]){.1f,.2f,.3f});assert(owners[0]==3);
  float point[3];root.position.n[0]=3;root.scale=2;root.forward.n[1]=1;root.left.n[0]=-1;root.up.n[2]=1;
  assert(vr_interaction_client_hand(0,point)&&point[0]>2.59f&&point[0]<2.61f&&point[1]>.19f&&point[1]<.21f);
- now=301;assert(!vr_interaction_client_hand(0,point));
+ now+=301;assert(!vr_interaction_client_hand(0,point));
  return 0;}
 """
 p=O/'input.c';p.write_text(prefix+s+main)

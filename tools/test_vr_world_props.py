@@ -50,7 +50,7 @@ struct collision_sphere{FEATURE;real_point3d center;float radius;};
 struct collision_cylinder{FEATURE;real_point3d base;real_vector3d height;float width;};
 struct collision_feature_list{int count[3];struct collision_sphere spheres[256];struct collision_cylinder cylinders[256];struct collision_prism prisms[256];};
 static real_vector3d zero,*global_zero_vector3d=&zero;
-static float global_gravity=.003f;static int tick,paused,network,host,enabled=1,sets,impacts,mode;
+static float global_gravity=.003f;static int tick,paused,network,host,enabled=1,custom_scenery,sets,impacts,mode;
 static struct object_datum object;
 static struct object_definition definition;
 static char const*name="scenery\\c_storage\\c_storage";
@@ -61,7 +61,7 @@ static int game_time_get(void){return tick;}
 static int game_time_get_paused(void){return paused;}
 static int game_connection(void){return network;}
 static int network_interaction_host_ready(void){return host;}
-static int config_boolean(char const*k){(void)k;return enabled;}
+static int config_boolean(char const*k){return !strcmp(k,"vr.custom_scenery_grab")?custom_scenery:enabled;}
 void platform_log(char const*f,...){(void)f;}
 static char const*tag_get_name(long i){(void)i;return name;}
 static struct object_definition*object_definition_get(long i){(void)i;return &definition;}
@@ -100,7 +100,9 @@ int main(void){
  vr_world_props_reset();tick++;vr_world_props_tick();assert(!sets); /* OFF/unactivated baseline */
  assert(vr_world_object_get(2)==&object);
  object.object.name_index=1;assert(!vr_world_object_get(2));object.object.name_index=NONE;
- name="scenery\\trees\\tree_stump\\tree_stump";assert(!vr_world_object_get(2));name="scenery\\c_storage\\c_storage";
+ name="scenery\\trees\\tree_stump\\tree_stump";assert(!vr_world_object_get(2));
+ custom_scenery=1;assert(vr_world_object_get(2)==&object);custom_scenery=0;
+ name="scenery\\c_storage\\c_storage";
  definition.object.animation_graph.index=1;assert(!vr_world_object_get(2));definition.object.animation_graph.index=NONE;
  real_vector3d velocity={.1f,0,0};mode=1;
  vr_world_object_velocity(2,&velocity,&zero);assert(props[0].active&&fabsf(props[0].half.x-.05f)<1e-6f);

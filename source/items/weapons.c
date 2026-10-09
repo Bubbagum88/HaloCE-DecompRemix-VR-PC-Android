@@ -205,6 +205,7 @@ symbols in this file:
 #ifdef HALO_VR
 #include "vr_manual_reload.h"
 #endif
+#include "vr_cooldown_shake.h"
 
 #include "equipment.h"
 #include "weapon_datum_flags.h"
@@ -3106,6 +3107,10 @@ boolean weapon_update(
 		if (weapon->weapon.overcharged==0.0f)
 		{
 			real heat_loss= weapon_definition->weapon.heat_loss_per_second*(1.0f/TICKS_PER_SECOND);
+			if (TEST_FLAG(weapon->weapon.flags, _weapon_overheated_bit))
+			{
+				heat_loss *= vr_cooldown_shake_rate(weapon_index);
+			}
 
 			if (weapon_definition->weapon.age_heat_recovery_penalty>0.0f)
 			{

@@ -1,5 +1,21 @@
 # Current development state
 
+## Active private candidate: Test39 (2026-10-08)
+
+Candidate target is **1.0.20-test39 / Android code50**, based on OpenCE
+Build157/network24. See [TEST39-DELIVERY-STATUS.md](TEST39-DELIVERY-STATUS.md),
+[TEST39-REQUIREMENT-DISPOSITION.md](TEST39-REQUIREMENT-DISPOSITION.md),
+[TEST39-INTERACTION-NETWORK.md](TEST39-INTERACTION-NETWORK.md), and
+[TEST39-DEVICE-CHECKLIST.md](TEST39-DEVICE-CHECKLIST.md). The shake-cooling
+feature is a VR Controls toggle, OFF by default, offline only. Enhanced
+world-object interaction negotiation extends above four remote machines, but
+NPC pose sync remains capped at four, campaign capacity is unchanged, and
+128-player campaign stability is not claimed. Manual reload and parkour remain
+solo-only; persistent thrown magazines, whole-vehicle lifting, generic mission
+NPC rescue and arbitrary custom rigs remain unimplemented. PC/Steam Frame is
+deferred. The pair is for owner testing only; no device acceptance or
+publication is implied.
+
 ## Current public release: v1.0.18 (2026-10-08)
 
 The owner authorized publication of **Halo CE Quest VR + Android 1.0.18** as

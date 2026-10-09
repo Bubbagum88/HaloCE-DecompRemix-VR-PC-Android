@@ -25,7 +25,9 @@ int vr_npc_interaction_snapshot(long *index,int *count,real_matrix4x3 *matrices,
 unsigned long system_milliseconds(void);
 void platform_log(char const *,...);
 enum { NI_MAGIC=0x56494e31, NI_VERSION=1, NI_LEASE=6000, NI_INPUT_LEASE=300,
-       NI_NODES=64, NI_OFFER=1,NI_ACK,NI_CONFIRM,NI_HAND,NI_RESULT,NI_JOINT,NI_CANCEL };
+       NI_WORLD_READY=1, NI_NPC_READY=2,
+       NI_NODES=64, NI_OFFER=1,NI_ACK,NI_CONFIRM,NI_HAND,NI_RESULT,NI_JOINT,NI_CANCEL,
+       NI_NPC_CONFIRM=9 };
 struct ni_header { unsigned long magic,seed,nonce,sequence; long round; word version,kind; };
 struct ni_hand_wire { struct ni_header h; long unit,object; byte player,hand,held,features;
     real_point3d position; real_vector3d forward,up; };
@@ -36,9 +38,10 @@ typedef char ni_hand_size[sizeof(struct ni_hand_wire)==72?1:-1];
 typedef char ni_joint_size[sizeof(struct ni_joint)==72?1:-1];
 static struct { unsigned long nonce,seen; long player; boolean ready; } ni_peers[HALO_PORT_MAXIMUM_NETWORK_MACHINES];
 static struct { struct network_interaction_hand request; unsigned long received,sequence;
-    long machine; boolean valid,active,sequenced; byte owner,down; } ni_hands[MAXIMUM_TRACKED_PLAYERS][2];
+    unsigned long result_sequence; long machine; boolean valid,active,sequenced,result_sent;
+    byte owner,down,result_owner; } ni_hands[MAXIMUM_TRACKED_PLAYERS][2];
 static unsigned long ni_nonce_next=1,ni_offer_at,ni_host_nonce,ni_host_seen,ni_sequence;
-static boolean ni_host_ready,ni_peer_budget_warned;
+static boolean ni_host_ready,ni_host_npc_ready,ni_peer_budget_warned;
 static unsigned long ni_last_pose;
 static struct ni_pose_state { real_matrix4x3 pending[NI_NODES],previous[NI_NODES],current[NI_NODES];
     unsigned long sequence,pending_sequence,received; unsigned long long mask;
@@ -50,12 +53,12 @@ static void ni_cancel(short player,int hand)
         vr_world_interaction_remote_cancel(p,hand);vr_npc_interaction_remote_cancel(p,hand);
     }
     ni_hands[player][hand].active=FALSE;ni_hands[player][hand].valid=FALSE;
-    ni_hands[player][hand].owner=0;ni_hands[player][hand].down=1;
+    ni_hands[player][hand].owner=0;ni_hands[player][hand].down=1;ni_hands[player][hand].result_sent=FALSE;
 }
 void network_interaction_reset(void)
 {
     for(short p=0;p<MAXIMUM_TRACKED_PLAYERS;p++)for(int h=0;h<2;h++)ni_cancel(p,h);
-    ni_peer_budget_warned=FALSE;ni_host_ready=FALSE; /* teardown must not emit packets */
+    ni_peer_budget_warned=FALSE;ni_host_ready=ni_host_npc_ready=FALSE; /* teardown must not emit packets */
     vr_interaction_client_reset();
     memset(ni_hands,0,sizeof(ni_hands));
     for(short player=0;player<MAXIMUM_TRACKED_PLAYERS;player++)for(int hand=0;hand<2;hand++)ni_hands[player][hand].down=1;
@@ -73,15 +76,24 @@ boolean network_interaction_host_ready(void)
     long machines[HALO_PORT_MAXIMUM_NETWORK_MACHINES];unsigned long now=system_milliseconds();
     if(game_connection()!=_game_connection_network_server||!network_coop_active()||!config_boolean("net.physical_interactions"))return FALSE;
     short count=distributed_client_machines(machines,NUMBEROF(machines));
-    /* Four remote peers bound the four-body pose cycle below 0.4 seconds.
-     * Larger sessions keep native gameplay without optional physical ownership. */
-    if(count>4)return FALSE;
+    if(count<0||count>HALO_PORT_MAXIMUM_NETWORK_MACHINES)return FALSE;
     for(short i=0;i<count;i++) {
         long m=machines[i];
         if(!VALID_INDEX(m,NUMBEROF(ni_peers))||!ni_peers[m].ready||now-ni_peers[m].seen>NI_LEASE||
            ni_peers[m].player!=ni_machine_player(m))return FALSE;
     }
     return TRUE;
+}
+boolean network_interaction_npc_ready(void)
+{
+    long machines[HALO_PORT_MAXIMUM_NETWORK_MACHINES];
+    short count;
+    if(game_connection()==_game_connection_network_client)
+        return ni_host_ready&&ni_host_npc_ready&&system_milliseconds()-ni_host_seen<=NI_LEASE;
+    if(!network_interaction_host_ready())return FALSE;
+    /* Current per-peer, per-joint pose packets are timely only at four peers. */
+    count=distributed_client_machines(machines,NUMBEROF(machines));
+    return count>=0&&count<=4;
 }
 static void ni_header_init(struct ni_header *h,word kind,unsigned long nonce,unsigned long sequence)
 {
@@ -120,12 +132,22 @@ void network_interaction_receive(long machine,byte type,void const *data,short c
     if(type==_distributed_message_vr_capability&&bytes==sizeof(h)) {
         if(server&&h.kind==NI_ACK&&ni_peers[machine].nonce==h.nonce&&ni_peers[machine].player==ni_machine_player(machine)) {
             ni_peers[machine].ready=TRUE;ni_peers[machine].seen=now;
-            ni_cap(machine,NI_CONFIRM,h.nonce,network_interaction_host_ready());
+            boolean ready=network_interaction_host_ready();
+            boolean npc_ready=ready&&network_interaction_npc_ready();
+            /* Preserve Test38's protocol-v1 boolean confirmation for mixed
+             * installs; the additive NPC confirmation is ignored by old peers. */
+            ni_cap(machine,NI_CONFIRM,h.nonce,ready?1:0);
+            ni_cap(machine,NI_NPC_CONFIRM,h.nonce,npc_ready?1:0);
         } else if(!server&&h.kind==NI_OFFER) {
-            if(ni_host_nonce!=h.nonce)ni_host_ready=FALSE;
+            if(ni_host_nonce!=h.nonce)ni_host_ready=ni_host_npc_ready=FALSE;
             ni_host_nonce=h.nonce;ni_cap(NONE,NI_ACK,h.nonce,0);
         } else if(!server&&h.kind==NI_CONFIRM&&ni_host_nonce==h.nonce) {
-            ni_host_ready=h.sequence==1;ni_host_seen=now;
+            ni_host_ready=h.sequence==1;
+            if(!ni_host_ready)ni_host_npc_ready=FALSE;
+            ni_host_seen=now;
+        } else if(!server&&h.kind==NI_NPC_CONFIRM&&ni_host_nonce==h.nonce) {
+            ni_host_npc_ready=h.sequence==1&&ni_host_ready;
+            ni_host_seen=now;
         }
         return;
     }
@@ -221,7 +243,7 @@ void network_interaction_tick(void)
     if(!network_coop_active()){if(ni_offer_at||ni_host_nonce||ni_host_ready)network_interaction_reset();return;}
     short count=server?distributed_client_machines(machines,NUMBEROF(machines)):0;
     boolean over_budget=server&&count>4&&config_boolean("net.physical_interactions");
-    if(over_budget&&!ni_peer_budget_warned)platform_log("[physical network] optional interactions disabled: %d remote peers exceed four-peer pose budget; native co-op remains active",count);
+    if(over_budget&&!ni_peer_budget_warned)platform_log("[physical network] NPC palette sync disabled above four remote machines; bounded world-object interaction remains available (%d peers)",count);
     ni_peer_budget_warned=over_budget;
     if(server&&config_boolean("net.physical_interactions")&&(!ni_offer_at||now-ni_offer_at>=2000)) {
         boolean present[HALO_PORT_MAXIMUM_NETWORK_MACHINES]={FALSE};ni_offer_at=now;
@@ -260,9 +282,19 @@ void network_interaction_tick(void)
             }
             r->pressed=0;
             ni_hands[player][hand].active=owner!=0;ni_hands[player][hand].owner=owner;
-            ni_send_result(player,hand,owner);
+            /* Clients send bounded 20 Hz samples. A result is needed for each
+             * new sample and ownership transition, not every simulation tick;
+             * this keeps aggregate traffic bounded in large hosted sessions. */
+            if(!ni_hands[player][hand].result_sent||
+               ni_hands[player][hand].result_sequence!=r->sequence||
+               ni_hands[player][hand].result_owner!=owner) {
+                ni_send_result(player,hand,owner);
+                ni_hands[player][hand].result_sent=TRUE;
+                ni_hands[player][hand].result_sequence=r->sequence;
+                ni_hands[player][hand].result_owner=owner;
+            }
         }
-        if(ready&&now-ni_last_pose>=MAX(67,(unsigned long)count*NI_NODES*100*1000/262144)) {
+        if(ready&&!over_budget&&now-ni_last_pose>=MAX(67,(unsigned long)count*NI_NODES*100*1000/262144)) {
             static real_matrix4x3 nodes[NI_NODES];long unit;int nodes_count;
             if(vr_npc_interaction_snapshot(&unit,&nodes_count,nodes,NI_NODES)&&ni_active_npc(unit,nodes_count)) {
                 /* Bound aggregate optional-pose traffic to about 256 KiB/s; 15 Hz
@@ -281,7 +313,8 @@ void network_interaction_tick(void)
             }
         }
     } else if(game_connection()==_game_connection_network_client) {
-        vr_interaction_client_tick(ni_host_ready&&now-ni_host_seen<=NI_LEASE);
+        vr_interaction_client_tick(ni_host_ready&&now-ni_host_seen<=NI_LEASE,
+            ni_host_npc_ready&&now-ni_host_seen<=NI_LEASE);
     }
 
 }
@@ -291,7 +324,7 @@ real_matrix4x3 *network_interaction_render(long unit,real_matrix4x3 *stock)
     for(int slot=0;slot<NUMBEROF(ni_poses);slot++)if(ni_poses[slot].valid&&ni_poses[slot].unit==unit){pose=&ni_poses[slot];break;}
     if(!pose)return stock;
     unsigned long age=system_milliseconds()-pose->received;
-    if(!stock||game_connection()!=_game_connection_network_client||!ni_host_ready||
+    if(!stock||game_connection()!=_game_connection_network_client||!ni_host_ready||!ni_host_npc_ready||
        system_milliseconds()-ni_host_seen>NI_LEASE||!pose->valid||pose->unit!=unit||age>MAX(500,pose->cadence_ms*3)||!ni_active_npc(unit,pose->count))return stock;
     struct unit_datum *u=unit_get(unit);real period=MAX(67,pose->cadence_ms);
     real fade_begin=MAX(250,period*2),fade_end=MAX(500,period*3);
@@ -348,7 +381,7 @@ void network_interaction_palette(long unit)
 boolean network_interaction_palette_owned(long unit)
 {
     unsigned long now=system_milliseconds();
-    if(game_connection()!=_game_connection_network_client||!ni_host_ready||now-ni_host_seen>NI_LEASE)return FALSE;
+    if(game_connection()!=_game_connection_network_client||!ni_host_ready||!ni_host_npc_ready||now-ni_host_seen>NI_LEASE)return FALSE;
     for(int slot=0;slot<NUMBEROF(ni_poses);slot++) {
         struct ni_pose_state *pose=&ni_poses[slot];
         if(pose->valid&&pose->unit==unit&&now-pose->received<=MAX(500,pose->cadence_ms*3)&&ni_active_npc(unit,pose->count))return TRUE;

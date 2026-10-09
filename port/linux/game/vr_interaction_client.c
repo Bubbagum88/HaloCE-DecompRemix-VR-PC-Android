@@ -10,14 +10,15 @@
 #include "../src/vr.h"
 #include "../src/port_config.h"
 static long local_unit=NONE,local_player=NONE;
-static int down[2]={1,1},owner[2];
+static int down[2]={1,1},owner[2],last_sent_held[2]={-1,-1},last_sent_features[2]={-1,-1};
+static unsigned long last_send[2];
 static unsigned long last_result[2],contact_time[2];
 static long contact_object[2]={NONE,NONE};
 static real_point3d contact_local[2];
 unsigned long system_milliseconds(void);
 void vr_interaction_client_reset(void)
 {
-    for(int h=0;h<2;h++){if(local_unit!=NONE)network_interaction_client_cancel(h,local_player,local_unit);if(owner[h])vr_interaction_release(h,owner[h]);owner[h]=0;down[h]=1;last_result[h]=0;contact_object[h]=NONE;}
+    for(int h=0;h<2;h++){if(local_unit!=NONE)network_interaction_client_cancel(h,local_player,local_unit);if(owner[h])vr_interaction_release(h,owner[h]);owner[h]=0;down[h]=1;last_result[h]=0;contact_object[h]=NONE;last_send[h]=0;last_sent_held[h]=last_sent_features[h]=-1;}
     local_unit=local_player=NONE;
 }
 void vr_interaction_client_result(long unit,byte hand,byte features,unsigned long sequence,long object,float const local[3])
@@ -47,7 +48,7 @@ int vr_interaction_client_hand(int hand,float point[3])
     if(!distributed_point_valid(&world,32768))return 0;
     memcpy(point,world.n,sizeof(world));return 1;
 }
-void vr_interaction_client_tick(boolean ready)
+void vr_interaction_client_tick(boolean ready, boolean npc_ready)
 {
     short local=local_player_get_next(NONE);long player=local!=NONE?local_player_get_player_index(local):NONE;
     struct player_datum *p=player!=NONE?player_get(player):NULL;unsigned int buttons;float triggers[2],sticks[4];
@@ -73,14 +74,20 @@ void vr_interaction_client_tick(boolean ready)
         if(held&&down[h])continue;
         if(!held)down[h]=0;
         byte features=(config_boolean("vr.world_interaction")?NETWORK_INTERACTION_WORLD:0)|
-            (config_boolean("vr.npc_interaction")?NETWORK_INTERACTION_NPC:0);
-        if(features)network_interaction_client_send(h,held&&!down[h],features,player,local_unit,&point,&forward,&up);
+            ((npc_ready&&config_boolean("vr.npc_interaction"))?NETWORK_INTERACTION_NPC:0);
+        if(features) {
+            byte sent=held&&!down[h];unsigned long now=system_milliseconds();
+            unsigned long interval=sent?50:250;
+            if(last_send[h] && now-last_send[h]<interval && last_sent_held[h]==sent && last_sent_features[h]==features)continue;
+            network_interaction_client_send(h,sent,features,player,local_unit,&point,&forward,&up);
+            last_send[h]=now;last_sent_held[h]=sent;last_sent_features[h]=features;
+        }
     }
 }
 #else
 void vr_interaction_client_reset(void){}
 void vr_interaction_client_result(long unit,byte hand,byte features,unsigned long sequence,long object,float const local[3]){}
-void vr_interaction_client_tick(boolean ready){}
+void vr_interaction_client_tick(boolean ready, boolean npc_ready){}
 int vr_interaction_client_hand(int hand,float point[3]){return 0;}
 long vr_interaction_client_object(int hand){return NONE;}
 #endif
