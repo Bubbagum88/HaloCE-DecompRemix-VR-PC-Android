@@ -31,8 +31,8 @@ cross-edition parity and archive checks are performed by the package gate.
 
 | Edition | File | Bytes | SHA-256 |
 | --- | --- | ---: | --- |
-| Quest / VR | `HaloCE-Quest-VR-1.0.24-test43.apk` | 35,536,126 | `d88fd1561ee1050caa31f7d06d2e3c532f510c959dde4a11ef90b4cea76a37ef` |
-| Android / flat | `HaloCE-Android-1.0.24-test43.apk` | 33,373,359 | `d737a9daf89031ebcbc3ebf1a623e1fd471ee7d23f850ef68fc30ec02d66018e` |
+| Quest / VR | `HaloCE-Quest-VR-1.0.24-test43.apk` | 35,536,126 | `267512d460457685310e71950c46d093770260e491fb6cad0c9b2318ef39e57e` |
+| Android / flat | `HaloCE-Android-1.0.24-test43.apk` | 33,373,359 | `036b29962f6af7f75e729fd22d1aca69444e39cf4c1d8b5478f64208f6c863ae` |
 
 Final package directory: `D:\HaloQuest\builds\test43-20261009-v1.0.24-test43-game-data-manager`.
 Matching archives: `HaloCE-Quest-test43-build.zip` and
