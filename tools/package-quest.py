@@ -314,7 +314,9 @@ def main():
                     raise SystemExit("Test30 VR identity missing")
             if candidate_at_least(args.label, 29):
                 # OpenCE build 144's network 21, and the held HUD tap's and PR #1's text
-                expected_upstream = (b"OpenCE build 157 (network 24)" if candidate_at_least(args.label, 36) else
+                expected_upstream = (b"Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167"
+                                     if candidate_at_least(args.label, 42) else
+                                     b"OpenCE build 157 (network 24)" if candidate_at_least(args.label, 36) else
                                      b"OpenCE build 148 (network 23)" if candidate_at_least(args.label, 34) else
                                      b"OpenCE build 145 (network 22)" if candidate_at_least(args.label, 31) else
                                      b"OpenCE build 144 (network 21)")
