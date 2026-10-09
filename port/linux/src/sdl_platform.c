@@ -170,7 +170,9 @@ SDL_AudioDeviceID platform_audio_device(int recording, const char *name)
 
 int platform_audio_recording_permission(void)
 {
-	return host_sdl_request_microphone_permission();
+	/* Desktop SDL owns any platform permission flow; there is no Android
+	 * runtime permission gate here. */
+	return 1;
 }
 #else
 int platform_audio_devices(int recording, char (*names)[PLATFORM_AUDIO_DEVICE_NAME_SIZE], int maximum)
@@ -189,7 +191,10 @@ SDL_AudioDeviceID platform_audio_device(int recording, const char *name)
 
 int platform_audio_recording_permission(void)
 {
-	return 1;
+	/* Ask through the Android host, which owns the Java permission prompt.
+	 * This returns pending immediately; capture opens on a later game update
+	 * only after the asynchronous callback reports a grant. */
+	return host_sdl_request_microphone_permission();
 }
 #endif
 

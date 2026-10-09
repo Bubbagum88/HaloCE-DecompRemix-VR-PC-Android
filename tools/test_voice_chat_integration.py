@@ -47,6 +47,11 @@ assert "if (open && !microphone && !microphone_opening && !microphone_failed)" i
 assert "if (open && microphone_failed)\n\t\tready = -1;" in mic_control
 assert "microphone_failed = stream == NULL;" in open_thread
 assert "microphone_failed = TRUE;" in mic_control
+platform_audio = platform.split("/* ---------- audio devices (voice chat's microphone; default on Android) */", 1)[1].split("#ifndef HALO_ANDROID", 1)[1].split("/* ---------- first start without game data", 1)[0]
+desktop_audio, android_audio = platform_audio.split("#else", 1)
+assert "int platform_audio_recording_permission(void)\n{\n\t/* Desktop SDL owns any platform permission flow; there is no Android\n\t * runtime permission gate here. */\n\treturn 1;\n}" in desktop_audio
+assert "return host_sdl_request_microphone_permission();" in android_audio
+assert android_audio.index("host_sdl_request_microphone_permission()") < android_audio.index("#endif")
 permission_request = host.split("int host_sdl_request_microphone_permission(void)", 1)[1].split("/* Flat touch input", 1)[0]
 assert "SDL_RequestAndroidPermission" in permission_request
 assert "memory_order_release" in permission_request and "memory_order_acquire" in permission_request
