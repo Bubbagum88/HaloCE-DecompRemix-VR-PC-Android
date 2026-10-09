@@ -100,8 +100,11 @@ interaction checks. None is silently marked passed by a build or fixture.
 
 ## Build evidence
 
-Automated suite results, APK identities, signing certificate and hashes are
-recorded with the packaged artifacts. A matching source archive is included.
+All 83 regression suites passed before each flavor build. Cache/tag-format
+pytest checks: 131 passed, four skipped. Both native/Gradle builds completed;
+the Android Gradle cache journal was repaired and clean assembly repeated.
+APK identities, signing certificate and hashes are recorded with the packaged
+artifacts. A matching source archive is included.
 The packaging manifest's runtime_accepted remains false pending owner testing.
 
 ## Reporting

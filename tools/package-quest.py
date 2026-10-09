@@ -328,7 +328,9 @@ def main():
                     raise SystemExit("Test33 VR candidate identity marker missing")
             if candidate_at_least(args.label, 34):
                 if vr:
-                    current_upstream_markers = ([b"OpenCE Build 157 / network 24", b"test37 candidate 1.0.18-test37 code47"]
+                    current_upstream_markers = ([b"OpenCE Build 157 / network 24", b"test38 candidate 1.0.19-test38 code49"]
+                        if candidate_at_least(args.label, 38) else
+                        [b"OpenCE Build 157 / network 24", b"test37 candidate 1.0.18-test37 code47"]
                         if candidate_at_least(args.label, 37) else
                         [b"OpenCE Build 157 / network 24", b"test36 candidate 1.0.17-test36 code46"]
                         if candidate_at_least(args.label, 36) else
