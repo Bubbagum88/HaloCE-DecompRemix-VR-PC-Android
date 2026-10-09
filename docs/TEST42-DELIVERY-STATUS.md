@@ -25,9 +25,10 @@ restrictions, `TEST42-OPENCE167-INTEGRATION.md` for upstream boundaries, and
 
 - Focused OpenCE, Android native-bridge hash, holster-haptics and all previously
   failing migration/config suites pass.
-- Final clean-candidate source run: `tools/run-quest-checks.py` passed all 92
-  registered suites, including the production touch editor lifecycle, layout
-  codec, NPC interaction/ragdoll lifecycle and selected Build167 fixtures.
+- Final clean-candidate source run passed all 92 registered suites in both
+  serial edition builds, including the production touch editor lifecycle,
+  layout codec, NPC interaction/ragdoll lifecycle and selected Build167
+  fixtures. Neither run reported a failed suite.
 - Focused touch checks: 132 codec checks and 312 HUD lifecycle checks passed.
 - Vehicle reticle preview no longer applies head-camera convergence while
   mounted; a production-source fixture checks that mounted aiming follows the
@@ -57,9 +58,26 @@ restrictions, `TEST42-OPENCE167-INTEGRATION.md` for upstream boundaries, and
 - The bundled touch guide documents export/import, per-control hide/restore,
   legacy-visible defaults and the Save/Cancel flow. The Android device checklist
   includes document-picker and app-restart tests.
-- Full `tools/run-quest-checks.py` result: 92 passed, no failed suites.
-- VR and flat APK builds, certificate/version/parity/icon checks and package
-  hashes: pending.
+- Final VR and flat APK builds completed serially from the same source tree.
+  The package gate verified the established signing certificate, app IDs,
+  ARM64 ABI, version code/name, icon assets, bundled current guide, managed
+  data, privacy checks and networking parity. Both APKs passed ZIP integrity
+  and signature verification. Network entries, networking strings and app
+  classes match between editions; the OpenXR loader is the expected VR-only
+  entry.
+- The compaction step removed Gradle's obsolete incremental ZIP records. It
+  confirmed that every non-signature APK entry retained its exact hash and
+  that the signing certificate did not change.
+
+| Edition | APK | Bytes | SHA-256 |
+|---|---|---:|---|
+| Quest / VR | `test42-vr-compact.apk` | 35,527,934 | `eb956b4cafd4f66a3e2302de9e3fc478f773d03c422b35380e8f22298e3184c0` |
+| Android / flat | `test42-flat-compact.apk` | 33,361,071 | `3f4c769a98ae065617abc540b6a2913d3cab200cbd3ba860bb6e46846163547d` |
+
+- The installed compiler is clang 18 while the optional PGO profiles were
+  produced with clang 22, so the builds completed without PGO. This affects
+  profile-guided optimization only; all registered checks and both builds
+  completed.
 - Quest/Android action tests and live network/co-op tests: pending owner.
 
 Do not describe the candidate as headset verified or as a full OpenCE Build167
