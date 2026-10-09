@@ -391,8 +391,10 @@ def main():
                     if marker not in guest:
                         raise SystemExit("Test37 native compatibility gate missing: " + repr(marker))
                 guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt")).lower()
-                guide_markers = ([b"1.0.26-test45", b"all project changes made after v1.0.18", b"touch-then-grip",
-                                  b"allied marines", b"held grip does not release because the player moves",
+                guide_markers = ([b"1.0.26-test45", b"all project changes made after v1.0.18",
+                                  b"overlap the npc's authored collision model, followed by a fresh grip press",
+                                  b"friendly marines and crew",
+                                  b"ordinary hand movement and target-to-joint distance no longer drop an npc or prop",
                                   b"picker-selected iso/xiso", b"launcher does not keep or delete", b"android files",
                                   b"a10 look-calibration", b"rendered ray is fresh and valid", b"outside a10",
                                   b"game-data selection and storage", b"delete imported copy",
