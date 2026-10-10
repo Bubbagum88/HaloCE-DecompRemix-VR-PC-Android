@@ -25,11 +25,13 @@ def function(source, name):
 limits = read("port/linux/include/halo_port_limits.h")
 assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 24$", limits, re.M)
 gradle = read("port/android/app/build.gradle")
-assert ("versionCode Math.max(62, buildNumber)" in gradle or
+assert ("versionCode Math.max(63, buildNumber)" in gradle or
+        "versionCode Math.max(62, buildNumber)" in gradle or
         "versionCode Math.max(61, buildNumber)" in gradle or
         "versionCode Math.max(60, buildNumber)" in gradle)
 frame = read("port/linux/src/vr_frame.c")
-assert ("HaloCE Quest test51 candidate 1.0.32-test51 code62" in frame or
+assert ("HaloCE Quest v1.0.19 release code63" in frame or
+        "HaloCE Quest test51 candidate 1.0.32-test51 code62" in frame or
         "HaloCE Quest test50 candidate 1.0.31-test50 code61" in frame or
         "HaloCE Quest test49 candidate 1.0.30-test49 code60" in frame)
 assert ("OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176" in frame or
@@ -44,9 +46,10 @@ assert 'if candidate_at_least(args.label, 42) else' in package_script
 assert 'archive.read("assets/guide/player-guide.txt")).lower()' in package_script
 assert 'b"export or import a versioned layout"' in package_script
 assert '[] if candidate_at_least(args.label, 42) else' in package_script
-assert '"runtime_accepted": False' in package_script
+assert '"runtime_accepted": bool(args.stable and args.label == "1.0.19")' in package_script
 assert 'args.stable and args.label == "1.0.16"' in package_script
 assert 'args.stable and args.label == "1.0.18"' in package_script
+assert 'args.stable and args.label == "1.0.19"' in package_script
 assert 'reject_orphaned_apk_data' in package_script
 assert '"source_commit": runtime_commit if args.stable else commit' in package_script
 release_notes = read("docs/RELEASE-1.0.18.md")

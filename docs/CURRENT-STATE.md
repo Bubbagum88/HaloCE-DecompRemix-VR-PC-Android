@@ -1,26 +1,24 @@
 # Current development state
 
-## Active private candidate: Test51 (2026-10-10)
+## Current public release: v1.0.19 (2026-10-10)
 
-Target **1.0.32-test51 / Android code62** on `test39-interaction-completion`.
-The highest-priority report is the Quest app closing after joining a server.
-Two supplied Test50 logs show successful server admission/map loading, followed
-by SIGSEGV in `vfprintf` from the newly added host voice-configuration
-diagnostic. Test51 uses integer-only voice log formats and records host settings
-before emitting diagnostics. This preserves the voice protocol and initialization
-behavior while preventing logging from crashing the join path. A third session
-joined successfully but reported no host voice settings, so capture stayed
-closed; host voice options/build must be checked for that session. See
-[TEST51-CRASH-ANALYSIS.md](TEST51-CRASH-ANALYSIS.md).
+Release source is based on test39-interaction-completion, merged with the
+latest main landing-page/logo update. The owner confirmed on Quest that the
+Test51 build no longer crashes when joining and that voice chat works. The
+stable release uses version 1.0.19 / Android code63. Build157/network24 remains
+the engine baseline with selected compatible changes through Build177, not a
+full Build177 rebase. See [RELEASE-1.0.19.md](RELEASE-1.0.19.md) and
+[RELEASE-PROVENANCE-1.0.19.md](RELEASE-PROVENANCE-1.0.19.md).
 
-Test51 carries forward Test50's mounted reticle alignment, sprint toggle and
-all previous candidate work. OpenCE remains Build157/network24 with selected
-compatible changes through Build177, not a full Build177 rebase. Preserve
-Test50 and all older artifacts; keep public v1.0.18 unchanged. Run complete
-checks and build/package the VR and flat APKs plus matching source/build ZIPs.
-Do not install, launch or publish. Device join and two-client voice acceptance
-remain pending; follow [TEST51-DEVICE-CHECKLIST.md](TEST51-DEVICE-CHECKLIST.md).
-PC/Steam Frame remains deferred.
+Important: Parkour, ragdolls/body-retention changes, wall grabbing and
+enemy/NPC/ally grabbing remain unfinished or unreliable; enemy grabbing may
+activate but is broken and not recommended. Manual physical reload has not
+been confirmed as working end-to-end. The release calls these limits out at
+the top rather than presenting settings as completed features.
+
+Preserve public v1.0.18 and all older releases/artifacts. Keep PC/Steam Frame
+deferred. Future work should start from the v1.0.19 tag/source and the
+unimplemented interaction requirements, not from a superseded Test51 hold.
 
 ## Superseded private candidate: Test48 (2026-10-10)
 
@@ -95,7 +93,7 @@ Its archived candidate and delivery record remain at
 `D:\HaloQuest\builds\test39-20261008-v1.0.20-test39-final`; it is superseded by
 Test40 for ongoing work and did not alter public v1.0.18.
 
-## Current public release: v1.0.18 (2026-10-08)
+## Historical public release: v1.0.18 (2026-10-08)
 
 The owner authorized publication of **Halo CE Quest VR + Android 1.0.18** as
 the new Latest release. It is built from the Test37 network-browser work on

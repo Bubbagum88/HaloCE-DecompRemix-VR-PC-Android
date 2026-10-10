@@ -1,26 +1,20 @@
-## Current release checkpoint — v1.0.18 (2026-10-08)
+## Current release checkpoint ? v1.0.19 (2026-10-10)
 
-## Active private Test51 candidate (2026-10-10)
+The owner tested the Test51 runtime on Quest and confirmed both the server-join
+crash is gone and voice chat works. It is now the v1.0.19 / Android code63
+public baseline. Release notes and provenance are in
+[RELEASE-1.0.19.md](RELEASE-1.0.19.md) and
+[RELEASE-PROVENANCE-1.0.19.md](RELEASE-PROVENANCE-1.0.19.md). The new release
+preserves v1.0.18 and prior tags/assets.
 
-Highest priority: fix the Quest game-closing crash while joining a multiplayer
-server. Test50's two failing logs show the network join and map load succeed,
-then SIGSEGV inside `vfprintf` while `network_voice_handle_message` logs the
-host voice configuration. Test50 introduced that mixed string/floating-point
-diagnostic; Test51 uses integer-only voice log formats and accepts the host
-settings before logging. The voice protocol, host routing, mic policy and
-in-game settings are unchanged. The non-crashing 11:39 log reports no host
-voice configuration and keeps capture closed; it cannot establish whether the
-host disabled voice or lacks the Build167 relay. See
-[TEST51-CRASH-ANALYSIS.md](TEST51-CRASH-ANALYSIS.md).
-
-Target **1.0.32-test51 / Android code62** on `test39-interaction-completion`.
-Test50's sprint toggle, mounted reticle fix and diagnostics remain, as do all
-accepted Test47-Test49 work. The VR/flat pair plus matching source/build ZIPs
-are the deliverable. Run complete checks and package without installing,
-launching or publishing. Quest server join and two-client voice acceptance
-remain pending; follow [TEST51-DEVICE-CHECKLIST.md](TEST51-DEVICE-CHECKLIST.md).
-Preserve Test50, older artifacts and public v1.0.18. PC/Steam Frame stays
-deferred.
+At the top of the release, disclose unfinished VR settings: parkour, ragdolls
+and wall/NPC/enemy/ally grabbing are not working reliably; enemy grabbing may
+activate but is broken and not recommended. Manual physical reload is not
+confirmed end-to-end. Do not imply a menu toggle works just because it exists.
+Preserve the confirmed join/voice fix, mounted reticle alignment, toggle sprint,
+weapon release/drop/holsters, contact haptics and existing Android/mobile
+behavior. The engine remains Build157/network24 with selected compatible
+updates, not a complete Build177 rebase. PC/Steam Frame is still deferred.
 
 ## Superseded private Test48 candidate (2026-10-10)
 
@@ -115,7 +109,7 @@ Resume requirements:
 - Current source work implements client targets 0 (all compatible 11-24) or exact 11-24, with native discovery/admission gates; hosting and signed advertisements stay 24. Versions 11-22 are original Xbox-map PvP only; campaign/CE require 23 or 24. The earlier 23/24 host-profile and PC vehicle-guard plan is superseded. Final source is on local branch test37-network-browser; both APKs compiled and all62 suites have passing results. See TEST37-DELIVERY.md. This is not device acceptance.
 - Compare actual original/Rev1/Rev2 images once supplied: import detection, map/revision differences and reproducible compatibility failures. ISO revision is separate from network protocol. Do not claim universal ISO or network compatibility from source review alone.
 - Preserve working VR/mobile behavior, saves, original signing identity, prior APKs and public releases. No speculative fixes or unsupported selectable profiles. Explicitly report any remaining evidence/testing gap.
-- **Historical Test37 upstream check:** OpenCE Build157 / 73dc01d / network24 was latest at that time. Test47's current latest-upstream review is Build177; see `TEST47-OPENCE177-INTEGRATION.md`. v1.0.18 remains public; Test36 and v1.0.16 assets remain preserved. Test37 private-candidate hashes and packaging gates are recorded in TEST37-DELIVERY.md; stable hashes are in RELEASE-PROVENANCE-1.0.18.md.
+- **Historical Test37 upstream check:** OpenCE Build157 / 73dc01d / network24 was latest at that time. Test47's current latest-upstream review is Build177; see `TEST47-OPENCE177-INTEGRATION.md`. v1.0.18 was the public release then; Test36 and v1.0.16 assets remain preserved. Test37 private-candidate hashes and packaging gates are recorded in TEST37-DELIVERY.md; stable hashes are in RELEASE-PROVENANCE-1.0.18.md.
 - Local WSL Ubuntu has clang/JDK/Android SDK and the existing debug keystore. Run checks in WSL, not Windows Python (which lacks clang/javac on PATH). Historical version tests were adjusted to accept private candidate suffixes. Final checks cover native admission and post-join lobby changes, Java persistence/counts and full launcher compilation; see the delivery record for the corrected test extractor and validation limits.
 - Relevant implementation files: NetworkProfile.java, ServerBrowser.java, native halo_port_active_network_version implementation/guards, tools/test_test37_launcher.py and tools/test_test37_network_profiles.py. Read git diff and both agents' findings before continuing. Read-only ChupathingyCE audit downloads are under ignored build/chupa-audit.
 
@@ -149,7 +143,7 @@ Read [TEST37-PROGRESS.md](TEST37-PROGRESS.md),
 
 ## Superseded Test36 candidate archive: 1.0.17-test36 / network24 (2026-10-08)
 
-The public latest release remains v1.0.16 / Android code45 / network23. The
+At that checkpoint, the public latest release was v1.0.16 / Android code45 / network23. The
 preceding test36 candidate was version 1.0.17-test36,
 code46 / network24. It ported the applicable OpenCE Build157 update and kept
 the existing public release intact. The owner's public Android1.0.16 browser

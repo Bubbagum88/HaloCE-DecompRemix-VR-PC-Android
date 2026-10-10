@@ -1,6 +1,8 @@
 # Halo CE Quest VR + Android player guide
 
-This guide describes the published **Halo CE Quest VR + Android v1.0.18 / OpenCE Build 157 / network 24**. For installation, controls, compatibility and release details, see [v1.0.18 release notes](RELEASE-1.0.18.md). Private-candidate additions are documented in the candidate note prepended to this guide.
+This guide describes the published **Halo CE Quest VR + Android v1.0.19 /
+OpenCE Build 157 base / network 24**. See [v1.0.19 release notes](RELEASE-1.0.19.md)
+for the important unfinished VR interaction toggles and full compatibility details.
 
 ## Install and update
 

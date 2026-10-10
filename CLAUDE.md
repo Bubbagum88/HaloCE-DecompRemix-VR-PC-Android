@@ -1,25 +1,21 @@
 # Agent and contributor continuation
 
-## Active private Test51 candidate (2026-10-10)
+## Current public baseline: v1.0.19 (2026-10-10)
 
-Continue on `test39-interaction-completion`; target private `1.0.32-test51`,
-Android code62. The most important fix is the Quest game-closing crash during
-server join. The two failing Test50 logs show successful network admission and
-map load, then SIGSEGV in `vfprintf` from Test50's host voice-config diagnostic.
-Test51 makes voice log formats integer-only and accepts host settings before
-logging. Preserve the voice protocol, relay, microphone policy and in-game
-settings. Test50's successful non-crash log says the host sent no voice settings;
-that client intentionally keeps capture closed. See
-`docs/TEST51-CRASH-ANALYSIS.md`, `docs/TEST51-PLAYER-NOTES.md`,
-`docs/TEST51-FIELD-GUIDE.md`, and `docs/TEST51-DEVICE-CHECKLIST.md`.
+Start future work from the published v1.0.19 source/tag. It is based on the
+Test51 runtime, merged with the current main landing-page/logo commit. The
+owner confirmed Quest server joins no longer crash and voice chat works.
+Read docs/RELEASE-1.0.19.md, docs/RELEASE-PROVENANCE-1.0.19.md, and
+docs/CURRENT-STATE.md before changing code.
 
-Test51 carries forward the Test50 vehicle reticle fix and optional sprint toggle,
-plus all retained prior work. Runtime remains Build157/network24 with selected
-changes through Build177, not a full rebase. Run the full regression suite and
-both VR/flat builds, then package both APKs with matching source/build ZIPs. Do
-not publish, install or launch. Await owner Quest join and two-client voice
-testing; preserve Test50, older artifacts and public v1.0.18. PC/Steam Frame
-stays deferred.
+Keep these status limits explicit: Parkour (wall-run, wall-jump and climbing),
+ragdolls/body-retention behavior, wall grabs, and NPC/enemy/ally grabs are not
+working reliably; enemy grabbing may activate but is broken and not
+recommended. Manual physical reload is not confirmed end-to-end. Settings that
+appear in the menu are not proof of a working feature. Preserve the working
+voice, join, reticle, sprint, weapon release/drop/holster, haptics, Android,
+co-op, network, launcher, Safe Geometry and calibration behavior. PC/Steam
+Frame remains deferred.
 
 ## Superseded private Test47 candidate (2026-10-09)
 
@@ -58,7 +54,7 @@ Test40's pair is preserved at
 delivery/status/disposition/checklist docs for the exact hashes and bounds.
 
 
-## Current public release: v1.0.18 (2026-10-08)
+## Historical public release: v1.0.18 (2026-10-08)
 
 The owner authorized publication of Halo CE Quest VR + Android 1.0.18 as
 Latest. It is based on Test37, OpenCE Build157/network24, Android code48.
@@ -110,7 +106,7 @@ Read `docs/ACTIVE-WORK-CHECKPOINT.md` and `docs/CURRENT-STATE.md` first. Preserv
 Read `docs/ACTIVE-WORK-CHECKPOINT.md`, `docs/CURRENT-STATE.md`,
 `docs/RELEASE-1.0.16.md`, `docs/RELEASE-PROVENANCE-1.0.16.md`,
 `docs/TEST35-PROGRESS.md`, and `docs/TEST35-UPSTREAM-INTEGRATION.md`.
-The public latest release is Android/Quest 1.0.16/code45, OpenCE Build 148,
+At that historical checkpoint, the public latest release was Android/Quest 1.0.16/code45, OpenCE Build 148,
 network23. Build148 adds particle-radius tag corrections, a point-physics
 guard, and clearer native halt-screen details; it does not change the network
 protocol. Preserve Test34 map/cache/BSP validation, co-op/camera safeguards,

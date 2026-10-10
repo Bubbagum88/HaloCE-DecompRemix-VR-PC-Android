@@ -92,7 +92,8 @@ VR_BUILD_IDENTITIES = {
     b"vr: HaloCE Quest test48 candidate 1.0.29-test48 code59 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; signed-datum weapon release, drop and holster regression fixed; sustained surface pressure haptics restored and routed to both hands independent of arm ownership; OpenXR haptic results logged; Test47 features retained; device acceptance pending)",
     b"vr: HaloCE Quest test49 candidate 1.0.30-test49 code60 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 signed-datum weapon release/drop/holster fix retained; v1.0.18 collision-gated contact haptics restored; weapon recoil haptic path preserved; melee action diagnostics added; Test47 features retained; device acceptance pending)",
     b"vr: HaloCE Quest test50 candidate 1.0.31-test50 code61 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 weapon release/drop/holster fix and Test49 v1.0.18 contact haptics retained; mounted driver/gunner shots follow the selected reticle ray without camera aim assist; voice packet/config/decode diagnostics; optional hold or toggle left-stick sprint; Test47 features retained; device acceptance pending)",
-    b"vr: HaloCE Quest test51 candidate 1.0.32-test51 code62 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 weapon release/drop/holster fix and Test49 v1.0.18 contact haptics retained; mounted driver/gunner shots follow the selected reticle ray without camera aim assist; voice diagnostics use integer-only formats and accept host settings before logging to prevent join crash; optional hold or toggle left-stick sprint; Test47 features retained; device acceptance pending)"
+    b"vr: HaloCE Quest test51 candidate 1.0.32-test51 code62 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 weapon release/drop/holster fix and Test49 v1.0.18 contact haptics retained; mounted driver/gunner shots follow the selected reticle ray without camera aim assist; voice diagnostics use integer-only formats and accept host settings before logging to prevent join crash; optional hold or toggle left-stick sprint; Test47 features retained; device acceptance pending)",
+    b"vr: HaloCE Quest v1.0.19 release code63 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; signed weapon release/drop/holster fix; v1.0.18 collision-gated contact haptics retained; mounted vehicle/turret shots follow selected reticle ray without camera aim assist; optional toggle sprint; Build167 host-relayed voice with integer-only config diagnostics; owner-confirmed multiplayer join and voice; unfinished VR interaction toggles documented in release notes)"
 }
 
 
@@ -246,6 +247,8 @@ def main():
             raise SystemExit("Wrong v1.0.16 Android version code: " + str(path))
         if args.stable and args.label == "1.0.18" and "versionCode='48'" not in badging:
             raise SystemExit("Wrong v1.0.18 Android version code: " + str(path))
+        if args.stable and args.label == "1.0.19" and "versionCode='63'" not in badging:
+            raise SystemExit("Wrong v1.0.19 Android version code: " + str(path))
         with zipfile.ZipFile(path) as archive:
             if archive.testzip() is not None:
                 raise SystemExit("APK ZIP checksum failure")
@@ -611,6 +614,17 @@ def main():
                         raise SystemExit("v1.0.18 offline guide is stale or missing: " + repr(marker))
                 if vr and b"HaloCE Quest 1.0.18 release code48" not in guest:
                     raise SystemExit("v1.0.18 VR release identity is missing")
+            if args.stable and args.label == "1.0.19":
+                guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt")).lower()
+                for marker in [b"halo ce quest vr + android 1.0.19",
+                               b"version code 63",
+                               b"parkour", b"ragdoll", b"grabbing enemies",
+                               b"not working", b"not recommended",
+                               b"crash fix", b"voice chat works"]:
+                    if marker not in guide:
+                        raise SystemExit("v1.0.19 offline guide is stale or missing: " + repr(marker))
+                if vr and b"HaloCE Quest v1.0.19 release code63" not in guest:
+                    raise SystemExit("v1.0.19 VR release identity is missing")
             if args.stable and args.label == "1.0.16":
                 if b"OpenCE build 148 (network 23)" not in dex:
                     raise SystemExit("v1.0.16 updater does not identify OpenCE Build 148 / network 23")
@@ -720,9 +734,12 @@ def main():
     source = output / f"HaloCE-Quest-{args.label}-source.zip"
     subprocess.run(["git", "archive", "--format=zip", "--prefix=halo-ce-quest/", "-o", str(source), commit], cwd=ROOT, check=True)
     manifest = {"candidate": args.label, "created_utc": datetime.now(timezone.utc).isoformat(),
-                "source_commit": commit, "runtime_source_commit": runtime_commit, "branch": branch, "runtime_accepted": False,
+                "source_commit": commit, "runtime_source_commit": runtime_commit, "branch": branch,
+                "runtime_accepted": bool(args.stable and args.label == "1.0.19"),
                 "publication": "owner-authorized public release" if args.stable else "held pending owner candidate testing and approval",
-                "prior_device_report": "Device acceptance for this exact APK pair is not recorded; publication authorization does not imply device acceptance",
+                "prior_device_report": ("Owner confirmed Quest server join no longer crashes and voice chat works; this does not certify every device/server/map/revision/player count"
+                                        if args.stable and args.label == "1.0.19" else
+                                        "Device acceptance for this exact APK pair is not recorded; publication authorization does not imply device acceptance"),
                 "certificate_sha256": CERTIFICATE, "apks": records,
                 "source_zip": {"file": source.name, "sha256": sha(source)},
                 "native_host_version": network_value("HALO_PORT_NETWORK_VERSION"), "accepted_host_versions": list(range(network_value("HALO_PORT_NETWORK_VERSION_MINIMUM"), network_value("HALO_PORT_NETWORK_VERSION_MAXIMUM")+1)),
