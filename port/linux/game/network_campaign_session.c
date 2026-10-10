@@ -31,6 +31,10 @@ network_campaign_game is never true now.) */
 #include <stdio.h>
 #include <string.h>
 
+/* port: declared here, not implicitly: an implicit declaration passes float
+arguments and reads narrow return values wrongly on the Android guest ABI */
+short main_get_solo_level_from_name(char const *name);
+
 void platform_log(char const *format, ...);
 unsigned long system_milliseconds(void);
 void p2p_set_hosting_public(int value);

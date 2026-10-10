@@ -1,10 +1,26 @@
 # Agent and contributor continuation
 
-## Current public baseline: v1.0.19 (2026-10-10)
+## Active private Test52 candidate (2026-10-10)
+
+Continue on `test39-interaction-completion`; target private `1.0.20-test52`,
+Android code64. The owner reported v1.0.19 still closes on Quest when speaking
+in voice chat. Root cause (see docs/TEST52-CRASH-ANALYSIS.md): the arm64_32 to
+ELF assembly converter rewrote `.ascii` data and corrupted Opus's
+`cache_bits50`, so CELT indexed past `CELT_PVQ_U_ROW`. The converter now passes
+string data through; `tools/test_android_asm_convert.py` compares tables. A
+second defect class (calls without prototypes miscompile on the guest ABI:
+variadic, float arguments, narrow returns) is fixed and enforced by the guest
+build (`-Wno-everything -Werror=implicit-function-declaration`; guarded by
+`tools/test_android_guest_prototypes.py`). The v1.0.19 "integer-only logging"
+diagnosis was wrong; the real Test50 crash was the missing `platform_log`
+prototype. Build with WSL clang 18 like public v1.0.18 (LLVM 22 cannot execute
+under WSL1); same debug key 53d416f7…2aa4. Device acceptance pending.
+
+## Current public release: v1.0.19 (2026-10-10)
 
 Start future work from the published v1.0.19 source/tag. It is based on the
 Test51 runtime, merged with the current main landing-page/logo commit. The
-owner confirmed Quest server joins no longer crash and voice chat works.
+owner confirmed Quest server joins no longer crash; the owner later reported that speaking in voice chat still crashes (fixed in Test52).
 Read docs/RELEASE-1.0.19.md, docs/RELEASE-PROVENANCE-1.0.19.md, and
 docs/CURRENT-STATE.md before changing code.
 

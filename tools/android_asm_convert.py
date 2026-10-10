@@ -15,7 +15,16 @@ Usage: android_asm_convert.py input.s output.s
 import re
 import sys
 
-IDENT = re.compile(r'"[^"]*"|[A-Za-z_.$][\w.$]*')
+# A quoted token honours backslash escapes (clang emits \" and \\ inside
+# .ascii/.asciz data); without that, everything after an escaped quote was
+# read as identifiers and an underscore there was "undecorated" away.
+QUOTED = r'"(?:[^"\\]|\\.)*"'
+IDENT = re.compile(QUOTED + r'|[A-Za-z_.$][\w.$]*')
+
+# Directives whose operands are literal data: passed through untouched. Their
+# strings are bytes (byte tables are emitted as .ascii too), never symbols, so
+# Darwin's leading-underscore removal must not touch them.
+STRING_DIRECTIVES = {".ascii", ".asciz", ".string"}
 
 DROP_DIRECTIVES = {
     ".subsections_via_symbols", ".build_version", ".watchos_version_min",
@@ -71,7 +80,7 @@ class Converter:
         self.in_dropped_section = False
         for line in lines:
             text = strip_comment(line).strip()
-            m = re.match(r'^([A-Za-z_.$][\w.$]*|"[^"]*"):', text)
+            m = re.match(r'^([A-Za-z_.$][\w.$]*|' + QUOTED + r'):', text)
             if m and m.group(1)[0] in "lL":
                 self.local_labels.add(m.group(1))
 
@@ -92,7 +101,7 @@ class Converter:
         text = re.sub(r'([\w.$"]+)@GOTPAGE\b', r"\1", text)
         text = re.sub(r'([\w.$"]+)@PAGE\b', r"\1", text)
         text = re.sub(r'(\([^)]*\)|[\w.$"]+(?:[+-]\d+)?)@PAGEOFF\b', r":lo12:\1", text)
-        if "@" in text and not re.search(r'"[^"]*@[^"]*"', text):
+        if "@" in re.sub(QUOTED, '""', text):
             raise ConvertError("unsupported relocation operator: " + text)
 
         def repl(m):
@@ -153,7 +162,7 @@ class Converter:
         if not stripped:
             return
         # labels
-        m = re.match(r'^([A-Za-z_.$][\w.$]*|"[^"]*"):(.*)$', stripped)
+        m = re.match(r'^([A-Za-z_.$][\w.$]*|' + QUOTED + r'):(.*)$', stripped)
         if m:
             if not self.in_dropped_section:
                 self.emit(self.sym(m.group(1)) + ":")
@@ -216,6 +225,9 @@ class Converter:
             return
         if op == ".align":
             self.emit(f"\t.p2align {args}")
+            return
+        if op in STRING_DIRECTIVES:
+            self.emit(f"\t{op} {args}")
             return
         if op.startswith("."):
             self.emit(f"\t{op} {self.operands(args)}" if args else f"\t{op}")

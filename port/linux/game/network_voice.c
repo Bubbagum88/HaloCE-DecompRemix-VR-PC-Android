@@ -64,6 +64,12 @@ boolean network_distributed_server_send_to_machine(long machine_index, void *mes
 boolean network_distributed_server_send_to_machine_reliably(long machine_index, void *message, word size);
 short network_distributed_server_machines(long *machine_indices, short maximum);
 int halo_push_to_talk_held(void);
+/* platform.c's. This prototype is required: without it the call is
+implicitly declared, and on the Android guest ABI (arm64_32, where variadic
+arguments go on the stack) every logged value was read from stack garbage.
+That, not the format conversions, caused Test50's join crash and the
+nonsense numbers in Test51's voice logs. */
+void platform_log(char const *format, ...);
 /* cinematics.c's */
 void draw_quad(rectangle2d *rectangle, pixel32 color);
 void posix_random_bytes(void *buffer, unsigned int size);
@@ -303,9 +309,9 @@ static short voice_mode_from_text(
 	return _voice_mode_team_global_enemy_proximity;
 }
 
-/* Keep diagnostic varargs integer-only. The Android guest's formatter
-   crashed while consuming the mixed string/floating arguments in this
-   network-message path (see TEST51-CRASH-ANALYSIS.md). */
+/* Compact integer codes for the diagnostics (see TEST51-CRASH-ANALYSIS.md
+   for their meanings; the crash itself was the missing platform_log
+   prototype above). */
 static int voice_local_mode_id(
 	void)
 {

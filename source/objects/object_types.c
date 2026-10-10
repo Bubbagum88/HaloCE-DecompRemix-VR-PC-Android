@@ -144,6 +144,11 @@ symbols in this file:
 #include "units/units.h"
 #include "units/vehicles.h"
 
+/* port: declared here, not implicitly: an implicit declaration passes float
+arguments and reads narrow return values wrongly on the Android guest ABI */
+void game_engine_vehicle_placement_begin(void);
+boolean game_engine_vehicle_placement_allowed(struct scenario_object_datum const *placement, struct tag_block *palette);
+
 /* ---------- constants */
 
 /* ---------- macros */

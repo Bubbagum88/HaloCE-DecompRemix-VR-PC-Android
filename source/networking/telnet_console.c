@@ -48,6 +48,7 @@ symbols in this file:
 #include "bungie_net/network/transport_endpoint.h"
 #include "hs/hs.h"
 #include "networking/telnet_console.h"
+#include <ctype.h> /* port: declared for the Android guest ABI */
 
 /* ---------- constants */
 

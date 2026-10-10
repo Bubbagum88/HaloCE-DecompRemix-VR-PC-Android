@@ -112,6 +112,10 @@ symbols in this file:
 #include "network_game_globals.h"
 #include "network_server_manager_internal.h"
 
+/* port: declared here, not implicitly: an implicit declaration passes float
+arguments and reads narrow return values wrongly on the Android guest ABI */
+unsigned long system_milliseconds(void);
+
 /* ---------- constants */
 
 enum network_game_client_state

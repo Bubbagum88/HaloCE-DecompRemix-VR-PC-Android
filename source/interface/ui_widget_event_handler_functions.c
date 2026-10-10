@@ -937,6 +937,11 @@ symbols in this file:
 #endif
 #include "halo_menus.h" /* port: PC_MENU_FUNCTION_BASE */
 
+/* port: declared here, not implicitly: an implicit declaration passes float
+arguments and reads narrow return values wrongly on the Android guest ABI */
+struct game_variant_options;
+boolean playlist_profile_get_options(long playlist_profile_index, struct game_variant_options *options);
+
 void platform_log(char const *format, ...);
 
 /* network_game_client_state's first value in the pinned OpenCE manager */

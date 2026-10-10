@@ -96,6 +96,10 @@ symbols in this file:
 
 #include <xtl.h>
 
+/* port: declared here, not implicitly: an implicit declaration passes float
+arguments and reads narrow return values wrongly on the Android guest ABI */
+void player_delete(long player_index);
+
 /* ---------- constants */
 
 /* the machine and player slots of a network game: the Xbox's 4 and 16, or the

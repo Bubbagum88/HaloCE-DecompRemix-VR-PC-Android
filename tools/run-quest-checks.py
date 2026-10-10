@@ -12,6 +12,7 @@ OUT = ROOT / 'build/quest-regressions'
 # (test27: test_campaign_actors tested the retired CE01/CE02 co-op's actor
 # messages, replaced by OpenCE's co-op; it is kept in tools/ for the record)
 SUITES = [
+    'test_android_asm_convert', 'test_android_guest_prototypes',
     'test_test17_network_data', 'test_test16_actions',
     'test_campaign_lifecycle', 'test_campaign_capacity', 'test_quest_browser',
     'test_quest_vr_math', 'test_quest_render_targets', 'test_test15_refinements',

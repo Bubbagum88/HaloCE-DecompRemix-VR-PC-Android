@@ -12,6 +12,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* port: declared here, not implicitly: an implicit declaration passes float
+arguments and reads narrow return values wrongly on the Android guest ABI */
+struct network_game_client *global_network_game_client_get(void);
+
 unsigned long system_milliseconds(void);
 int config_boolean(char const *name);
 void platform_log(char const *format, ...);

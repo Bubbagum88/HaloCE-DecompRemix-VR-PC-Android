@@ -10,6 +10,8 @@
 #include "physics/collision_models.h"
 #include "physics/collision_bsp.h"
 #include "physics/physics.h"
+/* platform.c's: variadic, so it must be declared (Android guest ABI) */
+void platform_log(char const *format, ...);
 #include "network_interaction.h"
 #include "vr_world_interaction.h"
 #include "vr_world_math.h"

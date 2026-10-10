@@ -62,6 +62,7 @@ symbols in this file:
 #include "input/input.h"
 #include "interface/terminal.h"
 #include "math/real_math.h"
+#include <ctype.h> /* port: declared for the Android guest ABI */
 
 /* ---------- constants */
 

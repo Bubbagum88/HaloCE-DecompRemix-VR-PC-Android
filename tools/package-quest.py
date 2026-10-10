@@ -93,6 +93,7 @@ VR_BUILD_IDENTITIES = {
     b"vr: HaloCE Quest test49 candidate 1.0.30-test49 code60 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 signed-datum weapon release/drop/holster fix retained; v1.0.18 collision-gated contact haptics restored; weapon recoil haptic path preserved; melee action diagnostics added; Test47 features retained; device acceptance pending)",
     b"vr: HaloCE Quest test50 candidate 1.0.31-test50 code61 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 weapon release/drop/holster fix and Test49 v1.0.18 contact haptics retained; mounted driver/gunner shots follow the selected reticle ray without camera aim assist; voice packet/config/decode diagnostics; optional hold or toggle left-stick sprint; Test47 features retained; device acceptance pending)",
     b"vr: HaloCE Quest test51 candidate 1.0.32-test51 code62 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 weapon release/drop/holster fix and Test49 v1.0.18 contact haptics retained; mounted driver/gunner shots follow the selected reticle ray without camera aim assist; voice diagnostics use integer-only formats and accept host settings before logging to prevent join crash; optional hold or toggle left-stick sprint; Test47 features retained; device acceptance pending)",
+    b"vr: HaloCE Quest test52 candidate 1.0.20-test52 code64 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; voice crash fixed: the guest assembly converter no longer alters string/table data (Opus pulse cache); guest calls require prototypes (voice logs, NPC clearance radius, scoreboard text scale, MP vehicle placement); built with the v1.0.18 clang18 toolchain; v1.0.19 features retained; device acceptance pending)",
     b"vr: HaloCE Quest v1.0.19 release code63 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; signed weapon release/drop/holster fix; v1.0.18 collision-gated contact haptics retained; mounted vehicle/turret shots follow selected reticle ray without camera aim assist; optional toggle sprint; Build167 host-relayed voice with integer-only config diagnostics; owner-confirmed multiplayer join and voice; unfinished VR interaction toggles documented in release notes)"
 }
 
@@ -239,7 +240,7 @@ def main():
         if f"versionName='{version_name}'" not in badging:
             raise SystemExit("Wrong candidate version: " + str(path))
         version_code = re.search(r"versionCode='(\d+)'", badging)
-        required_candidate_code = 62 if candidate_at_least(args.label, 51) else 61 if candidate_at_least(args.label, 50) else 60 if candidate_at_least(args.label, 49) else 59 if candidate_at_least(args.label, 48) else 58 if candidate_at_least(args.label, 47) else 57 if candidate_at_least(args.label, 46) else 56 if candidate_at_least(args.label, 45) else 55 if candidate_at_least(args.label, 44) else 54 if candidate_at_least(args.label, 43) else 53 if candidate_at_least(args.label, 42) else 52 if candidate_at_least(args.label, 41) else 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
+        required_candidate_code = 64 if candidate_at_least(args.label, 52) else 62 if candidate_at_least(args.label, 51) else 61 if candidate_at_least(args.label, 50) else 60 if candidate_at_least(args.label, 49) else 59 if candidate_at_least(args.label, 48) else 58 if candidate_at_least(args.label, 47) else 57 if candidate_at_least(args.label, 46) else 56 if candidate_at_least(args.label, 45) else 55 if candidate_at_least(args.label, 44) else 54 if candidate_at_least(args.label, 43) else 53 if candidate_at_least(args.label, 42) else 52 if candidate_at_least(args.label, 41) else 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
         if candidate_at_least(args.label, 36) and (version_code is None or int(version_code[1]) < required_candidate_code):
             raise SystemExit("Test" + ("51" if required_candidate_code == 62 else "50" if required_candidate_code == 61 else "49" if required_candidate_code == 60 else "48" if required_candidate_code == 59 else "47" if required_candidate_code == 58 else "46" if required_candidate_code == 57 else "45" if required_candidate_code == 56 else "44" if required_candidate_code == 55 else "43" if required_candidate_code == 54 else "42" if required_candidate_code == 53 else "41" if required_candidate_code == 52 else "40" if required_candidate_code == 51 else "39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
                              + " Android version code must be at least " + str(required_candidate_code) + ": " + str(path))
@@ -363,6 +364,11 @@ def main():
             if candidate_at_least(args.label, 34):
                 if vr:
                     current_upstream_markers = ([b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
+                                                 b"the guest assembly converter no longer alters string/table data (Opus pulse cache)",
+                                                 b"guest calls require prototypes",
+                                                 b"test52 candidate 1.0.20-test52 code64"]
+                        if candidate_at_least(args.label, 52) else
+                        [b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
                                                  b"integer-only formats and accept host settings before logging to prevent join crash",
                                                  b"test51 candidate 1.0.32-test51 code62"]
                         if candidate_at_least(args.label, 51) else
@@ -518,9 +524,12 @@ def main():
                                   b"Hosting remains on network 24"])
                 if candidate_at_least(args.label, 50):
                     guide_markers.extend([b"test50: voice diagnostics and sprint toggle", b"sprint toggle"])
-                if candidate_at_least(args.label, 51):
+                if candidate_at_least(args.label, 51) and not candidate_at_least(args.label, 52):
                     guide_markers.extend([b"test51: network-join crash and voice-config fix",
                                           b"host voice settings accepted before diagnostics"])
+                if candidate_at_least(args.label, 52):
+                    guide_markers.extend([b"test52: voice crash root cause fixed",
+                                          b"opus pulse-cache table", b"missing function prototypes"])
                 for marker in guide_markers:
                     if marker.lower() not in guide:
                         raise SystemExit("Test37 offline guide marker missing: " + repr(marker))

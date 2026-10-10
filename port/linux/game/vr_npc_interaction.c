@@ -19,6 +19,7 @@
 #include "physics/collision_models.h"
 #include "physics/collision_bsp.h"
 #include "physics/physics.h"
+#include "physics/collision_features.h" /* collision_test_sphere: a float radius needs its prototype */
 #include "../src/vr.h"
 #include "../src/port_config.h"
 #include "vr_npc_interaction.h"
