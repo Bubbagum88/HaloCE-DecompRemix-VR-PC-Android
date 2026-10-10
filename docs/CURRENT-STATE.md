@@ -1,31 +1,26 @@
 # Current development state
 
-## Active private candidate: Test50 (2026-10-10)
+## Active private candidate: Test51 (2026-10-10)
 
-Candidate target is **1.0.31-test50 / Android code61** on
-`test39-interaction-completion`. It carries Test49's v1.0.18 contact-haptic
-gates and Test48's signed-datum weapon release/drop/holster fix. New work adds
-an optional left-stick sprint toggle (Hold remains default) and low-rate voice
-diagnostics for host settings, encoded/relayed packets and Opus decode. The
-supplied Test49 log proves the microphone opened and the audio device ran, but
-does not establish that speech was transmitted or received. No voice-routing
-behavior was changed; see [TEST50-VOICE-DIAGNOSTICS.md](TEST50-VOICE-DIAGNOSTICS.md).
-The Ghost/Scorpion shots in that log show the mounted reticle 2.28°/2.61° from
-the final projectile direction. Test50 keeps mounted reticles on the selected
-muzzle ray and bypasses game-camera aim assist for the local VR driver/gunner
-shot, correcting that mismatch without reintroducing target snapping. On-foot,
-passenger, remote-player and flat Android aim-assist paths remain unchanged. See
-[TEST50-PLAYER-NOTES.md](TEST50-PLAYER-NOTES.md).
+Target **1.0.32-test51 / Android code62** on `test39-interaction-completion`.
+The highest-priority report is the Quest app closing after joining a server.
+Two supplied Test50 logs show successful server admission/map loading, followed
+by SIGSEGV in `vfprintf` from the newly added host voice-configuration
+diagnostic. Test51 uses integer-only voice log formats and records host settings
+before emitting diagnostics. This preserves the voice protocol and initialization
+behavior while preventing logging from crashing the join path. A third session
+joined successfully but reported no host voice settings, so capture stayed
+closed; host voice options/build must be checked for that session. See
+[TEST51-CRASH-ANALYSIS.md](TEST51-CRASH-ANALYSIS.md).
 
-OpenCE Build177 is still the latest official release checked on 2026-10-10;
-its reticle artwork integration was already present. Test50 remains based on
-Build157/network24 with selected compatible fixes through Build177, not a full
-Build177 rebase. Preserve Test49 and all older artifacts; keep public v1.0.18
-unchanged. Build/package status and checksums will be recorded in
-[TEST50-DELIVERY-STATUS.md](TEST50-DELIVERY-STATUS.md). Do not publish, install
-or launch. Device acceptance is pending; see
-[TEST50-DEVICE-CHECKLIST.md](TEST50-DEVICE-CHECKLIST.md). PC/Steam Frame remains
-deferred.
+Test51 carries forward Test50's mounted reticle alignment, sprint toggle and
+all previous candidate work. OpenCE remains Build157/network24 with selected
+compatible changes through Build177, not a full Build177 rebase. Preserve
+Test50 and all older artifacts; keep public v1.0.18 unchanged. Run complete
+checks and build/package the VR and flat APKs plus matching source/build ZIPs.
+Do not install, launch or publish. Device join and two-client voice acceptance
+remain pending; follow [TEST51-DEVICE-CHECKLIST.md](TEST51-DEVICE-CHECKLIST.md).
+PC/Steam Frame remains deferred.
 
 ## Superseded private candidate: Test48 (2026-10-10)
 

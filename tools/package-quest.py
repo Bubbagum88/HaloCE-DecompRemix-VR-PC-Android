@@ -91,7 +91,8 @@ VR_BUILD_IDENTITIES = {
     b"vr: HaloCE Quest test47 candidate 1.0.28-test47 code58 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; voice chat; fixed-length arm IK, solo corpse retention, manual reload input and local multiplayer-map spawn; prior launcher, calibration, climbing, interactions, VR and Android work retained; device acceptance pending)",
     b"vr: HaloCE Quest test48 candidate 1.0.29-test48 code59 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; signed-datum weapon release, drop and holster regression fixed; sustained surface pressure haptics restored and routed to both hands independent of arm ownership; OpenXR haptic results logged; Test47 features retained; device acceptance pending)",
     b"vr: HaloCE Quest test49 candidate 1.0.30-test49 code60 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 signed-datum weapon release/drop/holster fix retained; v1.0.18 collision-gated contact haptics restored; weapon recoil haptic path preserved; melee action diagnostics added; Test47 features retained; device acceptance pending)",
-    b"vr: HaloCE Quest test50 candidate 1.0.31-test50 code61 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 weapon release/drop/holster fix and Test49 v1.0.18 contact haptics retained; mounted driver/gunner shots follow the selected reticle ray without camera aim assist; voice packet/config/decode diagnostics; optional hold or toggle left-stick sprint; Test47 features retained; device acceptance pending)"
+    b"vr: HaloCE Quest test50 candidate 1.0.31-test50 code61 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 weapon release/drop/holster fix and Test49 v1.0.18 contact haptics retained; mounted driver/gunner shots follow the selected reticle ray without camera aim assist; voice packet/config/decode diagnostics; optional hold or toggle left-stick sprint; Test47 features retained; device acceptance pending)",
+    b"vr: HaloCE Quest test51 candidate 1.0.32-test51 code62 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 weapon release/drop/holster fix and Test49 v1.0.18 contact haptics retained; mounted driver/gunner shots follow the selected reticle ray without camera aim assist; voice diagnostics use integer-only formats and accept host settings before logging to prevent join crash; optional hold or toggle left-stick sprint; Test47 features retained; device acceptance pending)"
 }
 
 
@@ -237,9 +238,9 @@ def main():
         if f"versionName='{version_name}'" not in badging:
             raise SystemExit("Wrong candidate version: " + str(path))
         version_code = re.search(r"versionCode='(\d+)'", badging)
-        required_candidate_code = 61 if candidate_at_least(args.label, 50) else 60 if candidate_at_least(args.label, 49) else 59 if candidate_at_least(args.label, 48) else 58 if candidate_at_least(args.label, 47) else 57 if candidate_at_least(args.label, 46) else 56 if candidate_at_least(args.label, 45) else 55 if candidate_at_least(args.label, 44) else 54 if candidate_at_least(args.label, 43) else 53 if candidate_at_least(args.label, 42) else 52 if candidate_at_least(args.label, 41) else 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
+        required_candidate_code = 62 if candidate_at_least(args.label, 51) else 61 if candidate_at_least(args.label, 50) else 60 if candidate_at_least(args.label, 49) else 59 if candidate_at_least(args.label, 48) else 58 if candidate_at_least(args.label, 47) else 57 if candidate_at_least(args.label, 46) else 56 if candidate_at_least(args.label, 45) else 55 if candidate_at_least(args.label, 44) else 54 if candidate_at_least(args.label, 43) else 53 if candidate_at_least(args.label, 42) else 52 if candidate_at_least(args.label, 41) else 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
         if candidate_at_least(args.label, 36) and (version_code is None or int(version_code[1]) < required_candidate_code):
-            raise SystemExit("Test" + ("50" if required_candidate_code == 61 else "49" if required_candidate_code == 60 else "48" if required_candidate_code == 59 else "47" if required_candidate_code == 58 else "46" if required_candidate_code == 57 else "45" if required_candidate_code == 56 else "44" if required_candidate_code == 55 else "43" if required_candidate_code == 54 else "42" if required_candidate_code == 53 else "41" if required_candidate_code == 52 else "40" if required_candidate_code == 51 else "39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
+            raise SystemExit("Test" + ("51" if required_candidate_code == 62 else "50" if required_candidate_code == 61 else "49" if required_candidate_code == 60 else "48" if required_candidate_code == 59 else "47" if required_candidate_code == 58 else "46" if required_candidate_code == 57 else "45" if required_candidate_code == 56 else "44" if required_candidate_code == 55 else "43" if required_candidate_code == 54 else "42" if required_candidate_code == 53 else "41" if required_candidate_code == 52 else "40" if required_candidate_code == 51 else "39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
                              + " Android version code must be at least " + str(required_candidate_code) + ": " + str(path))
         if args.stable and args.label == "1.0.16" and "versionCode='45'" not in badging:
             raise SystemExit("Wrong v1.0.16 Android version code: " + str(path))
@@ -359,6 +360,10 @@ def main():
             if candidate_at_least(args.label, 34):
                 if vr:
                     current_upstream_markers = ([b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
+                                                 b"integer-only formats and accept host settings before logging to prevent join crash",
+                                                 b"test51 candidate 1.0.32-test51 code62"]
+                        if candidate_at_least(args.label, 51) else
+                        [b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
                                                  b"mounted driver/gunner shots follow the selected reticle ray without camera aim assist",
                                                  b"selected mounted ray (camera assist bypassed)",
                                                  b"voice packet/config/decode diagnostics", b"optional hold or toggle left-stick sprint",
@@ -510,6 +515,9 @@ def main():
                                   b"Hosting remains on network 24"])
                 if candidate_at_least(args.label, 50):
                     guide_markers.extend([b"test50: voice diagnostics and sprint toggle", b"sprint toggle"])
+                if candidate_at_least(args.label, 51):
+                    guide_markers.extend([b"test51: network-join crash and voice-config fix",
+                                          b"host voice settings accepted before diagnostics"])
                 for marker in guide_markers:
                     if marker.lower() not in guide:
                         raise SystemExit("Test37 offline guide marker missing: " + repr(marker))
@@ -746,7 +754,9 @@ def main():
     base_label = re.sub(r"[a-z]$", "", args.label)
     if not args.stable and base_label != args.label:
         edition_docs += [base_label.upper()+"-DELIVERY.md", base_label.upper()+"-PROGRESS.md"]
-    active_candidate_docs = (["TEST50-DELIVERY-STATUS.md", "TEST50-PLAYER-NOTES.md", "TEST50-FIELD-GUIDE.md", "TEST50-VOICE-DIAGNOSTICS.md", "TEST50-DEVICE-CHECKLIST.md", "TEST49-DELIVERY-STATUS.md", "TEST49-PLAYER-NOTES.md", "TEST49-FIELD-GUIDE.md", "TEST49-REGRESSION-AUDIT.md", "TEST49-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
+    active_candidate_docs = (["TEST51-DELIVERY-STATUS.md", "TEST51-PLAYER-NOTES.md", "TEST51-FIELD-GUIDE.md", "TEST51-CRASH-ANALYSIS.md", "TEST51-DEVICE-CHECKLIST.md", "TEST50-DELIVERY-STATUS.md", "TEST50-PLAYER-NOTES.md", "TEST50-FIELD-GUIDE.md", "TEST50-VOICE-DIAGNOSTICS.md", "TEST50-DEVICE-CHECKLIST.md", "TEST49-DELIVERY-STATUS.md", "TEST49-PLAYER-NOTES.md", "TEST49-FIELD-GUIDE.md", "TEST49-REGRESSION-AUDIT.md", "TEST49-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
+                             if candidate_at_least(args.label, 51) else
+                             ["TEST50-DELIVERY-STATUS.md", "TEST50-PLAYER-NOTES.md", "TEST50-FIELD-GUIDE.md", "TEST50-VOICE-DIAGNOSTICS.md", "TEST50-DEVICE-CHECKLIST.md", "TEST49-DELIVERY-STATUS.md", "TEST49-PLAYER-NOTES.md", "TEST49-FIELD-GUIDE.md", "TEST49-REGRESSION-AUDIT.md", "TEST49-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
                              if candidate_at_least(args.label, 50) else
                              ["TEST49-DELIVERY-STATUS.md", "TEST49-PLAYER-NOTES.md", "TEST49-FIELD-GUIDE.md", "TEST49-REGRESSION-AUDIT.md", "TEST49-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
                              if candidate_at_least(args.label, 49) else

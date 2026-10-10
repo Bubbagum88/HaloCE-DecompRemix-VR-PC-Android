@@ -111,6 +111,24 @@ for marker in ("host configuration received", "first local Opus frame encoded",
                "host has not sent voice settings"):
     assert marker in network_voice, marker
 
+# Android Test50 crashed inside the mixed %s/%f diagnostic emitted while the
+# host's voice-config message was being handled. Keep every guest voice log
+# limited to integer conversions and mark the settings received before logging,
+# so an optional diagnostic cannot interrupt voice initialization.
+voice_log_formats = re.findall(r'platform_log\("((?:[^"\\]|\\.)*)"', network_voice)
+assert voice_log_formats, "voice diagnostics must remain visible in the game log"
+for format_string in voice_log_formats:
+    conversions = re.findall(
+        r'%(?:[-+ #0]*\d*(?:\.\d*)?(?:hh|h|ll|l|z|t|j)?([a-zA-Z%]))',
+        format_string,
+    )
+    assert all(conversion in "diuoxX%" for conversion in conversions), format_string
+config_branch = network_voice.split("case _distributed_message_voice_config:", 1)[1].split("\n\t}\n\t}", 1)[0]
+assert config_branch.index("voice_settings_heard = TRUE;") < config_branch.index("platform_log("), \
+    "voice config must be accepted before diagnostics are emitted"
+assert "voice_local_mode_id()" in network_voice and "voice_volume_percent()" in network_voice
+assert "voice_diag_report(0)" in network_voice and "voice_diag_report(1)" in network_voice
+
 vr_header = read("port/linux/src/vr.h")
 vr_frame = read("port/linux/src/vr_frame.c")
 vr_menu = read("port/linux/game/vr_menu.c")
@@ -146,7 +164,7 @@ assert "per-player mute controls are not wired" in notes
 assert "not a claim of complete upstream" in notes
 assert "no dedicated hold-to-talk touch button" in notes
 package = read("tools/package-quest.py")
-assert "required_candidate_code = 61 if candidate_at_least(args.label, 50) else 60 if candidate_at_least(args.label, 49) else 59 if candidate_at_least(args.label, 48)" in package
+assert "required_candidate_code = 62 if candidate_at_least(args.label, 51) else 61 if candidate_at_least(args.label, 50) else 60 if candidate_at_least(args.label, 49)" in package
 assert '"dump", "permissions"' in package and "android.permission.RECORD_AUDIO" in package
 assert "OpenCE Build167 voice-chat runtime marker missing from APK" in package
 assert "OpenCE Build167 voice-chat player-guide marker missing from APK" in package

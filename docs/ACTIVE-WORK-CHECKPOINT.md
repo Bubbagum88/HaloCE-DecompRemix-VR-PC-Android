@@ -1,32 +1,25 @@
 ## Current release checkpoint — v1.0.18 (2026-10-08)
 
-## Active private Test50 candidate (2026-10-10)
+## Active private Test51 candidate (2026-10-10)
 
-Candidate target **1.0.31-test50 / code61** on `test39-interaction-completion`.
-It carries Test49's contact-gated haptics and Test48's weapon release/drop/
-holster fix. The user asked to verify voice chat from a Test49 Quest log and add
-an optional sprint toggle. The log confirms mic open/close with no recorded
-permission/device error, but Test49 did not log host settings or voice packet
-and decode events, so it cannot prove remote voice playback. Test50 adds
-diagnostics only; voice routing/capture defaults are unchanged. Sprint Toggle
-is selectable in VR Settings → Locomotion and defaults to Hold. Latest official
-OpenCE is still Build177; its reticle artwork was already integrated. The
-engine base remains Build157/network24 with selected fixes through Build177.
-The supplied Ghost and Scorpion firing logs showed 2.28°/2.61° separation
-between reticle and final shot. Test50 keeps the reticle on the selected muzzle
-ray and bypasses game-camera aim assist for the local VR driver/gunner shot;
-this avoids target snapping and aligns the shot center with the sight. On-foot,
-passenger, remote-player and flat Android aim assist stay unchanged. The mount
-diagnostic reports seat role and reticle error against both pre-assist aim and
-final projectile direction.
-See [TEST50-VOICE-DIAGNOSTICS.md](TEST50-VOICE-DIAGNOSTICS.md) and
-[TEST50-PLAYER-NOTES.md](TEST50-PLAYER-NOTES.md).
+Highest priority: fix the Quest game-closing crash while joining a multiplayer
+server. Test50's two failing logs show the network join and map load succeed,
+then SIGSEGV inside `vfprintf` while `network_voice_handle_message` logs the
+host voice configuration. Test50 introduced that mixed string/floating-point
+diagnostic; Test51 uses integer-only voice log formats and accepts the host
+settings before logging. The voice protocol, host routing, mic policy and
+in-game settings are unchanged. The non-crashing 11:39 log reports no host
+voice configuration and keeps capture closed; it cannot establish whether the
+host disabled voice or lacks the Build167 relay. See
+[TEST51-CRASH-ANALYSIS.md](TEST51-CRASH-ANALYSIS.md).
 
-Build and package status will be recorded in
-[TEST50-DELIVERY-STATUS.md](TEST50-DELIVERY-STATUS.md). Preserve all prior
-artifacts and public v1.0.18. Do not publish, install or launch. Quest/Android
-runtime acceptance remains pending; use
-[TEST50-DEVICE-CHECKLIST.md](TEST50-DEVICE-CHECKLIST.md). PC/Steam Frame remains
+Target **1.0.32-test51 / Android code62** on `test39-interaction-completion`.
+Test50's sprint toggle, mounted reticle fix and diagnostics remain, as do all
+accepted Test47-Test49 work. The VR/flat pair plus matching source/build ZIPs
+are the deliverable. Run complete checks and package without installing,
+launching or publishing. Quest server join and two-client voice acceptance
+remain pending; follow [TEST51-DEVICE-CHECKLIST.md](TEST51-DEVICE-CHECKLIST.md).
+Preserve Test50, older artifacts and public v1.0.18. PC/Steam Frame stays
 deferred.
 
 ## Superseded private Test48 candidate (2026-10-10)

@@ -1,4 +1,24 @@
-# Test50 private candidate: 1.0.31-test50
+# Test51 private candidate: 1.0.32-test51
+
+## Test51: network-join crash and voice-config fix
+
+The two supplied Quest crash logs show successful admission and map loading,
+followed by a fault in Test50's host voice-settings diagnostic. Test51 changes
+all voice diagnostics to integer-only formatting and records the host settings
+before logging. **Host voice settings accepted before diagnostics.** The voice
+protocol, host routing, microphone behavior and existing in-game voice controls
+remain unchanged. No Android launcher voice options were added.
+
+Voice still requires the host to enable lobby/in-game routing, a compatible
+Build167 voice relay on the host and peers, a nonzero listener receive volume,
+and a speaking player. If logs report no host settings, confirm host setup and
+version first. The fix is source/test verified; Quest join and two-client voice
+still need a device check. See [Test51 crash analysis](TEST51-CRASH-ANALYSIS.md)
+and [Test51 device checks](TEST51-DEVICE-CHECKLIST.md).
+
+---
+
+## Test50 carried-forward features
 
 ## Test50: voice diagnostics and sprint toggle
 

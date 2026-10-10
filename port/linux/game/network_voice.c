@@ -303,25 +303,31 @@ static short voice_mode_from_text(
 	return _voice_mode_team_global_enemy_proximity;
 }
 
-static char const *voice_mode_name(
-	short mode)
+/* Keep diagnostic varargs integer-only. The Android guest's formatter
+   crashed while consuming the mixed string/floating arguments in this
+   network-message path (see TEST51-CRASH-ANALYSIS.md). */
+static int voice_local_mode_id(
+	void)
 {
-	static char const *const names[NUMBER_OF_VOICE_MODES] =
-	{
-		"off", "team_proximity", "team_enemy_proximity", "team_global", "team_global_enemy_proximity",
-	};
+	char const *mode = config_string("audio.voice_chat");
 
-	return mode >= 0 && mode < NUMBER_OF_VOICE_MODES ? names[mode] : "invalid";
+	if (mode && !csstrcmp(mode, "open_mic"))
+		return 2;
+	if (mode && !csstrcmp(mode, "push_to_talk"))
+		return 1;
+	return 0;
 }
 
-static char const *voice_local_mode_name(
-	char const *mode)
+static int voice_volume_percent(
+	void)
 {
-	if (mode && !csstrcmp(mode, "open_mic"))
-		return "open_mic";
-	if (mode && !csstrcmp(mode, "push_to_talk"))
-		return "push_to_talk";
-	return "off";
+	double volume = config_real("audio.voice_volume");
+
+	if (!(volume > 0.0))
+		return 0;
+	if (volume >= 2.0)
+		return 200;
+	return (int)(volume * 100.0 + 0.5);
 }
 
 static void voice_diag_reset(
@@ -340,14 +346,14 @@ static void voice_diag_reset(
 }
 
 static void voice_diag_report(
-	char const *when)
+	int reason)
 {
-	platform_log("voice chat: %s diagnostic: host config %s, lobby %s, in-game route %s, local transmit %s, incoming volume %.0f%%; encoded/sent %lu, client frames accepted %lu, server relay deliveries %lu, incoming frames %lu, Opus-decoded frames %lu",
-		when, voice_settings_heard ? "ready" : "missing", voice_settings.lobby ? "on" : "off",
-		voice_mode_name(voice_settings.mode), voice_local_mode_name(config_string("audio.voice_chat")),
-		PIN(config_real("audio.voice_volume"), 0.0, 2.0) * 100.0,
-		voice_diag_tx_frames, voice_diag_host_rx_frames, voice_diag_relayed_frames,
-		voice_diag_rx_frames, voice_diag_decoded_frames);
+	platform_log("voice chat: diagnostic reason=%d host_config=%d lobby=%d route=%d local_tx=%d receive_volume_percent=%d encoded_sent=%u client_accepted=%u server_relayed=%u incoming=%u Opus-decoded frames=%u",
+		reason, voice_settings_heard ? 1 : 0, voice_settings.lobby ? 1 : 0,
+		(int)voice_settings.mode, voice_local_mode_id(), voice_volume_percent(),
+		(unsigned int)voice_diag_tx_frames, (unsigned int)voice_diag_host_rx_frames,
+		(unsigned int)voice_diag_relayed_frames, (unsigned int)voice_diag_rx_frames,
+		(unsigned int)voice_diag_decoded_frames);
 }
 
 /* the host's, from its config.toml (read again as it changes) */
@@ -641,9 +647,8 @@ static void voice_play(
 	if (!voice_diag_first_rx_logged[machine_index])
 	{
 		voice_diag_first_rx_logged[machine_index] = TRUE;
-		platform_log("voice chat: first incoming frame from machine %ld: %s (%d decoded samples, gain %.2f, pan %.2f)",
-			machine_index, decoded > 0 ? "Opus decoded and queued" : "Opus decode produced no samples",
-			decoded, gain, pan);
+		platform_log("voice chat: first incoming frame from machine=%d decoded_samples=%d",
+			(int)machine_index, decoded);
 	}
 }
 
@@ -860,13 +865,13 @@ void network_voice_handle_message(
 		voice_settings.mode = received_mode;
 		voice_settings.kbps = (short)PIN(config.kbps, VOICE_MINIMUM_KBPS, VOICE_MAXIMUM_KBPS);
 		voice_settings.proximity = config.proximity_tenths / 10.0f;
-		if (changed)
-			platform_log("voice chat: host configuration received: lobby %s, in-game route %s, %d kbps, %.1f-unit proximity; local transmit %s, incoming volume %.0f%%",
-				voice_settings.lobby ? "on" : "off", voice_mode_name(voice_settings.mode), voice_settings.kbps,
-				voice_settings.proximity, voice_local_mode_name(config_string("audio.voice_chat")),
-				PIN(config_real("audio.voice_volume"), 0.0, 2.0) * 100.0);
 		voice_settings_heard = TRUE;
 		voice_settings_heard_at = system_milliseconds();
+		if (changed)
+			platform_log("voice chat: host configuration received lobby=%d route=%d kbps=%d proximity_tenths=%d local_tx=%d receive_volume_percent=%d",
+				voice_settings.lobby ? 1 : 0, (int)voice_settings.mode, (int)voice_settings.kbps,
+				(int)(voice_settings.proximity * 10.0f + 0.5f), voice_local_mode_id(),
+				voice_volume_percent());
 		break;
 	}
 	}
@@ -966,7 +971,7 @@ static void voice_end_session(
 {
 	if (!voice_session)
 		return;
-	voice_diag_report("session end");
+	voice_diag_report(0); /* 0=session end, 1=ten-second interval */
 	voice_session = FALSE;
 	voice_microphone_wanted = FALSE;
 	voice_microphone_permission_denied = FALSE;
@@ -1038,7 +1043,7 @@ void network_voice_update(
 	}
 	if (now - voice_diag_last_report_at >= 10000)
 	{
-		voice_diag_report("10-second");
+		voice_diag_report(1);
 		voice_diag_last_report_at = now;
 		voice_diag_tx_frames = 0;
 		voice_diag_host_rx_frames = 0;
