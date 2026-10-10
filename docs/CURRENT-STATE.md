@@ -1,27 +1,31 @@
 # Current development state
 
-## Active private candidate: Test48 (2026-10-10)
+## Active private candidate: Test49 (2026-10-10)
 
-Candidate target is **1.0.29-test48 / Android code59** on
-`test39-interaction-completion`. It carries forward Test47. The supplied
-Test47 Quest log showed valid negative weapon datum handles; Test47's release
-latch, holster slot helpers and failed-release recovery treated every negative
-handle as empty. Test48 recognizes only exact `-1` as invalid. The wider audit
-found no additional matching signed-handle rejection in the adjacent VR
-interaction paths. Test48 also routes surface-contact haptics for either hand
-independently of arm animation ownership and logs OpenXR output failures.
-Evidence and remaining limits are in
-[TEST48-REGRESSION-AUDIT.md](TEST48-REGRESSION-AUDIT.md).
+Candidate target is **1.0.30-test49 / Android code60** on
+`test39-interaction-completion`. It retains Test48's signed-datum weapon
+release/drop/holster fix. Test49 restores surface haptics to v1.0.18's actual
+hand-contact and arm-animation ownership gate; weapon-fire haptic functions
+are byte-for-byte identical to the public release. It adds logs distinguishing
+melee and weapon-switch actions. The supplied log shows successful OpenXR
+output setup and holster switch events, but no emitted melee action. The audit
+and limits are in [TEST49-REGRESSION-AUDIT.md](TEST49-REGRESSION-AUDIT.md).
 
-The full accumulated regression suite passed in both Quest/VR and flat build
-workflows, and package checks passed for both code59 APKs plus source/build
-archives. Final artifacts are at
-`D:\HaloQuest\builds\test48-20261010-v1.0.29-test48-final`; hashes and build
-details are in [TEST48-DELIVERY-STATUS.md](TEST48-DELIVERY-STATUS.md). Keep
-Test47 and all older artifacts preserved, keep public v1.0.18 unchanged, and do
-not publish, install or launch. Device acceptance is pending; see
-[TEST48-DEVICE-CHECKLIST.md](TEST48-DEVICE-CHECKLIST.md). PC/Steam Frame remains
+Package status and checksums will be recorded in
+[TEST49-DELIVERY-STATUS.md](TEST49-DELIVERY-STATUS.md). Preserve Test48 and all
+older artifacts; keep public v1.0.18 unchanged. Do not publish, install or
+launch. Device acceptance is pending; see
+[TEST49-DEVICE-CHECKLIST.md](TEST49-DEVICE-CHECKLIST.md). PC/Steam Frame remains
 deferred.
+
+## Superseded private candidate: Test48 (2026-10-10)
+
+Test48 remains preserved at
+`D:\HaloQuest\builds\test48-20261010-v1.0.29-test48-final`. Its original audit
+and delivery record remain available in [TEST48-REGRESSION-AUDIT.md](TEST48-REGRESSION-AUDIT.md)
+and [TEST48-DELIVERY-STATUS.md](TEST48-DELIVERY-STATUS.md). Test49 removes the
+added per-update head-to-hand haptic path implicated by the continuous-buzz
+report while retaining the signed-datum fix.
 
 ## Superseded private candidate: Test47 (2026-10-09)
 

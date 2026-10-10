@@ -1,22 +1,22 @@
 # Agent and contributor continuation
 
-## Active private Test48 candidate (2026-10-10)
+## Active private Test49 candidate (2026-10-10)
 
-Continue on `test39-interaction-completion`; target private `1.0.29-test48`,
-Android code59. Read `docs/TEST48-DELIVERY-STATUS.md`,
-`docs/TEST48-REGRESSION-AUDIT.md`, `docs/TEST48-PLAYER-NOTES.md`, and
-`docs/TEST48-DEVICE-CHECKLIST.md`. The supplied Test47 log exposed a signed
-datum-handle bug: valid weapon handles can be negative, with only exact `-1`
-meaning empty. Release-to-drop, release-to-holster, holster storage/pruning,
-and pending hand recovery now use that sentinel correctly. The adjacent VR
-handle paths were audited for the same mistake. A reported surface-haptics gap
-was traced to feedback being gated behind the free-hand visual path; Test48
-now routes both tracked palms regardless of arm ownership and logs OpenXR
-vibration results. Focused contact and lifecycle suites pass; finish full
-VR/flat regression builds and package both APKs plus matching source/build
-ZIPs. Do not publish, install or launch; await owner device
-acceptance. Preserve prior candidates and public v1.0.18. PC/Steam Frame stays
-deferred.
+Continue on `test39-interaction-completion`; target private `1.0.30-test49`,
+Android code60. Read `docs/TEST49-DELIVERY-STATUS.md`,
+`docs/TEST49-REGRESSION-AUDIT.md`, `docs/TEST49-PLAYER-NOTES.md`, and
+`docs/TEST49-DEVICE-CHECKLIST.md`. Test49 carries Test48's signed-datum fix:
+valid weapon handles can be negative, with only exact `-1` meaning empty.
+The supplied Test48 Quest log confirms OpenXR haptic output setup/acceptance
+but not the source of each pulse. Source comparison found the new independent
+head-to-hand contact sampler repeatedly renewed haptics and could mask weapon
+recoil. Test49 restores the public v1.0.18 direct-contact and arm-ownership
+gate; weapon-fire haptic functions match v1.0.18 byte-for-byte. Melee and
+weapon-switch action bits are distinct; new event logs will separate the
+reported animation concern on retest. Run the full regression suite and both
+VR/flat builds, then package both APKs plus matching source/build ZIPs. Do not
+publish, install or launch; await owner device acceptance. Preserve prior
+candidates and public v1.0.18. PC/Steam Frame stays deferred.
 
 ## Superseded private Test47 candidate (2026-10-09)
 

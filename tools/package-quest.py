@@ -89,7 +89,8 @@ VR_BUILD_IDENTITIES = {
     b"vr: HaloCE Quest test45 candidate 1.0.26-test45 code56 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; touch-then-Grip NPC/enemy/ally contacts; held NPC grip persists through ordinary movement and bounded tracking rebases; release-reason diagnostics; prior launcher, calibration, reload, climbing, VR and Android work retained; device acceptance pending)",
     b"vr: HaloCE Quest test46 candidate 1.0.27-test46 code57 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes and host-relayed voice; contact-driven NPC/ally interaction; bounded vehicle lifting; persistent same-map magazine visuals; prior launcher, calibration, reload, climbing, VR and Android work retained; device acceptance pending)",
     b"vr: HaloCE Quest test47 candidate 1.0.28-test47 code58 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; voice chat; fixed-length arm IK, solo corpse retention, manual reload input and local multiplayer-map spawn; prior launcher, calibration, climbing, interactions, VR and Android work retained; device acceptance pending)",
-    b"vr: HaloCE Quest test48 candidate 1.0.29-test48 code59 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; signed-datum weapon release, drop and holster regression fixed; sustained surface pressure haptics restored and routed to both hands independent of arm ownership; OpenXR haptic results logged; Test47 features retained; device acceptance pending)"
+    b"vr: HaloCE Quest test48 candidate 1.0.29-test48 code59 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; signed-datum weapon release, drop and holster regression fixed; sustained surface pressure haptics restored and routed to both hands independent of arm ownership; OpenXR haptic results logged; Test47 features retained; device acceptance pending)",
+    b"vr: HaloCE Quest test49 candidate 1.0.30-test49 code60 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 signed-datum weapon release/drop/holster fix retained; v1.0.18 collision-gated contact haptics restored; weapon recoil haptic path preserved; melee action diagnostics added; Test47 features retained; device acceptance pending)"
 }
 
 
@@ -357,6 +358,10 @@ def main():
             if candidate_at_least(args.label, 34):
                 if vr:
                     current_upstream_markers = ([b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
+                                                 b"v1.0.18 collision-gated contact haptics restored", b"weapon recoil haptic path preserved",
+                                                 b"test49 candidate 1.0.30-test49 code60"]
+                        if candidate_at_least(args.label, 49) else
+                        [b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
                                                  b"signed-datum weapon release, drop and holster regression fixed",
                                                  b"sustained surface pressure haptics restored and routed to both hands independent of arm ownership", b"OpenXR haptic results logged",
                                                  b"test48 candidate 1.0.29-test48 code59"]
@@ -732,7 +737,9 @@ def main():
     base_label = re.sub(r"[a-z]$", "", args.label)
     if not args.stable and base_label != args.label:
         edition_docs += [base_label.upper()+"-DELIVERY.md", base_label.upper()+"-PROGRESS.md"]
-    active_candidate_docs = (["TEST48-DELIVERY-STATUS.md", "TEST48-PLAYER-NOTES.md", "TEST48-REGRESSION-AUDIT.md", "TEST48-DEVICE-CHECKLIST.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
+    active_candidate_docs = (["TEST49-DELIVERY-STATUS.md", "TEST49-PLAYER-NOTES.md", "TEST49-REGRESSION-AUDIT.md", "TEST49-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
+                             if candidate_at_least(args.label, 49) else
+                             ["TEST48-DELIVERY-STATUS.md", "TEST48-PLAYER-NOTES.md", "TEST48-REGRESSION-AUDIT.md", "TEST48-DEVICE-CHECKLIST.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
                              if candidate_at_least(args.label, 48) else
                              ["TEST47-DELIVERY-STATUS.md", "TEST47-PLAYER-NOTES.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
                              if candidate_at_least(args.label, 47) else
@@ -773,7 +780,9 @@ def main():
         documents += ["TEST37-PLAYER-NOTES.md", "TEST37-UPSTREAM-INTEGRATION.md"]
     if candidate_at_least(args.label, 39) and not args.stable:
         documents += ["TEST39-DEVICE-CHECKLIST.md", "TEST39-REQUIREMENT-DISPOSITION.md"]
-    if candidate_at_least(args.label, 48) and not args.stable:
+    if candidate_at_least(args.label, 49) and not args.stable:
+        documents += ["TEST49-DEVICE-CHECKLIST.md", "TEST49-REGRESSION-AUDIT.md", "TEST48-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-DELIVERY-STATUS.md", "TEST47-PLAYER-NOTES.md", "TEST47-DEVICE-CHECKLIST.md", "TEST47-OPENCE177-INTEGRATION.md", "TEST46-DEVICE-CHECKLIST.md", "TEST46-VOICE-CHAT.md", "TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md", "TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    elif candidate_at_least(args.label, 48) and not args.stable:
         documents += ["TEST48-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-DELIVERY-STATUS.md", "TEST47-PLAYER-NOTES.md", "TEST47-DEVICE-CHECKLIST.md", "TEST47-OPENCE177-INTEGRATION.md", "TEST46-DEVICE-CHECKLIST.md", "TEST46-VOICE-CHAT.md", "TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md", "TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
     elif candidate_at_least(args.label, 47) and not args.stable:
         documents += ["TEST47-DEVICE-CHECKLIST.md", "TEST47-OPENCE177-INTEGRATION.md", "TEST46-DEVICE-CHECKLIST.md", "TEST46-VOICE-CHAT.md", "TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md", "TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]

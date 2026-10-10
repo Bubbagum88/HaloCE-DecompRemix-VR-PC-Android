@@ -65,25 +65,15 @@ subprocess.run(["clang", "-std=c11", "-O1", "-Wall", "-Wextra", "-Werror",
 subprocess.run([str(OUT / "contact")], check=True)
 render = (ROOT / "port/linux/game/vr_render.c").read_text()
 assert 'vr_contact_search(vr_finger_query' in render
-assert 'vr_hand_contact_feedback(controller, unit, graph' in render
-assert 'vr_hand_contact_sample(controller, &sampled_depth)' in render
-sample = render.index('boolean sampled_contact = vr_hand_contact_sample(controller, &sampled_depth);')
-native_gate = render.index('if (action.weight[side] >= 1)', sample)
-assert sample < native_gate
-assert 'free_hand ? (sampled_contact || pressed || contacts) : sampled_contact' in render
-assert 'action.weight[side] == 0 && (pressed || contacts)' not in render
-assert 'vr_hand_contact_sample(controller, &depth)' in render
-feedback_start = render.index('static void vr_hand_contact_feedback(')
-feedback_end = render.index('/* Surface feedback follows tracked palm contact', feedback_start)
-feedback = render[feedback_start:feedback_end]
-assert 'vr_pressure_buzz(controller, depth)' in feedback
-assert 'vr_haptic(controller, vr_contact_haptic_strength(depth, contacts), 0.03f)' in feedback
-assert 'last_graph[controller] != graph' in render
-assert 'else if (contacts && action.weight[side] == 0) vr_haptic' not in render
+assert 'vr_hand_contact_feedback' not in render
+assert 'vr_hand_contact_sample' not in render
+assert 'if (pressed && action.weight[side] == 0) vr_pressure_buzz(controller, depth);' in render
+assert 'else if (contacts && action.weight[side] == 0) vr_haptic(controller, 0.05f + 0.05f * contacts, 0.03f);' in render
+assert 'if (action.weight[side] >= 1) continue;' in render
 host = (ROOT / "port/android/host/host_xr.c").read_text()
 assert '"/user/hand/" hand "/output/haptic"' in host
 assert 'check(result, "xrApplyHapticFeedback")' in host
 assert 'controller haptic output accepted by runtime' in host
 frame = (ROOT / "port/linux/src/vr_frame.c").read_text()
 assert 'haptics master %.0f%%' in frame
-print("Test38 bounded contact search, restored sustained pressure feedback, both-hand/native-owned routing and OpenXR diagnostics passed")
+print("Test38 bounded contact search, v1.0.18 collision-gated surface haptics and OpenXR diagnostics passed")

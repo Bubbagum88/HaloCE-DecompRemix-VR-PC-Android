@@ -1,25 +1,31 @@
 ## Current release checkpoint — v1.0.18 (2026-10-08)
 
-## Active private Test48 candidate (2026-10-10)
+## Active private Test49 candidate (2026-10-10)
 
-Candidate **1.0.29-test48 / code59** on `test39-interaction-completion`.
-It carries Test47 and fixes the confirmed signed-datum regression that locked
-weapon release, drop and holster behavior. Valid live weapon IDs are negative;
-only `-1` is the empty sentinel. The broader adjacent-handle audit found no
-other matching sign-check bug in the reviewed VR interaction paths. A further
-report found missing surface/NPC haptics: Test48 samples contact for both
-hands independent of arm ownership and records OpenXR vibration results. See
-[TEST48-REGRESSION-AUDIT.md](TEST48-REGRESSION-AUDIT.md) and
-[TEST48-DELIVERY-STATUS.md](TEST48-DELIVERY-STATUS.md).
+Candidate target **1.0.30-test49 / code60** on `test39-interaction-completion`.
+It carries Test48's signed-datum weapon release/drop/holster fix and restores
+surface-contact haptics to the v1.0.18 real-contact and arm-ownership gates.
+Weapon recoil mapping and values are unchanged from v1.0.18. The supplied
+Test48 Quest log confirms the OpenXR haptic action and runtime accepted output;
+it does not record individual vibration sources. Test49 also logs emitted
+melee/switch action bits to distinguish the reported animation concern. See
+[TEST49-REGRESSION-AUDIT.md](TEST49-REGRESSION-AUDIT.md).
 
-The full accumulated regression suite passed in both Quest/VR and flat build
-workflows. Both APKs and matching source/build ZIPs are packaged at
-`D:\HaloQuest\builds\test48-20261010-v1.0.29-test48-final`; checksums and
-build details are in [TEST48-DELIVERY-STATUS.md](TEST48-DELIVERY-STATUS.md).
-Preserve all prior artifacts and public v1.0.18. Do not publish, install or
-launch the game. Actual Quest/Android device acceptance is pending; use
-[TEST48-DEVICE-CHECKLIST.md](TEST48-DEVICE-CHECKLIST.md). PC/Steam Frame remains
+Build and package status will be recorded in
+[TEST49-DELIVERY-STATUS.md](TEST49-DELIVERY-STATUS.md). Preserve all prior
+artifacts and public v1.0.18. Do not publish, install or launch. Quest/Android
+runtime acceptance remains pending; use
+[TEST49-DEVICE-CHECKLIST.md](TEST49-DEVICE-CHECKLIST.md). PC/Steam Frame remains
 deferred.
+
+## Superseded private Test48 candidate (2026-10-10)
+
+Test48 is preserved at
+`D:\HaloQuest\builds\test48-20261010-v1.0.29-test48-final`; its package hashes
+and audit are in [TEST48-DELIVERY-STATUS.md](TEST48-DELIVERY-STATUS.md). The
+reported recurring contact buzz traces to the new per-update head-to-hand
+contact haptic path. Test49 restores the public 1.0.18 contact gate while
+retaining Test48's weapon datum correction.
 
 ## Superseded private Test47 candidate (2026-10-09)
 
