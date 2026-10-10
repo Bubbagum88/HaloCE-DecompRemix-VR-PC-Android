@@ -13,7 +13,7 @@ the upstream scope is in [TEST47-OPENCE177-INTEGRATION.md](TEST47-OPENCE177-INTE
 Source/test status is separated from headset acceptance.
 
 Test47 APKs and matching source/build ZIPs are packaged at
-`D:\HaloQuest\builds\test47-20261010-v1.0.28-test47`. The full regression suite
+`D:\HaloQuest\builds\test47-20261010-v1.0.28-test47-final`. The full regression suite
 passed in standalone, VR and flat build workflows; package checks passed for
 both signed APKs and their source/build archives. This is a private owner test
 candidate. No Quest/Android device acceptance is recorded, and public v1.0.18

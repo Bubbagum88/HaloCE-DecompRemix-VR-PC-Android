@@ -9,7 +9,7 @@ v1.0.18 and all older candidates remain unchanged. This is a private test
 delivery only; do not publish, install, or launch it.
 
 Both APKs and matching source/build ZIPs are packaged in
-`D:\HaloQuest\builds\test47-20261010-v1.0.28-test47`. The APK pair was built
+`D:\HaloQuest\builds\test47-20261010-v1.0.28-test47-final`. The APK pair was built
 from runtime commit `9d62e1a0`; the manifest records the runtime-source and
 source-documentation commits separately. Public v1.0.18 remains published.
 

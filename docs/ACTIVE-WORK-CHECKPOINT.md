@@ -4,7 +4,7 @@
 
 Candidate **1.0.28-test47 / code58** on `test39-interaction-completion`.
 Both APKs and matching source/build ZIPs are packaged for owner testing at
-`D:\HaloQuest\builds\test47-20261010-v1.0.28-test47`; see
+`D:\HaloQuest\builds\test47-20261010-v1.0.28-test47-final`; see
 [TEST47-DELIVERY-STATUS.md](TEST47-DELIVERY-STATUS.md) for hashes and checks.
 The full regression suite passed in standalone, VR and flat build workflows.
 No device acceptance is recorded yet; preserve Test46/Test45, Test44 and older
