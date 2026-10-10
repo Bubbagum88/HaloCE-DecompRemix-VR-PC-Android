@@ -202,17 +202,21 @@ boundary.
 
 ## OpenCE, network and image compatibility
 
-The engine base remains OpenCE Build157 / network24. Selected fixes reviewed
-against official OpenCE Build167 are included; Build167 does not change the
-network protocol. The launcher offers client targets 11-24 or All compatible,
-while hosting stays on 24. The official Build167 teamplay settings overlay now
-defines the host controls for voice routing, lobby voice, bitrate and
-proximity. This menu asset alone does not establish working microphone capture,
-network transport or playback. Selected voice-chat runtime is integrated as
-described above, but per-player mute, votekick, the upstream co-op setup UI, and
-Build165-166 renderer/camera/animation changes are not included or verified.
-The Test42 audit linked in the repo is a historical snapshot and is
-superseded for voice integration by the Test46 notes and voice-chat record.
+The engine base remains OpenCE Build157 / network24. This is a selective
+integration through official Build177, **not** a full Build177 engine rebase;
+network24 and the launcher's network selector stay unchanged. The candidate
+includes the compatible Custom Edition tag guard, Android cleanup, large
+co-op respawn selection, pagemap-denied ART-memory fallback and exact-match
+reticle artwork. Build175's old-kernel fixed-map safeguard was already present
+and is retained. Build174's high-resolution button rendering was reviewed but
+not merged because its upstream renderer/asset patch conflicts with the
+customized Android and VR menu paths. The exact scope and test limits are in
+[the Build177 integration audit](TEST47-OPENCE177-INTEGRATION.md).
+
+Build167 voice chat remains integrated as described above, without changing
+network24. The launcher offers client targets 11-24 or All compatible, while
+hosting stays on 24. Selected assets do not establish device-level voice,
+server, map-revision or co-op compatibility; see the device checklist.
 
 The supplied USA Original, Rev 1 and Rev 2 XISOs all import successfully and
 their 24 map files are byte-identical. Original remains the recommended

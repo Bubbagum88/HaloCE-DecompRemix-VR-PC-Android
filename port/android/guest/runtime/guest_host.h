@@ -79,6 +79,7 @@ int host_sdl_show_simple_message_box(unsigned int flags, const char *title, cons
 int host_sdl_get_gamepads(unsigned int *ids, int capacity);
 unsigned int host_sdl_open_gamepad(unsigned int id);
 unsigned int host_sdl_gamepad_from_id(unsigned int id);
+void host_sdl_close_gamepad(unsigned int gamepad);
 int host_sdl_gamepad_axis(unsigned int gamepad, int axis);
 int host_sdl_gamepad_button(unsigned int gamepad, int button);
 int host_sdl_gamepad_type(unsigned int gamepad);

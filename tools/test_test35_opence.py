@@ -28,11 +28,14 @@ gradle = read("port/android/app/build.gradle")
 assert "versionCode Math.max(58, buildNumber)" in gradle
 frame = read("port/linux/src/vr_frame.c")
 assert "HaloCE Quest test47 candidate 1.0.28-test47 code58" in frame
-assert "OpenCE Build 157 base / network 24; selected Build167 compatibility fixes" in frame
+assert ("OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176" in frame or
+        "OpenCE Build 157 base / network 24; selected Build167 compatibility fixes" in frame)
 updater = read('port/android/app/src/main/java/com/halo/decomp/Updater.java')
-assert 'Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167' in updater
+assert ('Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177' in updater or
+        'Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167' in updater)
 package_script = read("tools/package-quest.py")
-assert 'b"Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167"' in package_script
+assert ('b"Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177' in package_script or
+        'b"Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167"' in package_script)
 assert 'if candidate_at_least(args.label, 42) else' in package_script
 assert 'archive.read("assets/guide/player-guide.txt")).lower()' in package_script
 assert 'b"export or import a versioned layout"' in package_script

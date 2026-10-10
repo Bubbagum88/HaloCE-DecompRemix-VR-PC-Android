@@ -4,10 +4,13 @@
 
 Candidate target is **1.0.28-test47 / Android code58** on
 `test39-interaction-completion`. It carries forward Test46/Test45 and all
-recorded work since public v1.0.18. The complete requirement disposition and
-evidence are tracked in
+recorded work since public v1.0.18. Its engine base is OpenCE Build157/network24
+with selected compatible changes through Build177; this is not a full Build177
+engine rebase and network24 is unchanged. The complete requirement disposition
+and evidence are tracked in
 [TEST47-REQUIREMENT-DISPOSITION.md](TEST47-REQUIREMENT-DISPOSITION.md);
-source/test status is separated from headset acceptance.
+the upstream scope is in [TEST47-OPENCE177-INTEGRATION.md](TEST47-OPENCE177-INTEGRATION.md).
+Source/test status is separated from headset acceptance.
 
 The priority arm solver fix preserves authored bone lengths and clamps wrist
 reach. Compared with the public v1.0.18 tag, this deliberately removes its

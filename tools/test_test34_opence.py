@@ -68,7 +68,8 @@ assert "scope_path_log(5, zoom_level, shape)" in scope_window
 assert "state == previous_state" in scope_path_log
 assert "hold the off-hand index trigger" in scope_path_log
 package_gate = read("tools/package-quest.py")
-assert 'current_upstream_markers = ([b"OpenCE Build 157 base / network 24"' in package_gate
+assert ('current_upstream_markers = ([b"OpenCE Build157 base / network24"' in package_gate or
+        'current_upstream_markers = ([b"OpenCE Build 157 base / network 24"' in package_gate)
 assert 'b"scope render path %s"' in package_gate
 assert 'b"left trigger for right-handed play"' in package_gate
 

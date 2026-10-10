@@ -2,7 +2,9 @@
 
 Candidate target: **1.0.28-test47 / Android version code58**, branch
 `test39-interaction-completion`, based on OpenCE Build157/network24 with the
-selected Build167 compatibility and voice changes carried forward. Public
+selected Build167 and Build169-177 changes documented in
+[TEST47-OPENCE177-INTEGRATION.md](TEST47-OPENCE177-INTEGRATION.md). This is
+not a full Build177 engine rebase, and network24 is unchanged. Public
 v1.0.18 and all older candidates remain unchanged. This is a private test
 delivery only; do not publish, install, or launch it.
 
@@ -40,15 +42,24 @@ delivery only; do not publish, install, or launch it.
   vehicle-lift, NPC recovery, voice, Android control, launcher, revision,
   network/co-op, Safe Geometry and VR features remain carried forward as
   itemized in [TEST47-REQUIREMENT-DISPOSITION.md](TEST47-REQUIREMENT-DISPOSITION.md).
+- The candidate includes the selected OpenCE Build177 weapon reticle artwork
+  plus compatible upstream tag, co-op respawn, Android cleanup and memory
+  fallback changes. Build174's UI rendering patch was not applied because its
+  renderer/asset changes conflict with customized menu paths; see the upstream
+  integration audit.
 
 ## Verification state
 
-Focused host checks currently pass for manual reload transaction/input math,
-local multiplayer-map spawn classification and start selection, arm reach
-math under AddressSanitizer/UndefinedBehaviorSanitizer, the Test46 cumulative
-candidate guards, and pending weapon-release recovery. The full Quest regression
-suite, clean VR and flat builds, signing checks, and final package verification
-remain to be completed before artifacts are recorded below.
+Focused host checks pass for manual reload transaction/input math, local
+multiplayer-map spawn classification and start selection, arm reach math under
+AddressSanitizer/UndefinedBehaviorSanitizer, the Test46 cumulative candidate
+guards, pending weapon-release recovery, Build177 asset integration, and the
+deterministic pagemap-denied memory fallback harness. The complete Quest
+regression suite passes with no failed suites. The WSL container denies pagemap
+and does not implement `mincore`; the host harness tests fallback decisions
+through a deterministic mincore shim, so Quest-device fallback acceptance
+remains pending. Clean VR and flat builds, signing checks, and final package
+verification remain to be completed before artifacts are recorded below.
 
 | Artifact | Version/package | SHA-256 | Result |
 |---|---|---|---|

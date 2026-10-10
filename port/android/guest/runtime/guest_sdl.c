@@ -192,6 +192,11 @@ SDL_Gamepad *SDL_GetGamepadFromID(SDL_JoystickID id)
 	return (SDL_Gamepad *)host_sdl_gamepad_from_id(id);
 }
 
+void SDL_CloseGamepad(SDL_Gamepad *gamepad)
+{
+	host_sdl_close_gamepad((unsigned int)gamepad);
+}
+
 Sint16 SDL_GetGamepadAxis(SDL_Gamepad *gamepad, SDL_GamepadAxis axis)
 {
 	return (Sint16)host_sdl_gamepad_axis((unsigned int)gamepad, (int)axis);

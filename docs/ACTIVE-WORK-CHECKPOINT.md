@@ -4,9 +4,13 @@
 
 Candidate **1.0.28-test47 / code58** on `test39-interaction-completion`.
 Preserve Test46/Test45, Test44 and older APK/source artifacts; public v1.0.18
-remains unchanged. Read
+remains unchanged. Runtime base is OpenCE Build157/network24 with selected
+compatible changes through Build177; the engine is not a full Build177 rebase
+and the network protocol is unchanged. Read
 [TEST47-REQUIREMENT-DISPOSITION.md](TEST47-REQUIREMENT-DISPOSITION.md) for the
-cumulative scope, evidence and device-acceptance boundary.
+cumulative scope, evidence and device-acceptance boundary, and
+[TEST47-OPENCE177-INTEGRATION.md](TEST47-OPENCE177-INTEGRATION.md) for the
+upstream integration decisions.
 
 Test47's immediate corrections are: arm IK preserves authored bone lengths
 and clamps wrist reach; manual reload reads the mapped Quest USE/RELOAD action
@@ -78,7 +82,7 @@ Resume requirements:
 - Current source work implements client targets 0 (all compatible 11-24) or exact 11-24, with native discovery/admission gates; hosting and signed advertisements stay 24. Versions 11-22 are original Xbox-map PvP only; campaign/CE require 23 or 24. The earlier 23/24 host-profile and PC vehicle-guard plan is superseded. Final source is on local branch test37-network-browser; both APKs compiled and all62 suites have passing results. See TEST37-DELIVERY.md. This is not device acceptance.
 - Compare actual original/Rev1/Rev2 images once supplied: import detection, map/revision differences and reproducible compatibility failures. ISO revision is separate from network protocol. Do not claim universal ISO or network compatibility from source review alone.
 - Preserve working VR/mobile behavior, saves, original signing identity, prior APKs and public releases. No speculative fixes or unsupported selectable profiles. Explicitly report any remaining evidence/testing gap.
-- Latest verified upstream is OpenCE Build157 / 73dc01d / default network24. v1.0.18 is now public; Test36 and v1.0.16 assets remain preserved. Test37 private-candidate hashes and packaging gates are recorded in TEST37-DELIVERY.md; stable hashes are in RELEASE-PROVENANCE-1.0.18.md.
+- **Historical Test37 upstream check:** OpenCE Build157 / 73dc01d / network24 was latest at that time. Test47's current latest-upstream review is Build177; see `TEST47-OPENCE177-INTEGRATION.md`. v1.0.18 remains public; Test36 and v1.0.16 assets remain preserved. Test37 private-candidate hashes and packaging gates are recorded in TEST37-DELIVERY.md; stable hashes are in RELEASE-PROVENANCE-1.0.18.md.
 - Local WSL Ubuntu has clang/JDK/Android SDK and the existing debug keystore. Run checks in WSL, not Windows Python (which lacks clang/javac on PATH). Historical version tests were adjusted to accept private candidate suffixes. Final checks cover native admission and post-join lobby changes, Java persistence/counts and full launcher compilation; see the delivery record for the corrected test extractor and validation limits.
 - Relevant implementation files: NetworkProfile.java, ServerBrowser.java, native halo_port_active_network_version implementation/guards, tools/test_test37_launcher.py and tools/test_test37_network_profiles.py. Read git diff and both agents' findings before continuing. Read-only ChupathingyCE audit downloads are under ignored build/chupa-audit.
 

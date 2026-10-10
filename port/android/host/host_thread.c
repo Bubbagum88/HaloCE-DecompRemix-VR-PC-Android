@@ -131,6 +131,10 @@ static void *thread_main(void *context)
 	free(context);
 	host_debug_thread_started();
 	start.function(start.argument);
+	/* Host-owned threads may have attached a guest pthread while calling
+	 * into the image (for example the Android audio mixer). */
+	if (guest_tp && host_image.header->thread_detach)
+		((guest_function)(uintptr_t)host_image.header->thread_detach)(0, 0, 0, 0);
 	host_debug_thread_exited();
 	guest_tp = 0;
 

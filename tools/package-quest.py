@@ -88,7 +88,7 @@ VR_BUILD_IDENTITIES = {
     b"vr: HaloCE Quest test43 candidate 1.0.24-test43 code54 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; game-data set selection and safe deletion; all v1.0.18+ Test38-42 features retained; device acceptance pending)",
     b"vr: HaloCE Quest test45 candidate 1.0.26-test45 code56 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; touch-then-Grip NPC/enemy/ally contacts; held NPC grip persists through ordinary movement and bounded tracking rebases; release-reason diagnostics; prior launcher, calibration, reload, climbing, VR and Android work retained; device acceptance pending)",
     b"vr: HaloCE Quest test46 candidate 1.0.27-test46 code57 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes and host-relayed voice; contact-driven NPC/ally interaction; bounded vehicle lifting; persistent same-map magazine visuals; prior launcher, calibration, reload, climbing, VR and Android work retained; device acceptance pending)",
-    b"vr: HaloCE Quest test47 candidate 1.0.28-test47 code58 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes and host-relayed voice; fixed-length arm IK clamps wrist reach instead of v1.0.18 stretch/compression; solo corpse retention 75/45 with stock multiplayer thresholds; corrected NPC contact target; magazine pickup follows free hand; solo multiplayer-map spawn fallback; interaction recovery and refused-drop diagnostics; prior launcher, calibration, reload, climbing, VR and Android work retained; device acceptance pending)"
+    b"vr: HaloCE Quest test47 candidate 1.0.28-test47 code58 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; voice chat; fixed-length arm IK, solo corpse retention, manual reload input and local multiplayer-map spawn; prior launcher, calibration, climbing, interactions, VR and Android work retained; device acceptance pending)"
 }
 
 
@@ -319,7 +319,9 @@ def main():
                     raise SystemExit("Test30 VR identity missing")
             if candidate_at_least(args.label, 29):
                 # OpenCE build 144's network 21, and the held HUD tap's and PR #1's text
-                expected_upstream = (b"Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167"
+                expected_upstream = (b"Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177 are included; Build175's old-kernel mapping guard is retained. This is not a full Build177 rebase, and network24 is unchanged. Build174's high-resolution button rendering is not integrated because its upstream renderer/asset patch conflicts with this port's customized UI."
+                                     if candidate_at_least(args.label, 47) else
+                                     b"Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167"
                                      if candidate_at_least(args.label, 42) else
                                      b"OpenCE build 157 (network 24)" if candidate_at_least(args.label, 36) else
                                      b"OpenCE build 148 (network 23)" if candidate_at_least(args.label, 34) else
@@ -353,8 +355,8 @@ def main():
                     raise SystemExit("Test33 VR candidate identity marker missing")
             if candidate_at_least(args.label, 34):
                 if vr:
-                    current_upstream_markers = ([b"OpenCE Build 157 base / network 24", b"selected Build167 compatibility fixes and host-relayed voice",
-                                                 b"test47 candidate 1.0.28-test47 code58"]
+                    current_upstream_markers = ([b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
+                                                 b"not a full Build177 rebase", b"test47 candidate 1.0.28-test47 code58"]
                         if candidate_at_least(args.label, 47) else
                         [b"OpenCE Build 157 base / network 24", b"selected Build167 compatibility fixes and host-relayed voice",
                                                  b"test46 candidate 1.0.27-test46 code57"]
@@ -724,7 +726,7 @@ def main():
     base_label = re.sub(r"[a-z]$", "", args.label)
     if not args.stable and base_label != args.label:
         edition_docs += [base_label.upper()+"-DELIVERY.md", base_label.upper()+"-PROGRESS.md"]
-    active_candidate_docs = (["TEST47-DELIVERY-STATUS.md", "TEST47-PLAYER-NOTES.md", "TEST47-REQUIREMENT-DISPOSITION.md"]
+    active_candidate_docs = (["TEST47-DELIVERY-STATUS.md", "TEST47-PLAYER-NOTES.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
                              if candidate_at_least(args.label, 47) else
                              ["TEST46-DELIVERY-STATUS.md", "TEST46-PLAYER-NOTES.md", "TEST46-REQUIREMENT-DISPOSITION.md"]
                              if candidate_at_least(args.label, 46) else
@@ -764,7 +766,7 @@ def main():
     if candidate_at_least(args.label, 39) and not args.stable:
         documents += ["TEST39-DEVICE-CHECKLIST.md", "TEST39-REQUIREMENT-DISPOSITION.md"]
     if candidate_at_least(args.label, 47) and not args.stable:
-        documents += ["TEST47-DEVICE-CHECKLIST.md", "TEST46-DEVICE-CHECKLIST.md", "TEST46-VOICE-CHAT.md", "TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md", "TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
+        documents += ["TEST47-DEVICE-CHECKLIST.md", "TEST47-OPENCE177-INTEGRATION.md", "TEST46-DEVICE-CHECKLIST.md", "TEST46-VOICE-CHAT.md", "TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md", "TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
     elif candidate_at_least(args.label, 46) and not args.stable:
         documents += ["TEST46-DEVICE-CHECKLIST.md", "TEST46-VOICE-CHAT.md", "TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md", "TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
     elif candidate_at_least(args.label, 45) and not args.stable:

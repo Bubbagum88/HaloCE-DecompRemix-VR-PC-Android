@@ -94,7 +94,9 @@ for path, digest in (UPSTREAM_144 if network < 23 else []):
 expected_upstream = ('OpenCE build 144 (network 21)' if network == 21 else
                      'OpenCE build 145 (network 22)' if network == 22 else
                      'OpenCE build 148 (network 23)' if network == 23 else
-                     'Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167')
+                     ('Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177 are included; Build175\'s old-kernel mapping guard is retained. This is not a full Build177 rebase, and network24 is unchanged.'
+                      if 'Build177' in updater else
+                      'Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167'))
 assert expected_upstream in updater
 if network < 23:
     print('PASS: exact current network gate; %d co-op, lobby and message files are OpenCE build 144\'s byte for byte '
