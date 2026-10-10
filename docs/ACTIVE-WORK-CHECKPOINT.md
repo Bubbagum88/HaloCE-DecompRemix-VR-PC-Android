@@ -1,21 +1,32 @@
 ## Current release checkpoint — v1.0.18 (2026-10-08)
 
-## Active private Test49 candidate (2026-10-10)
+## Active private Test50 candidate (2026-10-10)
 
-Candidate target **1.0.30-test49 / code60** on `test39-interaction-completion`.
-It carries Test48's signed-datum weapon release/drop/holster fix and restores
-surface-contact haptics to the v1.0.18 real-contact and arm-ownership gates.
-Weapon recoil mapping and values are unchanged from v1.0.18. The supplied
-Test48 Quest log confirms the OpenXR haptic action and runtime accepted output;
-it does not record individual vibration sources. Test49 also logs emitted
-melee/switch action bits to distinguish the reported animation concern. See
-[TEST49-REGRESSION-AUDIT.md](TEST49-REGRESSION-AUDIT.md).
+Candidate target **1.0.31-test50 / code61** on `test39-interaction-completion`.
+It carries Test49's contact-gated haptics and Test48's weapon release/drop/
+holster fix. The user asked to verify voice chat from a Test49 Quest log and add
+an optional sprint toggle. The log confirms mic open/close with no recorded
+permission/device error, but Test49 did not log host settings or voice packet
+and decode events, so it cannot prove remote voice playback. Test50 adds
+diagnostics only; voice routing/capture defaults are unchanged. Sprint Toggle
+is selectable in VR Settings → Locomotion and defaults to Hold. Latest official
+OpenCE is still Build177; its reticle artwork was already integrated. The
+engine base remains Build157/network24 with selected fixes through Build177.
+The supplied Ghost and Scorpion firing logs showed 2.28°/2.61° separation
+between reticle and final shot. Test50 keeps the reticle on the selected muzzle
+ray and bypasses game-camera aim assist for the local VR driver/gunner shot;
+this avoids target snapping and aligns the shot center with the sight. On-foot,
+passenger, remote-player and flat Android aim assist stay unchanged. The mount
+diagnostic reports seat role and reticle error against both pre-assist aim and
+final projectile direction.
+See [TEST50-VOICE-DIAGNOSTICS.md](TEST50-VOICE-DIAGNOSTICS.md) and
+[TEST50-PLAYER-NOTES.md](TEST50-PLAYER-NOTES.md).
 
 Build and package status will be recorded in
-[TEST49-DELIVERY-STATUS.md](TEST49-DELIVERY-STATUS.md). Preserve all prior
+[TEST50-DELIVERY-STATUS.md](TEST50-DELIVERY-STATUS.md). Preserve all prior
 artifacts and public v1.0.18. Do not publish, install or launch. Quest/Android
 runtime acceptance remains pending; use
-[TEST49-DEVICE-CHECKLIST.md](TEST49-DEVICE-CHECKLIST.md). PC/Steam Frame remains
+[TEST50-DEVICE-CHECKLIST.md](TEST50-DEVICE-CHECKLIST.md). PC/Steam Frame remains
 deferred.
 
 ## Superseded private Test48 candidate (2026-10-10)

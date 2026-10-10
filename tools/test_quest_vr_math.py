@@ -41,6 +41,7 @@ prelude = r'''
 #include "vr_holster_math.h"
 #include "vr_hand_pending_math.h"
 #include "vr_weapon_release_latch.h"
+#include "vr_sprint_melee_math.h"
 typedef float real;
 typedef int boolean;
 #define TRUE 1
@@ -84,6 +85,31 @@ static float determinant(real r[3][3]) {
 }
 static float distance(real_point3d a,real_point3d b) { real_vector3d d;vr_point_minus(&a,&b,&d);return vr_length(&d); }
 int main(void) {
+ /* Hold mode preserves the existing press behavior; toggle mode changes only
+  * on a fresh left-click and clears on the recenter chord or ineligible state. */
+ {int latched=0,was_pressed=0;
+  assert(!vr_button_sprint_input_mode(1,0,0,0,1,1,0,&latched,&was_pressed));
+  assert(vr_button_sprint_input_mode(1,0,1,0,1,1,0,&latched,&was_pressed));
+  assert(!vr_button_sprint_input_mode(1,0,0,0,1,1,0,&latched,&was_pressed));
+  assert(vr_button_sprint_input_mode(1,1,1,0,1,1,0,&latched,&was_pressed));
+  assert(vr_button_sprint_input_mode(1,1,1,0,1,1,0,&latched,&was_pressed)); /* held does not retoggle */
+  assert(vr_button_sprint_input_mode(1,1,0,0,1,1,0,&latched,&was_pressed)); /* release leaves toggle on */
+  assert(!vr_button_sprint_input_mode(1,1,1,1,1,1,0,&latched,&was_pressed)); /* recenter stops */
+  assert(!vr_button_sprint_input_mode(1,1,0,0,1,1,0,&latched,&was_pressed));
+  assert(vr_button_sprint_input_mode(1,1,1,0,1,1,0,&latched,&was_pressed));
+  assert(!vr_button_sprint_input_mode(1,1,1,0,1,0,0,&latched,&was_pressed)); /* VR tracking ineligible clears */
+  assert(!vr_button_sprint_input_mode(1,1,1,0,1,1,0,&latched,&was_pressed)); /* held through ineligible is not a new press */
+  assert(!vr_button_sprint_input_mode(1,1,0,0,1,1,0,&latched,&was_pressed));
+  assert(vr_button_sprint_input_mode(1,1,1,0,1,1,0,&latched,&was_pressed));
+  assert(!vr_button_sprint_input_mode(0,1,0,0,1,1,0,&latched,&was_pressed));
+  assert(!latched);
+  assert(!vr_button_sprint_input_mode(1,1,0,0,0,1,0,&latched,&was_pressed)); /* focus loss */
+  assert(!vr_button_sprint_input_mode(1,1,0,0,1,1,1,&latched,&was_pressed)); /* seated */
+  assert(vr_button_sprint_input_mode(1,1,1,0,1,1,0,&latched,&was_pressed));
+  assert(vr_button_sprint_input_mode(1,1,0,0,1,1,0,&latched,&was_pressed));
+  assert(!vr_button_sprint_input_mode(1,1,1,0,1,1,0,&latched,&was_pressed)); /* second click stops */
+  assert(!vr_button_sprint_input_mode(1,1,1,0,1,1,0,NULL,&was_pressed));
+  printf("PASS: sprint hold/toggle edges, recenter, focus, VR eligibility and seated guards\n");}
  real_vector3d directions[]={{1,0,0},{-1,0,0},{0,1,0},{0,0,1},{.3f,-.4f,.5f},{.00001f,-1,0}};
  for(int a=0;a<6;a++)for(int b=0;b<6;b++) {
   real r[3][3];real_vector3d u=directions[a],v=directions[b],out;

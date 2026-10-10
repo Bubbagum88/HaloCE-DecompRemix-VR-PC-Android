@@ -262,6 +262,7 @@ static struct vr_menu_setting const vr_menu_body[] =
 static struct vr_menu_setting const vr_menu_locomotion[] =
 {
 	{ "BUTTON SPRINT", "vr.button_sprint", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	{ "SPRINT TOGGLE", "vr.button_sprint_toggle", _vr_setting_boolean, 2, { { "HOLD", "false" }, { "TOGGLE", "true" } } },
 	{ "ARM RUN", "vr.arm_run", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "ARM EFFORT", "vr.arm_run_speed", _vr_setting_real, 6, { { "0.3 M/S", "0.3" }, { "0.45", "0.45" }, { "0.6", "0.6" }, { "0.8", "0.8" }, { "1.0", "1.0" }, { "1.2", "1.2" } } },
 	{ "SPRINT SPEED", "vr.sprint_speed", _vr_setting_real, 6, { { "1.0X", "1.0" }, { "1.1X", "1.1" }, { "1.2X", "1.2" }, { "1.3X", "1.3" }, { "1.4X", "1.4" }, { "1.5X", "1.5" } } },

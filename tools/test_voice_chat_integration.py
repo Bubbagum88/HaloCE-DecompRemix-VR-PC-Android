@@ -41,6 +41,7 @@ for marker in ("VOICE_AUDIO_MICROPHONE_DEVICE_FAILURE = -2",
                "VOICE_AUDIO_MICROPHONE_READY = 1"):
     assert marker in audio_header
 audio = read("port/linux/src/voice_audio.c")
+audio_header = read("port/linux/src/voice_audio.h")
 assert "platform_audio_device(TRUE, microphone_opening_device)" in audio
 open_thread = audio.split("static void *microphone_open_thread", 1)[1].split("static BOOL voice_testing", 1)[0]
 mic_control = audio.split("int voice_audio_microphone(int open)", 1)[1].split("int voice_audio_read_frame", 1)[0]
@@ -91,8 +92,10 @@ assert "voice_microphone_permission_denied = FALSE;" in voice_update
 # errors retry after ten seconds without re-requesting permission.
 assert "else if (voice_microphone_permission_denied)\n\t\tvoice_microphone_wanted = FALSE;" in voice_update
 mix = audio.split("void voice_audio_mix(float *output", 1)[1]
-encode = audio.split("int voice_audio_encode(", 1)[1].split("void voice_audio_play(", 1)[0]
+encode = audio.split("int voice_audio_encode(", 1)[1].split("int voice_audio_play(", 1)[0]
 assert "voice_volume" in mix and "voice_volume" not in encode
+assert "int voice_audio_play(" in audio_header
+assert "return total;" in audio.split("int voice_audio_play(", 1)[1].split("void voice_audio_forget(", 1)[0]
 server_manager = read("source/networking/network_server_manager.c")
 assert "network_voice_machine_joined(machine_index);" in server_manager
 
@@ -103,6 +106,10 @@ for marker in ("_distributed_message_voice_up = 80", "_distributed_message_voice
 assert "VOICE_WIRE_MAXIMUM_PACKET = 255" in network_voice
 assert "MIN(limit, MIN(VOICE_MAXIMUM_PACKET, VOICE_WIRE_MAXIMUM_PACKET))" in network_voice
 assert "(byte)length" in network_voice
+for marker in ("host configuration received", "first local Opus frame encoded",
+               "first incoming frame from machine", "Opus-decoded frames",
+               "host has not sent voice settings"):
+    assert marker in network_voice, marker
 
 vr_header = read("port/linux/src/vr.h")
 vr_frame = read("port/linux/src/vr_frame.c")
@@ -139,7 +146,7 @@ assert "per-player mute controls are not wired" in notes
 assert "not a claim of complete upstream" in notes
 assert "no dedicated hold-to-talk touch button" in notes
 package = read("tools/package-quest.py")
-assert "required_candidate_code = 59 if candidate_at_least(args.label, 48) else 58 if candidate_at_least(args.label, 47)" in package
+assert "required_candidate_code = 61 if candidate_at_least(args.label, 50) else 60 if candidate_at_least(args.label, 49) else 59 if candidate_at_least(args.label, 48)" in package
 assert '"dump", "permissions"' in package and "android.permission.RECORD_AUDIO" in package
 assert "OpenCE Build167 voice-chat runtime marker missing from APK" in package
 assert "OpenCE Build167 voice-chat player-guide marker missing from APK" in package

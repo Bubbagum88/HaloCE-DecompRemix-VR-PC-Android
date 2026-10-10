@@ -1,21 +1,30 @@
 # Current development state
 
-## Active private candidate: Test49 (2026-10-10)
+## Active private candidate: Test50 (2026-10-10)
 
-Candidate target is **1.0.30-test49 / Android code60** on
-`test39-interaction-completion`. It retains Test48's signed-datum weapon
-release/drop/holster fix. Test49 restores surface haptics to v1.0.18's actual
-hand-contact and arm-animation ownership gate; weapon-fire haptic functions
-are byte-for-byte identical to the public release. It adds logs distinguishing
-melee and weapon-switch actions. The supplied log shows successful OpenXR
-output setup and holster switch events, but no emitted melee action. The audit
-and limits are in [TEST49-REGRESSION-AUDIT.md](TEST49-REGRESSION-AUDIT.md).
+Candidate target is **1.0.31-test50 / Android code61** on
+`test39-interaction-completion`. It carries Test49's v1.0.18 contact-haptic
+gates and Test48's signed-datum weapon release/drop/holster fix. New work adds
+an optional left-stick sprint toggle (Hold remains default) and low-rate voice
+diagnostics for host settings, encoded/relayed packets and Opus decode. The
+supplied Test49 log proves the microphone opened and the audio device ran, but
+does not establish that speech was transmitted or received. No voice-routing
+behavior was changed; see [TEST50-VOICE-DIAGNOSTICS.md](TEST50-VOICE-DIAGNOSTICS.md).
+The Ghost/Scorpion shots in that log show the mounted reticle 2.28°/2.61° from
+the final projectile direction. Test50 keeps mounted reticles on the selected
+muzzle ray and bypasses game-camera aim assist for the local VR driver/gunner
+shot, correcting that mismatch without reintroducing target snapping. On-foot,
+passenger, remote-player and flat Android aim-assist paths remain unchanged. See
+[TEST50-PLAYER-NOTES.md](TEST50-PLAYER-NOTES.md).
 
-Package status and checksums will be recorded in
-[TEST49-DELIVERY-STATUS.md](TEST49-DELIVERY-STATUS.md). Preserve Test48 and all
-older artifacts; keep public v1.0.18 unchanged. Do not publish, install or
-launch. Device acceptance is pending; see
-[TEST49-DEVICE-CHECKLIST.md](TEST49-DEVICE-CHECKLIST.md). PC/Steam Frame remains
+OpenCE Build177 is still the latest official release checked on 2026-10-10;
+its reticle artwork integration was already present. Test50 remains based on
+Build157/network24 with selected compatible fixes through Build177, not a full
+Build177 rebase. Preserve Test49 and all older artifacts; keep public v1.0.18
+unchanged. Build/package status and checksums will be recorded in
+[TEST50-DELIVERY-STATUS.md](TEST50-DELIVERY-STATUS.md). Do not publish, install
+or launch. Device acceptance is pending; see
+[TEST50-DEVICE-CHECKLIST.md](TEST50-DEVICE-CHECKLIST.md). PC/Steam Frame remains
 deferred.
 
 ## Superseded private candidate: Test48 (2026-10-10)

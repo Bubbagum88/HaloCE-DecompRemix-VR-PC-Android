@@ -54,15 +54,21 @@ static struct {
 static struct {struct {int seated,driver,gunner;long unit_index,vehicle_index;short seat_index;float offset,heading;}seat;}vr_render;
 static struct {int valid;}pool={1},*object_header_data=&pool;
 struct unit_datum {long definition_index;struct {long parent_object_index;real_vector3d forward;}object;struct {short parent_seat_index;}unit;};
+struct player_datum {long unit_index;};static struct player_datum local_player={100};
 struct unit_seat {unsigned long flags;};
 static struct unit_seat seats[3]={{1},{0},{2}};
 struct unit_definition {struct {struct {int count;struct unit_seat *address;}seats;}unit;};
 static struct unit_definition definition={{{3,seats}}};
 static struct unit_datum unit={1,{200,{1,0,0}},{1}},vehicle={2,{-1,{1,0,0}},{-1}};
 static long unit_id=100,vehicle_id=200;
+static long current_player_id=100;
 static int lookups,requests,logs,generation;
 static const char *turret="right",*steering="right";
 static int vr_settings_generation(void){return generation;}
+static int vr_active(void){return vr.active;}
+static short local_player_get_next(long ignored){(void)ignored;return 0;}
+static long local_player_get_player_index(short local){assert(local==0);return current_player_id;}
+static struct player_datum *player_get(long id){assert(id==current_player_id);return &local_player;}
 static const char *config_string(const char *key){if(!strcmp(key,"vr.turret_aim"))return turret;assert(!strcmp(key,"vr.vehicle_steering"));return steering;}
 static struct unit_datum *unit_try_and_get(long id){assert(object_header_data&&object_header_data->valid);lookups++;return id==unit_id?&unit:id==vehicle_id?&vehicle:NULL;}
 static struct unit_definition *unit_definition_get(long id){assert(id==2);return &definition;}
@@ -91,11 +97,12 @@ static void aim_diagnostics(float g,int s,int h,const float *b,float p){(void)g;
 void vr_room_hold(void);
 '''
     code+=''.join(fn(frame,n) for n in ['rotate','to_halo','wrap_angle','head_forward','vehicle_recentered','vr_vehicle_seat','head_offset','view','vr_eye_view','vr_room_hold','vr_room_step','vr_aim'])
-    code+=''.join(fn(render,n) for n in ['vr_vehicle_steering','vr_turret_aim','vr_vehicle_aim_source','vr_yaw','vr_update_seat','vr_render_reset_vehicle_view'])
+    code+=''.join(fn(render,n) for n in ['vr_vehicle_steering','vr_turret_aim','vr_vehicle_aim_source','vr_render_mounted_direct_fire','vr_yaw','vr_update_seat','vr_render_reset_vehicle_view'])
     code+=r'''
 static void near(float a,float b){assert(fabsf(a-b)<.00001f);}
 static void reset(void){
  memset(&vr,0,sizeof(vr));memset(&vr_render,0,sizeof(vr_render));
+ local_player.unit_index=unit_id;current_player_id=100;
  vr.active=vr.stereo=vr.stereo_enabled=vr.heading_valid=vr.hand_aim=1;vr.units_per_metre=1;vr.frame.flags=7;
  vr.frame.head.orientation[3]=vr.frame.eye[0].orientation[3]=vr.frame.eye[1].orientation[3]=1;
  vr.frame.aim[0].orientation[1]=sinf(.4f);vr.frame.aim[0].orientation[3]=cosf(.4f);vr.frame.aim[1].orientation[3]=1;
@@ -139,14 +146,17 @@ int main(void){
  vr_update_seat(100);vr_render_reset_vehicle_view();assert(requests==2);runtime_recenter();assert(!vr.vehicle_seat.origin_valid&&!vr.vehicle_seat.recentre_pending);
  /* Entry/seat transfer/deleted or salted handles/map reset: exactly one request per transition. */
  unit.object.parent_object_index=200;unit.unit.parent_seat_index=0;vr_update_seat(100);assert(requests==3&&vr_render.seat.driver);
+ assert(vr_render_mounted_direct_fire(100));assert(!vr_render_mounted_direct_fire(101)); /* only local driver's shots */
  unit.unit.parent_seat_index=2;vr_update_seat(100);assert(requests==4&&vr_render.seat.gunner&&vr.recentre_source==5);
+ assert(vr_render_mounted_direct_fire(100)); /* gunner uses same direct reticle alignment */
  unit_id=100+65536;vr_update_seat(unit_id);assert(requests==5&&vr_render.seat.unit_index==unit_id);
- unit.unit.parent_seat_index=99;vr_update_seat(unit_id);assert(requests==6&&!vr.seated);vr_update_seat(unit_id);assert(requests==6);
+ unit.unit.parent_seat_index=99;vr_update_seat(unit_id);assert(requests==6&&!vr.seated);assert(!vr_render_mounted_direct_fire(100));vr_update_seat(unit_id);assert(requests==6);
  unit.unit.parent_seat_index=1;vr_update_seat(unit_id);assert(requests==7);vehicle_id+=65536;vr_update_seat(unit_id);assert(requests==8&&!vr.seated);
  unit.object.parent_object_index=vehicle_id;vr_update_seat(unit_id);assert(requests==9);vr_render_reset_vehicle_view();vr_render_reset_vehicle_view();assert(requests==10);
  pool.valid=0;lookups=0;vr_update_seat(unit_id);assert(lookups==0&&requests==10);object_header_data=NULL;vr_update_seat(unit_id);assert(lookups==0);
  /* Preserve passenger seat orientation, independently from selected gun controls. */
  reset();unit.object.forward=(real_vector3d){0,1,0};vr_update_seat(100);near(vr_render.seat.offset,1.57079632679f);assert(vr_vehicle_aim_source()==0);
+ assert(!vr_render_mounted_direct_fire(100)); /* passenger retains native assist */
  unit.object.parent_object_index=NONE;vr_update_seat(100);assert(vr_vehicle_aim_source()==1);
  unit.object.parent_object_index=200;unit.unit.parent_seat_index=2;vr_update_seat(100);
  const char *modes[]={"right","left","head","stick","invalid"};int expected[]={2,3,0,-1,2};
@@ -163,7 +173,7 @@ int main(void){
  log_before=logs;assert(vr_vehicle_aim_source()==2);assert(logs==log_before); /* selection logs are transition-only */
  turret="left";generation++;assert(vr_vehicle_aim_source()==3);assert(logs==log_before+1);
  assert(handle_clears>=3);
- puts("PASS: production seat identity + stereo positional/rotational lean, entry/exit/transfer recenters, invalid handles, independent turret source and lost tracking");
+ puts("PASS: production seat identity + stereo lean/recenter, driver and gunner direct-fire gates, passenger/remote fallback, invalid handles, turret source and tracking loss");
 }
 '''
     with tempfile.TemporaryDirectory(prefix='test32-vehicles-') as tmp:

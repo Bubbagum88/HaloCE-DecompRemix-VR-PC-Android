@@ -17,6 +17,32 @@ static inline int vr_button_sprint_input(int enabled, int pressed,
 	return enabled && pressed && !recenter_chord && focused && aiming && !seated;
 }
 
+/* The toggle shares left-stick click with the recenter chord.  It only
+ * changes state on a fresh press while eligible; focus loss, seating,
+ * aiming, disabling sprint, or recentering clears the latch.  Remembering
+ * the press even while ineligible prevents a held button from activating
+ * sprint when the player returns to an eligible state. */
+static inline int vr_button_sprint_input_mode(int enabled, int toggle_mode,
+	int pressed, int recenter_chord, int focused, int aiming, int seated,
+	int *latched, int *was_pressed)
+{
+	int eligible = enabled && focused && aiming && !seated;
+	int rising_edge;
+
+	if (!latched || !was_pressed)
+		return 0;
+	rising_edge = pressed && !*was_pressed;
+	*was_pressed = pressed;
+	if (!eligible || recenter_chord)
+		*latched = 0;
+	else if (toggle_mode && rising_edge)
+		*latched = !*latched;
+	else if (!toggle_mode)
+		*latched = 0;
+	return toggle_mode ? (*latched && eligible && !recenter_chord) :
+		(eligible && pressed && !recenter_chord);
+}
+
 static inline float vr_sprint_effort_combine(float arm_effort, int button_active)
 {
 	if (!isfinite(arm_effort)) arm_effort = 0.0f;

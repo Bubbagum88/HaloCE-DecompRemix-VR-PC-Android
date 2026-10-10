@@ -245,6 +245,26 @@ static int vr_vehicle_aim_source(void)
 	return source;
 }
 
+/* Mounted gunner/driver controls aim from the selected VR hand/head. Native
+ * projectile assist instead converges against the game's spectator camera,
+ * which can turn a shot away from its visible muzzle reticle. The VR-only
+ * firing path uses the selected muzzle ray for these local roles. */
+boolean vr_render_mounted_direct_fire(long player_index)
+{
+	short local = local_player_get_next(NONE);
+	struct player_datum *player;
+	struct unit_datum *unit;
+	if (!vr_active() || local == NONE ||
+		local_player_get_player_index(local) != player_index)
+		return FALSE;
+	if (!vr_render.seat.seated || (!vr_render.seat.driver && !vr_render.seat.gunner))
+		return FALSE;
+	player = player_get(player_index);
+	unit = player ? unit_try_and_get(player->unit_index) : NULL;
+	/* Seat state can be one frame older than a detach/transfer callback. */
+	return unit && unit->object.parent_object_index == vr_render.seat.vehicle_index;
+}
+
 static real vr_yaw(
 	real_vector3d const *forward)
 {
@@ -1625,8 +1645,10 @@ void vr_render_shot_diagnostic(
 	static double logged_time = -1000.0;
 	double now = vr_pose_time();
 	long unit_index;
-	real turned, from_reticle = -1.0f, apart = -1.0f;
+	real turned, from_reticle = -1.0f, reticle_from_aim = -1.0f, apart = -1.0f;
 	int kind = vr_gun_class();
+	char const *mounted_role = !vr_render.seat.seated ? "on foot" :
+		vr_render.seat.driver ? "driver" : vr_render.seat.gunner ? "gunner/turret" : "passenger";
 
 	if (!vr_active() || player_index == NONE || !aimed || !shot)
 		return;
@@ -1643,12 +1665,15 @@ void vr_render_shot_diagnostic(
 			dz = origin->z - vr_render.reticle_origin.z;
 
 		from_reticle = (real)acos(PIN(dot_product3d(&vr_render.reticle_direction, shot), -1.0f, 1.0f)) * 57.2957795f;
+		reticle_from_aim = (real)acos(PIN(dot_product3d(&vr_render.reticle_direction, aimed), -1.0f, 1.0f)) * 57.2957795f;
 		apart = (real)sqrt(dx * dx + dy * dy + dz * dz) / vr_units_per_metre();
 	}
-	platform_log("vr: shot (%s): from the %s; the engine turned it %.2f deg off the aim (its cone);"
-		" reticle %.2f deg and %.2f m from it (-1: no reticle this frame); aim adjustment %s",
-		vr_gun_class_label(kind), from_hand ? "hand" : "game's camera or gun", turned, from_reticle, apart,
-		kind >= 0 ? "per gun (see the holding line)" : "none");
+	platform_log("vr: shot (%s): mounted role %s seat %d; from the %s; the engine turned it %.2f deg off the aim (its cone);"
+		" reticle %.2f deg from shot (%.2f deg from pre-assist aim), %.2f m from shot origin (-1: no reticle this frame); aim path %s",
+		vr_gun_class_label(kind), mounted_role, vr_render.seat.seat_index,
+		from_hand ? "hand" : "game's camera, gun or vehicle muzzle", turned, from_reticle, reticle_from_aim, apart,
+		vr_render_mounted_direct_fire(player_index) ? "selected mounted ray (camera assist bypassed)" :
+			kind >= 0 ? "per gun (see the holding line)" : "native/default");
 }
 
 void vr_render_weapon_fired(

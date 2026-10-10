@@ -1,22 +1,25 @@
 # Agent and contributor continuation
 
-## Active private Test49 candidate (2026-10-10)
+## Active private Test50 candidate (2026-10-10)
 
-Continue on `test39-interaction-completion`; target private `1.0.30-test49`,
-Android code60. Read `docs/TEST49-DELIVERY-STATUS.md`,
-`docs/TEST49-REGRESSION-AUDIT.md`, `docs/TEST49-PLAYER-NOTES.md`, and
-`docs/TEST49-DEVICE-CHECKLIST.md`. Test49 carries Test48's signed-datum fix:
-valid weapon handles can be negative, with only exact `-1` meaning empty.
-The supplied Test48 Quest log confirms OpenXR haptic output setup/acceptance
-but not the source of each pulse. Source comparison found the new independent
-head-to-hand contact sampler repeatedly renewed haptics and could mask weapon
-recoil. Test49 restores the public v1.0.18 direct-contact and arm-ownership
-gate; weapon-fire haptic functions match v1.0.18 byte-for-byte. Melee and
-weapon-switch action bits are distinct; new event logs will separate the
-reported animation concern on retest. Run the full regression suite and both
+Continue on `test39-interaction-completion`; target private `1.0.31-test50`,
+Android code61. Read `docs/TEST50-DELIVERY-STATUS.md`,
+`docs/TEST50-VOICE-DIAGNOSTICS.md`, `docs/TEST50-PLAYER-NOTES.md`, and
+`docs/TEST50-DEVICE-CHECKLIST.md`, plus the preserved Test49 audit. Test50 adds
+an optional left-stick sprint toggle with Hold default and low-rate voice-path
+diagnostics only. The supplied Quest log confirms mic open/close, validated
+Wi-Fi, and an active output device, but it does not show remote voice frames or
+decoded audio. Do not claim voice playback is verified. The latest official
+OpenCE release checked on 2026-10-10 is Build177; its reticle artwork is
+already integrated. A source-backed Test50 fix keeps the reticle on the selected
+muzzle ray and bypasses game-camera aim assist for local VR driver/gunner shots,
+aligning shots with the sight without target snapping. On-foot, passenger,
+remote-player and flat Android aim assist remain unchanged. Runtime remains
+Build157/network24 with selected changes
+through Build177, not a full rebase. Run the complete regression suite and both
 VR/flat builds, then package both APKs plus matching source/build ZIPs. Do not
-publish, install or launch; await owner device acceptance. Preserve prior
-candidates and public v1.0.18. PC/Steam Frame stays deferred.
+publish, install or launch; await owner device acceptance. Preserve Test49 and
+older artifacts and public v1.0.18. PC/Steam Frame stays deferred.
 
 ## Superseded private Test47 candidate (2026-10-09)
 

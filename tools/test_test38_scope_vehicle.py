@@ -1,5 +1,7 @@
-"""Execute actual mounted preview and shot paths: preview excludes target attraction.
-Scope persistence/menu/profile coverage complements test_test22's pose replay.
+"""Execute mounted preview and shot paths for direct reticle alignment.
+VR driver/gunner rounds follow the displayed selected muzzle ray; ordinary
+on-foot shots, passengers, and flat builds retain native aim assist. Scope
+persistence/menu/profile coverage complements test_test22's pose replay.
 """
 from pathlib import Path
 import re, subprocess, tempfile
@@ -14,6 +16,7 @@ code=r'''
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#define HALO_VR 1
 typedef int boolean;typedef float real;typedef struct {float x,y,z;} real_point3d;typedef struct {float i,j,k;} real_vector3d;
 #define NONE -1
 #define TRUE 1
@@ -24,8 +27,10 @@ struct player_datum {long unit_index,team_index,aim_assist_unit_index,aim_assist
 struct unit_datum {struct {long parent_object_index;} object;};
 struct aim_assist_parameters {float deviation_angle;};struct aim_assist_target {real_point3d position;float autoaim_level;long object_index;};
 static struct player_datum p={1,2,77,88};static struct unit_datum player_unit={{42}};static int global_current_collision_user_depth=1,global_current_collision_users[8],target_calls,convergence_calls;
+static int mounted_direct;
 static struct player_datum *player_get(long i){return &p;}
 static struct unit_datum *unit_try_and_get(long i){assert(i==1);return &player_unit;}
+static int vr_render_mounted_direct_fire(long i){assert(i==0);return mounted_direct;}
 static long unit_get_aiming_unit_index(long i){return i;}
 static int unit_get_zoom_level(long i){return 0;}
 static int unit_get_aim_assist_parameters(long i,int z,struct aim_assist_parameters *a){a->deviation_angle=1;return 1;}
@@ -45,20 +50,46 @@ static int game_time_get(void){return 123;}
 code+=fn(s,'player_aim_projectile_internal')+fn(s,'player_aim_projectile')+fn(s,'vr_aim_assist_converge')+fn(s,'vr_preview_player_projectile')
 code+=r'''
 int main(void){real_point3d origin={0,0,0};real_vector3d preview={1,0,0},shot=preview;
+mounted_direct=1;
 vr_preview_player_projectile(0,&origin,&preview);
-assert(convergence_calls==0 && preview.i==1 && preview.j==0);assert(p.aim_assist_unit_index==77 && p.aim_assist_timestamp==88);
-player_unit.object.parent_object_index=NONE;preview=(real_vector3d){1,0,0};
+assert(convergence_calls==0 && target_calls==0 && preview.i==1 && preview.j==0);
+assert(p.aim_assist_unit_index==77 && p.aim_assist_timestamp==88); /* mounted preview is read-only */
+assert(global_current_collision_user_depth==1);
+shot=(real_vector3d){1,0,0};assert(player_aim_projectile(0,&origin,&shot)==NONE);
+assert(target_calls==0 && shot.i==preview.i && shot.j==preview.j); /* mounted round follows visible reticle ray */
+assert(p.aim_assist_unit_index==NONE && p.aim_assist_timestamp==123);
+mounted_direct=0;player_unit.object.parent_object_index=NONE;preview=(real_vector3d){1,0,0};
 vr_preview_player_projectile(0,&origin,&preview);
 assert(convergence_calls==1 && target_calls==0 && preview.i==1 && preview.j==0);
-player_unit.object.parent_object_index=42;
-assert(player_aim_projectile(0,&origin,&shot)==9);assert(target_calls==1 && shot.i==0 && shot.j==1);
+shot=(real_vector3d){1,0,0};assert(player_aim_projectile(0,&origin,&shot)==9);
+assert(target_calls==1 && shot.i==0 && shot.j==1); /* ordinary firing keeps native assist */
+assert(p.aim_assist_unit_index==9 && p.aim_assist_timestamp==123);
+player_unit.object.parent_object_index=42; /* passenger: native assist remains */
+shot=(real_vector3d){1,0,0};assert(player_aim_projectile(0,&origin,&shot)==9);
+assert(target_calls==2 && shot.i==0 && shot.j==1);
 assert(p.aim_assist_unit_index==9 && p.aim_assist_timestamp==123);assert(global_current_collision_user_depth==1);
-puts("PASS: mounted VR preview stays on the selected muzzle ray; unmounted geometric convergence remains; native projectile retains autoaim and target bookkeeping");}
+puts("PASS: mounted driver/gunner preview and shots share the selected muzzle ray without target snapping; on-foot and passenger aim assist remain native");}
 '''
 with tempfile.TemporaryDirectory() as d:
  p=Path(d);(p/'t.c').write_text(code)
  subprocess.run(['clang','-std=gnu11','-fsanitize=address,undefined',str(p/'t.c'),'-lm','-o',str(p/'t')],check=True)
  subprocess.run([str(p/'t')],check=True)
+weapons=(ROOT/'source/items/weapons.c').read_text()
+primary_ray=fn(weapons,'weapon_vr_preview_primary_ray')
+assert 'vr_preview_player_projectile(player_index, origin, forward);' in primary_ray
+render=(ROOT/'port/linux/game/vr_render.c').read_text()
+mounted=render[render.index('/* Test31: mounted weapons fire along their actual muzzle/aimed ray,'):
+              render.index('vr_render.stereo = TRUE;', render.index('/* Test31: mounted weapons fire along their actual muzzle/aimed ray,'))]
+assert 'vr_render.seat.gunner || vr_render.seat.driver' in mounted
+assert 'weapon_vr_preview_primary_ray(weapon, player_index, &origin, &direction)' in mounted
+assert 'reticle %.2f deg from shot (%.2f deg from pre-assist aim)' in render
+assert 'selected mounted ray (camera assist bypassed)' in render
+aim=(ROOT/'source/game/aim_assist.c').read_text()
+projectile=fn(aim,'player_aim_projectile_internal')
+assert 'vr_render_mounted_direct_fire(player_index)' in projectile
+assert 'player->aim_assist_unit_index = NONE;' in projectile
+assert 'vr_render_mounted_direct_fire' in (ROOT/'port/linux/include/halo_vr.h').read_text()
+print('PASS: the shared mounted preview path covers both driver and gunner seats; diagnostics distinguish raw aim from final shot')
 profiles=(ROOT/'port/linux/src/vr_scope_profiles.h').read_text();config=(ROOT/'port/linux/src/port_config.c').read_text();menu=(ROOT/'port/linux/game/vr_menu.c').read_text();frame=(ROOT/'port/linux/src/vr_frame.c').read_text()
 keys=re.findall(r' X\((\w+),',profiles);assert len(keys)==11 and 'rocket_launcher' in keys
 for key in keys:

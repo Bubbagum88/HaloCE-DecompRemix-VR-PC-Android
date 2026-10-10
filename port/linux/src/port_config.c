@@ -801,6 +801,9 @@ static const struct config_setting config_settings[] =
 	{ "vr.button_sprint", _config_boolean, "false", "HALO_VR_BUTTON_SPRINT", _environment_value, _platform_vr,
 		"Use left stick click for offline sprint. The VR menu temporarily frees\n"
 		"that binding and restores it when this option is disabled." },
+	{ "vr.button_sprint_toggle", _config_boolean, "false", "HALO_VR_BUTTON_SPRINT_TOGGLE", _environment_value, _platform_vr,
+		"When Button Sprint is enabled, click left stick once to start sprinting\n"
+		"and click again to stop. Off keeps the hold-to-sprint behavior." },
 	{ "vr.sprint_speed", _config_real, "1.5", "HALO_VR_SPRINT_SPEED", _environment_value, _platform_vr,
 		"Maximum offline sprint movement multiplier, bounded from 1.0x to 1.5x." },
 	{ "vr.melee_requires_fist", _config_boolean, "false", "HALO_VR_MELEE_REQUIRES_FIST", _environment_value, _platform_vr,

@@ -38,7 +38,8 @@ for none */
 int voice_audio_encode(const float *frame, int bitrate, unsigned char *packet, int maximum);
 /* a speaker's packet (speaker: any number naming them), to play at the
 gain (1: as spoken) and pan (-1 left to 1 right) */
-void voice_audio_play(int speaker, unsigned short sequence, const unsigned char *packet, int length, float gain,
+/* a packet's decoded samples queued, or 0 if it could not be played */
+int voice_audio_play(int speaker, unsigned short sequence, const unsigned char *packet, int length, float gain,
 	float pan);
 /* a speaker no longer heard: their buffer and decoder freed; or all */
 void voice_audio_forget(int speaker);

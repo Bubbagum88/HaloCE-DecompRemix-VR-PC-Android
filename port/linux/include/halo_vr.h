@@ -99,6 +99,7 @@ union real_point3d;
 union real_vector3d;
 void vr_render_shot_diagnostic(long weapon_index, long player_index, union real_point3d const *origin,
 	union real_vector3d const *aimed, union real_vector3d const *shot, int from_hand);
+boolean vr_render_mounted_direct_fire(long player_index);
 /* first_person_weapon_build_node_matrices: the arms of the first-person
 weapon posed for the hand that aims (vr.arms) */
 struct real_matrix4x3;

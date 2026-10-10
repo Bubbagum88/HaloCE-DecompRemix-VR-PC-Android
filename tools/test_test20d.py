@@ -237,7 +237,7 @@ menu_rows = re.sub(r'#define VR_MENU_TURNING_ROW (\{.*\})\n', r'\1,\n', menu)
 rows = re.findall(r'\{ "([A-Z +\-]+)", "[\w.]+", _vr_setting_multi, (\d+), \{ (.*?) \} \},', menu_rows)
 assert {r[0] for r in rows} >= {'TURNING', 'WEAPONS', 'HOLSTERS', 'HANDS', 'MELEE', 'NPC RIG SLOTS'}, rows
 locomotion = menu[menu.index('vr_menu_locomotion[]'):menu.index('static struct vr_menu_page')]
-for label, key in [('BUTTON SPRINT', 'vr.button_sprint'), ('ARM RUN', 'vr.arm_run'),
+for label, key in [('BUTTON SPRINT', 'vr.button_sprint'), ('SPRINT TOGGLE', 'vr.button_sprint_toggle'), ('ARM RUN', 'vr.arm_run'),
                    ('ARM EFFORT', 'vr.arm_run_speed'), ('SPRINT SPEED', 'vr.sprint_speed')]:
     assert '{ "%s", "%s"' % (label, key) in locomotion, (label, key)
 reach_row = next((line for line in menu.splitlines() if '"HAND CONTACT"' in line), '')

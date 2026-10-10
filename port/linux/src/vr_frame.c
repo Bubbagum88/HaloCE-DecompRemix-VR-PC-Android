@@ -187,7 +187,8 @@ static struct
 	float hand_speed[2];
 	/* vr.arm_run: running by swinging the arms; the effort it takes
 	(vr.arm_run_speed) and the push on the stick it makes, eased */
-	int arm_run, button_sprint_enabled, button_sprint_active;
+	int arm_run, button_sprint_enabled, button_sprint_toggle, button_sprint_latched;
+	int button_sprint_was_pressed, button_sprint_active;
 	float arm_run_speed, sprint_speed, run_push;
 	/* each hand's fingers (vr_finger_pose): thumb, index, middle, the ring
 	and little fingers, 0 open to 1 curled, eased; vr.fingers; how long the
@@ -835,6 +836,7 @@ void vr_reload_settings(void)
 	vr.fingers = config_boolean("vr.fingers");
 	vr.arm_run = config_boolean("vr.arm_run");
 	vr.button_sprint_enabled = config_boolean("vr.button_sprint");
+	vr.button_sprint_toggle = config_boolean("vr.button_sprint_toggle");
 	vr.arm_run_speed = (float)config_real("vr.arm_run_speed");
 	if (vr.arm_run_speed < 0.1f)
 		vr.arm_run_speed = 0.1f;
@@ -995,7 +997,7 @@ void vr_initialize(void)
 		return;
 	vr.initialized = 1;
 	config_vr_vehicle_defaults();
-	platform_log("vr: HaloCE Quest test49 candidate 1.0.30-test49 code60 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 signed-datum weapon release/drop/holster fix retained; v1.0.18 collision-gated contact haptics restored; weapon recoil haptic path preserved; melee action diagnostics added; Test47 features retained; device acceptance pending)");
+	platform_log("vr: HaloCE Quest test50 candidate 1.0.31-test50 code61 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 weapon release/drop/holster fix and Test49 v1.0.18 contact haptics retained; mounted driver/gunner shots follow the selected reticle ray without camera aim assist; voice packet/config/decode diagnostics; optional hold or toggle left-stick sprint; Test47 features retained; device acceptance pending)");
 	platform_log("vr: retained baseline history: HaloCE Quest test30 candidate 1.0.12 (the menus' face buttons as the Xbox's of the same letter: X deletes a profile; the co-op host's server name; test29: OpenCE build 144 netcode, network 21; the HUD head tap held by the temple, HUD and head tap on the HUD page, wrist HUD on the wrist and movable, moving with a hand while holding the gun in both, glasses FOV and resolution to 200%% (PR #1); test28: co-op games entered in progress keep their camera upright, release checks as OpenCE ships, co-op hosted for 2 to 128 players as OpenCE's Server Setup offers, gyro aim on phones as an option; test27: OpenCE build 138 netcode, network 20, with its co-op for up to 16 players; test26: co-op: death screams no longer stop the second player, cutscene characters placed and animated as on the first; HUD head tap, reticle toggle on the left stick click with crouch on the turning stick held down (or crouch kept on the click: Controls), optional wrist HUD, adjustable head taps; impact melee along the gun with a follow-through; fingers bend smoothly against walls; test25: vehicle seat and recentre diagnostics, first-person horizon option and seat glass, settings rows that fit, vehicle offset reset; test24b: comfort vignette, smooth speed and snap angle, SPV1 compatibility note; test24: co-op cutscenes animate for the second player; test23: remappable Quest buttons with the grenade on X; test22: co-op campaign host crash fixed, steady first-person vehicle view, left-hand ammo display, adjustable scopes, shot diagnostics; test21b: floating hands restored, torso-following arms, neck-pivot full body, auto two-hand lock, horn, online melee off, two-hand gun roll, pistol shots from the hand, reticle converges as shots do, per-gun aim, horn from either stick)");
 	if (!config_boolean("vr.enabled"))
 	{
@@ -1939,20 +1941,24 @@ static void update_gestures(void)
 		vr.two_hand_held = 0;
 		vr.support_near = 0;
 		vr.run_push = 0.0f;
+		vr.button_sprint_latched = 0;
+		vr.button_sprint_was_pressed = 0;
 		vr.button_sprint_active = 0;
 		vr_weapon_release_latch_reset(&vr.weapon_release);
 		return;
 	}
 	{
 		unsigned int both_sticks = HALO_XR_BUTTON_LEFT_THUMB | HALO_XR_BUTTON_RIGHT_THUMB;
-		int active = vr_button_sprint_input(vr.button_sprint_enabled,
+		int active = vr_button_sprint_input_mode(vr.button_sprint_enabled,
+			vr.button_sprint_toggle,
 			(vr.frame.buttons & HALO_XR_BUTTON_LEFT_THUMB) != 0,
 			(vr.frame.buttons & both_sticks) == both_sticks,
 			(vr.frame.flags & HALO_XR_FRAME_FOCUSED) != 0,
-			vr.aiming_last_frame, vr.seated);
+			vr.aiming_last_frame, vr.seated,
+			&vr.button_sprint_latched, &vr.button_sprint_was_pressed);
 		if (active != vr.button_sprint_active)
-			platform_log("vr: button sprint %s (left stick click; local/offline movement only; configured %.2fx)",
-				active ? "entered" : "exited", vr.sprint_speed);
+			platform_log("vr: button sprint %s (left stick %s; local/offline movement only; configured %.2fx)",
+				active ? "entered" : "exited", vr.button_sprint_toggle ? "toggle" : "hold", vr.sprint_speed);
 		vr.button_sprint_active = active;
 	}
 	/* grips: held over 0.8, let go under 0.7 */

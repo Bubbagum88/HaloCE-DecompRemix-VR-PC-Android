@@ -397,7 +397,7 @@ static void voice_slot_put(struct voice_slot *slot, const float *samples, int co
 	}
 }
 
-void voice_audio_play(int speaker, unsigned short sequence, const unsigned char *packet, int length, float gain,
+int voice_audio_play(int speaker, unsigned short sequence, const unsigned char *packet, int length, float gain,
 	float pan)
 {
 	float samples[(VOICE_MAXIMUM_CONCEALED + 1) * VOICE_FRAME_SAMPLES];
@@ -408,13 +408,13 @@ void voice_audio_play(int speaker, unsigned short sequence, const unsigned char 
 	int decoded;
 
 	if (length <= 0 || length > VOICE_MAXIMUM_PACKET)
-		return;
+		return 0;
 	pthread_mutex_lock(&voice_lock);
 	slot = voice_slot_for(speaker, TRUE);
 	if (!slot)
 	{
 		pthread_mutex_unlock(&voice_lock);
-		return;
+		return 0;
 	}
 	slot->heard_ms = SDL_GetTicks();
 	slot->gain = gain < 0.0f ? 0.0f : gain > 2.0f ? 2.0f : gain;
@@ -427,7 +427,7 @@ void voice_audio_play(int speaker, unsigned short sequence, const unsigned char 
 		if (ahead >= 0x8000)
 		{
 			pthread_mutex_unlock(&voice_lock);
-			return;
+			return 0;
 		}
 		/* (a few lost are made up for; more, it starts over) */
 		if (ahead <= VOICE_MAXIMUM_CONCEALED)
@@ -470,6 +470,7 @@ void voice_audio_play(int speaker, unsigned short sequence, const unsigned char 
 	if (slot->used && slot->speaker == speaker)
 		voice_slot_put(slot, samples, total);
 	pthread_mutex_unlock(&voice_lock);
+	return total;
 }
 
 void voice_audio_forget(int speaker)

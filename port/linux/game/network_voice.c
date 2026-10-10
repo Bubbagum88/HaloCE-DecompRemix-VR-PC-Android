@@ -217,6 +217,19 @@ static boolean voice_microphone_permission_denied;
 static boolean voice_microphone_retry_pending;
 static unsigned long voice_microphone_retry_at;
 static boolean voice_session;
+/* Low-rate diagnostics for distinguishing an opened mic from actual voice
+ * frames and successful remote Opus decoding. These counters never contain
+ * audio samples or player names. */
+static unsigned long voice_diag_started_at;
+static unsigned long voice_diag_last_report_at;
+static unsigned long voice_diag_tx_frames;
+static unsigned long voice_diag_host_rx_frames;
+static unsigned long voice_diag_relayed_frames;
+static unsigned long voice_diag_rx_frames;
+static unsigned long voice_diag_decoded_frames;
+static boolean voice_diag_first_tx_logged;
+static boolean voice_diag_first_rx_logged[VOICE_MACHINES];
+static boolean voice_diag_missing_config_logged;
 
 /* every machine slot's last frame heard (for its icon), and whether this
 machine mutes it, with the names it had then (a new machine at the slot is
@@ -288,6 +301,53 @@ static short voice_mode_from_text(
 			return mode;
 	}
 	return _voice_mode_team_global_enemy_proximity;
+}
+
+static char const *voice_mode_name(
+	short mode)
+{
+	static char const *const names[NUMBER_OF_VOICE_MODES] =
+	{
+		"off", "team_proximity", "team_enemy_proximity", "team_global", "team_global_enemy_proximity",
+	};
+
+	return mode >= 0 && mode < NUMBER_OF_VOICE_MODES ? names[mode] : "invalid";
+}
+
+static char const *voice_local_mode_name(
+	char const *mode)
+{
+	if (mode && !csstrcmp(mode, "open_mic"))
+		return "open_mic";
+	if (mode && !csstrcmp(mode, "push_to_talk"))
+		return "push_to_talk";
+	return "off";
+}
+
+static void voice_diag_reset(
+	unsigned long now)
+{
+	voice_diag_started_at = now;
+	voice_diag_last_report_at = now;
+	voice_diag_tx_frames = 0;
+	voice_diag_host_rx_frames = 0;
+	voice_diag_relayed_frames = 0;
+	voice_diag_rx_frames = 0;
+	voice_diag_decoded_frames = 0;
+	voice_diag_first_tx_logged = FALSE;
+	voice_diag_missing_config_logged = FALSE;
+	csmemset(voice_diag_first_rx_logged, 0, sizeof(voice_diag_first_rx_logged));
+}
+
+static void voice_diag_report(
+	char const *when)
+{
+	platform_log("voice chat: %s diagnostic: host config %s, lobby %s, in-game route %s, local transmit %s, incoming volume %.0f%%; encoded/sent %lu, client frames accepted %lu, server relay deliveries %lu, incoming frames %lu, Opus-decoded frames %lu",
+		when, voice_settings_heard ? "ready" : "missing", voice_settings.lobby ? "on" : "off",
+		voice_mode_name(voice_settings.mode), voice_local_mode_name(config_string("audio.voice_chat")),
+		PIN(config_real("audio.voice_volume"), 0.0, 2.0) * 100.0,
+		voice_diag_tx_frames, voice_diag_host_rx_frames, voice_diag_relayed_frames,
+		voice_diag_rx_frames, voice_diag_decoded_frames);
 }
 
 /* the host's, from its config.toml (read again as it changes) */
@@ -564,6 +624,7 @@ static void voice_play(
 {
 	real gain = 1.0f;
 	real pan = 0.0f;
+	int decoded;
 
 	if (!voice_machine_valid(machine_index) || length <= 0)
 		return;
@@ -573,7 +634,17 @@ static void voice_play(
 		return;
 	if (route == _voice_route_proximity)
 		voice_proximity_gain(player_index, &gain, &pan);
-	voice_audio_play((int)machine_index, sequence, packet, (int)length, gain, pan);
+	voice_diag_rx_frames++;
+	decoded = voice_audio_play((int)machine_index, sequence, packet, (int)length, gain, pan);
+	if (decoded > 0)
+		voice_diag_decoded_frames++;
+	if (!voice_diag_first_rx_logged[machine_index])
+	{
+		voice_diag_first_rx_logged[machine_index] = TRUE;
+		platform_log("voice chat: first incoming frame from machine %ld: %s (%d decoded samples, gain %.2f, pan %.2f)",
+			machine_index, decoded > 0 ? "Opus decoded and queued" : "Opus decode produced no samples",
+			decoded, gain, pan);
+	}
 }
 
 /* how many machines talk now, but the one */
@@ -670,8 +741,11 @@ static void voice_host_relay(
 			message.down.route = (byte)route;
 			message.down.length = (byte)length;
 			csmemcpy(message.packet, packet, length);
-			network_distributed_server_send_to_machine(listener, &message,
-				(word)(sizeof(message.header) + sizeof(message.down) + length));
+			if (network_distributed_server_send_to_machine(listener, &message,
+				(word)(sizeof(message.header) + sizeof(message.down) + length)))
+			{
+				voice_diag_relayed_frames++;
+			}
 		}
 	}
 }
@@ -708,6 +782,7 @@ static void voice_host_handle_up(
 	if (voice_machines[machine_index].allowance < 1.0f)
 		return;
 	voice_machines[machine_index].allowance -= 1.0f;
+	voice_diag_host_rx_frames++;
 	voice_host_relay(machine_index, up->sequence, packet, length);
 }
 
@@ -769,15 +844,27 @@ void network_voice_handle_message(
 	case _distributed_message_voice_config:
 	{
 		struct distributed_voice_config config;
+		boolean changed;
+		short received_mode;
 
 		if (machine_index != NONE || voice_host() || length < (long)sizeof(config))
 			return;
 		csmemcpy(&config, entries, sizeof(config));
+		received_mode = config.mode < NUMBER_OF_VOICE_MODES ? config.mode : _voice_mode_off;
+		changed = !voice_settings_heard || voice_key != config.key ||
+			voice_settings.lobby != TEST_FLAG(config.flags, _voice_config_lobby_bit) ||
+			voice_settings.mode != received_mode || voice_settings.kbps != config.kbps ||
+			voice_settings.proximity != config.proximity_tenths / 10.0f;
 		voice_key = config.key;
 		voice_settings.lobby = TEST_FLAG(config.flags, _voice_config_lobby_bit);
-		voice_settings.mode = config.mode < NUMBER_OF_VOICE_MODES ? config.mode : _voice_mode_off;
+		voice_settings.mode = received_mode;
 		voice_settings.kbps = (short)PIN(config.kbps, VOICE_MINIMUM_KBPS, VOICE_MAXIMUM_KBPS);
 		voice_settings.proximity = config.proximity_tenths / 10.0f;
+		if (changed)
+			platform_log("voice chat: host configuration received: lobby %s, in-game route %s, %d kbps, %.1f-unit proximity; local transmit %s, incoming volume %.0f%%",
+				voice_settings.lobby ? "on" : "off", voice_mode_name(voice_settings.mode), voice_settings.kbps,
+				voice_settings.proximity, voice_local_mode_name(config_string("audio.voice_chat")),
+				PIN(config_real("audio.voice_volume"), 0.0, 2.0) * 100.0);
 		voice_settings_heard = TRUE;
 		voice_settings_heard_at = system_milliseconds();
 		break;
@@ -862,7 +949,15 @@ static void voice_send(
 		network_distributed_client_send(&message, (word)(sizeof(message.header) + sizeof(message.up) + length));
 	}
 	if (length > 0)
+	{
+		voice_diag_tx_frames++;
+		if (!voice_diag_first_tx_logged)
+		{
+			voice_diag_first_tx_logged = TRUE;
+			platform_log("voice chat: first local Opus frame encoded and handed to the network path (%ld bytes)", length);
+		}
 		voice_sequence++;
+	}
 }
 
 /* the session over (or none): the microphone closed, voices forgotten */
@@ -871,6 +966,7 @@ static void voice_end_session(
 {
 	if (!voice_session)
 		return;
+	voice_diag_report("session end");
 	voice_session = FALSE;
 	voice_microphone_wanted = FALSE;
 	voice_microphone_permission_denied = FALSE;
@@ -881,6 +977,7 @@ static void voice_end_session(
 	voice_settings_heard = FALSE;
 	voice_talked = FALSE;
 	csmemset(voice_heard, 0, sizeof(voice_heard));
+	voice_diag_reset(0);
 }
 
 void network_voice_update(
@@ -902,7 +999,11 @@ void network_voice_update(
 		voice_end_session();
 		return;
 	}
-	voice_session = TRUE;
+	if (!voice_session)
+	{
+		voice_session = TRUE;
+		voice_diag_reset(now);
+	}
 	if (voice_host())
 		voice_host_update();
 	else if (voice_settings_heard && now - voice_settings_heard_at >= VOICE_CONFIG_TIMEOUT_MS)
@@ -923,12 +1024,27 @@ void network_voice_update(
 	}
 	if (!voice_settings_heard)
 	{
+		if (!voice_host() && !voice_diag_missing_config_logged && now - voice_diag_started_at >= 5000)
+		{
+			voice_diag_missing_config_logged = TRUE;
+			platform_log("voice chat: host has not sent voice settings; capture remains closed (the server/host must implement the Build167 voice relay; host routing may separately be off)");
+		}
 		voice_audio_microphone(FALSE);
 		voice_microphone_wanted = FALSE;
 		voice_microphone_permission_denied = FALSE;
 		voice_microphone_retry_pending = FALSE;
 		voice_microphone_retry_at = 0;
 		return;
+	}
+	if (now - voice_diag_last_report_at >= 10000)
+	{
+		voice_diag_report("10-second");
+		voice_diag_last_report_at = now;
+		voice_diag_tx_frames = 0;
+		voice_diag_host_rx_frames = 0;
+		voice_diag_relayed_frames = 0;
+		voice_diag_rx_frames = 0;
+		voice_diag_decoded_frames = 0;
 	}
 	/* (a client says it hears voices) */
 	if (!voice_host() && now - voice_hello_at >= VOICE_HELLO_MS)
