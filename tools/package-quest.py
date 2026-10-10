@@ -415,7 +415,7 @@ def main():
                                   b"game-data selection and storage", b"delete imported copy",
                                   b"manual reload", b"export or import a versioned layout",
                                   b"shake cooling", b"custom npc rigs", b"mag debris", b"lift vehicles",
-                                  b"hand contact", b"holster haptics", b"corpse retention", b"75 trigger / 45 target",
+                                  b"hand contact", b"holster haptics", b"body retention", b"75 trigger / 45 target",
                                   b"stock values", b"opence build157", b"network24"]
                                  if candidate_at_least(args.label, 47) else
                                  [b"1.0.27-test46", b"all project changes made after v1.0.18",
