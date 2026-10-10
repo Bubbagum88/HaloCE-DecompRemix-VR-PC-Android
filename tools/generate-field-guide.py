@@ -12,7 +12,9 @@ for source,target in [('PLAYER-GUIDE.md','player-guide.txt'),('CONTROLS-AND-OPTI
         stable_release = os.environ.get('HALO_RELEASE_GUIDE')
         if candidate and stable_release:
             raise SystemExit('Set only one of HALO_CANDIDATE_GUIDE or HALO_RELEASE_GUIDE')
-        cover = (ROOT/'docs'/('TEST'+candidate+'-PLAYER-NOTES.md')).read_text(encoding='utf-8') if candidate else \
+        candidate_field_guide = ROOT/'docs'/('TEST'+candidate+'-FIELD-GUIDE.md') if candidate else None
+        cover = candidate_field_guide.read_text(encoding='utf-8') if candidate_field_guide and candidate_field_guide.exists() else \
+            (ROOT/'docs'/('TEST'+candidate+'-PLAYER-NOTES.md')).read_text(encoding='utf-8') if candidate else \
             (ROOT/'docs'/('RELEASE-'+stable_release+'.md')).read_text(encoding='utf-8') if stable_release else \
             (ROOT/'docs/RELEASE-1.0.16.md').read_text(encoding='utf-8')
         text = cover + '\n\n---\n\n' + text

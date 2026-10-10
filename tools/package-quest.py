@@ -737,7 +737,7 @@ def main():
     base_label = re.sub(r"[a-z]$", "", args.label)
     if not args.stable and base_label != args.label:
         edition_docs += [base_label.upper()+"-DELIVERY.md", base_label.upper()+"-PROGRESS.md"]
-    active_candidate_docs = (["TEST49-DELIVERY-STATUS.md", "TEST49-PLAYER-NOTES.md", "TEST49-REGRESSION-AUDIT.md", "TEST49-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
+    active_candidate_docs = (["TEST49-DELIVERY-STATUS.md", "TEST49-PLAYER-NOTES.md", "TEST49-FIELD-GUIDE.md", "TEST49-REGRESSION-AUDIT.md", "TEST49-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
                              if candidate_at_least(args.label, 49) else
                              ["TEST48-DELIVERY-STATUS.md", "TEST48-PLAYER-NOTES.md", "TEST48-REGRESSION-AUDIT.md", "TEST48-DEVICE-CHECKLIST.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
                              if candidate_at_least(args.label, 48) else
