@@ -111,10 +111,11 @@ for marker in ("host configuration received", "first local Opus frame encoded",
                "host has not sent voice settings"):
     assert marker in network_voice, marker
 
-# Android Test50 crashed inside the mixed %s/%f diagnostic emitted while the
-# host's voice-config message was being handled. Keep every guest voice log
-# limited to integer conversions and mark the settings received before logging,
-# so an optional diagnostic cannot interrupt voice initialization.
+# Android Test50 crashed inside a %s voice diagnostic. Test52 found the cause:
+# platform_log had no prototype in network_voice.c, so on the guest ABI every
+# variadic argument was read from the stack (see TEST52-CRASH-ANALYSIS.md and
+# test_android_guest_prototypes.py). The integer-only formats and the
+# settings-before-logging order are kept as harmless hardening.
 voice_log_formats = re.findall(r'platform_log\("((?:[^"\\]|\\.)*)"', network_voice)
 assert voice_log_formats, "voice diagnostics must remain visible in the game log"
 for format_string in voice_log_formats:
@@ -164,7 +165,7 @@ assert "per-player mute controls are not wired" in notes
 assert "not a claim of complete upstream" in notes
 assert "no dedicated hold-to-talk touch button" in notes
 package = read("tools/package-quest.py")
-assert "required_candidate_code = 62 if candidate_at_least(args.label, 51) else 61 if candidate_at_least(args.label, 50) else 60 if candidate_at_least(args.label, 49)" in package
+assert "required_candidate_code = 64 if candidate_at_least(args.label, 52) else 62 if candidate_at_least(args.label, 51) else 61 if candidate_at_least(args.label, 50) else 60 if candidate_at_least(args.label, 49)" in package
 assert '"dump", "permissions"' in package and "android.permission.RECORD_AUDIO" in package
 assert "OpenCE Build167 voice-chat runtime marker missing from APK" in package
 assert "OpenCE Build167 voice-chat player-guide marker missing from APK" in package

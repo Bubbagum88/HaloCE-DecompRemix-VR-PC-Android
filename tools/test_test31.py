@@ -30,6 +30,18 @@ for path,digest in UPSTREAM_145:
     if path.endswith(('coop_enemies.c', 'network_damage.c', 'network_server_message_handler.c')):
         continue
     data=(ROOT/path).read_bytes()
+    # Test52 declares functions these units called implicitly (miscompiled on
+    # the Android guest ABI); strip exactly those declarations, once each.
+    note=(b'/* port: declared here, not implicitly: an implicit declaration passes float\n'
+          b'arguments and reads narrow return values wrongly on the Android guest ABI */\n')
+    test52_additions={
+        'source/networking/network_client_message_handler.c': b'\n'+note+b'unsigned long system_milliseconds(void);\n',
+        'source/networking/network_game_manager.c': b'\n'+note+b'void player_delete(long player_index);\n',
+        'source/networking/telnet_console.c': b'#include <ctype.h> /* port: declared for the Android guest ABI */\n',
+    }
+    if path in test52_additions:
+        assert data.count(test52_additions[path])==1, path
+        data=data.replace(test52_additions[path],b'')
     if path == 'source/networking/network_client_manager.h':
         # Test38 adds only this query declaration; preserve the upstream header guard.
         addition=b'unsigned int network_game_client_joined_version(void);\n'

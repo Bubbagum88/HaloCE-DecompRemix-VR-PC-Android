@@ -18,6 +18,7 @@ built guest image, when present, is checked as well.
 from pathlib import Path
 import re
 import shutil
+import struct
 import subprocess
 import sys
 
@@ -92,25 +93,44 @@ def guest_object(cc, source, obj, flags=()):
 
 
 def tool(name):
-    for candidate in (name, f"llvm-{name}"):
+    for candidate in (f"llvm-{name}", *(f"llvm-{name}-{v}" for v in range(30, 13, -1)), name):
         path = shutil.which(candidate)
         if path:
             return path
     return None
 
 
+def elf_sections(blob):
+    """(name, address, offset, size, type) for every section of a 64-bit
+    little-endian ELF (objects and images), read without external tools:
+    GNU binutils on an x86 host cannot read AArch64 objects."""
+    assert blob[:4] == b"\x7fELF" and blob[4] == 2 and blob[5] == 1, "expected ELF64 LE"
+    shoff = struct.unpack_from("<Q", blob, 0x28)[0]
+    shentsize, shnum, shstrndx = struct.unpack_from("<HHH", blob, 0x3A)
+    raw = [struct.unpack_from("<IIQQQQIIQQ", blob, shoff + i * shentsize) for i in range(shnum)]
+    names = raw[shstrndx]
+    strings = blob[names[4]:names[4] + names[5]]
+    out = []
+    for name, kind, _flags, address, offset, size, link, _info, _align, entsize in raw:
+        out.append((strings[name:strings.index(b"\0", name)].decode(), address, offset, size, kind, link, entsize))
+    return out
+
+
 def symbol_bytes(obj, symbol, section, size):
-    nm = tool("llvm-nm") or tool("nm")
-    objcopy = tool("llvm-objcopy") or tool("objcopy")
-    assert nm and objcopy, "need nm and objcopy"
-    table = subprocess.check_output([nm, str(obj)], text=True)
-    match = re.search(r"^([0-9a-f]+) \w " + re.escape(symbol) + r"$", table, re.M)
-    assert match, f"{symbol} not found in {obj}"
-    blob = obj.with_suffix("." + symbol + ".bin")
-    subprocess.run([objcopy, "-O", "binary", f"--only-section={section}", str(obj), str(blob)], check=True)
-    data = blob.read_bytes()
-    offset = int(match.group(1), 16)
-    return data[offset:offset + size]
+    blob = Path(obj).read_bytes()
+    sections = elf_sections(blob)
+    symtab = next(s for s in sections if s[4] == 2)  # SHT_SYMTAB
+    strtab = sections[symtab[5]]
+    names = blob[strtab[2]:strtab[2] + strtab[3]]
+    for i in range(symtab[3] // symtab[6]):
+        st_name, _info, _other, shndx, value, _size = struct.unpack_from("<IBBHQQ", blob, symtab[2] + i * symtab[6])
+        if names[st_name:names.index(b"\0", st_name)].decode() != symbol:
+            continue
+        target = sections[shndx]
+        assert target[0] == section, f"{symbol} is in {target[0]}, expected {section}"
+        start = target[2] + value - target[1]  # objects: address 0, value is the offset
+        return blob[start:start + size]
+    raise AssertionError(f"{symbol} not found in {obj}")
 
 
 cc = find_guest_cc()
@@ -160,7 +180,6 @@ if musl.is_dir() and libc_include.is_dir():
         f"-isystem{libc_include}", f"-isystem{arch}", f"-isystem{musl}/arch/generic", f"-isystem{musl}/include",
         "-std=gnu11", "-DOPUS_BUILD", "-DVAR_ARRAYS", "-DHAVE_LRINTF", "-DHAVE_LRINT",
         f"-I{opus}/include", f"-I{opus}/celt", f"-I{opus}/silk", f"-I{opus}/silk/float", "-w"])
-    import struct
     for name, (fmt, width) in tables.items():
         ref = source_table(name)
         raw = symbol_bytes(opus_obj, name, ".rodata", len(ref) * width)
@@ -172,27 +191,23 @@ else:
 # a built guest image, when present: its Opus tables must match the source
 image = ROOT / "build/android/halo_guest.elf"
 if image.is_file():
-    import struct
-    nm = tool("llvm-nm") or tool("nm")
-    readelf = tool("llvm-readelf") or tool("readelf")
-    symbols = subprocess.check_output([nm, str(image)], text=True)
-    sections = subprocess.check_output([readelf, "-SW", str(image)], text=True)
     blob = image.read_bytes()
-
-    def read(address, size):
-        for line in sections.splitlines():
-            m = re.match(r"\s*\[\s*\d+\]\s+(\S+)\s+(\S+)\s+([0-9a-f]+)\s+([0-9a-f]+)\s+([0-9a-f]+)", line)
-            if not m or m.group(2) == "NOBITS":
-                continue
-            start, offset, length = int(m.group(3), 16), int(m.group(4), 16), int(m.group(5), 16)
-            if start and start <= address < start + length:
-                return blob[offset + address - start: offset + address - start + size]
-        raise AssertionError(f"address {address:#x} not in a loaded section")
-
+    sections = elf_sections(blob)
+    symtab = next(s for s in sections if s[4] == 2)
+    strtab = sections[symtab[5]]
+    names = blob[strtab[2]:strtab[2] + strtab[3]]
+    addresses = {}
+    for i in range(symtab[3] // symtab[6]):
+        st_name, _info, _other, shndx, value, _size = struct.unpack_from("<IBBHQQ", blob, symtab[2] + i * symtab[6])
+        name = names[st_name:names.index(b"\0", st_name)].decode()
+        if name in tables:
+            addresses[name] = (shndx, value)
     for name, (fmt, width) in tables.items():
-        m = re.search(r"^([0-9a-f]+) \w " + name + r"$", symbols, re.M)
-        assert m, f"{name} missing from the guest image"
+        assert name in addresses, f"{name} missing from the guest image"
+        shndx, value = addresses[name]
+        target = sections[shndx]
         ref = source_table(name)
-        raw = read(int(m.group(1), 16), len(ref) * width)
+        start = target[2] + value - target[1]
+        raw = blob[start:start + len(ref) * width]
         assert list(struct.unpack("<%d%s" % (len(ref), fmt), raw)) == ref, f"guest image {name} is corrupt"
     print("PASS: the built guest image carries the exact Opus pulse-cache tables")
