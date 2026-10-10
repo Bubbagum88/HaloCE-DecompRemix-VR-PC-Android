@@ -30,7 +30,7 @@ static inline int vr_weapon_release_latch_step(struct vr_weapon_release_latch *l
 	int grip_held, int grip_pressed, int grip_released, int interaction_owned)
 {
 	if (!latch) return VR_WEAPON_RELEASE_NONE;
-	if (!physical_weapons || !focused || !tracked || recentred || weapon < 0 ||
+	if (!physical_weapons || !focused || !tracked || recentred || weapon == -1 ||
 		grip_held || grip_pressed || (latch->pending && latch->weapon != weapon))
 	{
 		vr_weapon_release_latch_reset(latch);

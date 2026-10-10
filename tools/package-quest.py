@@ -88,7 +88,8 @@ VR_BUILD_IDENTITIES = {
     b"vr: HaloCE Quest test43 candidate 1.0.24-test43 code54 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; game-data set selection and safe deletion; all v1.0.18+ Test38-42 features retained; device acceptance pending)",
     b"vr: HaloCE Quest test45 candidate 1.0.26-test45 code56 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; touch-then-Grip NPC/enemy/ally contacts; held NPC grip persists through ordinary movement and bounded tracking rebases; release-reason diagnostics; prior launcher, calibration, reload, climbing, VR and Android work retained; device acceptance pending)",
     b"vr: HaloCE Quest test46 candidate 1.0.27-test46 code57 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes and host-relayed voice; contact-driven NPC/ally interaction; bounded vehicle lifting; persistent same-map magazine visuals; prior launcher, calibration, reload, climbing, VR and Android work retained; device acceptance pending)",
-    b"vr: HaloCE Quest test47 candidate 1.0.28-test47 code58 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; voice chat; fixed-length arm IK, solo corpse retention, manual reload input and local multiplayer-map spawn; prior launcher, calibration, climbing, interactions, VR and Android work retained; device acceptance pending)"
+    b"vr: HaloCE Quest test47 candidate 1.0.28-test47 code58 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; voice chat; fixed-length arm IK, solo corpse retention, manual reload input and local multiplayer-map spawn; prior launcher, calibration, climbing, interactions, VR and Android work retained; device acceptance pending)",
+    b"vr: HaloCE Quest test48 candidate 1.0.29-test48 code59 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; signed-datum weapon release, drop and holster regression fixed; Test47 features retained; device acceptance pending)"
 }
 
 
@@ -234,9 +235,9 @@ def main():
         if f"versionName='{version_name}'" not in badging:
             raise SystemExit("Wrong candidate version: " + str(path))
         version_code = re.search(r"versionCode='(\d+)'", badging)
-        required_candidate_code = 58 if candidate_at_least(args.label, 47) else 57 if candidate_at_least(args.label, 46) else 56 if candidate_at_least(args.label, 45) else 55 if candidate_at_least(args.label, 44) else 54 if candidate_at_least(args.label, 43) else 53 if candidate_at_least(args.label, 42) else 52 if candidate_at_least(args.label, 41) else 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
+        required_candidate_code = 59 if candidate_at_least(args.label, 48) else 58 if candidate_at_least(args.label, 47) else 57 if candidate_at_least(args.label, 46) else 56 if candidate_at_least(args.label, 45) else 55 if candidate_at_least(args.label, 44) else 54 if candidate_at_least(args.label, 43) else 53 if candidate_at_least(args.label, 42) else 52 if candidate_at_least(args.label, 41) else 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
         if candidate_at_least(args.label, 36) and (version_code is None or int(version_code[1]) < required_candidate_code):
-            raise SystemExit("Test" + ("46" if required_candidate_code == 57 else "45" if required_candidate_code == 56 else "44" if required_candidate_code == 55 else "43" if required_candidate_code == 54 else "42" if required_candidate_code == 53 else "41" if required_candidate_code == 52 else "40" if required_candidate_code == 51 else "39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
+            raise SystemExit("Test" + ("48" if required_candidate_code == 59 else "47" if required_candidate_code == 58 else "46" if required_candidate_code == 57 else "45" if required_candidate_code == 56 else "44" if required_candidate_code == 55 else "43" if required_candidate_code == 54 else "42" if required_candidate_code == 53 else "41" if required_candidate_code == 52 else "40" if required_candidate_code == 51 else "39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
                              + " Android version code must be at least " + str(required_candidate_code) + ": " + str(path))
         if args.stable and args.label == "1.0.16" and "versionCode='45'" not in badging:
             raise SystemExit("Wrong v1.0.16 Android version code: " + str(path))
@@ -356,6 +357,10 @@ def main():
             if candidate_at_least(args.label, 34):
                 if vr:
                     current_upstream_markers = ([b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
+                                                 b"signed-datum weapon release, drop and holster regression fixed",
+                                                 b"test48 candidate 1.0.29-test48 code59"]
+                        if candidate_at_least(args.label, 48) else
+                        [b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
                                                  b"not a full Build177 rebase", b"test47 candidate 1.0.28-test47 code58"]
                         if candidate_at_least(args.label, 47) else
                         [b"OpenCE Build 157 base / network 24", b"selected Build167 compatibility fixes and host-relayed voice",
@@ -726,7 +731,9 @@ def main():
     base_label = re.sub(r"[a-z]$", "", args.label)
     if not args.stable and base_label != args.label:
         edition_docs += [base_label.upper()+"-DELIVERY.md", base_label.upper()+"-PROGRESS.md"]
-    active_candidate_docs = (["TEST47-DELIVERY-STATUS.md", "TEST47-PLAYER-NOTES.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
+    active_candidate_docs = (["TEST48-DELIVERY-STATUS.md", "TEST48-PLAYER-NOTES.md", "TEST48-REGRESSION-AUDIT.md", "TEST48-DEVICE-CHECKLIST.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
+                             if candidate_at_least(args.label, 48) else
+                             ["TEST47-DELIVERY-STATUS.md", "TEST47-PLAYER-NOTES.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
                              if candidate_at_least(args.label, 47) else
                              ["TEST46-DELIVERY-STATUS.md", "TEST46-PLAYER-NOTES.md", "TEST46-REQUIREMENT-DISPOSITION.md"]
                              if candidate_at_least(args.label, 46) else
@@ -765,7 +772,9 @@ def main():
         documents += ["TEST37-PLAYER-NOTES.md", "TEST37-UPSTREAM-INTEGRATION.md"]
     if candidate_at_least(args.label, 39) and not args.stable:
         documents += ["TEST39-DEVICE-CHECKLIST.md", "TEST39-REQUIREMENT-DISPOSITION.md"]
-    if candidate_at_least(args.label, 47) and not args.stable:
+    if candidate_at_least(args.label, 48) and not args.stable:
+        documents += ["TEST48-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-DELIVERY-STATUS.md", "TEST47-PLAYER-NOTES.md", "TEST47-DEVICE-CHECKLIST.md", "TEST47-OPENCE177-INTEGRATION.md", "TEST46-DEVICE-CHECKLIST.md", "TEST46-VOICE-CHAT.md", "TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md", "TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    elif candidate_at_least(args.label, 47) and not args.stable:
         documents += ["TEST47-DEVICE-CHECKLIST.md", "TEST47-OPENCE177-INTEGRATION.md", "TEST46-DEVICE-CHECKLIST.md", "TEST46-VOICE-CHAT.md", "TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md", "TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
     elif candidate_at_least(args.label, 46) and not args.stable:
         documents += ["TEST46-DEVICE-CHECKLIST.md", "TEST46-VOICE-CHAT.md", "TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md", "TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]

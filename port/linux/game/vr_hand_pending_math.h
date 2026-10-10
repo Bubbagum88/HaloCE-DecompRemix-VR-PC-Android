@@ -7,7 +7,7 @@
 static inline int vr_hand_pending_timeout_state(int pending_state,
 	int current_state, long active_weapon, int empty_state, int held_state)
 {
-	return pending_state == empty_state && active_weapon >= 0 ?
+	return pending_state == empty_state && active_weapon != -1 ?
 		held_state : current_state;
 }
 

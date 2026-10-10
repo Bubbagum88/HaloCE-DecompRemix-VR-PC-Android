@@ -151,23 +151,35 @@ int main(void) {
     if(dir<0&&wanted>0&&k>0&&k<100)assert(wanted-c[0]>=wanted-c[2]-1e-6f); /* the base flattens first */
     if(dir>0&&wanted<1&&k>0&&k<100)assert(c[2]-wanted>=c[0]-wanted-1e-6f);}} /* the tip buckles first */
   printf("PASS: %d contact curls continuous and monotonic (flatten base first, buckle tip first)\n",checked);}
-{long inventory[4]={42,43,44,-1};
+{long const unit=-105042913L, other_unit=-105042914L;
+ long const weapon_a=-431815724L, weapon_b=-431750187L;
+ long inventory[4]={weapon_a,weapon_b,-1,-1};
  vr.noted_weapon=-1;vr.pending_expected_weapon=-1;vr.holster_draw_request=-1;
  vr.pending_state=-1;vr.weapon_hand=1;vr.holster_unit=-1;
  vr_holster_slots_clear(vr.holster_weapon);
- assert(vr_hand_pending_timeout_state(HAND_EMPTY,HAND_EMPTY,42,HAND_EMPTY,HAND_HELD)==HAND_HELD);
+ assert(vr_hand_pending_timeout_state(HAND_EMPTY,HAND_EMPTY,weapon_a,HAND_EMPTY,HAND_HELD)==HAND_HELD);
  assert(vr_hand_pending_timeout_state(HAND_EMPTY,HAND_EMPTY,-1,HAND_EMPTY,HAND_HELD)==HAND_EMPTY);
- vr.holster_weapon[0]=42;vr_holster_forget(vr.holster_weapon,42);assert(vr.holster_weapon[0]==-1);
- vr_note_weapon(7,42,inventory);assert(vr.hand_state==HAND_LOOSE);
- vr.pending_state=HAND_EMPTY;vr_note_weapon(7,43,inventory);assert(vr.hand_state==HAND_EMPTY);
- vr.pending_state=-1;vr.hand_state=HAND_HELD;vr_note_weapon(7,43,inventory);assert(vr.hand_state==HAND_HELD);
- vr_note_weapon(7,-1,inventory);assert(vr.hand_state==HAND_EMPTY);
- vr.hand_state=HAND_HELD;vr_note_weapon(7,-1,inventory);assert(vr.hand_state==HAND_EMPTY && !vr.gun_held);
- vr.pending_state=HAND_HELD;vr_note_weapon(7,44,inventory);assert(vr.hand_state==HAND_HELD && vr.gun_held);
- vr.pending_state=HAND_EMPTY;vr.pending_until=1;clock_ms=2000;vr_note_weapon(7,44,inventory);assert(vr.pending_state==-1);
- vr.holster_weapon[0]=42;vr_note_weapon(8,44,inventory);assert(vr.holster_unit==8 && vr.holster_weapon[0]==-1);
- vr.pending_expected_weapon=44;vr.pending_state=HAND_HELD;vr.pending_until=1;clock_ms=3000;
- vr_note_weapon(8,44,inventory);assert(vr.pending_expected_weapon==-1 && vr.pending_state==-1);
+ assert(!vr_holster_inventory_contains(-1,inventory,4));
+ assert(vr_holster_inventory_contains(weapon_a,inventory,4));
+ vr_holster_store(vr.holster_weapon,0,weapon_a);assert(vr.holster_weapon[0]==weapon_a);
+ vr_holster_store(vr.holster_weapon,2,-1);assert(vr.holster_weapon[2]==-1);
+ vr_holster_store(vr.holster_weapon,1,weapon_a);assert(vr.holster_weapon[0]==-1 && vr.holster_weapon[1]==weapon_a);
+ vr_holster_prune(vr.holster_weapon,inventory,4);assert(vr.holster_weapon[1]==weapon_a);
+ {int selected=-1;for(int i=0;i<4;i++)if(inventory[i]==vr.holster_weapon[1])selected=i;assert(selected==0);}
+ {long inventory_after_stow[4]={weapon_b,-1,-1,-1};
+  vr_holster_prune(vr.holster_weapon,inventory_after_stow,4);assert(vr.holster_weapon[1]==-1);}
+ vr_holster_store(vr.holster_weapon,0,weapon_a);vr_holster_store(vr.holster_weapon,2,weapon_a);
+ vr_holster_forget(vr.holster_weapon,weapon_a);assert(vr.holster_weapon[0]==-1 && vr.holster_weapon[2]==-1);
+ vr_note_weapon(unit,weapon_a,inventory);assert(vr.holster_unit==unit && vr.hand_state==HAND_LOOSE);
+ vr.pending_state=HAND_EMPTY;vr_note_weapon(unit,weapon_b,inventory);assert(vr.hand_state==HAND_EMPTY);
+ vr.pending_state=-1;vr.hand_state=HAND_HELD;vr_note_weapon(unit,weapon_b,inventory);assert(vr.hand_state==HAND_HELD);
+ vr_note_weapon(unit,-1,inventory);assert(vr.hand_state==HAND_EMPTY);
+ vr.hand_state=HAND_HELD;vr_note_weapon(unit,-1,inventory);assert(vr.hand_state==HAND_EMPTY && !vr.gun_held);
+ vr.pending_state=HAND_HELD;vr_note_weapon(unit,weapon_a,inventory);assert(vr.hand_state==HAND_HELD && vr.gun_held);
+ vr.pending_state=HAND_EMPTY;vr.pending_until=1;clock_ms=2000;vr_note_weapon(unit,weapon_a,inventory);assert(vr.pending_state==-1);
+ vr.holster_weapon[0]=weapon_a;vr_note_weapon(other_unit,weapon_b,inventory);assert(vr.holster_unit==other_unit && vr.holster_weapon[0]==-1);
+ vr.pending_expected_weapon=weapon_a;vr.pending_state=HAND_HELD;vr.pending_until=1;clock_ms=3000;
+ vr_note_weapon(other_unit,weapon_b,inventory);assert(vr.pending_expected_weapon==-1 && vr.pending_state==-1);
  vr_note_weapon(-1,-1,NULL);assert(vr.holster_unit==-1 && vr.hand_state==HAND_LOOSE && !vr.gun_held);
 }
  puts("PASS: 36 rotations, mirrored wrist frames, 30 finger poses (one curl each: bit-identical to 1.0.7; per-joint curls keep "
