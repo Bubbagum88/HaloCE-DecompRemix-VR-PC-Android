@@ -12,6 +12,13 @@ and evidence are tracked in
 the upstream scope is in [TEST47-OPENCE177-INTEGRATION.md](TEST47-OPENCE177-INTEGRATION.md).
 Source/test status is separated from headset acceptance.
 
+Test47 APKs and matching source/build ZIPs are packaged at
+`D:\HaloQuest\builds\test47-20261010-v1.0.28-test47`. The full regression suite
+passed in standalone, VR and flat build workflows; package checks passed for
+both signed APKs and their source/build archives. This is a private owner test
+candidate. No Quest/Android device acceptance is recorded, and public v1.0.18
+remains the published release.
+
 The priority arm solver fix preserves authored bone lengths and clamps wrist
 reach. Compared with the public v1.0.18 tag, this deliberately removes its
 up-to-18% arm extension and 35% compression workaround, which the supplied

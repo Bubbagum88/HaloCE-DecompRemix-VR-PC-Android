@@ -8,6 +8,11 @@ not a full Build177 engine rebase, and network24 is unchanged. Public
 v1.0.18 and all older candidates remain unchanged. This is a private test
 delivery only; do not publish, install, or launch it.
 
+Both APKs and matching source/build ZIPs are packaged in
+`D:\HaloQuest\builds\test47-20261010-v1.0.28-test47`. The APK pair was built
+from runtime commit `9d62e1a0`; the manifest records the runtime-source and
+source-documentation commits separately. Public v1.0.18 remains published.
+
 ## Changes completed in source
 
 - **Hand stretch (priority fix):** the arm IK solver preserves the authored
@@ -55,17 +60,24 @@ multiplayer-map spawn classification and start selection, arm reach math under
 AddressSanitizer/UndefinedBehaviorSanitizer, the Test46 cumulative candidate
 guards, pending weapon-release recovery, Build177 asset integration, and the
 deterministic pagemap-denied memory fallback harness. The complete Quest
-regression suite passes with no failed suites. The WSL container denies pagemap
-and does not implement `mincore`; the host harness tests fallback decisions
-through a deterministic mincore shim, so Quest-device fallback acceptance
-remains pending. Clean VR and flat builds, signing checks, and final package
-verification remain to be completed before artifacts are recorded below.
+regression suite passed with no failed suites in standalone, VR-build and
+flat-build runs. Both release builds completed. The Android guest used
+Clang22 and the committed PGO profile. The package gate verified APK structure,
+package IDs, version/code, matching network contents, current signing
+certificate, selected feature markers, and source/build ZIP integrity. The WSL
+container denies pagemap and does not implement `mincore`; the host harness
+tests fallback decisions through a deterministic mincore shim, so Quest-device
+fallback acceptance remains pending.
 
-| Artifact | Version/package | SHA-256 | Result |
+| Artifact | Version/package | SHA-256 / record | Result |
 |---|---|---|---|
-| Quest / VR APK | pending | pending | pending |
-| Flat Android APK | pending | pending | pending |
-| Matching source/build ZIPs | pending | pending | pending |
+| `HaloCE-Quest-VR-1.0.28-test47.apk` | `com.halo.decomp.vr`, code58 | `0903a602c1f65e6548d399c210a58fb178ddc6adfcdbe8a39396117c6ca39142` | Signed; package checks passed |
+| `HaloCE-Android-1.0.28-test47.apk` | `com.halo.decomp`, code58 | `db38dfc6e28a6ae09f6ceaa7ed963ddd239c41e7a1f180954109c6cb6ba77cc8` | Signed; package checks passed |
+| `HaloCE-Quest-test47-source.zip` | source commit recorded in manifest | See bundled `SHA256SUMS.txt` | Archive integrity passed |
+| `HaloCE-Quest-test47-build.zip` | APKs, manifest, compatibility record and docs | See bundled `SHA256SUMS.txt` | Archive integrity passed |
+
+The Android signing certificate SHA-256 is
+`53d416f7e123cc62b749940983209bc9a400002e033fd5f50900d4ffad8e2aa4`.
 
 ## Limits and owner retest
 

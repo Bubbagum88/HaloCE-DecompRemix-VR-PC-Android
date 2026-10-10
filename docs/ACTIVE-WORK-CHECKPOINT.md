@@ -3,8 +3,12 @@
 ## Active private Test47 candidate (2026-10-09)
 
 Candidate **1.0.28-test47 / code58** on `test39-interaction-completion`.
-Preserve Test46/Test45, Test44 and older APK/source artifacts; public v1.0.18
-remains unchanged. Runtime base is OpenCE Build157/network24 with selected
+Both APKs and matching source/build ZIPs are packaged for owner testing at
+`D:\HaloQuest\builds\test47-20261010-v1.0.28-test47`; see
+[TEST47-DELIVERY-STATUS.md](TEST47-DELIVERY-STATUS.md) for hashes and checks.
+The full regression suite passed in standalone, VR and flat build workflows.
+No device acceptance is recorded yet; preserve Test46/Test45, Test44 and older
+APK/source artifacts. Runtime base is OpenCE Build157/network24 with selected
 compatible changes through Build177; the engine is not a full Build177 rebase
 and the network protocol is unchanged. Read
 [TEST47-REQUIREMENT-DISPOSITION.md](TEST47-REQUIREMENT-DISPOSITION.md) for the
@@ -23,10 +27,8 @@ right-stick click remains melee.
 The manual-reload logger now records only input/contact/owner state changes so
 the next headset report identifies which part of the action path failed.
 
-Run focused interaction tests, the full regression suite, both Quest/VR and
-flat Android builds, and package APKs with matching source/build ZIPs for owner
-testing. Do not publish, install or launch the game. Device acceptance remains
-pending. PC/Steam Frame remains deferred. See
+Do not publish, install or launch the game. Device acceptance remains pending.
+PC/Steam Frame remains deferred. See
 [TEST47-DELIVERY-STATUS.md](TEST47-DELIVERY-STATUS.md),
 [TEST47-PLAYER-NOTES.md](TEST47-PLAYER-NOTES.md), and
 [TEST47-DEVICE-CHECKLIST.md](TEST47-DEVICE-CHECKLIST.md).
