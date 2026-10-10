@@ -13,9 +13,11 @@ independently of arm animation ownership and logs OpenXR output failures.
 Evidence and remaining limits are in
 [TEST48-REGRESSION-AUDIT.md](TEST48-REGRESSION-AUDIT.md).
 
-Focused weapon/holster/release tests pass. VR and flat builds, package checks,
-artifact hashes and owner device testing are recorded in
-[TEST48-DELIVERY-STATUS.md](TEST48-DELIVERY-STATUS.md) after completion. Keep
+The full accumulated regression suite passed in both Quest/VR and flat build
+workflows, and package checks passed for both code59 APKs plus source/build
+archives. Final artifacts are at
+`D:\HaloQuest\builds\test48-20261010-v1.0.29-test48-final`; hashes and build
+details are in [TEST48-DELIVERY-STATUS.md](TEST48-DELIVERY-STATUS.md). Keep
 Test47 and all older artifacts preserved, keep public v1.0.18 unchanged, and do
 not publish, install or launch. Device acceptance is pending; see
 [TEST48-DEVICE-CHECKLIST.md](TEST48-DEVICE-CHECKLIST.md). PC/Steam Frame remains

@@ -12,12 +12,14 @@ hands independent of arm ownership and records OpenXR vibration results. See
 [TEST48-REGRESSION-AUDIT.md](TEST48-REGRESSION-AUDIT.md) and
 [TEST48-DELIVERY-STATUS.md](TEST48-DELIVERY-STATUS.md).
 
-Focus checks pass for weapon math, release latch, holster haptics and pending
-release recovery. Build both APKs and package source/build ZIPs for owner
-testing. Preserve all prior artifacts and public v1.0.18. Do not publish,
-install or launch the game. Actual Quest/Android device acceptance is pending;
-use [TEST48-DEVICE-CHECKLIST.md](TEST48-DEVICE-CHECKLIST.md). PC/Steam Frame
-remains deferred.
+The full accumulated regression suite passed in both Quest/VR and flat build
+workflows. Both APKs and matching source/build ZIPs are packaged at
+`D:\HaloQuest\builds\test48-20261010-v1.0.29-test48-final`; checksums and
+build details are in [TEST48-DELIVERY-STATUS.md](TEST48-DELIVERY-STATUS.md).
+Preserve all prior artifacts and public v1.0.18. Do not publish, install or
+launch the game. Actual Quest/Android device acceptance is pending; use
+[TEST48-DEVICE-CHECKLIST.md](TEST48-DEVICE-CHECKLIST.md). PC/Steam Frame remains
+deferred.
 
 ## Superseded private Test47 candidate (2026-10-09)
 
