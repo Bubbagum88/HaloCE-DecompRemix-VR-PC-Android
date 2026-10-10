@@ -2,13 +2,16 @@
 
 This candidate carries forward Test47 and the cumulative player-facing features
 below. It fixes the signed weapon-datum regression that disabled grip release,
-weapon dropping, and holster storage. The APKs are for owner testing; they are
-not a public release.
+weapon dropping, and holster storage. It also routes surface-contact haptics
+from tracked palms independently of which arm pose is displayed, and records
+OpenXR vibration-call failures in the log. The APKs are for owner testing; they
+are not a public release.
 
 ## Test48 fix and Test47 changes to retest
 
 - **Grip release / holsters (confirmed regression fix):** OpenCE weapon datum handles are signed values; valid live handles can be negative. Only `-1` means no weapon. Test47's release latch, holster storage/pruning, and pending-release recovery incorrectly rejected every negative handle. Test48 checks the actual empty sentinel, so releasing a gripped weapon drops it, releasing inside a holster stores it, and re-gripping an occupied holster can request that exact weapon. Retest with both weapons shown in the supplied log (`-431815724` and `-431750187`).
 - The matching regression tests exercise negative live unit/weapon handles through the release, hand-state recovery, holster store/draw/prune paths, and preserve cancellation when grip is re-pressed, tracking/focus is lost, recenter occurs, or an interaction owns the hand.
+- **Surface-contact haptics (reported missing):** this restores the released build's continuous pressure buzz while a palm presses into a surface, and extends collision sampling to either tracked hand even when that arm is using a native animation, the support hand is locked to a two-handed weapon, or the arm mesh is hidden/animated. Finger-only contact also vibrates continuously while contact remains. Contact strength follows palm penetration or finger coverage and uses the global **HAPTICS** setting. The OpenXR host logs whether its vibration action is available, confirms the first vibration accepted by the runtime, and rate-limits API failures into the session log. Quest testing is still needed to confirm physical controller output on the target headset/runtime.
 
 - **Hands/arms:** the arm model now keeps the original upper-arm and forearm
   lengths. The wrist target is clamped to what the shoulder and authored bone

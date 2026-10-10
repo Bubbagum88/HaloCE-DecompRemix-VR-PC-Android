@@ -139,7 +139,7 @@ assert "per-player mute controls are not wired" in notes
 assert "not a claim of complete upstream" in notes
 assert "no dedicated hold-to-talk touch button" in notes
 package = read("tools/package-quest.py")
-assert "required_candidate_code = 58 if candidate_at_least(args.label, 47)" in package
+assert "required_candidate_code = 59 if candidate_at_least(args.label, 48) else 58 if candidate_at_least(args.label, 47)" in package
 assert '"dump", "permissions"' in package and "android.permission.RECORD_AUDIO" in package
 assert "OpenCE Build167 voice-chat runtime marker missing from APK" in package
 assert "OpenCE Build167 voice-chat player-guide marker missing from APK" in package

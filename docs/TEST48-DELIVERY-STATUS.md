@@ -3,7 +3,9 @@
 Candidate target: **1.0.29-test48 / Android version code59**, on
 `test39-interaction-completion`. This candidate carries Test47 and fixes the
 signed-datum rejection that broke weapon grip release, dropping and holster
-storage. It is for owner testing only. Do not publish, install, or launch it.
+storage. It also fixes surface-contact haptic routing across both hands and
+adds OpenXR output diagnostics. It is for owner testing only. Do not publish,
+install, or launch it.
 
 The source audit is in [TEST48-REGRESSION-AUDIT.md](TEST48-REGRESSION-AUDIT.md).
 Owner retest steps are in [TEST48-DEVICE-CHECKLIST.md](TEST48-DEVICE-CHECKLIST.md).

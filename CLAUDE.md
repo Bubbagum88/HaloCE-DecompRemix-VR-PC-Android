@@ -9,9 +9,12 @@ Android code59. Read `docs/TEST48-DELIVERY-STATUS.md`,
 datum-handle bug: valid weapon handles can be negative, with only exact `-1`
 meaning empty. Release-to-drop, release-to-holster, holster storage/pruning,
 and pending hand recovery now use that sentinel correctly. The adjacent VR
-handle paths were audited for the same mistake. Four focused lifecycle suites
-pass; finish full VR/flat regression builds and package both APKs plus matching
-source/build ZIPs. Do not publish, install or launch; await owner device
+handle paths were audited for the same mistake. A reported surface-haptics gap
+was traced to feedback being gated behind the free-hand visual path; Test48
+now routes both tracked palms regardless of arm ownership and logs OpenXR
+vibration results. Focused contact and lifecycle suites pass; finish full
+VR/flat regression builds and package both APKs plus matching source/build
+ZIPs. Do not publish, install or launch; await owner device
 acceptance. Preserve prior candidates and public v1.0.18. PC/Steam Frame stays
 deferred.
 

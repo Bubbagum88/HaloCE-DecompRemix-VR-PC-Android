@@ -50,6 +50,20 @@ struct vr_contact_pulse_state {
     int touching, initialized;
 };
 
+/* A contact pulse must be perceptible at first touch, then rise with palm
+ * penetration and fingertip coverage. The global vr.haptics master is applied
+ * by vr_haptic() after this value is calculated. */
+static float vr_contact_haptic_strength(float depth_metres, int finger_contacts)
+{
+    float depth, fingers;
+    if (!isfinite(depth_metres) || depth_metres < 0.0f) depth_metres = 0.0f;
+    if (finger_contacts < 0) finger_contacts = 0;
+    if (finger_contacts > 5) finger_contacts = 5;
+    depth = fminf(depth_metres, 0.12f) / 0.12f;
+    fingers = (float)finger_contacts;
+    return fminf(0.75f, 0.20f + 0.42f * depth + 0.035f * fingers);
+}
+
 /* One short pulse per contact, rearmed only after 80ms clear. Repeated render
  * passes at the same pose time never renew a vibration. */
 static int vr_contact_pulse(struct vr_contact_pulse_state *state,

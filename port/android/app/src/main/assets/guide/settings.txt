@@ -1293,7 +1293,7 @@ Optional solo VR recovery for eligible live encounter NPCs falling unsupported f
 
 vr.npc_max_ragdolls [integer]
 Default: 8
-Maximum simultaneously active physical NPC interaction rigs (1-16), including settling/recovery. New configurations default to 8 for performance. This controls mod interaction rigs, separately from CORPSE RETENTION.
+Maximum simultaneously active physical NPC interaction rigs (1-16), including settling/recovery. New configurations default to 8 for performance. This controls mod interaction rigs, separately from BODY RETENTION.
 
 vr.ragdoll_retention [integer]
 Default: 75

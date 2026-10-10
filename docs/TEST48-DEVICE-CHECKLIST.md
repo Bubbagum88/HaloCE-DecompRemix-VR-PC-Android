@@ -29,11 +29,27 @@ The supplied log's valid handle values are `-431815724` and `-431750187`.
 Confirm Test48 no longer leaves the weapon in the same fixed state. Save the
 new `halo_log_*.txt` from Downloads if any step fails.
 
+## Surface-contact haptics
+
+Set the global **HAPTICS** option above zero. Test both controllers against a
+wall, floor/solid scenery, a movable object, a held weapon, and a live NPC or
+ally. Repeat with the weapon hand, off hand, two-handed grip, and while a
+reload/native hand animation is playing; also test with the arm display hidden
+or animated. Palm pressure should produce a sustained buzz that follows the
+press and stops after release; deeper pressure and finger contact should be
+clearer. Turning **HAPTICS** to zero should mute these
+contact pulses together with the other controller vibration. In the log,
+check for `[openxr] haptic output action ready` and
+`[openxr] controller haptic output accepted by runtime`; report any
+`xrApplyHapticFeedback failed` lines or a missing action-ready marker.
+
 ## Regression checks carried from Test47
 
 - Verify arms do not stretch, fingers still contact surfaces, reload/grenade
   native animation handoff remains smooth, and scopes remain aligned with one
   and two hands.
+- Confirm surface-contact haptics on both hands and the OpenXR output log
+  markers above; source tests cannot establish physical controller vibration.
 - Verify manual reload only begins after actual palm contact and its mapped
   input; it remains solo-only.
 - Verify the local solo multiplayer-map spawn and body-retention behavior.

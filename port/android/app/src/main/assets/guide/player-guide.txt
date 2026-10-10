@@ -1,4 +1,47 @@
-# Test46 private candidate: 1.0.27-test46
+# Test48 private candidate: 1.0.29-test48
+
+This candidate carries forward Test47 and the cumulative player-facing features
+below. It fixes the signed weapon-datum regression that disabled grip release,
+weapon dropping, and holster storage. It also routes surface-contact haptics
+from tracked palms independently of which arm pose is displayed, and records
+OpenXR vibration-call failures in the log. The APKs are for owner testing; they
+are not a public release.
+
+## Test48 fix and Test47 changes to retest
+
+- **Grip release / holsters (confirmed regression fix):** OpenCE weapon datum handles are signed values; valid live handles can be negative. Only `-1` means no weapon. Test47's release latch, holster storage/pruning, and pending-release recovery incorrectly rejected every negative handle. Test48 checks the actual empty sentinel, so releasing a gripped weapon drops it, releasing inside a holster stores it, and re-gripping an occupied holster can request that exact weapon. Retest with both weapons shown in the supplied log (`-431815724` and `-431750187`).
+- The matching regression tests exercise negative live unit/weapon handles through the release, hand-state recovery, holster store/draw/prune paths, and preserve cancellation when grip is re-pressed, tracking/focus is lost, recenter occurs, or an interaction owns the hand.
+- **Surface-contact haptics (reported missing):** this restores the released build's continuous pressure buzz while a palm presses into a surface, and extends collision sampling to either tracked hand even when that arm is using a native animation, the support hand is locked to a two-handed weapon, or the arm mesh is hidden/animated. Finger-only contact also vibrates continuously while contact remains. Contact strength follows palm penetration or finger coverage and uses the global **HAPTICS** setting. The OpenXR host logs whether its vibration action is available, confirms the first vibration accepted by the runtime, and rate-limits API failures into the session log. Quest testing is still needed to confirm physical controller output on the target headset/runtime.
+
+- **Hands/arms:** the arm model now keeps the original upper-arm and forearm
+  lengths. The wrist target is clamped to what the shoulder and authored bone
+  lengths can reach, with a small shoulder adjustment; the solver no longer
+  lengthens or compresses the arm to force the controller pose. Test normal
+  reach, crossing arms, looking down at the torso, turning the body, and
+  tracking/recentering transitions.
+- **Manual reload:** enable **MANUAL RELOAD** in VR Controls. Use the configured
+  free-hand **RELOAD INPUT** (Grip by default; Trigger is optional) only after
+  the palm touches the authored magazine/handle or the enabled hip/shoulder
+  pickup point. Pull the magazine clear, release, take a replacement from the
+  body pouch, align it with the socket, and release it to seat. Finish with the
+  authored handle/pump/latch. The configured **USE / RELOAD** action ejects a
+  magazine only while the free palm contacts it; it cancels an active reload.
+  Quest B is the default USE / RELOAD button. Right-stick click remains melee.
+  Unsupported profiles keep native reload; physical reload remains solo-only.
+- The reload log now reports changes in the mapped action, native reload bit,
+  free-hand Grip/Trigger, contact with the authored magazine/pouch/chamber, and
+  interaction ownership. A missing contact or conflicting owner should now be
+  diagnosable from a single session log.
+- **New Game > multiplayer map:** a local solo map load should spawn at a
+  multiplayer scenario start inside the BSP with the multiplayer biped, instead
+  of reusing a campaign continuation unit. Network matches and campaign starts
+  are unchanged.
+- **BODY RETENTION** (saved as `vr.ragdoll_retention`): solo campaign defaults to a higher active-garbage
+  cleanup threshold (75 trigger / 45 target, scaled per 16 players). Choose
+  **STOCK** for OpenCE's 50 / 30 thresholds or **100** for 100 / 60. Corpses
+  share this pool with other garbage, so this retains eligible offscreen bodies
+  longer but is not a fixed corpse-count guarantee. Memory/object pressure may
+  still collect sooner. Network and local multiplayer always use stock values.
 
 ## Changes in Test46: contact latching and allied NPCs
 
@@ -110,10 +153,7 @@ and Java startup. Switching applies to the next launch. See
   in the documented fall/recovery state. Custom scenery uses validated
   collision bounds; it does not enable arbitrary BSP geometry or script-owned
   scenery.
-- **HAND CONTACT:** sets the shared palm-collider radius (2, 4, 6, or 8 cm; 4 cm default), not a target-search reach. World objects and NPCs can be grabbed only when the tracked hand volume overlaps their collision model; the co-op host repeats the NPC/object collision check. Manual reload part bounds, virtual pouch points, and optional vehicle-wheel handles use touch-then-press. Magazine insertion is a separate held-object alignment step. To climb, touch a solid vertical surface with a free hand, then squeeze Grip. Aim direction cannot select these targets. **NPC RIG SLOTS** controls 1-8
-  mod interaction rigs, not Halo's native corpse count. Source review found no
-  native corpse-count slider or fixed simultaneous corpse cap; per-corpse
-  settling duration and general object/memory cleanup are separate.
+- **HAND CONTACT:** sets the shared palm-collider radius (2, 4, 6, or 8 cm; 4 cm default), not a target-search reach. World objects and NPCs can be grabbed only when the tracked hand volume overlaps their collision model; the co-op host repeats the NPC/object collision check. Manual reload part bounds, virtual pouch points, and optional vehicle-wheel handles use touch-then-press. Magazine insertion is a separate held-object alignment step. To climb, touch a solid vertical surface with a free hand, then squeeze Grip. Aim direction cannot select these targets. **NPC RIG SLOTS** controls 1, 2, 4, 8, 12 or 16 mod interaction rigs (default 8). **BODY RETENTION** separately raises solo-only engine garbage thresholds to 75/45 by default or 100/60; STOCK restores 50/30. This changes the shared pool, not a fixed corpse count. Native tag eligibility remains; memory/object pressure may clean sooner, and multiplayer always uses stock thresholds.
   **HAPTICS** is the master controller-vibration control. **HOLSTER HAPTICS**
   only mutes holster entry/draw/stow buzzes and does not mute reload or other
   effects.
@@ -169,17 +209,21 @@ boundary.
 
 ## OpenCE, network and image compatibility
 
-The engine base remains OpenCE Build157 / network24. Selected fixes reviewed
-against official OpenCE Build167 are included; Build167 does not change the
-network protocol. The launcher offers client targets 11-24 or All compatible,
-while hosting stays on 24. The official Build167 teamplay settings overlay now
-defines the host controls for voice routing, lobby voice, bitrate and
-proximity. This menu asset alone does not establish working microphone capture,
-network transport or playback. Selected voice-chat runtime is integrated as
-described above, but per-player mute, votekick, the upstream co-op setup UI, and
-Build165-166 renderer/camera/animation changes are not included or verified.
-The Test42 audit linked in the repo is a historical snapshot and is
-superseded for voice integration by the Test46 notes and voice-chat record.
+The engine base remains OpenCE Build157 / network24. This is a selective
+integration through official Build177, **not** a full Build177 engine rebase;
+network24 and the launcher's network selector stay unchanged. The candidate
+includes the compatible Custom Edition tag guard, Android cleanup, large
+co-op respawn selection, pagemap-denied ART-memory fallback and exact-match
+reticle artwork. Build175's old-kernel fixed-map safeguard was already present
+and is retained. Build174's high-resolution button rendering was reviewed but
+not merged because its upstream renderer/asset patch conflicts with the
+customized Android and VR menu paths. The exact scope and test limits are in
+[the Build177 integration audit](TEST47-OPENCE177-INTEGRATION.md).
+
+Build167 voice chat remains integrated as described above, without changing
+network24. The launcher offers client targets 11-24 or All compatible, while
+hosting stays on 24. Selected assets do not establish device-level voice,
+server, map-revision or co-op compatibility; see the device checklist.
 
 The supplied USA Original, Rev 1 and Rev 2 XISOs all import successfully and
 their 24 map files are byte-identical. Original remains the recommended
@@ -200,14 +244,17 @@ campaign co-op and its usual capacity are unchanged by these optional systems.
 
 ## Important limits
 
-NPC RIG SLOTS does not raise Halo's native corpse-ragdoll count. Source review
-found no native simultaneous corpse-count cap to raise: eligible bodies run a
-settling solver for a bounded duration, while general object/memory pressure
-may reclaim eligible off-screen garbage. Custom rig support is opt-in and
-solo-only for `_actor_none` and grounded custom `_actor_engineer` tags that
-pass the native head/pelvis, capsule, graph and non-flight checks. It reuses
-the authored graph; it is not universal retargeting for arbitrary mods or
-online custom-layout support. Dropped magazines are not serialized into save files, do not survive a
+NPC RIG SLOTS changes the mod's articulated interaction pool, not native
+ragdoll eligibility. Test47's BODY RETENTION adjusts the shared active-
+garbage cleanup threshold only in solo VR campaign. There is no exact corpse
+count guarantee: eligible bodies run the tag-gated settling solver, and memory
+or object pressure may reclaim off-screen garbage. NPC interaction slots allow 1,
+2, 4, 8, 12 or 16 active mod rigs; new configurations remain at 8 to limit
+Quest CPU work. Custom rig support is opt-in and solo-only for otherwise-
+unprofiled grounded humanoid actor variants whose native biped capsule and
+authored graph checks pass. It simulates the captured graph without assuming
+stock head/pelvis markers; malformed,
+flying, swarm and online custom-layout rigs remain unsupported. Dropped magazines are not serialized into save files, do not survive a
 map change, create ammo, or replicate; the 32 visual props survive only same-map
 state restores in the current process. Vehicle lifting supports bounded
 hand-driven translation and rotation for the listed ground vehicle classes;

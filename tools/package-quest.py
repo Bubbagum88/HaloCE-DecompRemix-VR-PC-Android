@@ -89,7 +89,7 @@ VR_BUILD_IDENTITIES = {
     b"vr: HaloCE Quest test45 candidate 1.0.26-test45 code56 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; touch-then-Grip NPC/enemy/ally contacts; held NPC grip persists through ordinary movement and bounded tracking rebases; release-reason diagnostics; prior launcher, calibration, reload, climbing, VR and Android work retained; device acceptance pending)",
     b"vr: HaloCE Quest test46 candidate 1.0.27-test46 code57 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes and host-relayed voice; contact-driven NPC/ally interaction; bounded vehicle lifting; persistent same-map magazine visuals; prior launcher, calibration, reload, climbing, VR and Android work retained; device acceptance pending)",
     b"vr: HaloCE Quest test47 candidate 1.0.28-test47 code58 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; voice chat; fixed-length arm IK, solo corpse retention, manual reload input and local multiplayer-map spawn; prior launcher, calibration, climbing, interactions, VR and Android work retained; device acceptance pending)",
-    b"vr: HaloCE Quest test48 candidate 1.0.29-test48 code59 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; signed-datum weapon release, drop and holster regression fixed; Test47 features retained; device acceptance pending)"
+    b"vr: HaloCE Quest test48 candidate 1.0.29-test48 code59 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; signed-datum weapon release, drop and holster regression fixed; sustained surface pressure haptics restored and routed to both hands independent of arm ownership; OpenXR haptic results logged; Test47 features retained; device acceptance pending)"
 }
 
 
@@ -358,6 +358,7 @@ def main():
                 if vr:
                     current_upstream_markers = ([b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
                                                  b"signed-datum weapon release, drop and holster regression fixed",
+                                                 b"sustained surface pressure haptics restored and routed to both hands independent of arm ownership", b"OpenXR haptic results logged",
                                                  b"test48 candidate 1.0.29-test48 code59"]
                         if candidate_at_least(args.label, 48) else
                         [b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",

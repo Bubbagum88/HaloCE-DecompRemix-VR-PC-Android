@@ -3083,12 +3083,13 @@ static float vr_finger_query(void *opaque, int direction, float amount)
 }
 
 static void vr_hand_contact_feedback(int controller, long unit,
-	struct animation_graph *graph, boolean touching, real strength)
+	struct animation_graph *graph, boolean touching, real depth, int contacts)
 {
 	static struct vr_contact_pulse_state state[2];
 	static long previous_unit[2] = { NONE, NONE };
 	static struct animation_graph *previous_graph[2];
 	static unsigned long previous_epoch[2];
+	boolean entered;
 	if (controller < 0 || controller > 1) return;
 	if (previous_unit[controller] != unit || previous_graph[controller] != graph || previous_epoch[controller] != vr_contact_epoch) {
 		memset(&state[controller], 0, sizeof(state[controller]));
@@ -3096,8 +3097,36 @@ static void vr_hand_contact_feedback(int controller, long unit,
 		previous_graph[controller] = graph;
 		previous_epoch[controller] = vr_contact_epoch;
 	}
-	if (vr_contact_pulse(&state[controller], vr_pose_time(), touching))
-		vr_haptic(controller, PIN(strength, 0.05f, 0.35f), 0.025f);
+	entered = vr_contact_pulse(&state[controller], vr_pose_time(), touching);
+	if (!touching) return;
+	/* Preserve the released pressure-feedback behavior: palm pressure keeps
+	 * following penetration instead of ending after a faint contact click. */
+	if (isfinite(depth) && depth > 0.0001f)
+		vr_pressure_buzz(controller, depth);
+	else if (contacts > 0)
+		vr_haptic(controller, vr_contact_haptic_strength(depth, contacts), 0.03f);
+	else if (entered)
+		vr_haptic(controller, vr_contact_haptic_strength(depth, contacts), 0.04f);
+}
+
+/* Surface feedback follows tracked palm contact, whether or not this frame's
+ * arm mesh is visible, free, or owned by a native animation. Collision is
+ * cached per hand and predicted XR frame for the later pose solver. */
+static boolean vr_hand_contact_sample(int controller, real *depth_metres)
+{
+	real units = vr_units_per_metre();
+	real_point3d hand, target;
+	real_vector3d forward, up, normal;
+
+	if (depth_metres) *depth_metres = 0.0f;
+	if (controller < 0 || controller > 1 || !isfinite(units) || units <= 0.0f ||
+		!vr_hand_pose(controller, vr_render.game_camera_position.n, hand.n, forward.n, up.n) ||
+		!vr_unit_vector(&forward))
+		return FALSE;
+	target.x = hand.x - forward.i * 0.075f * units;
+	target.y = hand.y - forward.j * 0.075f * units;
+	target.z = hand.z - forward.k * 0.075f * units;
+	return vr_hand_out_of_walls(controller, &target, &forward, depth_metres, &normal);
 }
 
 /* test26: the free hand's fingers against the world. Each finger takes the
@@ -4077,6 +4106,11 @@ void vr_render_first_person_ik(
     if (draw_arms == 2) {
         vr_avatar_hands[0].valid = vr_avatar_hands[1].valid = FALSE;
         action.valid = 0;
+        for (int controller = 0; controller < 2; controller++) {
+            real depth = 0.0f;
+            boolean touching = vr_hand_contact_sample(controller, &depth);
+            vr_hand_contact_feedback(controller, unit, graph, touching, depth, 0);
+        }
         vr_hide_forearms(matrices, graph, left, right); return;
     }
     action_reset = action_graph != graph || action_unit != unit || action_weapon != weapon ||
@@ -4142,6 +4176,11 @@ void vr_render_first_person_ik(
 	if (draw_arms == 1)
 	{
 		short gun = vr_find_node(graph, "frame", "gun");
+		for (int controller = 0; controller < 2; controller++) {
+			real depth = 0.0f;
+			boolean touching = vr_hand_contact_sample(controller, &depth);
+			vr_hand_contact_feedback(controller, unit, graph, touching, depth, 0);
+		}
 
 		/* hidden: the arms' bones (and what they carry) shrunk to nothing,
 		at the shoulder's place */
@@ -4197,10 +4236,15 @@ void vr_render_first_person_ik(
 			boolean gun_arm = side == 1;
 			real outward = (gun_arm == (weapon_hand == 1)) ? 1.0f : -1.0f;
 			int controller = gun_arm ? weapon_hand : 1 - weapon_hand;
+			real sampled_depth = 0.0f;
+			boolean sampled_contact = vr_hand_contact_sample(controller, &sampled_depth);
 
             /* At full ownership use the untouched native chain, including fingers.
-             * No contact solver/haptics should fight an animated hand. */
-            if (action.weight[side] >= 1) continue;
+             * Haptic contact sampling above is independent of visual ownership. */
+            if (action.weight[side] >= 1) {
+				vr_hand_contact_feedback(controller, unit, graph, sampled_contact, sampled_depth, 0);
+				continue;
+			}
 			/* shoulders below and either side of the eyes, a little back */
 			shoulder.x = head.x + (right_side.i * 0.17f * outward - forward.i * 0.06f) * units;
 			shoulder.y = head.y + (right_side.j * 0.17f * outward - forward.j * 0.06f) * units;
@@ -4225,6 +4269,7 @@ void vr_render_first_person_ik(
 				real_vector3d f, u, palm, normal;
 				real depth = 0.0f, dot;
 				boolean free_hand = FALSE, pressed = FALSE;
+				int contacts = 0;
 				real_point3d npc_contact;
 				short joints[5][3];
 				float curls[4];
@@ -4300,18 +4345,17 @@ void vr_render_first_person_ik(
 				}
 				if (free_hand)
 				{
-					int contacts = 0;
 					vr_finger_nodes(graph, chain[_vr_arm_hand], side ? "r " : "l ", joints);
 					vr_orient_hand(graph, matrices, chain[_vr_arm_hand], joints, &f, &u);
 					if (tracking != 1)
 						vr_distribute_arm_twist(matrices, chain, &old_fore, &old_hand, &vr_arm_history[controller]);
 					if (vr_finger_pose(controller, curls))
 						contacts = vr_touch_fingers(graph, matrices, controller, chain[_vr_arm_hand], joints, curls, &palm, &f, &u, pressed);
-					vr_hand_contact_feedback(controller, unit, graph,
-						action.weight[side] == 0 && (pressed || contacts),
-						pressed ? 0.12f + 0.6f * depth : 0.05f + 0.05f * contacts);
 				}
 				else if (tracking != 1) vr_distribute_arm_twist(matrices, chain, &old_fore, &old_hand, &vr_arm_history[controller]);
+				vr_hand_contact_feedback(controller, unit, graph,
+					free_hand ? (sampled_contact || pressed || contacts) : sampled_contact,
+					MAX(sampled_depth, depth), contacts);
 
 			}
 		}

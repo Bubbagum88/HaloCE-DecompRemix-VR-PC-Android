@@ -130,6 +130,7 @@ static struct
 	uint32_t last_layer_flags;
 	int first_frame_logged;
 } xr;
+static int haptic_output_logged;
 
 static double elapsed_ms(const struct timespec *from, const struct timespec *to)
 {
@@ -921,6 +922,8 @@ int host_xr_init(struct halo_xr_info *out, uint32_t quad_width, uint32_t quad_he
 	xr.actions_ready = create_actions();
 	if (!xr.actions_ready)
 		host_logf(HOST_LOG_WARN, "[openxr] controller actions unavailable");
+	host_logf(xr.actions_ready && xr.actions[_action_haptic] != XR_NULL_HANDLE ? HOST_LOG_INFO : HOST_LOG_WARN,
+		"[openxr] haptic output action %s", xr.actions_ready && xr.actions[_action_haptic] != XR_NULL_HANDLE ? "ready" : "unavailable");
 	xr.views[0].type = xr.views[1].type = XR_TYPE_VIEW;
 	xr.recentre_pending = 1;
 	clock_gettime(CLOCK_MONOTONIC, &xr.stats_start);
@@ -1563,15 +1566,26 @@ void host_xr_haptic(uint32_t hand, float amplitude, float seconds)
 {
 	XrHapticActionInfo info = { XR_TYPE_HAPTIC_ACTION_INFO };
 	XrHapticVibration vibration = { XR_TYPE_HAPTIC_VIBRATION };
+	XrResult result;
 
 	if (!xr.actions_ready || !xr.focused || hand > 1)
 		return;
 	info.action = xr.actions[_action_haptic];
 	info.subactionPath = xr.hands[hand];
+	if (info.action == XR_NULL_HANDLE || info.subactionPath == XR_NULL_PATH)
+	{
+		host_logf(HOST_LOG_WARN, "[openxr] haptic output skipped: action or hand path is unavailable");
+		return;
+	}
 	vibration.amplitude = amplitude;
 	vibration.duration = (XrDuration)(seconds * 1e9f);
 	vibration.frequency = XR_FREQUENCY_UNSPECIFIED;
-	xrApplyHapticFeedback(xr.session, &info, (const XrHapticBaseHeader *)&vibration);
+	result = xrApplyHapticFeedback(xr.session, &info, (const XrHapticBaseHeader *)&vibration);
+	if (check(result, "xrApplyHapticFeedback") && !haptic_output_logged)
+	{
+		haptic_output_logged = 1;
+		host_logf(HOST_LOG_INFO, "[openxr] controller haptic output accepted by runtime");
+	}
 }
 
 #endif /* HALO_VR */

@@ -8,7 +8,9 @@ Test47 Quest log showed valid negative weapon datum handles; Test47's release
 latch, holster slot helpers and failed-release recovery treated every negative
 handle as empty. Test48 recognizes only exact `-1` as invalid. The wider audit
 found no additional matching signed-handle rejection in the adjacent VR
-interaction paths. Evidence and remaining limits are in
+interaction paths. Test48 also routes surface-contact haptics for either hand
+independently of arm animation ownership and logs OpenXR output failures.
+Evidence and remaining limits are in
 [TEST48-REGRESSION-AUDIT.md](TEST48-REGRESSION-AUDIT.md).
 
 Focused weapon/holster/release tests pass. VR and flat builds, package checks,

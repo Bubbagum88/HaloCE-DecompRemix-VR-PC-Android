@@ -1,4 +1,4 @@
-# Test48 signed-datum regression audit
+# Test48 regression audit
 
 ## Finding
 
@@ -31,6 +31,29 @@ swapchain indices, actor squad indexes, or other bounded integer indexes; they
 are not datum-handle validity tests. No additional matching signed-handle bug
 was found in that audit.
 
+## Surface-contact haptics regression
+
+The reported missing wall/surface/NPC haptics was reproduced by tracing the
+call gates: the old feedback callback only ran inside the visible free-hand
+pose branch, and its touching condition also required the native arm blend to
+be exactly zero. The dominant weapon hand, a two-handed support hand, fully
+native hand animations, and hidden/native arm display modes could therefore
+skip palm contact feedback even while the collision path was active. Finger
+feedback also depended on finger tracking being enabled.
+
+Compared with the released `v1.0.18` source, the old palm path used a 30 ms
+pressure buzz that refreshed while the hand remained pressed. The newer path
+replaced it with one weaker 25 ms entry pulse. Test48 restores the sustained
+pressure buzz, samples tracked palm collision before the native-arm ownership
+gate for both controller hands, and also routes fingertip-only contact while
+it remains. Contact strength is bounded and still passes through the single
+global HAPTICS setting. The Android OpenXR host checks the result of
+`xrApplyHapticFeedback`, logs the haptic action's availability, confirms the
+first accepted output, and rate-limits failures. These code-path checks do not
+prove that a physical controller vibrated; verify that on Quest with the
+device checklist and use the new log markers to distinguish a runtime output
+failure from a collision-routing failure.
+
 ## Regression coverage
 
 The tests use the two negative weapon values from the supplied log and a
@@ -41,5 +64,6 @@ exactly-once delivery and cancel on re-grip, invalid tracking/focus, recenter,
 weapon change, and deferred interaction ownership.
 
 Host tests and APK compilation can verify these state transitions, but only
-Quest testing can confirm controller events reach this code and that native
-drop/stow actions take effect in game. See `TEST48-DEVICE-CHECKLIST.md`.
+Quest testing can confirm controller events reach this code, native drop/stow
+actions take effect, and the runtime physically vibrates both controllers.
+See `TEST48-DEVICE-CHECKLIST.md`.

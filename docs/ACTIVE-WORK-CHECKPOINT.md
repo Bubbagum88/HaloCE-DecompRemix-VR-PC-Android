@@ -6,7 +6,9 @@ Candidate **1.0.29-test48 / code59** on `test39-interaction-completion`.
 It carries Test47 and fixes the confirmed signed-datum regression that locked
 weapon release, drop and holster behavior. Valid live weapon IDs are negative;
 only `-1` is the empty sentinel. The broader adjacent-handle audit found no
-other matching sign-check bug in the reviewed VR interaction paths. See
+other matching sign-check bug in the reviewed VR interaction paths. A further
+report found missing surface/NPC haptics: Test48 samples contact for both
+hands independent of arm ownership and records OpenXR vibration results. See
 [TEST48-REGRESSION-AUDIT.md](TEST48-REGRESSION-AUDIT.md) and
 [TEST48-DELIVERY-STATUS.md](TEST48-DELIVERY-STATUS.md).
 

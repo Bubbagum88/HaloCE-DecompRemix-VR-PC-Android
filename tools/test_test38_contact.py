@@ -39,6 +39,10 @@ int main(void) {
     t = vr_contact_search(clearance, &q, 1, .2f, &direction);
     assert(fabsf(t - 2.f/3) < .001f && q.calls <= 8);
     struct vr_contact_pulse_state p = {0};
+    assert(fabsf(vr_contact_haptic_strength(0.0f, 0) - 0.20f) < .0001f);
+    assert(vr_contact_haptic_strength(.12f, 5) == .75f);
+    assert(vr_contact_haptic_strength(NAN, -4) == .20f);
+    assert(vr_contact_haptic_strength(INFINITY, 1) <= .75f);
     assert(vr_contact_pulse(&p, 1, 1));
     assert(!vr_contact_pulse(&p, 1, 1)); /* second eye */
     for (int i = 1; i <= 90; ++i) assert(!vr_contact_pulse(&p, 1 + i / 90., 1));
@@ -62,6 +66,24 @@ subprocess.run([str(OUT / "contact")], check=True)
 render = (ROOT / "port/linux/game/vr_render.c").read_text()
 assert 'vr_contact_search(vr_finger_query' in render
 assert 'vr_hand_contact_feedback(controller, unit, graph' in render
+assert 'vr_hand_contact_sample(controller, &sampled_depth)' in render
+sample = render.index('boolean sampled_contact = vr_hand_contact_sample(controller, &sampled_depth);')
+native_gate = render.index('if (action.weight[side] >= 1)', sample)
+assert sample < native_gate
+assert 'free_hand ? (sampled_contact || pressed || contacts) : sampled_contact' in render
+assert 'action.weight[side] == 0 && (pressed || contacts)' not in render
+assert 'vr_hand_contact_sample(controller, &depth)' in render
+feedback_start = render.index('static void vr_hand_contact_feedback(')
+feedback_end = render.index('/* Surface feedback follows tracked palm contact', feedback_start)
+feedback = render[feedback_start:feedback_end]
+assert 'vr_pressure_buzz(controller, depth)' in feedback
+assert 'vr_haptic(controller, vr_contact_haptic_strength(depth, contacts), 0.03f)' in feedback
 assert 'last_graph[controller] != graph' in render
 assert 'else if (contacts && action.weight[side] == 0) vr_haptic' not in render
-print("Test38 bounded contact search and haptic entry checks passed")
+host = (ROOT / "port/android/host/host_xr.c").read_text()
+assert '"/user/hand/" hand "/output/haptic"' in host
+assert 'check(result, "xrApplyHapticFeedback")' in host
+assert 'controller haptic output accepted by runtime' in host
+frame = (ROOT / "port/linux/src/vr_frame.c").read_text()
+assert 'haptics master %.0f%%' in frame
+print("Test38 bounded contact search, restored sustained pressure feedback, both-hand/native-owned routing and OpenXR diagnostics passed")
