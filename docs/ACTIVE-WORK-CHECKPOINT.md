@@ -1,6 +1,23 @@
 ## Current release checkpoint — v1.0.18 (2026-10-08)
 
-## Active private Test47 candidate (2026-10-09)
+## Active private Test48 candidate (2026-10-10)
+
+Candidate **1.0.29-test48 / code59** on `test39-interaction-completion`.
+It carries Test47 and fixes the confirmed signed-datum regression that locked
+weapon release, drop and holster behavior. Valid live weapon IDs are negative;
+only `-1` is the empty sentinel. The broader adjacent-handle audit found no
+other matching sign-check bug in the reviewed VR interaction paths. See
+[TEST48-REGRESSION-AUDIT.md](TEST48-REGRESSION-AUDIT.md) and
+[TEST48-DELIVERY-STATUS.md](TEST48-DELIVERY-STATUS.md).
+
+Focus checks pass for weapon math, release latch, holster haptics and pending
+release recovery. Build both APKs and package source/build ZIPs for owner
+testing. Preserve all prior artifacts and public v1.0.18. Do not publish,
+install or launch the game. Actual Quest/Android device acceptance is pending;
+use [TEST48-DEVICE-CHECKLIST.md](TEST48-DEVICE-CHECKLIST.md). PC/Steam Frame
+remains deferred.
+
+## Superseded private Test47 candidate (2026-10-09)
 
 Candidate **1.0.28-test47 / code58** on `test39-interaction-completion`.
 Both APKs and matching source/build ZIPs are packaged for owner testing at

@@ -1,5 +1,12 @@
 # Test47 private candidate delivery status
 
+**Superseded by private Test48.** The owner's Quest log showed live weapon
+datum handles with negative signed values. Test47 rejected them in grip
+release, holster storage/pruning, and pending-release recovery; see
+`TEST48-REGRESSION-AUDIT.md`. Preserve these original Test47 artifacts and
+hashes as historical records; do not retest or distribute them as the current
+candidate.
+
 Candidate target: **1.0.28-test47 / Android version code58**, branch
 `test39-interaction-completion`, based on OpenCE Build157/network24 with the
 selected Build167 and Build169-177 changes documented in

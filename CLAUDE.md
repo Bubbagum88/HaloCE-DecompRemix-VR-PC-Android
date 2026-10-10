@@ -1,6 +1,21 @@
 # Agent and contributor continuation
 
-## Active private Test47 candidate (2026-10-09)
+## Active private Test48 candidate (2026-10-10)
+
+Continue on `test39-interaction-completion`; target private `1.0.29-test48`,
+Android code59. Read `docs/TEST48-DELIVERY-STATUS.md`,
+`docs/TEST48-REGRESSION-AUDIT.md`, `docs/TEST48-PLAYER-NOTES.md`, and
+`docs/TEST48-DEVICE-CHECKLIST.md`. The supplied Test47 log exposed a signed
+datum-handle bug: valid weapon handles can be negative, with only exact `-1`
+meaning empty. Release-to-drop, release-to-holster, holster storage/pruning,
+and pending hand recovery now use that sentinel correctly. The adjacent VR
+handle paths were audited for the same mistake. Four focused lifecycle suites
+pass; finish full VR/flat regression builds and package both APKs plus matching
+source/build ZIPs. Do not publish, install or launch; await owner device
+acceptance. Preserve prior candidates and public v1.0.18. PC/Steam Frame stays
+deferred.
+
+## Superseded private Test47 candidate (2026-10-09)
 
 Continue on `test39-interaction-completion`; target private `1.0.28-test47`,
 Android code58. Preserve Test46/Test45 and prior APK/source artifacts, plus

@@ -1,6 +1,25 @@
 # Current development state
 
-## Active private candidate: Test47 (2026-10-09)
+## Active private candidate: Test48 (2026-10-10)
+
+Candidate target is **1.0.29-test48 / Android code59** on
+`test39-interaction-completion`. It carries forward Test47. The supplied
+Test47 Quest log showed valid negative weapon datum handles; Test47's release
+latch, holster slot helpers and failed-release recovery treated every negative
+handle as empty. Test48 recognizes only exact `-1` as invalid. The wider audit
+found no additional matching signed-handle rejection in the adjacent VR
+interaction paths. Evidence and remaining limits are in
+[TEST48-REGRESSION-AUDIT.md](TEST48-REGRESSION-AUDIT.md).
+
+Focused weapon/holster/release tests pass. VR and flat builds, package checks,
+artifact hashes and owner device testing are recorded in
+[TEST48-DELIVERY-STATUS.md](TEST48-DELIVERY-STATUS.md) after completion. Keep
+Test47 and all older artifacts preserved, keep public v1.0.18 unchanged, and do
+not publish, install or launch. Device acceptance is pending; see
+[TEST48-DEVICE-CHECKLIST.md](TEST48-DEVICE-CHECKLIST.md). PC/Steam Frame remains
+deferred.
+
+## Superseded private candidate: Test47 (2026-10-09)
 
 Candidate target is **1.0.28-test47 / Android code58** on
 `test39-interaction-completion`. It carries forward Test46/Test45 and all
