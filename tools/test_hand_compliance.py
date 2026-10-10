@@ -20,7 +20,8 @@ assert "vr_arm_ik_reach_bounds(" in arm_solver
 assert "vr_arm_ik_clamp_distance(distance, minimum, maximum)" in arm_solver
 assert "upper_length *= " not in arm_solver and "fore_length *= " not in arm_solver
 assert "vr_solve_arm(graph, matrices, chain, shoulder, &target, &pole, !free_hand" in source
-assert "vr_hand_contact_feedback(controller, unit, graph," in source
+assert "if (pressed && action.weight[side] == 0) vr_pressure_buzz(controller, depth);" in source
+assert "else if (contacts && action.weight[side] == 0) vr_haptic(controller, 0.05f + 0.05f * contacts, 0.03f);" in source
 
 # NPC grabbing must never replace the controller-space render target with the
 # lagging articulated NPC contact node. The NPC query may still report an
