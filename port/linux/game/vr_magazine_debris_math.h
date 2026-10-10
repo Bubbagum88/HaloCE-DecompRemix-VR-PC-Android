@@ -6,6 +6,67 @@
 
 enum { VR_MAGAZINE_DEBRIS_CAPACITY = 32 };
 
+/* A magazine clone belongs to the manual-reload transaction until the
+ * engine's ammo commit succeeds. This small policy object is shared with the
+ * native render module so cancellation tests exercise the same transitions. */
+struct vr_magazine_debris_transaction {
+    int slot;
+    int slot_valid;
+    int committed_before_spawn;
+};
+
+static void vr_magazine_debris_transaction_init(struct vr_magazine_debris_transaction *transaction)
+{
+    if (!transaction) return;
+    transaction->slot = -1;
+    transaction->slot_valid = 0;
+    transaction->committed_before_spawn = 0;
+}
+
+static int vr_magazine_debris_transaction_record(struct vr_magazine_debris_transaction *transaction, int slot)
+{
+    if (!transaction || slot < 0 || transaction->slot_valid || transaction->committed_before_spawn) return 0;
+    transaction->slot = slot;
+    transaction->slot_valid = 1;
+    return 1;
+}
+
+/* Return an already-rendered provisional slot for the caller to commit. If
+ * rendering has not happened yet, remember that the next clone is committed. */
+static int vr_magazine_debris_transaction_commit(struct vr_magazine_debris_transaction *transaction)
+{
+    int slot;
+    if (!transaction) return -1;
+    if (!transaction->slot_valid) {
+        transaction->committed_before_spawn = 1;
+        return -1;
+    }
+    slot = transaction->slot;
+    vr_magazine_debris_transaction_init(transaction);
+    return slot;
+}
+
+static int vr_magazine_debris_transaction_cancel(struct vr_magazine_debris_transaction *transaction)
+{
+    int slot;
+    if (!transaction) return -1;
+    slot = transaction->slot_valid ? transaction->slot : -1;
+    vr_magazine_debris_transaction_init(transaction);
+    return slot;
+}
+
+static int vr_magazine_debris_transaction_is_provisional(
+    struct vr_magazine_debris_transaction const *transaction)
+{
+    return transaction && !transaction->committed_before_spawn;
+}
+
+static void vr_magazine_debris_transaction_new_reload(
+    struct vr_magazine_debris_transaction *transaction)
+{
+    if (transaction) transaction->committed_before_spawn = 0;
+}
+
 /* Magazines stay visible for the loaded map. When the bounded pool is full,
  * preserve existing drops and decline new visuals instead of deleting old
  * ones under the player. */

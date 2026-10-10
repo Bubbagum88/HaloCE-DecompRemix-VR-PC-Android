@@ -1139,10 +1139,6 @@ Default: true
 With vr.aim "hand": a zoomed weapon shows its zoom in a scope held at
 the gun (an extra view rendered while zoomed); your eyes stay unzoomed.
 
-vr.contact_max_separation [real]
-Default: 0.18
-Maximum visible hand/controller contact separation in metres (0.08 to 0.40). Deeply blocked hands fade instead of crossing collision.
-
 vr.grab_contact [string]
 Default: "auto"
 Offline physical contact radius: auto applies when world interaction is enabled; on always; off keeps existing close-contact behavior.
@@ -1269,7 +1265,7 @@ Manual reload pouch at the free-hand hip. Automatically mirrors when the gun cha
 
 vr.manual_reload [boolean]
 Default: false
-Optional offline physical magazine reload for supported weapons; button reload remains available.
+Optional solo VR physical reload for supported weapons. The existing USE/RELOAD action ejects only while the free palm contacts the magazine and cancels an active reload; stock button reload is suppressed for supported profiles while this is on.
 
 vr.reload_input [string]
 Default: "grip"
@@ -1277,7 +1273,7 @@ Input for the free hand during optional manual reload only: grip (default) or tr
 
 vr.dropped_magazines [boolean]
 Default: false
-Keep ejected supported rifle/pistol/sniper magazines as local visual debris until the map changes. The VR menu also enables MANUAL RELOAD; the oldest visual is replaced when the 32-magazine pool fills. No ammo, save, or network state is created.
+Keep ejected supported rifle/pistol/sniper magazines as local visual debris until the map changes. Requires MANUAL RELOAD; disabling MANUAL RELOAD in the VR menu also turns this off. Cancelled reloads remove their provisional visual. No ammo, save, or network state is created.
 
 vr.cooldown_shake [boolean]
 Default: false
@@ -1289,7 +1285,7 @@ Opt in to bounded collision-box grabbing of eligible unnamed custom scenery. The
 
 vr.custom_npc_rigs [boolean]
 Default: false
-Solo-only fallback for generic actors and grounded custom Engineer variants with native head/pelvis, capsule and graph validation. The VR menu also enables NPC GRAB. Existing species profiles are unchanged; flying, swarm, scripted, unsafe or malformed rigs remain refused.
+Solo-only fallback for otherwise-unprofiled human, Covenant, and combat-form actors with grounded native biped capsules and a valid authored joint graph. The VR menu also enables NPC GRAB. Existing species profiles are unchanged; flying, swarm, scripted, unsafe, and malformed rigs remain refused.
 
 vr.npc_rescue [boolean]
 Default: false
@@ -1297,7 +1293,11 @@ Optional solo VR recovery for eligible live encounter NPCs falling unsupported f
 
 vr.npc_max_ragdolls [integer]
 Default: 8
-Maximum simultaneously active physical NPC interaction rigs (1-8), including settling/recovery. This is not Halo's native corpse-ragdoll limit; enable NPC GRAB to start a local rig.
+Maximum simultaneously active physical NPC interaction rigs (1-16), including settling/recovery. New configurations default to 8 for performance. This controls mod interaction rigs, separately from CORPSE RETENTION.
+
+vr.ragdoll_retention [integer]
+Default: 75
+Solo campaign only: active-garbage cleanup trigger per 16 players. 75 (default) uses a 75 trigger / 45 target; 100 uses 100 / 60; 0 keeps OpenCE's 50 / 30. Corpses share this pool with other garbage, and memory/object pressure can still collect sooner. Multiplayer always uses native thresholds.
 
 vr.npc_interaction [boolean]
 Default: false

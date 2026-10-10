@@ -21,6 +21,15 @@ static inline void vr_holster_store(long slots[VR_HOLSTER_SLOT_COUNT], int zone,
 	slots[zone] = weapon;
 }
 
+static inline void vr_holster_forget(long slots[VR_HOLSTER_SLOT_COUNT],
+	long weapon)
+{
+	int i;
+	if (!slots || weapon < 0) return;
+	for (i = 0; i < VR_HOLSTER_SLOT_COUNT; ++i)
+		if (slots[i] == weapon) slots[i] = -1;
+}
+
 static inline int vr_holster_inventory_contains(long weapon,
 	long const *inventory, int count)
 {

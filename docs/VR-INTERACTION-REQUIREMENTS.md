@@ -1,10 +1,10 @@
-# Current source disposition — Test46 (2026-10-09)
+# Current source disposition — Test47 (2026-10-09)
 
 This file preserves the original detailed M1-M29 / W1-W66 request matrix and
-its investigation history. The active candidate is Test46; use
-[TEST46-REQUIREMENT-DISPOSITION.md](TEST46-REQUIREMENT-DISPOSITION.md) for the
+its investigation history. The active candidate is Test47; use
+[TEST47-REQUIREMENT-DISPOSITION.md](TEST47-REQUIREMENT-DISPOSITION.md) for the
 current feature-by-feature implementation and limits, and
-[TEST46-DEVICE-CHECKLIST.md](TEST46-DEVICE-CHECKLIST.md) for owner runtime
+[TEST47-DEVICE-CHECKLIST.md](TEST47-DEVICE-CHECKLIST.md) for owner runtime
 acceptance. Source/test completion is not headset acceptance.
 
 Test46 carries the bounded Test38-45 work forward: solo-only profiled manual
@@ -19,8 +19,10 @@ permission asynchronously only when transmission is enabled and active; VR
 provides Off/PTT/Open Mic, controller PTT and 0-200% incoming voice volume.
 
 The scope has explicit limits: no arbitrary skeleton retargeter, no
-save-file/network-persistent dropped magazines, no native corpse-ragdoll cap
-change, and no universal rescue of scripted or every mission actor. Whole-
+save-file/network-persistent dropped magazines, and no universal rescue of
+scripted or every mission actor. Test47 raises the native active-garbage
+cleanup thresholds only in solo VR campaign; it does not guarantee a fixed
+corpse count. Whole-
 vehicle lifting and enhanced NPC/prop physics remain limited to their validated
 solo or negotiated-authority cases. Physical behavior, audio routing,
 performance and multiplayer require the headset checks. PC/Steam Frame remains
@@ -229,7 +231,7 @@ compatibility are demonstrated. No articulated-ragdoll capability is assumed.
 | W51 | Teleport/recenter/state reset | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W52 | Performance | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W53 | Physics budgeting | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
-| W54 | Maximum active ragdolls | **Implemented for the mod's articulated NPC interaction rigs:** `NPC RIG SLOTS` exposes 1–8 simultaneous active interaction/settling/recovery rigs, default 8 for new configs. | This is not a change to Halo's native corpse-ragdoll limit or garbage-collection policy. The engine retains corpse lifetime/count behavior; device performance at eight mod rigs remains a headset acceptance item. |
+| W54 | Maximum active ragdolls | `NPC RIG SLOTS` controls 1–16 simultaneous mod interaction/settling/recovery rigs (default 8). Test47 adds **BODY RETENTION** for solo VR campaign: 75/45 active-garbage trigger/target by default, 100/60 optional, or STOCK 50/30. | This raises the engine's shared active-garbage thresholds, not a guaranteed corpse count; memory/object pressure still has priority and all multiplayer keeps stock values. Device performance and actual body persistence remain headset checks. |
 | W55 | Debug tools | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W56 | Logging | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |
 | W57 | Automated testing | Deferred — dependency W | Investigate after preceding work; no physical/network evidence yet. |

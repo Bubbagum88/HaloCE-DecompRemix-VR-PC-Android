@@ -28,6 +28,14 @@ The selected input must be pressed anew while contact is present at each grab;
 holding it before reaching a part or pickup point does not automatically acquire
 the object. Magazine seating is a separate placement step: the already-held
 magazine must align with the authored socket and release there.
+For a magazine weapon, the normal in-game **Reload** action can eject the old
+magazine when the free palm is already touching its authored bounds. This is a
+contact-only contextual action; use the configured **USE / RELOAD** action
+(Quest B by default). The VR action is read directly as well as through the
+engine reload bit, so the renderer/game-tick timing boundary does not drop a
+short press. The right-stick click remains melee. A full magazine
+can be replaced if reserve ammo remains. Loose shotgun shells and Needler
+crystals continue to use their physical pickup path.
 
 | Weapon | Physical part | Finish |
 |---|---|---|
@@ -50,10 +58,13 @@ The Needler bundle reuses its 16 authored visible needles as one reload object;
 these are a visual cluster, not 16 individual ammunition units. The actual
 20-round capacity and reserve transfer stay under the native magazine rules.
 
-Pressing the normal reload button cancels the current physical sequence without
-committing ammunition. For a supported weapon profile in solo play, native
-automatic reload remains suppressed while **Manual Reload** is on; turn the
-setting off to use the classic reload control. Unprofiled weapons retain their
+Pressing the configured USE / RELOAD button during an active physical sequence cancels it
+without committing ammunition. At idle, the same action only ejects a magazine
+while magazine contact is present; a press away from the magazine does not
+start a stock reload while manual mode is enabled. For a supported weapon
+profile in solo play, native automatic reload remains suppressed while **Manual
+Reload** is on; turn the setting off to use the classic reload control.
+Unprofiled weapons retain their
 native behavior. Weapon changes, dropping/putting away the weapon, death, vehicle entry,
 cinematics, inhibited input, lost tracking, map transitions, or disabling the
 option cancel transient state. Ammunition is unchanged before final commit.
@@ -61,6 +72,16 @@ Online play uses the existing native reload path: this implementation does not
 send unrecognized physical-reload packets or alter host ammo authority.
 
 ## Evidence and implementation
+
+The normal in-game **Reload** action also works as a contextual magazine
+release: while the free palm overlaps the weapon's authored magazine bounds,
+tap **USE / RELOAD** to eject it. This reuses the existing action and leaves
+right-stick melee and other controller bindings unchanged. It does nothing without contact,
+without reserve ammunition, or for loose-shell/Needler reloads. A full magazine
+can be tactically replaced when reserve remains. With **MAG DEBRIS** enabled,
+the ejected magazine is a provisional local visual; canceling restores the
+authored magazine and removes the provisional copy. Ammo still changes only
+through the native completion call.
 
 The supplied USA Original/Rev1/Rev2 map sets are byte-identical; see
 [the image matrix](USA-IMAGE-COMPARISON.md). The audit read model/tag structures
@@ -85,7 +106,9 @@ guarded. All state is transient; saves retain the engine's own ammo state.
 only after a completed sequence. The original finite reserve/infinite ammo,
 capacity, per-shell load count and discarded-fuel policies are preserved.
 Automatic follow-on reload is suppressed during that one commit, including the
-infinite-ammo/low-reserve edge. The normal reload button bypasses this path.
+infinite-ammo/low-reserve edge. The configured USE / RELOAD action is
+edge-triggered and consumed by the contextual eject/cancel behavior while
+manual mode is active. The right-stick click remains melee.
 
 ## Requirement disposition
 
@@ -137,9 +160,11 @@ executes the actual finger query routing and cap/recovery state under sanitizers
 | M9 two-hand interaction | Exclusive grip ownership clears support lock while manipulating | Both handednesses in headset |
 | M10 cancellation | Lifecycle, explicit button, stale/invalid pose and tracking checks | Interrupt every stage on device |
 | M11 haptics | Bounded transition pulses using existing haptic scaling | User preference/device result |
+| M12 contextual magazine eject | Reload-action press while the free palm overlaps authored magazine bounds; full-mag tactical reload is accepted when reserve remains | Contact/eject interaction on Quest |
 | Reload input | Grip is the default; optional free-hand analog Trigger is selectable in Controls → Buttons | Automated mode/threshold checks; both inputs need headset confirmation |
 
-`tools/test_manual_reload.py` exercises the physical sequence, grip-edge rules,
+`tools/test_manual_reload.py` exercises the physical sequence, grip and reload
+button edges, contact-gated ejection, full-mag tactical replacement,
 missed sockets, incomplete handle pulls, cancellation from every phase,
 exactly-once completion, relative movement, shell retrieval, and the **actual
 native ammo function** over capacities/reserves/tactical/empty/infinite-ammo and

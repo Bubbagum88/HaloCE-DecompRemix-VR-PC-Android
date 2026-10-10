@@ -9,22 +9,8 @@ def read(path):
     return (ROOT / path).read_text(encoding="utf-8-sig")
 
 
-gradle = read("port/android/app/build.gradle")
-assert "versionCode Math.max(57, buildNumber)" in gradle
-assert '"1.0.27-test46"' in gradle
-frame = read("port/linux/src/vr_frame.c")
-identity = (
-    "HaloCE Quest test46 candidate 1.0.27-test46 code57 "
-    "(OpenCE Build 157 base / network 24; selected Build167 compatibility "
-    "fixes and host-relayed voice; contact-driven NPC/ally interaction; "
-    "bounded vehicle lifting; persistent same-map magazine visuals; prior "
-    "launcher, calibration, reload, climbing, VR and Android work retained; "
-    "device acceptance pending)"
-)
-assert identity in frame
 package = read("tools/package-quest.py")
-assert identity.encode("ascii") in package.encode("utf-8")
-assert "57 if candidate_at_least(args.label, 46)" in package
+assert b"test46 candidate 1.0.27-test46 code57" in package.encode("utf-8")
 assert '"TEST46-DELIVERY-STATUS.md"' in package
 assert '"TEST46-VOICE-CHAT.md"' in package
 

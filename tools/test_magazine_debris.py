@@ -12,6 +12,7 @@ c = r'''
 #include <math.h>
 #include <stdio.h>
 #include "vr_magazine_debris_math.h"
+#include "vr_manual_reload_math.h"
 int main(void) {
     int active[VR_MAGAZINE_DEBRIS_CAPACITY] = {0};
     assert(VR_MAGAZINE_DEBRIS_CAPACITY == 32);
@@ -38,13 +39,50 @@ int main(void) {
     assert(vr_magazine_debris_owner_after_state_restore(1, 17, -1) == -1);
     assert(vr_magazine_debris_owner_after_state_restore(1, -1, -1) == -1);
     assert(vr_magazine_debris_owner_after_state_restore(0, 17, -1) == 17);
+
+    /* Join the real reload state machine to the production debris policy:
+       the ejected clone is provisional until native ammo commits. */
+    {
+        struct vr_mr_state reload={.phase=VR_MR_NEED_MAG};
+        struct vr_mr_input cancel={.valid=1,.held=1,.explicit_reload=1};
+        struct vr_magazine_debris_transaction tx;
+        int drops[2]={0,0}, provisional[2]={0,0};
+        vr_magazine_debris_transaction_init(&tx);
+        assert(vr_magazine_debris_transaction_record(&tx,0));
+        drops[0]=provisional[0]=1; /* rendered after VR_MR_DISCARD */
+        assert(vr_mr_step(&reload,&cancel)==VR_MR_CANCEL);
+        int removed=vr_magazine_debris_transaction_cancel(&tx);
+        assert(removed==0&&provisional[removed]&&drops[removed]);
+        drops[removed]=provisional[removed]=0;
+        assert(!drops[0]&&reload.phase==VR_MR_IDLE); /* native ammo is unchanged */
+
+        /* Weapon swap, tracking loss and checkpoint restore share the same
+           cleanup. A successful reload keeps exactly one committed visual. */
+        assert(vr_magazine_debris_transaction_record(&tx,1));
+        drops[1]=provisional[1]=1;
+        removed=vr_magazine_debris_transaction_cancel(&tx);assert(removed==1);
+        drops[removed]=provisional[removed]=0;assert(!drops[1]);
+        assert(vr_magazine_debris_transaction_record(&tx,0));
+        drops[0]=provisional[0]=1;
+        int committed=vr_magazine_debris_transaction_commit(&tx);
+        assert(committed==0&&provisional[committed]);
+        provisional[committed]=0;
+        assert(drops[0]&&!provisional[0]);
+
+        /* If ammo commit beats rendering, the later clone is born committed. */
+        assert(vr_magazine_debris_transaction_commit(&tx)==-1);
+        assert(!vr_magazine_debris_transaction_is_provisional(&tx));
+        assert(!vr_magazine_debris_transaction_record(&tx,1));
+        vr_magazine_debris_transaction_new_reload(&tx);
+        assert(vr_magazine_debris_transaction_is_provisional(&tx));
+    }
     puts("PASS: bounded map-session magazine pool, same-map restore owner rebasing, finite speed and fail-closed spawn bounds");
 }
 '''
 src = build / "test.c"
 exe = build / "test_magazine_debris"
 src.write_text(c)
-subprocess.run(["clang", "-std=c11", "-Wall", "-Wextra", "-Werror",
+subprocess.run(["clang", "-std=c11", "-Wall", "-Wextra", "-Werror", "-Wno-unused-function",
                 "-fsanitize=address,undefined", "-I" + str(ROOT / "port/linux/game"),
                 str(src), "-lm", "-o", str(exe)], check=True)
 subprocess.run([str(exe)], check=True)
@@ -61,9 +99,14 @@ map_dispose = objects[objects.index("void objects_dispose_from_old_map"):objects
 before_load = state[state.index("static void game_state_call_before_load_procs"):state.index("static void game_state_call_after_load_procs")]
 after_load = state[state.index("static void game_state_call_after_load_procs"):state.index("void game_state_dispose")]
 assert 'config_boolean("vr.dropped_magazines")' in spawn
+assert 'config_boolean("vr.manual_reload")' in spawn
 assert 'game_connection() != _game_connection_local' in spawn
 assert 'reload.kind != RELOAD_MAGAZINE' in spawn
 assert "vr_mr_step" in reload and "previous_phase == VR_MR_OLD_HELD" in reload
+assert "debris_cancel_transaction();" in reload
+assert "debris_commit_transaction();" in reload
+assert "vr_magazine_debris_transaction_record(&reload.debris_transaction, slot_index)" in spawn
+assert "slot->provisional = vr_magazine_debris_transaction_is_provisional" in spawn
 assert "collision_move_sphere" in tick and "global_gravity" in tick
 assert "game_connection() != _game_connection_local" in tick
 assert "render_model(" in render and "0x5A000000 + index, 0, 0" in render
@@ -87,7 +130,7 @@ assert "object_try_and_get_and_verify_type(slot->weapon" not in render
 assert "slot->colors, slot->function_values" in render
 assert "static boolean dropped_magazines_have_state" in reload
 reset = reload[reload.index("void vr_manual_reload_debris_reset"):reload.index("static void debris_spawn_from_reload")]
-assert "if (!dropped_magazines_have_state) return;" in reset
+assert "if (dropped_magazines_have_state)" in reset
 assert "dropped_magazines_have_state = FALSE;" in reset
 config = (ROOT / "port/linux/src/port_config.c").read_text()
 menu = (ROOT / "port/linux/game/vr_menu.c").read_text()

@@ -8,6 +8,12 @@ case "$mode" in
   flat) flags=(--release) ;;
   *) echo "Usage: bash tools/build-quest.sh [vr|flat]" >&2; exit 2 ;;
 esac
+# The committed PGO profiles require LLVM 22. Keep the normal compiler
+# fallback portable, while allowing a verified profile-capable guest compiler
+# to be selected reproducibly for both APK variants.
+if [[ -n "${HALO_ANDROID_GUEST_CC:-}" ]]; then
+  flags+=(--android-guest-cc "$HALO_ANDROID_GUEST_CC")
+fi
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
 export ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-$ANDROID_HOME/ndk/27.2.12479018}"
 export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$PWD/build/gradle-cache}"

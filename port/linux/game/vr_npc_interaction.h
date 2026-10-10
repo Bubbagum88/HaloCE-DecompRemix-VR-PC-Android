@@ -1,7 +1,7 @@
 #ifndef HALO_VR_NPC_INTERACTION_H
 #define HALO_VR_NPC_INTERACTION_H
 #include "math/real_math.h"
-#define VR_NPC_INTERACTION_POOL_SIZE 8
+#define VR_NPC_INTERACTION_POOL_SIZE 16
 void vr_npc_interaction_tick(void);
 void vr_npc_interaction_reset(void);
 void vr_npc_interaction_cancel(void);

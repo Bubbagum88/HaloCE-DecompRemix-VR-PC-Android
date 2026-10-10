@@ -1,27 +1,31 @@
 ## Current release checkpoint — v1.0.18 (2026-10-08)
 
-## Active private Test46 candidate (2026-10-09)
+## Active private Test47 candidate (2026-10-09)
 
-Candidate **1.0.27-test46 / code57** on `test39-interaction-completion`.
-Preserve Test45, Test44 and older APK/source artifacts; public v1.0.18 remains
-unchanged. The complete scope and evidence are recorded in
-[TEST46-REQUIREMENT-DISPOSITION.md](TEST46-REQUIREMENT-DISPOSITION.md).
+Candidate **1.0.28-test47 / code58** on `test39-interaction-completion`.
+Preserve Test46/Test45, Test44 and older APK/source artifacts; public v1.0.18
+remains unchanged. Read
+[TEST47-REQUIREMENT-DISPOSITION.md](TEST47-REQUIREMENT-DISPOSITION.md) for the
+cumulative scope, evidence and device-acceptance boundary.
 
-Test46 carries forward the contact/latching and ally work, A10 reticle
-calibration, corrected NPC-rescue eligibility, same-map visual magazine
-retention, bounded contact-driven translation/rotation for eligible ground
-vehicles, and selected Build167 host-relayed voice. Voice remains on
-Build157/network24. Android microphone permission is asynchronous and requested
-only when transmission is enabled and active. VR includes microphone mode,
-controller PTT and 0-200% receive volume. Two-client voice needs device testing.
+Test47's immediate corrections are: arm IK preserves authored bone lengths
+and clamps wrist reach; manual reload reads the mapped Quest USE/RELOAD action
+directly as well as the engine reload bit, with contact/Grip behavior intact;
+solo multiplayer-map loads bypass stale campaign unit state and use a valid
+in-BSP spawn with the multiplayer biped. Solo VR also raises the native active-
+garbage cleanup threshold for corpse retention to 75/45 by default (100/60
+optional, stock 50/30); all multiplayer keeps the upstream thresholds. The
+right-stick click remains melee.
+The manual-reload logger now records only input/contact/owner state changes so
+the next headset report identifies which part of the action path failed.
 
-Run focused and cumulative checks, build both APK variants, and package them
-with matching source/build ZIPs for owner testing. Do not publish, install or
-launch the game. Device acceptance remains pending. PC/Steam Frame remains
-deferred. See [TEST46-DELIVERY-STATUS.md](TEST46-DELIVERY-STATUS.md),
-[TEST46-PLAYER-NOTES.md](TEST46-PLAYER-NOTES.md),
-[TEST46-DEVICE-CHECKLIST.md](TEST46-DEVICE-CHECKLIST.md), and
-[TEST46-VOICE-CHAT.md](TEST46-VOICE-CHAT.md).
+Run focused interaction tests, the full regression suite, both Quest/VR and
+flat Android builds, and package APKs with matching source/build ZIPs for owner
+testing. Do not publish, install or launch the game. Device acceptance remains
+pending. PC/Steam Frame remains deferred. See
+[TEST47-DELIVERY-STATUS.md](TEST47-DELIVERY-STATUS.md),
+[TEST47-PLAYER-NOTES.md](TEST47-PLAYER-NOTES.md), and
+[TEST47-DEVICE-CHECKLIST.md](TEST47-DEVICE-CHECKLIST.md).
 ## Superseded private Test39 candidate (2026-10-08)
 
 Continue on `test39-interaction-completion`; target private `1.0.20-test39`,

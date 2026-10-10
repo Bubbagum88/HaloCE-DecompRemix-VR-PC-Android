@@ -11,6 +11,7 @@ c = r'''
 #include <math.h>
 #include "vr_cooldown_shake_math.h"
 #include "vr_weight_feedback_math.h"
+#include "vr_haptics_math.h"
 int main(void) {
     assert(vr_cooldown_shake_multiplier(0.0f) == 1.0f);
     assert(vr_cooldown_shake_multiplier(0.9f) == 1.0f);
@@ -32,6 +33,15 @@ int main(void) {
     assert(vr_weight_feedback_amplitude(NAN, 1.0f, 1.0f) == 0.0f);
     assert(vr_weight_feedback_amplitude(0.0f, INFINITY, 0.0f) == 0.0f);
     assert(vr_weight_feedback_amplitude(0.0f, 5.0f, 20.0f) <= 0.24f);
+    float scaled=0.0f;
+    assert(vr_haptics_level(NAN)==0.0f&&vr_haptics_level(INFINITY)==0.0f);
+    assert(vr_haptics_level(-1.0f)==0.0f&&vr_haptics_level(1.5f)==1.0f);
+    assert(vr_haptics_scale(.5f,.8f,.04f,&scaled)&&fabsf(scaled-.4f)<.0001f);
+    assert(vr_haptics_scale(1.0f,2.0f,.04f,&scaled)&&scaled==1.0f);
+    assert(!vr_haptics_scale(NAN,.5f,.04f,&scaled));
+    assert(!vr_haptics_scale(1.0f,NAN,.04f,&scaled));
+    assert(!vr_haptics_scale(1.0f,.5f,NAN,&scaled));
+    assert(!vr_haptics_scale(1.0f,.5f,0.0f,&scaled));
 }
 '''
 source = OUT / "feedback.c"
@@ -73,8 +83,9 @@ assert 'vr.cooldown_shake", _config_boolean, "false"' in config
 assert 'vr.custom_scenery_grab", _config_boolean, "false"' in config
 assert 'vr.custom_npc_rigs", _config_boolean, "false"' in config
 frame = (ROOT / "port/linux/src/vr_frame.c").read_text(encoding="utf-8")
-assert 'amplitude *= vr.haptics;' in frame
-assert 'if (vr.haptics <= 0.0f' in frame
+assert 'vr.haptics = vr_haptics_level((float)config_real("vr.haptics"));' in frame
+assert 'vr_haptics_scale(vr.haptics, amplitude, seconds, &scaled_amplitude)' in frame
+assert 'host_xr_haptic((unsigned int)hand, scaled_amplitude, seconds);' in frame
 assert frame.count('host_xr_haptic(') == 1
 assert 'config_real("vr.haptics")<=0.0' in world
 print("PASS: shake cooling is bounded/offline-only; all haptics use the HAPTICS master and load feedback remains capped/local-only")

@@ -7,11 +7,11 @@
 enum { VR_MR_IDLE, VR_MR_OLD_HELD, VR_MR_NEED_MAG, VR_MR_NEW_HELD,
     VR_MR_NEED_CHAMBER, VR_MR_CHAMBER_HELD, VR_MR_SEATING };
 enum { VR_MR_NONE, VR_MR_BEGIN, VR_MR_DISCARD, VR_MR_PICKUP,
-    VR_MR_INSERT, VR_MR_CHARGE, VR_MR_COMMIT, VR_MR_CANCEL };
+    VR_MR_INSERT, VR_MR_CHARGE, VR_MR_COMMIT, VR_MR_CANCEL, VR_MR_EJECT };
 struct vr_mr_state { int phase, down, pulled; };
 struct vr_mr_input {
     int valid, held, near_mag, near_pouch, near_chamber, magazine_out,
-        chamber_pulled, can_load, explicit_reload, loose_round, seated, no_chamber;
+        chamber_pulled, can_load, explicit_reload, eject_pressed, loose_round, seated, no_chamber;
 };
 /* Grip is the compatibility default. Unknown/missing config values fail back
  * to grip so a typo cannot leave manual reload without an input. */
@@ -23,6 +23,27 @@ static int vr_mr_suppress_native_reload(int manual_enabled, int local_session,
     int profiled_weapon)
 {
     return manual_enabled && local_session && profiled_weapon;
+}
+static int vr_mr_button_pressed(int was_down, int is_down)
+{
+    return is_down && !was_down;
+}
+/* The remapped VR action is sampled at render rate; the native weapon bit is
+ * sampled at game-tick rate. Accept either held level so a short press cannot
+ * disappear between the two input consumers. */
+static int vr_mr_reload_button_down(int mapped_action_down, int native_reload_bit)
+{
+    return mapped_action_down || native_reload_bit;
+}
+/* A held reload button must not bypass the fire lock while an ejected-mag
+ * transaction is waiting for a replacement or is being completed. */
+static unsigned vr_mr_output_flags(int suppress_native, int valid, int phase, int event,
+    unsigned suppress_flag, unsigned block_fire_flag, unsigned commit_flag)
+{
+    if (!valid) return suppress_native ? suppress_flag : 0;
+    return suppress_flag |
+        (phase != VR_MR_IDLE ? block_fire_flag : 0) |
+        (event == VR_MR_COMMIT ? commit_flag : 0);
 }
 /* Analog trigger hysteresis prevents vibration/noise at the activation point
  * from repeatedly starting and cancelling a reload. Invalid analog values
@@ -50,13 +71,20 @@ static int vr_mr_step(struct vr_mr_state *s, struct vr_mr_input const *i)
 {
     int press = i->held && !s->down, release = !i->held && s->down;
     s->down = i->held;
-    if (!i->valid || i->explicit_reload) {
+    if (!i->valid || (i->explicit_reload && s->phase != VR_MR_IDLE)) {
         int active = s->phase != VR_MR_IDLE;
         s->phase = VR_MR_IDLE; s->pulled = 0;
         return active ? VR_MR_CANCEL : VR_MR_NONE;
     }
     switch (s->phase) {
     case VR_MR_IDLE:
+        /* The ordinary reload button doubles as a contextual magazine
+         * release, but only when the free palm physically touches the
+         * authored magazine bounds. Away from that contact it never starts
+         * an eject action or changes the stock button mapping. */
+        if (i->eject_pressed && i->near_mag && i->can_load && !i->loose_round) {
+            s->phase = VR_MR_NEED_MAG; s->pulled = 0; return VR_MR_EJECT;
+        }
         if (press && i->near_pouch && i->can_load && i->loose_round) {
             s->phase = VR_MR_NEW_HELD; return VR_MR_PICKUP;
         }

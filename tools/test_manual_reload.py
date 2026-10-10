@@ -22,9 +22,34 @@ assert '0.09f*units' not in reload_source and '0.075f*units' not in reload_sourc
 assert '0.19f*units' not in reload_source and '0.16f*units' not in reload_source
 assert "vr_interaction_trigger(hand_index)" in reload_source
 assert "vr_interaction_claim_input(hand_index, VR_INTERACTION_RELOAD, input.held)" in reload_source
+assert "int vr_manual_reload_action_down(void)" in input_source
+assert "HALO_XR_BUTTON_X" in input_source[input_source.index("static unsigned int touch_buttons"):input_source.index("static void layout_controls")]
+assert '"vr.button_melee", _config_string, "\\"right_stick\\""' in config_source
 assert '"vr.reload_input", _config_string, "\\"grip\\""' in config_source
 assert '{ "RELOAD INPUT", "vr.reload_input", _vr_setting_string, 2, { { "GRIP", "grip" }, { "TRIGGER", "trigger" } } }' in menu_source
 assert "vr_mr_trigger_held(interaction_trigger_held[hand], vr.frame.trigger[hand])" in input_source
+assert "input.eject_pressed = reload_pressed;" in reload_source
+assert "vr_manual_reload_action_down()" in reload_source
+assert "vr_mr_reload_button_down(mapped_action_down, explicit_reload)" in reload_source
+assert "weapon->weapon.state == _weapon_state_primary_recoil && !reload_pressed" in reload_source
+assert "VR manual reload input: weapon=%ld phase=%d grip=%d" in reload_source
+assert "grip ownership refused" in reload_source
+assert "input.can_load = magazine->rounds_total > 0;" in reload_source
+assert "magazine->rounds_loaded < magazine_definition->rounds_loaded_maximum" not in reload_source
+assert "VR_MR_EJECT" in reload_source and "reload.debris_pending = TRUE;" in reload_source
+assert "VR manual reload attempt: weapon=%ld phase=%d action=%s" in reload_source
+assert "unsigned manual = vr_manual_reload_update(weapon_index" in source
+assert "weapon->weapon.control_flags, _weapon_control_reload_bit" in source
+assert 'if (reload.have_attachment) matrix4x3_multiply(&hand_matrix, &reload.attachment, &reload.held);' in reload_source
+assert "static boolean reload_attach_to_hand(" in reload_source
+assert "if (event == VR_MR_PICKUP)" in reload_source
+assert "attached.position = hand;" in reload_source
+assert "reload_attach_to_hand(&hand_matrix, &attached)" in reload_source
+assert "replacement-attachment-invalid" in reload_source
+assert "VR manual reload gate: weapon=%ld reason=%s" in reload_source
+assert "hand=(%.3f,%.3f,%.3f) magazine=(%.3f,%.3f,%.3f)" in reload_source
+assert "return vr_mr_output_flags(suppress_native, input.valid, reload.state.phase, event," in reload_source
+assert "if (explicit_reload || !input.valid)" not in reload_source
 start = source.index("static void weapon_magazine_finish_reload(\n", source.index("static void weapon_magazine_finish_reload(\n") + 1)
 end = source.index("\nstatic void weapon_magazine_start_chamber", start)
 finish = source[start:end]
@@ -75,6 +100,42 @@ int main(void){
  assert(!vr_mr_input_uses_trigger("grip") && !vr_mr_input_uses_trigger(NULL));
  assert(!vr_mr_input_uses_trigger("invalid")); /* unknown config safely uses default Grip */
  assert(vr_mr_input_uses_trigger("trigger"));
+ assert(!vr_mr_button_pressed(0,0) && vr_mr_button_pressed(0,1));
+ assert(!vr_mr_button_pressed(1,1) && vr_mr_button_pressed(0,1));
+ assert(!vr_mr_reload_button_down(0,0));
+ assert(vr_mr_reload_button_down(1,0));
+ assert(vr_mr_reload_button_down(0,1));
+ { int was_down=0;
+   int held=vr_mr_reload_button_down(1,0);
+   assert(vr_mr_button_pressed(was_down,held));was_down=held;
+   held=vr_mr_reload_button_down(0,1); /* native level overlaps mapped input */
+   assert(!vr_mr_button_pressed(was_down,held));was_down=held;
+   held=vr_mr_reload_button_down(0,0);
+   assert(!held&&!vr_mr_button_pressed(was_down,held));
+   held=vr_mr_reload_button_down(1,0);
+   assert(vr_mr_button_pressed(0,held)); }
+ { struct vr_mr_state held_reload={0}; int was_down=0, reload_edge;
+   struct vr_mr_input eject_input={.valid=1,.can_load=1,.near_mag=1};
+   reload_edge=vr_mr_button_pressed(was_down,1);was_down=1;
+   eject_input.eject_pressed=reload_edge;
+   int eject_event=vr_mr_step(&held_reload,&eject_input);
+   assert(eject_event==VR_MR_EJECT&&held_reload.phase==VR_MR_NEED_MAG);
+   assert(vr_mr_output_flags(1,eject_input.valid,held_reload.phase,eject_event,1u,2u,4u)==3u);
+   /* Raw Reload stays held, but only the rising edge is sent to the state
+      machine. The still-open transaction must continue to block firing. */
+   reload_edge=vr_mr_button_pressed(was_down,1);
+   eject_input.eject_pressed=reload_edge;eject_input.near_mag=0;eject_input.held=0;
+   int held_event=vr_mr_step(&held_reload,&eject_input);
+   assert(!reload_edge&&held_event==VR_MR_NONE&&held_reload.phase==VR_MR_NEED_MAG);
+   assert(vr_mr_output_flags(1,eject_input.valid,held_reload.phase,held_event,1u,2u,4u)==3u);
+   /* A new Reload edge deliberately cancels; firing unlocks only after the
+      transaction is back at IDLE. */
+   was_down=0;reload_edge=vr_mr_button_pressed(was_down,1);
+   eject_input.explicit_reload=reload_edge;
+   int cancel_event=vr_mr_step(&held_reload,&eject_input);
+   assert(cancel_event==VR_MR_CANCEL&&held_reload.phase==VR_MR_IDLE);
+   assert(vr_mr_output_flags(1,eject_input.valid,held_reload.phase,cancel_event,1u,2u,4u)==1u);
+ }
  assert(!vr_mr_trigger_held(0,0.75f) && vr_mr_trigger_held(0,0.751f));
  assert(vr_mr_trigger_held(1,0.56f) && !vr_mr_trigger_held(1,0.55f));
  assert(!vr_mr_trigger_held(0,NAN) && !vr_mr_trigger_held(0,-0.01f) && !vr_mr_trigger_held(0,1.01f));
@@ -148,6 +209,34 @@ int main(void){
   assert(vr_mr_step(&crystal,&physical)==VR_MR_NONE);
   physical.seated=1;assert(vr_mr_step(&crystal,&physical)==VR_MR_COMMIT);
   assert(crystal.phase==VR_MR_IDLE&&vr_mr_step(&crystal,&physical)==VR_MR_NONE);
+ }
+ /* Contextual reload-button ejection requires actual hand contact and reserve.
+    Its replacement pickup must transition through the same hand-attached path
+    as direct grip removal (guarded above in the production source). It supports
+    a full-mag tactical replacement and leaves loose rounds separate. */
+ {
+  struct vr_mr_state eject={0};
+  struct vr_mr_input i={.valid=1,.can_load=1,.near_mag=1,.eject_pressed=1};
+  assert(vr_mr_step(&eject,&i)==VR_MR_EJECT);
+  assert(eject.phase==VR_MR_NEED_MAG);
+  assert(vr_mr_output_flags(1,1,eject.phase,VR_MR_EJECT,1u,2u,4u)==3u);
+  i.eject_pressed=0;i.near_mag=0;i.near_pouch=1;i.held=1;
+  assert(vr_mr_step(&eject,&i)==VR_MR_PICKUP);
+  i.held=0;i.near_mag=1;
+  assert(vr_mr_step(&eject,&i)==VR_MR_INSERT);
+  i.seated=1;
+  assert(vr_mr_step(&eject,&i)==VR_MR_NONE);
+  i.held=1;i.near_chamber=1;
+  assert(vr_mr_step(&eject,&i)==VR_MR_CHARGE);
+  i.chamber_pulled=1;i.held=0;
+  assert(vr_mr_step(&eject,&i)==VR_MR_COMMIT);
+  eject=(struct vr_mr_state){0};
+  i=(struct vr_mr_input){.valid=1,.can_load=1,.near_mag=0,.eject_pressed=1};
+  assert(vr_mr_step(&eject,&i)==VR_MR_NONE); /* no contact */
+  i.near_mag=1;i.can_load=0;
+  assert(vr_mr_step(&eject,&i)==VR_MR_NONE); /* no reserve */
+  i.can_load=1;i.loose_round=1;
+  assert(vr_mr_step(&eject,&i)==VR_MR_NONE); /* no magazine eject for loose rounds */
  }
  puts("PASS: physical reload sequence, fresh grip edges, cancellation and exact native tactical/empty ammo conservation");
 }

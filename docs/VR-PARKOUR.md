@@ -16,8 +16,9 @@ Network games preserve stock player movement and send no custom movement packets
   and upward lift. `WALL LEAP` scales it from 0.5–1.5. Holding Jump does not repeat
   it. One jump per wall is allowed until landing or reaching a substantially
   different wall; the same wall cannot provide unlimited repeated boosts.
-- **GRIP CLIMB:** press a free hand's grip within 10 cm of a vertical collision
-  surface. Pull your hand to move your body while that hand stays visually on
+- **GRIP CLIMB:** touch a vertical collision surface with the free hand, then
+  press Grip. Contact uses the shared **HAND CONTACT** radius (2–8 cm; 4 cm by
+  default). Pull your hand to move your body while that hand stays visually on
   the surface. The normal capsule collision still stops walls and ceilings.
   Either free hand can hold; both can share the load. The hand holding a gun
   cannot also grab a wall. Release grip to let go. Pulling then releasing can

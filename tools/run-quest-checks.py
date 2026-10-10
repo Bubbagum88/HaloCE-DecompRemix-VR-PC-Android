@@ -42,13 +42,14 @@ SUITES = [
     'test_test36_opence157',
     'test_test37_network_profiles', 'test_test37_launcher', 'test_test37_wire',
     'test_test38_network_interaction', 'test_test38_network_input', 'test_legacy_coop_layouts', 'test_test38_scope_vehicle', 'test_test38_vehicle_handles',
-    'test_test38_contact', 'test_test38_contact_volume', 'test_test38_close_contact', 'test_manual_reload', 'test_magazine_debris', 'test_vr_world_physics', 'test_vr_vehicle_lift', 'test_vr_npc_interaction', 'test_vr_npc_rescue', 'test_vr_parkour', 'test_vr_holster_haptics', 'test_interaction_lifecycle', 'test_manual_reload_palette', 'test_interaction_impact', 'test_prop_collision', 'test_hand_compliance', 'test_world_remote', 'test_vr_world_props', 'test_prop_native_sync', 'test_reload_contact', 'test_vr_optional_feedback',
+    'test_test38_contact', 'test_test38_contact_volume', 'test_test38_close_contact', 'test_manual_reload', 'test_magazine_debris', 'test_solo_multiplayer_spawn', 'test_vr_world_physics', 'test_vr_vehicle_lift', 'test_vr_npc_interaction', 'test_vr_npc_rescue', 'test_vr_parkour', 'test_vr_holster_haptics', 'test_interaction_lifecycle', 'test_manual_reload_palette', 'test_interaction_impact', 'test_prop_collision', 'test_hand_compliance', 'test_vr_arm_ik_reach', 'test_world_remote', 'test_vr_world_props', 'test_prop_native_sync', 'test_reload_contact', 'test_vr_optional_feedback',
     'test_host_watch_hash',
     'test_opence_167_fixes',
     'test_test42_refresh_rate',
     'test_voice_chat_integration',
     'test_voice_chat_protocol',
-    'test_test46_candidate',
+    'test_test46_candidate', 'test_vr_pending_release', 'test_vr_weapon_release_latch',
+    'test_vr_corpse_retention',
 ]
 
 def main():

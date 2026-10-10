@@ -244,6 +244,7 @@ symbols in this file:
 #include "effects/player_effects.h"
 #include "game.h"
 #include "game/game_globals.h"
+#include "game/solo_multiplayer_spawn_math.h"
 #include "game_engine.h"
 #include "input.h"
 #include "interface/hud.h"
@@ -280,6 +281,8 @@ symbols in this file:
 #include "units/units.h"
 #include "units/vehicle_definitions.h"
 #include "units/vehicles.h"
+
+void platform_log(char const *format, ...);
 
 /* network_game_globals.c's */
 boolean network_game_distributed_client(void);
@@ -1344,6 +1347,97 @@ static void players_coop_color_unit(
 	}
 }
 
+/* New Game can load a multiplayer scenario as a local free-roam session.
+ * Never carry the campaign continuation unit into that map. Keep the native
+ * game-type spawn where valid, then fall back to an authored in-BSP location. */
+static boolean players_solo_mp_spawn_point_valid(
+	struct scenario *scenario,
+	real_point3d const *position,
+	real facing)
+{
+	if (!scenario || !position || !isfinite(position->x) || !isfinite(position->y) ||
+		!isfinite(position->z) || !isfinite(facing) || fabs(position->x) > 100000.0 ||
+		fabs(position->y) > 100000.0 || fabs(position->z) > 100000.0)
+		return FALSE;
+	return scenario_leaf_index_from_point(position) != NONE;
+}
+
+static boolean players_solo_mp_spawn_location(
+	struct scenario *scenario,
+	struct player_starting_location *location,
+	char const **source_out,
+	long *source_index_out)
+{
+	int best_priority = 0;
+	long best_index = NONE;
+	boolean best_is_player_start = FALSE;
+	if (!scenario || !location)
+		return FALSE;
+	if (scenario->players.count > 0 && scenario->players.count <= 512)
+	{
+		for (long index = 0; index < scenario->players.count; ++index)
+		{
+			struct player_starting_location *candidate = TAG_BLOCK_GET_ELEMENT(
+				&scenario->players, index, struct player_starting_location);
+			if (candidate && players_solo_mp_spawn_point_valid(scenario,
+				&candidate->position, candidate->facing))
+			{
+				int priority = players_solo_mp_spawn_priority(TRUE, -1,
+					candidate->team_index);
+				if (priority > best_priority)
+				{
+					best_priority = priority;
+					best_index = index;
+					best_is_player_start = TRUE;
+				}
+			}
+		}
+	}
+	if (scenario->netgame_flags.count > 0 && scenario->netgame_flags.count <= 512)
+	{
+		for (long index = 0; index < scenario->netgame_flags.count; ++index)
+		{
+			struct scenario_netgame_flag *candidate = TAG_BLOCK_GET_ELEMENT(
+				&scenario->netgame_flags, index, struct scenario_netgame_flag);
+			int priority;
+			if (!candidate || !players_solo_mp_spawn_point_valid(scenario,
+				&candidate->position, candidate->facing))
+				continue;
+			priority = players_solo_mp_spawn_priority(FALSE, candidate->type,
+				candidate->team_index);
+			if (priority > best_priority)
+			{
+				best_priority = priority;
+				best_index = index;
+				best_is_player_start = FALSE;
+			}
+		}
+	}
+	if (best_index == NONE)
+		return FALSE;
+	if (best_is_player_start)
+	{
+		struct player_starting_location *candidate = TAG_BLOCK_GET_ELEMENT(
+			&scenario->players, best_index, struct player_starting_location);
+		*location = *candidate;
+	}
+	else
+	{
+		struct scenario_netgame_flag *candidate = TAG_BLOCK_GET_ELEMENT(
+			&scenario->netgame_flags, best_index, struct scenario_netgame_flag);
+		csmemset(location, 0, sizeof(*location));
+		location->position = candidate->position;
+		location->facing = candidate->facing;
+		location->team_index = 0;
+		location->structure_bsp_reference_index = NONE;
+	}
+	if (source_out)
+		*source_out = best_is_player_start ? "scenario player start" : "netgame flag";
+	if (source_index_out)
+		*source_index_out = best_index;
+	return TRUE;
+}
+
 static void player_spawn(
 	long player_index)
 {
@@ -1364,13 +1458,34 @@ static void player_spawn(
 	long unit_definition_index;
 	long unit_index;
 	long starting_equipment_count;
+	long spawn_source_index;
 	short starting_location_index;
 	short saved_unit_slot;
+	boolean local_mp_map, solo_mp_free_roam;
+	char const *spawn_source;
 
 	player = player_get(player_index);
+	scenario = global_scenario_get();
+	local_mp_map = players_solo_mp_spawn_enabled(
+		scenario && scenario->type == _scenario_type_multiplayer,
+		game_connection() == _game_connection_local,
+		network_campaign_playing());
+	solo_mp_free_roam = local_mp_map && !game_engine_running();
 	saved_unit_slot = player_saved_unit_slot(player_index, player);
 	saved_unit_index = NONE;
-	if (!game_engine_running() && saved_unit_slot != NONE)
+	if (solo_mp_free_roam && saved_unit_slot != NONE)
+	{
+		/* A local multiplayer map is a fresh spawn context. Never reattach the
+		 * campaign continuation object at its old world position. The object
+		 * itself is left to normal map/object teardown; only the stale slot is
+		 * cleared. */
+		saved_unit_index = players_globals->dead_units[saved_unit_slot];
+		players_globals->dead_units[saved_unit_slot] = NONE;
+		platform_log("local multiplayer map spawn: bypassing saved campaign unit player=%ld slot=%d stale_unit=%ld engine_running=%d",
+			player_index, saved_unit_slot, saved_unit_index, game_engine_running());
+		saved_unit_index = NONE;
+	}
+	else if (players_solo_mp_reuse_saved_unit(solo_mp_free_roam, game_engine_running()) && saved_unit_slot != NONE)
 	{
 		saved_unit_index =
 			players_globals->dead_units[saved_unit_slot];
@@ -1386,7 +1501,7 @@ static void player_spawn(
 		}
 	}
 
-	if (!game_engine_running() && saved_unit_index != NONE)
+	if (players_solo_mp_reuse_saved_unit(solo_mp_free_roam, game_engine_running()) && saved_unit_index != NONE)
 	{
 		unit = unit_get(saved_unit_index);
 		weapon_index = unit_inventory_get_weapon(
@@ -1407,7 +1522,6 @@ static void player_spawn(
 	}
 	else
 	{
-		scenario = global_scenario_get();
 		if (ai_debug.selected_squad_index != NONE)
 		{
 			TAG_BLOCK_GET_ELEMENT(
@@ -1416,35 +1530,110 @@ static void player_spawn(
 				struct encounter_definition);
 		}
 
-		starting_location_index =
-			(short)find_best_starting_location_index(player_index);
-		/* port: a network co-op respawn starts behind its teammate
-		(players_coop_spawn_location) */
-		starting_location = players_coop_spawn_location(&spawn_location);
-		if (!starting_location && starting_location_index != NONE)
-			starting_location = player_get_starting_location(starting_location_index);
+		spawn_source = NULL;
+		spawn_source_index = NONE;
+		if (local_mp_map)
+		{
+			starting_location = NULL;
+			starting_location_index = NONE;
+			spawn_source = NULL;
+			spawn_source_index = NONE;
+			platform_log("local multiplayer map spawn: player=%ld engine_running=%d campaign=0; selecting an in-map spawn and multiplayer biped",
+				player_index, game_engine_running());
+			/* When a local multiplayer engine is running, preserve its native
+			 * game-type/team spawn choice if it resolves into this map's BSP. */
+			if (game_engine_running())
+			{
+				starting_location_index = (short)find_best_starting_location_index(player_index);
+				if (starting_location_index != NONE)
+				{
+					struct player_starting_location *native_start =
+						player_get_starting_location(starting_location_index);
+					boolean native_start_valid = native_start &&
+						players_solo_mp_spawn_point_valid(scenario,
+							&native_start->position, native_start->facing);
+					if (players_solo_mp_accept_native_start(local_mp_map,
+						game_engine_running(), native_start_valid))
+					{
+						starting_location = native_start;
+						spawn_source = "native game-type start";
+						spawn_source_index = starting_location_index;
+					}
+					else
+						platform_log("local multiplayer map spawn: rejecting native candidate index=%d outside valid BSP start bounds",
+							starting_location_index);
+				}
+			}
+			if (!starting_location)
+			{
+				starting_location = players_solo_mp_spawn_location(scenario,
+					&spawn_location, &spawn_source, &spawn_source_index) ?
+					&spawn_location : NULL;
+			}
+			if (starting_location)
+				platform_log("local multiplayer map spawn: player=%ld source=%s index=%ld position=(%.3f,%.3f,%.3f) facing=%.3f",
+					player_index, spawn_source ? spawn_source : "native", spawn_source_index,
+					starting_location->position.x, starting_location->position.y,
+					starting_location->position.z, starting_location->facing);
+			else
+				platform_log("local multiplayer map spawn failed: player=%ld map has no valid in-BSP player start or non-teleporter netgame flag",
+					player_index);
+		}
+		else
+		{
+			starting_location_index =
+				(short)find_best_starting_location_index(player_index);
+			/* port: a network co-op respawn starts behind its teammate
+			(players_coop_spawn_location) */
+			starting_location = players_coop_spawn_location(&spawn_location);
+			if (!starting_location && starting_location_index != NONE)
+				starting_location = player_get_starting_location(starting_location_index);
+		}
 		if (starting_location)
 		{
 			game_globals = scenario_get_game_globals();
-			player_information = TAG_BLOCK_GET_ELEMENT(
-				&scenario_get_game_globals()->player_information,
-				0,
-				struct game_globals_player_information);
-			if (player_information->player_unit.index != NONE)
+			unit_definition_index = NONE;
+			if (game_globals)
 			{
-				if (game_engine_running())
+				if (local_mp_map)
 				{
-					multiplayer_information = TAG_BLOCK_GET_ELEMENT(
-						&game_globals->multiplayer_information,
-						0,
+					if (game_globals->multiplayer_information.count > 0)
+					{
+						multiplayer_information = TAG_BLOCK_GET_ELEMENT(
+							&game_globals->multiplayer_information,
+							0,
 						struct game_globals_multiplayer_information);
-					unit_definition_index = multiplayer_information->unit.index;
+						unit_definition_index = multiplayer_information->unit.index;
+					}
 				}
-				else
+				else if (game_globals->player_information.count > 0)
 				{
-					unit_definition_index = player_information->player_unit.index;
+					player_information = TAG_BLOCK_GET_ELEMENT(
+						&game_globals->player_information,
+						0,
+						struct game_globals_player_information);
+					if (player_information->player_unit.index != NONE)
+					{
+						if (game_engine_running())
+						{
+							if (game_globals->multiplayer_information.count > 0)
+							{
+								multiplayer_information = TAG_BLOCK_GET_ELEMENT(
+									&game_globals->multiplayer_information,
+									0,
+									struct game_globals_multiplayer_information);
+								unit_definition_index = multiplayer_information->unit.index;
+							}
+						}
+						else
+						{
+							unit_definition_index = player_information->player_unit.index;
+						}
+					}
 				}
-
+			}
+			if (unit_definition_index != NONE)
+			{
 				object_placement_data_new(
 					&placement_data,
 					unit_definition_index,
@@ -1461,6 +1650,10 @@ static void player_spawn(
 					&placement_data,
 					&change_color);
 				unit_index = object_new(&placement_data);
+				if (local_mp_map)
+					platform_log("local multiplayer map spawn: object_new result=%ld definition=%ld expected_position=(%.3f,%.3f,%.3f)",
+						unit_index, unit_definition_index, placement_data.position.x,
+						placement_data.position.y, placement_data.position.z);
 				if (unit_index != NONE && network_coop_active())
 					players_coop_color_unit(unit_index, &change_color);
 				if (unit_index != NONE)
@@ -1480,6 +1673,12 @@ static void player_spawn(
 								player2->local_player_index,
 								unit_index);
 						}
+						if (local_mp_map)
+							platform_log("local multiplayer map spawn: controlled unit=%ld player=%ld position=(%.3f,%.3f,%.3f) leaf=%ld local_controller=%d",
+								unit_index, player_index, unit->object.position.x,
+								unit->object.position.y, unit->object.position.z,
+								scenario_leaf_index_from_point(&unit->object.position),
+								player2->local_player_index);
 
 						if (!game_engine_running())
 						{
@@ -1503,7 +1702,15 @@ static void player_spawn(
 							}
 						}
 					}
+					else if (local_mp_map)
+						platform_log("local multiplayer map spawn failed: object=%ld could not be resolved after creation",
+							unit_index);
 				}
+			}
+			else if (local_mp_map)
+			{
+				platform_log("solo multiplayer free-roam spawn failed: player=%ld valid start index=%ld but multiplayer biped tag is missing",
+					player_index, spawn_source_index);
 			}
 		}
 	}

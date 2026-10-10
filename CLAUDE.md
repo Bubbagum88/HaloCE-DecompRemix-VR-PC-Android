@@ -1,23 +1,21 @@
 # Agent and contributor continuation
 
-## Active private Test45 candidate (2026-10-09)
+## Active private Test47 candidate (2026-10-09)
 
-Continue on `test39-interaction-completion`; target private `1.0.26-test45`,
-Android code56. Preserve Test44 and all prior APK/source artifacts, plus public
-v1.0.18. The specific change is persistent contact-grab ownership and support
-for friendly NPCs. Read `docs/TEST45-DELIVERY-STATUS.md`,
-`docs/TEST45-REQUIREMENT-DISPOSITION.md`, `docs/TEST45-PLAYER-NOTES.md`, and
-`docs/TEST45-DEVICE-CHECKLIST.md`.
+Continue on `test39-interaction-completion`; target private `1.0.28-test47`,
+Android code58. Preserve Test46/Test45 and prior APK/source artifacts, plus
+public v1.0.18. Read `docs/TEST47-DELIVERY-STATUS.md`,
+`docs/TEST47-REQUIREMENT-DISPOSITION.md`, `docs/TEST47-PLAYER-NOTES.md`,
+`docs/TEST47-DEVICE-CHECKLIST.md`, `docs/MANUAL-RELOAD.md`, and
+`docs/VR-INTERACTION-REQUIREMENTS.md`.
 
-All acquisition interactions remain actual contact followed by a fresh Grip
-or configured reload-input edge. NPC/enemy/ally and loose-object grabs overlap
-authored collision models; climbing overlaps solid surface collision. Reload
-pouch and wheel interactions use their documented virtual contact volumes.
-Rays never acquire targets. A held NPC/prop must not release because of ordinary
-hand displacement or solver strain; tracking discontinuities rebase and zero
-throw velocity. Supported friendly Marines/crew with normal AI orders are
-allowed while only transient movement/trigger controls are suppressed; the
-actor's team and orders remain native. Immediate forced orders remain blocked.
+The first fix preserves authored upper-arm/forearm lengths and clamps only the
+reachable wrist target. Manual reload reads the configured VR USE/RELOAD action
+directly as well as the engine bit; part contact and a fresh Grip/Trigger remain
+required, while right-stick click remains melee. Solo multiplayer-map loads
+clear a stale campaign continuation slot and select an in-BSP native/fallback
+start with the multiplayer biped. Network matches and campaign spawns stay on
+their existing paths.
 
 Run focused interaction fixtures, the full regression suite and both Quest/VR
 and flat Android builds, then package both APKs and matching build/source ZIPs.

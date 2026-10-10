@@ -49,7 +49,8 @@ static float vr_units_per_metre(void){return 0.32808399f;}
 
 enum { NPC_POOL_SIZE=VR_NPC_INTERACTION_POOL_SIZE, NPC_REMOTE_PLAYERS=128 };
 static struct npc_state {
-    int active,recovery,settling,minimum_hands,started,is_remote,getting_up,torso_node,species_type;
+    int active,recovery,settling,minimum_hands,started,is_remote,getting_up,torso_node,species_type,was_garbage;
+    int settle_stuck_logged,recovery_blocked_logged;
     real mobility;
     long index,tick,player;
     struct vr_articulated_native rig;
@@ -63,7 +64,7 @@ static struct remote_state {long player,candidate[2];int valid,held[2],seen[2],e
 #define remote (*remote_current)
 static int local_edges[2]={1,1};
 static struct {long definition;short type;int valid;} species_cache[64];
-/* Cache only graph profiles that passed live capture plus pelvis/branch
+/* Cache only graph profiles that passed live capture plus rooted native-biped
  * validation. A failed capture may be transient (for example during a pose
  * update), so failures are deliberately retried rather than cached. */
 static struct {long definition;int valid;} custom_rig_graph_cache[64];
@@ -173,7 +174,7 @@ static int custom_rig_graph_valid(struct unit_datum *unit,long index)
 {
     struct biped_definition *definition;
     struct vr_articulated_native rig;
-    int pelvis,head,children=0,head_reaches_pelvis=FALSE,slot=-1,n;
+    int slot=-1,n;
     if(!unit || index==NONE || unit->definition_index==NONE)return FALSE;
     for(n=0;n<NUMBEROF(custom_rig_graph_cache);++n) {
         if(custom_rig_graph_cache[n].valid && custom_rig_graph_cache[n].definition==unit->definition_index)return TRUE;
@@ -186,31 +187,23 @@ static int custom_rig_graph_valid(struct unit_datum *unit,long index)
        rig.body.count>VR_ARTICULATED_NODES || rig.body.nodes[0].parent!=-1)return FALSE;
     definition=biped_definition_get(unit->definition_index);
     if(!definition)return FALSE;
-    pelvis=definition->biped.runtime_pelvis_node_index;
-    head=definition->biped.runtime_head_node_index;
-    /* Reuse the engine's semantic biped markers instead of guessing bones by
-     * node number or tag name. Require a non-flying capsule and an authored
-     * head beneath the authored pelvis; this is a bounded humanoid-biped
-     * profile, not arbitrary skeleton retargeting. */
+    /* Use the engine's native biped classification and capsule, but do not
+     * assume a custom rig has the stock head/pelvis split. The articulated
+     * solver retains its complete authored parent graph and contact pins the
+     * touched node. That allows nonstandard grounded humanoid biped layouts
+     * without guessing joint names or remapping them onto a stock skeleton. */
     if(TEST_FLAG(definition->biped.flags,_biped_flying_bit) ||
        !isfinite(definition->biped.collision_height_standing) ||
        !isfinite(definition->biped.collision_radius) ||
        definition->biped.collision_height_standing<=0 || definition->biped.collision_radius<=0 ||
-       definition->biped.collision_height_standing<=definition->biped.collision_radius*2 ||
-       pelvis<0 || pelvis>=rig.body.count || head<=0 || head>=rig.body.count || head==pelvis)return FALSE;
-    for(n=head;n>0;n=rig.body.nodes[n].parent) {
-        if(n==pelvis) {head_reaches_pelvis=TRUE;break;}
-        if(rig.body.nodes[n].parent<0 || rig.body.nodes[n].parent>=n)break;
-    }
-    if(!head_reaches_pelvis)return FALSE;
+       definition->biped.collision_height_standing<=definition->biped.collision_radius*2)return FALSE;
+    /* Native capture already checks all matrices, axes, ranges and parents;
+     * repeat the complete rooted-tree condition here because this decision is
+     * cached for later instances of the same custom biped definition. */
     for(n=1;n<rig.body.count;++n) {
         int parent=rig.body.nodes[n].parent;
         if(parent<0 || parent>=n)return FALSE;
-        if(parent==pelvis)++children;
     }
-    /* Require a real split below the authored pelvis; a chain of arbitrary
-     * nodes is not admitted as a humanoid rig. */
-    if(children<2)return FALSE;
     if(slot>=0) {
         custom_rig_graph_cache[slot].definition=unit->definition_index;
         custom_rig_graph_cache[slot].valid=1;
@@ -226,13 +219,13 @@ static int custom_humanoid_rig(short type,struct unit_datum *unit,long index,int
 	 * to use their existing negotiated path; custom graph layouts are never
 	 * assumed to match another peer's tag revision. */
 	if(!config_boolean("vr.custom_npc_rigs") || game_connection()!=_game_connection_local)return FALSE;
-    /* The engine has a fixed actor-type enum, so custom CE content cannot add
-     * a new runtime type. `_actor_none` is its generic fallback. Engineer is
-     * admitted only when its live actor/biped tags prove it is non-flying and
-     * its native biped graph passes the head/pelvis/capsule checks below;
-     * this permits grounded custom humanoid variants without admitting the
-     * stock flying Engineer. Every other unsupported special class stays out. */
-    if((type!=_actor_none && type!=_actor_engineer) || !unit || index==NONE)return FALSE;
+    /* CE content reuses the fixed actor-type enum, so the actor name alone
+     * cannot distinguish custom variants. Admit an otherwise-unprofiled actor
+     * only when its actor definition proves a grounded, non-swarm
+     * human/Covenant/Flood biped and the complete native rig is safe. This
+     * handles arbitrary authored humanoid joint layouts without claiming
+     * support for non-biped, flying, swarm, malformed or scripted rigs. */
+    if(type<0 || type>=NUMBER_OF_ACTOR_TYPES || !unit || index==NONE)return FALSE;
     if(actor_type_get_swarm(type))return FALSE;
     race=actor_type_get_race(type);
     if(race!=_race_human && race!=_race_covenant && race!=_race_floodcombat)return FALSE;
@@ -327,7 +320,6 @@ static struct unit_datum *eligible(long index)
     long weapon;
     struct npc_state *state=state_for_object(index);
     int dead=u&&TEST_FLAG(u->object.damage_flags,_object_dead_bit);
-    int friendly=FALSE;
     if(!u || u->unit.player_index!=NONE || (!dead&&u->unit.actor_index==NONE) ||
        u->object.parent_object_index!=NONE || u->object.name_index!=NONE ||
        TEST_FLAG(u->object.flags,_object_movie_star_bit) ||
@@ -337,19 +329,23 @@ static struct unit_datum *eligible(long index)
        TEST_FLAG(u->unit.flags,_unit_possessed_by_recording_bit) ||
        unit_is_playing_custom_animation(index) ||
        u->unit.grenade_throw_state!=_unit_grenade_throw_idle ||
-       (!dead&&u->unit.animation.state>_unit_state_land_hard && !(state&&state->getting_up&&
-        (u->unit.animation.state==_unit_state_resurrect_front||u->unit.animation.state==_unit_state_resurrect_back)))) return NULL;
+       (u->unit.animation.state>_unit_state_land_hard &&
+        !(u->unit.animation.state==_unit_state_hard_ping) &&
+        !(dead&&(u->unit.animation.state==_unit_state_dying_airborne||
+            u->unit.animation.state==_unit_state_dying)) &&
+        !(state&&state->getting_up&&
+            (u->unit.animation.state==_unit_state_resurrect_front||
+             u->unit.animation.state==_unit_state_resurrect_back)))) return NULL;
     a=u->unit.actor_index!=NONE?actor_try_and_get(u->unit.actor_index):NULL;
-    /* A friendly campaign actor may have an ordinary AI command list even
-     * while standing still. Contact-grabbing it temporarily overrides only
-     * its transient movement/trigger controls; its team, orders and command
-     * list remain native and resume when the grip is released. Immediate
-     * orders remain excluded because they represent a forced scripted action. */
-    if(a && !dead && a->meta.team_index>=0 &&
-       !game_team_is_enemy(_game_team_player,a->meta.team_index))friendly=TRUE;
+    /* Both friendly and hostile encounter actors commonly have ordinary AI
+     * command lists. Contact-grabbing overrides only transient movement and
+     * trigger controls; team, orders and command lists remain native and
+     * resume when released. Immediate orders remain excluded because they
+     * represent a forced scripted action. A hard-ping animation is likewise
+     * a normal combat reaction, not a scripted ownership transition. */
     if(!interaction_profile(unit_species(u,index),u,index,&required_hands,&mobility) ||
        (!dead&&(!a || !a->meta.active ||
-        (a->state.command_list_index!=NONE&&!friendly) || a->state.command_list_immediate))) return NULL;
+        a->state.command_list_immediate))) return NULL;
     weapon=unit_inventory_get_weapon(index,u->unit.current_weapon_index);
     w=weapon!=NONE?weapon_try_and_get(weapon):NULL;
     /* Match native weapon_busy: a burst/charge/reload already in progress
@@ -357,6 +353,28 @@ static struct unit_datum *eligible(long index)
     if(!dead && w && (w->weapon.state!=_weapon_state_idle ||
              w->weapon.triggers[0].state!=_trigger_idle || w->weapon.triggers[1].state!=_trigger_idle ||
              w->weapon.magazines[0].state!=_magazine_idle || w->weapon.magazines[1].state!=_magazine_idle)) return NULL;
+    return u;
+}
+/* Acquisition is deliberately strict: an unsupported animation, a busy
+ * native weapon, or a scripted immediate command must not start a new hold.
+ * Once a contact hold owns an articulated rig, however, those short-lived
+ * states can change every simulation tick (combat flinch, damage, grenade
+ * state, AI command transition). Re-running acquisition rules here used to
+ * cancel the hold and snap the NPC back while the player's grip remained
+ * closed. Continuation checks only object/session invariants that make it
+ * unsafe to keep owning this exact object; the captured rig handles its
+ * current pose and native recovery on release.
+ */
+static struct unit_datum *continuable(long index)
+{
+    struct unit_datum *u=(struct unit_datum *)object_try_and_get_and_verify_type(index,_object_mask_biped);
+    if(!u || u->unit.player_index!=NONE || u->object.parent_object_index!=NONE ||
+       u->object.name_index!=NONE ||
+       TEST_FLAG(u->object.flags,_object_movie_star_bit) ||
+       TEST_FLAG(u->object.flags,_object_no_collisions_bit) ||
+       !TEST_FLAG(u->object.flags,_object_connected_to_map_bit) ||
+       TEST_FLAG(u->object.flags,_object_outside_of_map_bit) ||
+       TEST_FLAG(u->unit.flags,_unit_possessed_by_recording_bit)) return NULL;
     return u;
 }
 static long probe_remote(real_point3d const *point,real_point3d const *camera,long player_unit,long required,int hand)
@@ -412,11 +430,16 @@ static void reset_one(void)
 static void cancel_one(void)
 {
     long index=npc.active?npc.index:NONE;
+    int restore_garbage=npc.was_garbage;
     reset_one();
     /* Before-save/cancellation occurs while IDs are valid. No persistent AI
-     * flag was altered; regenerate a native pose before serialization. */
-    if(index!=NONE && object_try_and_get_and_verify_type(index,_object_mask_biped))
+     * flag was altered; regenerate a native pose before serialization. If a
+     * corpse was already queued for engine cleanup, restore that queue entry
+     * only after the temporary articulated hold is over. */
+    if(index!=NONE && object_try_and_get_and_verify_type(index,_object_mask_biped)) {
         object_compute_node_matrices(index);
+        if(restore_garbage) object_set_garbage(index,TRUE);
+    }
 }
 void vr_npc_interaction_reset(void)
 {
@@ -435,6 +458,26 @@ static void cancel_one_reason(char const *reason)
 	if(npc.active)platform_log("VR NPC: cancel actor=%08lx hand0=%d hand1=%d started=%d reason=%s",
 		npc.index,npc.held[0],npc.held[1],npc.started,reason?reason:"unspecified");
 	cancel_one();
+}
+static void log_ineligible_state(long index)
+{
+	struct unit_datum *u=(struct unit_datum *)object_try_and_get_and_verify_type(index,_object_mask_biped);
+	struct actor_datum *a=u&&u->unit.actor_index!=NONE?actor_try_and_get(u->unit.actor_index):NULL;
+	if(!u) {
+		platform_log("VR NPC: eligibility lost actor=%08lx detail=datum-invalid",index);
+		return;
+	}
+	platform_log("VR NPC: eligibility lost actor=%08lx state=%d dead=%d parent=%ld name=%ld movie_star=%d no_collision=%d connected=%d outside=%d possessed=%d custom_animation=%d grenade_state=%d actor=%ld actor_active=%d command_list=%ld immediate=%d",
+		index,u->unit.animation.state,TEST_FLAG(u->object.damage_flags,_object_dead_bit),
+		u->object.parent_object_index,u->object.name_index,
+		TEST_FLAG(u->object.flags,_object_movie_star_bit),
+		TEST_FLAG(u->object.flags,_object_no_collisions_bit),
+		TEST_FLAG(u->object.flags,_object_connected_to_map_bit),
+		TEST_FLAG(u->object.flags,_object_outside_of_map_bit),
+		TEST_FLAG(u->unit.flags,_unit_possessed_by_recording_bit),
+		unit_is_playing_custom_animation(index),u->unit.grenade_throw_state,
+		u->unit.actor_index,a?a->meta.active:FALSE,
+		a?a->state.command_list_index:NONE,a?a->state.command_list_immediate:FALSE);
 }
 static void release(int hand,int throwing,char const *reason)
 {
@@ -455,7 +498,7 @@ static void release(int hand,int throwing,char const *reason)
         if(throwing && was_held && npc.started) {
             real_vector3d velocity=npc.velocity[hand];
             if(vr_world_limit(velocity.n,.24f*interaction_units())) {
-                struct unit_datum *u=eligible(npc.index);
+                struct unit_datum *u=continuable(npc.index);
                 if(u) u->object.translational_velocity=velocity;
                 for(int n=0;n<npc.rig.body.count;++n) for(int k=0;k<3;++k)
                     npc.rig.body.nodes[n].previous[k]=npc.rig.body.nodes[n].position[k]-velocity.n[k];
@@ -468,7 +511,9 @@ static int owns(long index)
     int found=0;
     for(int n=0;n<NPC_POOL_SIZE;++n) if(npc_pool[n].active&&npc_pool[n].index==index) {npc_current=&npc_pool[n];found=1;break;}
     if(!found) return FALSE;
-    if(!authority() || (!npc.is_remote&&!config_boolean("vr.npc_interaction")) || !eligible(index)) {
+    if(!authority() || (!npc.is_remote&&!config_boolean("vr.npc_interaction")) || !continuable(index)) {
+		if(npc.active && authority() && (npc.is_remote||config_boolean("vr.npc_interaction")))
+			log_ineligible_state(index);
         cancel_one_reason(!authority()?"authority-lost":(!npc.is_remote&&!config_boolean("vr.npc_interaction"))?"feature-disabled":"target-ineligible");return FALSE;
     }
     return TRUE;
@@ -480,7 +525,7 @@ int vr_npc_interaction_hand(int hand,float point[3])
     int found=0;
     if(hand<0 || hand>1 || !point) return FALSE;
     for(int n=0;n<NPC_POOL_SIZE;++n) if(npc_pool[n].active&&!npc_pool[n].is_remote&&npc_pool[n].held[hand]) {npc_current=&npc_pool[n];found=1;break;}
-    if(!found || !eligible(npc.index)) return FALSE;
+    if(!found || !owns(npc.index)) return FALSE;
     surface_offset(hand,&offset);
     for(int k=0;k<3;++k) point[k]=npc.rig.body.nodes[npc.node[hand]].position[k]+offset.n[k];
     return TRUE;
@@ -494,7 +539,7 @@ int vr_npc_interaction_remote_contact(long player,int hand,long *object,float po
     real_vector3d offset;
     if(hand<0 || hand>1 || !object || !point) return FALSE;
     for(int n=0;n<NPC_POOL_SIZE;++n) if(npc_pool[n].active&&npc_pool[n].is_remote&&npc_pool[n].player==player&&npc_pool[n].held[hand]) {
-        npc_current=&npc_pool[n];if(!eligible(npc.index)) return FALSE;
+        npc_current=&npc_pool[n];if(!owns(npc.index)) return FALSE;
         surface_offset(hand,&offset);*object=npc.index;
         for(int k=0;k<3;++k) point[k]=npc.rig.body.nodes[npc.node[hand]].position[k]+offset.n[k];
         return TRUE;
@@ -620,7 +665,7 @@ static void tick_player(int use_remote,long player)
             struct collision_model_instance model;
             struct collision_model_test_pill_result model_hit;
             real_vector3d stationary={0.0f,0.0f,0.0f};
-            int budget=0,scanned=0,eligible_count=0,surface_hits=0;
+            int budget=0,budget_exhausted=0,scanned=0,eligible_count=0,surface_hits=0;
             int graph_rejects=0,node_rejects=0,capacity_rejects=0,acquired=0;
             object_iterator_new(&it,_object_mask_biped,0);
             while((candidate=object_iterator_next(&it))!=NULL) {
@@ -637,7 +682,7 @@ static void tick_player(int use_remote,long player)
                 if(!destination){++capacity_rejects;continue;}
                 vector_from_points3d(&point,&candidate->object.bounding_sphere_center,&delta);
                 if(magnitude3d(&delta)>candidate->object.bounding_sphere_radius+contact_radius) continue;
-                if(++budget>16) break;
+                if(++budget>16) {budget_exhausted=1;break;}
                 if(!collision_model_instance_new(&model,it.index) ||
                    !collision_model_test_pill(&model,&point,&stationary,contact_radius,&model_hit)) continue;
                 ++surface_hits;
@@ -654,7 +699,10 @@ static void tick_player(int use_remote,long player)
                 {
                     real_vector3d velocity=npc.velocity[h];
                     npc_current=destination;npc.player=player;npc.is_remote=use_remote;npc.tick=tick;
-                    npc.target[h]=npc.previous[h]=point;npc.velocity[h]=velocity;npc.sample[h]=1;npc.recovery=0;
+                    npc.target[h]=npc.previous[h]=point;npc.velocity[h]=velocity;npc.sample[h]=1;
+                    npc.recovery=0;npc.recovery_blocked_logged=0;
+                    if(!existing)
+                        npc.was_garbage=TEST_FLAG(candidate->object.flags,_object_garbage_bit);
                 }
                 npc.species_type=unit_species(candidate,it.index);
                 npc.active=1;npc.index=it.index;npc.node[h]=node;npc.held[h]=1;npc.root=candidate->object.position;
@@ -668,7 +716,7 @@ static void tick_player(int use_remote,long player)
                 }
                 if(!interaction_profile((short)npc.species_type,candidate,it.index,
                     &npc.minimum_hands,&npc.mobility)) {cancel_one_reason("unsupported-interaction-profile");break;}
-                npc.settling=0;
+                npc.settling=0;npc.settle_stuck_logged=0;
                 if(!npc.started && npc.held[0]+npc.held[1]>=npc.minimum_hands) {
 					npc.started=1;
 					platform_log("VR NPC: hold constraint started actor=%08lx species=%d hands=%d remote=%d",
@@ -687,6 +735,8 @@ static void tick_player(int use_remote,long player)
 					struct actor_datum *grabbed_actor=actor_try_and_get(candidate->unit.actor_index);
 					int friendly=grabbed_actor && grabbed_actor->meta.team_index>=0 &&
 						!game_team_is_enemy(_game_team_player,grabbed_actor->meta.team_index);
+					if(!existing) platform_log("VR NPC: temporary garbage hold actor=%08lx was_queued=%d; restore native cleanup after release/settle",
+						it.index,npc.was_garbage);
 				platform_log("VR NPC: grabbed actor=%08lx species=%d team=%d friendly=%d hand=%d node=%d requires=%d acquisition=authored-contact-plus-fresh-grip",
 						it.index,npc.species_type,grabbed_actor?grabbed_actor->meta.team_index:NONE,
 						friendly,h,node,npc.minimum_hands);
@@ -696,8 +746,8 @@ static void tick_player(int use_remote,long player)
                 acquired=1;
                 break;
             }
-            if(!acquired)platform_log("VR NPC: contact grab miss hand=%d scanned=%d eligible=%d collision_overlaps=%d graph_rejects=%d node_rejects=%d no_rig_slot=%d contact_radius=%.2f cm custom_rigs=%d",
-                h,scanned,eligible_count,surface_hits,graph_rejects,node_rejects,capacity_rejects,
+            if(!acquired)platform_log("VR NPC: contact grab miss hand=%d scanned=%d eligible=%d collision_candidates=%d collision_budget=16 budget_exhausted=%d graph_rejects=%d node_rejects=%d no_rig_slot=%d contact_radius=%.2f cm custom_rigs=%d",
+                h,scanned,eligible_count,surface_hits,budget_exhausted,graph_rejects,node_rejects,capacity_rejects,
                 (float)contact_radius*100.0f/(float)units,config_boolean("vr.custom_npc_rigs"));
         }
     }
@@ -767,12 +817,23 @@ void vr_npc_interaction_palette(long index)
         }
         if(npc.recovery==1) {
             int clear=1;
+            int blocked_node=NONE,collision_blocked=FALSE;
+            real blocked_distance=0;
             for(n=0;n<npc.rig.body.count;++n) {
                 real_vector3d difference;
                 vector_from_points3d(&native[n].position,&npc.rig.captured[n].position,&difference);
-                if(magnitude3d(&difference)>.005f || collision_test_sphere(&native[n].position,npc.rig.body.nodes[n].radius,index)) {clear=0;break;}
+                blocked_distance=magnitude3d(&difference);
+                if(blocked_distance>.005f) {clear=0;blocked_node=n;break;}
+                if(collision_test_sphere(&native[n].position,npc.rig.body.nodes[n].radius,index)) {
+                    clear=0;blocked_node=n;collision_blocked=TRUE;break;
+                }
             }
             if(clear) {cancel_one();return;}
+            if(!npc.recovery_blocked_logged) {
+                platform_log("VR NPC: native pose handoff blocked actor=%08lx node=%d recovery=%d position_delta=%.4f collision=%d",
+                    index,blocked_node,npc.recovery,blocked_distance,collision_blocked);
+                npc.recovery_blocked_logged=1;
+            }
         } else --npc.recovery;
     } else {
         for(n=0;n<2;++n) if(npc.held[n]) {
@@ -794,6 +855,12 @@ void vr_npc_interaction_palette(long index)
                 maximum=MAX(maximum,magnitude3d(&motion));
             }
             npc.settling=MIN(npc.settling+1,300);
+            if(npc.settling>=300 && !npc.settle_stuck_logged) {
+                platform_log("VR NPC: settle still pending actor=%08lx ticks=%d dead=%d native_at_rest=%d max_node_step=%.4f garbage_queued=%d; retaining native ownership without timeout release",
+                    index,npc.settling,TEST_FLAG(u->object.damage_flags,_object_dead_bit),
+                    TEST_FLAG(u->object.flags,_object_at_rest_bit),maximum,npc.was_garbage);
+                npc.settle_stuck_logged=1;
+            }
             if(npc.settling>=30 && maximum<.02f*interaction_units()) {
                 if(TEST_FLAG(u->object.damage_flags,_object_dead_bit)) {
                     /* A corpse never enters live get-up or AI recovery. Give
@@ -801,7 +868,12 @@ void vr_npc_interaction_palette(long index)
                      * relaxation when its root has reached rest. */
                     if(TEST_FLAG(u->object.flags,_object_at_rest_bit)) {
                         for(n=0;n<npc.rig.body.count;++n) native[n]=npc.rig.captured[n];
-                        reset_one();biped_start_limp_body_physics(index);return;
+                        {
+                            int restore_garbage=npc.was_garbage;
+                            reset_one();
+                            if(restore_garbage) object_set_garbage(index,TRUE);
+                        }
+                        biped_start_limp_body_physics(index);return;
                     }
                 } else {
                 int clear=1;
@@ -810,7 +882,8 @@ void vr_npc_interaction_palette(long index)
                     real_vector3d body_forward;
                     matrix4x3_transform_vector(&npc.rig.captured[npc.torso_node],&npc.body_forward_local,&body_forward);
                     npc.getting_up=unit_interaction_recover(index,body_forward.k<0);
-                    npc.settling=0;npc.recovery=18;
+                    npc.settling=0;npc.settle_stuck_logged=0;
+                    npc.recovery=18;npc.recovery_blocked_logged=0;
                     platform_log("VR NPC: recovery object=%08lx front=%d authored=%d",index,body_forward.k<0,npc.getting_up);
                 }
                 }

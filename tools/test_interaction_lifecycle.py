@@ -15,10 +15,11 @@ fixture = r'''
 enum { VR_INTERACTION_NONE, VR_INTERACTION_RELOAD, VR_INTERACTION_VEHICLE,
  VR_INTERACTION_WORLD, VR_INTERACTION_PARKOUR, VR_INTERACTION_NPC, VR_INTERACTION_COUNT };
 enum { HALO_XR_FRAME_FOCUSED=1, HALO_XR_FRAME_RECENTRED=2 };
+enum { HALO_XR_BUTTON_X=4 };
 enum { VR_ACTION_SWITCH_WEAPON=1, VR_ACTION_DROP_WEAPON=2, VR_ACTION_GRAB_WEAPON=4 };
 static struct { int active,menus_active,grip_pressed[2],grip_released[2],grip_held[2];
  struct { int flags,hand_valid[2]; } frame;
- int two_hand_held,two_handed,support_near,weapon_hand,actions; float support_dwell;
+ int two_hand_held,two_handed,support_near,weapon_hand,actions; unsigned pad_buttons; float support_dwell;
 } vr;
 static int interaction_owner[2];
 static int interaction_trigger_held[2];
@@ -67,6 +68,12 @@ int main(void) {
  vr_interaction_release(0,VR_INTERACTION_RELOAD);
  interaction_trigger_held[0]=0;assert(!vr_interaction_trigger(0));
  assert(!vr_interaction_claim_input(0,VR_INTERACTION_RELOAD,vr_interaction_trigger(0)));
+ vr.pad_buttons=HALO_XR_BUTTON_X;assert(vr_manual_reload_action_down());
+ vr.menus_active=1;assert(!vr_manual_reload_action_down());vr.menus_active=0;
+ vr.frame.flags|=HALO_XR_FRAME_RECENTRED;assert(!vr_manual_reload_action_down());
+ vr.frame.flags=HALO_XR_FRAME_FOCUSED;assert(vr_manual_reload_action_down());
+ vr.frame.flags=0;assert(!vr_manual_reload_action_down());
+ vr.frame.flags=HALO_XR_FRAME_FOCUSED;vr.pad_buttons=0;
  vr.grip_held[0]=1;
  vr.active=0;assert(!vr_interaction_claim(0,1));
  return 0;

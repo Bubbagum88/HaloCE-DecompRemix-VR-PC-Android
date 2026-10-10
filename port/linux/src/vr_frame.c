@@ -18,6 +18,9 @@ swapchain images, whose GL texture names work in this context as they are.
 #include "../game/vr_manual_reload_math.h"
 #include "../game/vr_sprint_melee_math.h"
 #include "../game/vr_holster_math.h"
+#include "../game/vr_hand_pending_math.h"
+#include "../game/vr_haptics_math.h"
+#include "vr_weapon_release_latch.h"
 
 #include "guest_host.h"
 #include "halo_android_abi.h"
@@ -173,6 +176,7 @@ static struct
 	int hand_state, pending_state;
 	long noted_weapon, pending_expected_weapon, holster_unit, holster_draw_request;
 	long holster_weapon[VR_HOLSTER_SLOT_COUNT];
+	struct vr_weapon_release_latch weapon_release;
 	double pending_until, now_seconds;
 	float ungripped_seconds;
 	int ungripped_warned;
@@ -878,7 +882,7 @@ void vr_reload_settings(void)
 		vr.pending_state = -1;
 		vr.gun_held = vr.hand_state == HAND_HELD;
 	}
-	vr.haptics = (float)config_real("vr.haptics");
+	vr.haptics = vr_haptics_level((float)config_real("vr.haptics"));
 	{
 		static int previous_scope_setting = -1;
 		int enabled = config_boolean("vr.scope");
@@ -989,7 +993,7 @@ void vr_initialize(void)
 		return;
 	vr.initialized = 1;
 	config_vr_vehicle_defaults();
-	platform_log("vr: HaloCE Quest test46 candidate 1.0.27-test46 code57 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes and host-relayed voice; contact-driven NPC/ally interaction; bounded vehicle lifting; persistent same-map magazine visuals; prior launcher, calibration, reload, climbing, VR and Android work retained; device acceptance pending)");
+	platform_log("vr: HaloCE Quest test47 candidate 1.0.28-test47 code58 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes and host-relayed voice; fixed-length arm IK clamps wrist reach instead of v1.0.18 stretch/compression; solo corpse retention 75/45 with stock multiplayer thresholds; corrected NPC contact target; magazine pickup follows free hand; solo multiplayer-map spawn fallback; interaction recovery and refused-drop diagnostics; prior launcher, calibration, reload, climbing, VR and Android work retained; device acceptance pending)");
 	platform_log("vr: retained baseline history: HaloCE Quest test30 candidate 1.0.12 (the menus' face buttons as the Xbox's of the same letter: X deletes a profile; the co-op host's server name; test29: OpenCE build 144 netcode, network 21; the HUD head tap held by the temple, HUD and head tap on the HUD page, wrist HUD on the wrist and movable, moving with a hand while holding the gun in both, glasses FOV and resolution to 200%% (PR #1); test28: co-op games entered in progress keep their camera upright, release checks as OpenCE ships, co-op hosted for 2 to 128 players as OpenCE's Server Setup offers, gyro aim on phones as an option; test27: OpenCE build 138 netcode, network 20, with its co-op for up to 16 players; test26: co-op: death screams no longer stop the second player, cutscene characters placed and animated as on the first; HUD head tap, reticle toggle on the left stick click with crouch on the turning stick held down (or crouch kept on the click: Controls), optional wrist HUD, adjustable head taps; impact melee along the gun with a follow-through; fingers bend smoothly against walls; test25: vehicle seat and recentre diagnostics, first-person horizon option and seat glass, settings rows that fit, vehicle offset reset; test24b: comfort vignette, smooth speed and snap angle, SPV1 compatibility note; test24: co-op cutscenes animate for the second player; test23: remappable Quest buttons with the grenade on X; test22: co-op campaign host crash fixed, steady first-person vehicle view, left-hand ammo display, adjustable scopes, shot diagnostics; test21b: floating hands restored, torso-following arms, neck-pivot full body, auto two-hand lock, horn, online melee off, two-hand gun roll, pistol shots from the hand, reticle converges as shots do, per-gun aim, horn from either stick)");
 	if (!config_boolean("vr.enabled"))
 	{
@@ -1317,6 +1321,8 @@ static void hand_pending(int state)
 void vr_note_weapon(long unit_index, long weapon_index, long const inventory[4])
 {
 	int state;
+	if (unit_index < 0 || !inventory || vr.holster_unit != unit_index || weapon_index != vr.noted_weapon)
+		vr_weapon_release_latch_reset(&vr.weapon_release);
 	if (unit_index < 0 || !inventory)
 	{
 		vr_holster_slots_clear(vr.holster_weapon);
@@ -1357,9 +1363,28 @@ void vr_note_weapon(long unit_index, long weapon_index, long const inventory[4])
 			vr.hand_state = HAND_EMPTY;
 			vr.gun_held = 0;
 		}
-		/* (nothing came of what was asked) */
+		/* (nothing came of what was asked). If a drop/stow was refused by
+		 * player control, the same active weapon is still in the inventory;
+		 * restore the visible held state instead of leaving an empty invisible
+		 * hand with a live weapon. */
 		if (vr.pending_state >= 0 && now_ms() * 1e-3 > vr.pending_until)
+		{
+			int pending = vr.pending_state;
+			int restored = vr_hand_pending_timeout_state(pending,
+				vr.hand_state, weapon_index, HAND_EMPTY, HAND_HELD);
+			if (restored != vr.hand_state)
+			{
+				vr_holster_forget(vr.holster_weapon, weapon_index);
+				vr.hand_state = restored;
+				vr.gun_held = restored == HAND_HELD;
+				platform_log("vr: weapon drop/stow timed out; active weapon=%ld remains in inventory, restoring held hand",
+					weapon_index);
+			}
+			else
+				platform_log("vr: hand transition timed out state=%d active_weapon=%ld; keeping current hand state=%d",
+					pending, weapon_index, vr.hand_state);
 			vr.pending_state = -1;
+		}
 		return;
 	}
 	vr.noted_weapon = weapon_index;
@@ -1864,6 +1889,13 @@ int vr_interaction_trigger(int hand)
         !(vr.frame.flags & HALO_XR_FRAME_FOCUSED) || !(vr.frame.hand_valid[hand] & 1)) return 0;
     return interaction_trigger_held[hand];
 }
+int vr_manual_reload_action_down(void)
+{
+	return vr.active && !vr.menus_active &&
+		(vr.frame.flags & HALO_XR_FRAME_FOCUSED) &&
+		!(vr.frame.flags & HALO_XR_FRAME_RECENTRED) &&
+		(vr.pad_buttons & HALO_XR_BUTTON_X) != 0;
+}
 int vr_interaction_claim_input(int hand, int owner, int input_held)
 {
     int current;
@@ -1894,6 +1926,7 @@ static void update_gestures(void)
 	static const float melee_rearm_seconds = 0.4f;
 	float seconds = (float)(vr.frame.predicted_display_period * 1e-9);
 	int w = vr.weapon_hand, o = 1 - vr.weapon_hand, hand;
+	int weapon_release = VR_WEAPON_RELEASE_NONE;
 	int both_tracked = (vr.frame.hand_valid[0] & 1) && (vr.frame.hand_valid[1] & 1);
 	float hands_apart = both_tracked ? distance3(vr.frame.grip[0].position, vr.frame.grip[1].position) : 99.0f;
 
@@ -1905,6 +1938,7 @@ static void update_gestures(void)
 		vr.support_near = 0;
 		vr.run_push = 0.0f;
 		vr.button_sprint_active = 0;
+		vr_weapon_release_latch_reset(&vr.weapon_release);
 		return;
 	}
 	{
@@ -1930,6 +1964,17 @@ static void update_gestures(void)
 		vr.grip_released[hand] = !held && vr.grip_held[hand];
 		vr.grip_held[hand] = held;
 	}
+	weapon_release = vr_weapon_release_latch_step(&vr.weapon_release,
+		vr.noted_weapon, physical_weapons(),
+		(vr.frame.flags & HALO_XR_FRAME_FOCUSED) != 0,
+		(vr.frame.hand_valid[w] & 1) != 0,
+		(vr.frame.flags & HALO_XR_FRAME_RECENTRED) != 0,
+		vr.grip_held[w], vr.grip_pressed[w],
+		vr.hand_state == HAND_HELD && vr.grip_released[w],
+		vr_interaction_owner(w) != VR_INTERACTION_NONE);
+	if (weapon_release == VR_WEAPON_RELEASE_DEFERRED)
+		platform_log("vr: held-weapon release deferred for weapon=%ld while hand interaction owner=%d remains active",
+			vr.noted_weapon, vr_interaction_owner(w));
 
 	/* each hand's speed about the room (metres a second), its peak held over
 	the last tenth of a second for the game's ticks (vr_hand_speed: impact
@@ -2192,7 +2237,7 @@ static void update_gestures(void)
 			vr.ungripped_seconds = 0.0f;
 			vr.ungripped_warned = 0;
 		}
-		else if (vr.grip_released[w] && vr.hand_state == HAND_HELD)
+		else if (weapon_release == VR_WEAPON_RELEASE_READY && vr.hand_state == HAND_HELD)
 		{
 			if (vr.in_holster)
 			{
@@ -2369,12 +2414,13 @@ int vr_two_handed(void)
 
 void vr_haptic(int hand, float amplitude, float seconds)
 {
-	if (vr.haptics <= 0.0f || hand < 0 || hand > 1 || amplitude <= 0.0f)
+	float scaled_amplitude;
+	if (hand < 0 || hand > 1 ||
+	    !vr_haptics_scale(vr.haptics, amplitude, seconds, &scaled_amplitude))
 		return;
-	amplitude *= vr.haptics;
 	/* the host's controller (it called itself here, without end: every buzz
 	hung the game - a menu click, a shot, a holster) */
-	host_xr_haptic((unsigned int)hand, amplitude > 1.0f ? 1.0f : amplitude, seconds);
+	host_xr_haptic((unsigned int)hand, scaled_amplitude, seconds);
 }
 
 unsigned int vr_take_actions(void)

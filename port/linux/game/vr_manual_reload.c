@@ -54,10 +54,11 @@ static struct {
     unsigned long long component_nodes;
     int bounds_tried, bounds_valid[2];
     int hand_sample_valid, debris_pending;
+    struct vr_magazine_debris_transaction debris_transaction;
     real_point3d bounds_min[2], bounds_max[2];
 } reload;
 struct dropped_magazine {
-    int active, node_count;
+    int active, provisional, node_count;
     long model, owner_unit;
     unsigned long long nodes;
     real radius;
@@ -72,37 +73,119 @@ static boolean dropped_magazines_have_state;
 static boolean dropped_magazines_full_reported;
 static int cancelled_phase;
 static long cancelled_weapon;
+static boolean reload_button_down;
 static boolean reload_local_weapon(long weapon_index, long *unit_out);
 static boolean reload_matrix_valid(real_matrix4x3 const *matrix);
 static boolean reload_component_bounds_touch(real_matrix4x3 const *socket,
 	real_matrix4x3 const *held, real radius);
 static long bounds_logged_weapon = NONE, bounds_logged_model = NONE;
 static boolean bounds_log_initialized;
+static long gate_logged_weapon = NONE, profile_logged_model = NONE;
+static double gate_logged_time = -1000.0;
+static char gate_logged_reason[48];
+static long input_logged_weapon = NONE;
+static int input_logged_state = -1;
+
+/* Reload crosses the frame, input and weapon simulation paths. Report a
+ * blocked state transition without writing the same reason every tick. */
+static void reload_log_gate(long weapon_index, char const *reason)
+{
+	double now = vr_pose_time();
+	if (!reason) return;
+	if (gate_logged_weapon != weapon_index || strcmp(gate_logged_reason, reason) ||
+		!isfinite(now) || now - gate_logged_time >= 3.0)
+	{
+		platform_log("VR manual reload gate: weapon=%ld reason=%s", weapon_index, reason);
+		gate_logged_weapon = weapon_index;
+		snprintf(gate_logged_reason, sizeof(gate_logged_reason), "%s", reason);
+		gate_logged_time = isfinite(now) ? now : 0.0;
+	}
+}
+
+/* A replacement magazine starts at the free palm, not at the old weapon
+ * socket. Capturing this hand-relative transform is required for both the
+ * normal pull-out path and the contextual button-eject path. */
+static boolean reload_attach_to_hand(real_matrix4x3 const *hand_matrix,
+	real_matrix4x3 const *world_item)
+{
+	real_matrix4x3 inverse;
+	if (!hand_matrix || !world_item || !reload_matrix_valid(hand_matrix) ||
+		!reload_matrix_valid(world_item))
+		return FALSE;
+	matrix4x3_inverse(hand_matrix, &inverse);
+	matrix4x3_multiply(&inverse, world_item, &reload.attachment);
+	if (!reload_matrix_valid(&reload.attachment))
+		return FALSE;
+	reload.held = *world_item;
+	reload.have_attachment = TRUE;
+	return TRUE;
+}
+
+/* A dropped mag is provisional until the native ammunition transaction
+ * commits. Cancellation restores the still-loaded authored mag, so retaining
+ * its ejected clone would show two magazines for one weapon. */
+static void debris_cancel_transaction(void)
+{
+	int slot_index = vr_magazine_debris_transaction_cancel(&reload.debris_transaction);
+	if (slot_index >= 0 && slot_index < VR_MAGAZINE_DEBRIS_CAPACITY) {
+		struct dropped_magazine *slot = &dropped_magazines[slot_index];
+		if (slot->active && slot->provisional) {
+			platform_log("VR reload debris: cancelled provisional magazine slot=%d", slot_index);
+			memset(slot, 0, sizeof(*slot));
+		}
+	}
+	reload.debris_pending = FALSE;
+}
+
+static void debris_commit_transaction(void)
+{
+	int slot_index = vr_magazine_debris_transaction_commit(&reload.debris_transaction);
+	if (slot_index >= 0 && slot_index < VR_MAGAZINE_DEBRIS_CAPACITY) {
+		struct dropped_magazine *slot = &dropped_magazines[slot_index];
+		if (slot->active && slot->provisional) {
+			slot->provisional = FALSE;
+			platform_log("VR reload debris: committed magazine slot=%d", slot_index);
+		}
+	}
+}
 
 void vr_manual_reload_reset(void)
 {
     if (reload.state.phase != VR_MR_IDLE) {
         cancelled_phase=reload.state.phase; cancelled_weapon=reload.weapon;
     }
+    debris_cancel_transaction();
     vr_interaction_release(0, VR_INTERACTION_RELOAD);
     vr_interaction_release(1, VR_INTERACTION_RELOAD);
     memset(&reload, 0, sizeof(reload));
+    vr_magazine_debris_transaction_init(&reload.debris_transaction);
     reload.weapon = reload.model = NONE;
     reload.magazine = reload.chamber = NONE;
+    /* After a tracking/session reset, require a release before a new
+     * contextual eject can fire. This prevents a held button from ejecting
+     * a magazine when tracking returns. */
+    reload_button_down = TRUE;
+    input_logged_weapon = NONE;
+    input_logged_state = -1;
 }
 
 void vr_manual_reload_debris_reset(void)
 {
-	if (!dropped_magazines_have_state) return;
-    memset(dropped_magazines, 0, sizeof(dropped_magazines));
+	if (dropped_magazines_have_state)
+        memset(dropped_magazines, 0, sizeof(dropped_magazines));
 	dropped_magazines_have_state = FALSE;
     dropped_magazines_full_reported = FALSE;
+	vr_magazine_debris_transaction_init(&reload.debris_transaction);
+	reload.debris_pending = FALSE;
 }
 
 void vr_manual_reload_debris_prepare_for_state_restore(void)
 {
 	int retained = 0;
 	int detached_owners = 0;
+	/* Physical reload state is transient. Cancel its uncommitted floor visual,
+	 * but retain already-committed map-session drops through the restore. */
+	vr_manual_reload_reset();
 	for (int index = 0; index < VR_MAGAZINE_DEBRIS_CAPACITY; ++index) {
 		struct dropped_magazine *slot = &dropped_magazines[index];
 		if (!slot->active) continue;
@@ -131,7 +214,8 @@ static void debris_spawn_from_reload(struct model *model, real_matrix4x3 *matric
     long unit_index = NONE;
     if (!model || !matrices || !reload.debris_pending) return;
     reload.debris_pending = 0;
-    if (!config_boolean("vr.dropped_magazines") || game_connection() != _game_connection_local ||
+    if (!config_boolean("vr.dropped_magazines") || !config_boolean("vr.manual_reload") ||
+        game_connection() != _game_connection_local ||
         reload.kind != RELOAD_MAGAZINE || !reload.component_nodes ||
         model->nodes.count <= 0 || model->nodes.count > MAXIMUM_NODES_PER_MODEL ||
         !reload.bounds_valid[0] || !reload_local_weapon(reload.weapon, &unit_index)) return;
@@ -171,6 +255,7 @@ static void debris_spawn_from_reload(struct model *model, real_matrix4x3 *matric
     slot->nodes = reload.component_nodes;
     slot->radius = bound;
     slot->active = 1;
+    slot->provisional = vr_magazine_debris_transaction_is_provisional(&reload.debris_transaction);
     memcpy(slot->colors, source_weapon->object.outgoing_change_colors, sizeof(slot->colors));
     memcpy(slot->function_values, source_weapon->object.outgoing_function_values, sizeof(slot->function_values));
     for (short node = 0; node < model->nodes.count; ++node) {
@@ -186,6 +271,11 @@ static void debris_spawn_from_reload(struct model *model, real_matrix4x3 *matric
     slot->velocity = reload.hand_velocity;
     if (!vr_magazine_debris_speed_valid(slot->velocity.n, 0.24f * vr_units_per_metre()))
         slot->velocity = *global_zero_vector3d;
+	if (slot->provisional && !vr_magazine_debris_transaction_record(&reload.debris_transaction, slot_index)) {
+		memset(slot, 0, sizeof(*slot));
+		platform_log("VR reload debris: provisional transaction rejected slot=%d", slot_index);
+		return;
+	}
     dropped_magazines_have_state = TRUE;
     platform_log("VR reload debris: spawned visual magazine slot=%d model=%ld nodes=%d radius=%.4f online=0",
         slot_index, slot->model, slot->node_count, slot->radius);
@@ -323,9 +413,12 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     struct weapon_magazine_definition *magazine_definition;
     struct vr_mr_input input = {0};
     int event, hand_index = 1-vr_weapon_hand();
-    boolean trigger_input = FALSE;
+    int reload_owner = VR_INTERACTION_NONE;
+    boolean reload_pressed = FALSE, grip_pressed = FALSE;
+    boolean trigger_input = FALSE, mapped_action_down = FALSE;
     unsigned int buttons;float triggers[2],thumbs[4];
     boolean current = reload_local_weapon(weapon_index, &unit_index);
+    char const *gate = NULL;
     boolean suppress_native = vr_mr_suppress_native_reload(
         config_boolean("vr.manual_reload"), game_connection() == _game_connection_local,
         reload.ready && reload.weapon == weapon_index && reload.model != NONE);
@@ -334,10 +427,23 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         if (reload.weapon == weapon_index) vr_manual_reload_reset();
         return 0;
     }
-    if (!vr_active() || !vr_controller(&buttons,triggers,thumbs) || !config_boolean("vr.manual_reload") ||
-        game_connection() != _game_connection_local || !(units > 0) || vr_hand_empty() ||
-        !reload.ready || reload.weapon != weapon_index || reload.hand != hand_index ||
-        vr_pose_time()-reload.sample_time > 0.25 || vr_pose_time()<reload.sample_time) {
+    {
+        mapped_action_down = vr_manual_reload_action_down();
+		int reload_button_held = vr_mr_reload_button_down(mapped_action_down, explicit_reload);
+		reload_pressed = vr_mr_button_pressed(reload_button_down, reload_button_held);
+		reload_button_down = reload_button_held ? TRUE : FALSE;
+	}
+    if (!vr_active()) gate = "vr-inactive";
+    else if (!vr_controller(&buttons,triggers,thumbs)) gate = "controller-unavailable";
+    else if (!config_boolean("vr.manual_reload")) gate = "manual-reload-disabled";
+    else if (game_connection() != _game_connection_local) gate = "network-session";
+    else if (!(units > 0)) gate = "invalid-unit-scale";
+    else if (vr_hand_empty()) gate = "weapon-hand-empty";
+    else if (!reload.ready) gate = "first-person-profile-not-ready";
+    else if (reload.weapon != weapon_index || reload.hand != hand_index) gate = "weapon-or-free-hand-mismatch";
+    else if (vr_pose_time()-reload.sample_time > 0.25 || vr_pose_time()<reload.sample_time) gate = "stale-first-person-pose";
+    if (gate) {
+        reload_log_gate(weapon_index, gate);
         vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
     }
     trigger_input = vr_mr_input_uses_trigger(config_string("vr.reload_input"));
@@ -356,17 +462,23 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         }
     }
     definition = weapon_definition_get(weapon->definition_index);
-    if (weapon->weapon.state == _weapon_state_primary_recoil && !explicit_reload &&
+    if (weapon->weapon.state == _weapon_state_primary_recoil && !reload_pressed &&
         reload.state.phase == VR_MR_IDLE) return VR_MANUAL_SUPPRESS_AUTO;
-    if (definition->weapon.magazines.count != 1 || weapon->weapon.state != _weapon_state_idle ||
+    if (definition->weapon.magazines.count != 1) {
+        reload_log_gate(weapon_index, "unsupported-magazine-count");
+        vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
+    }
+    if (weapon->weapon.state != _weapon_state_idle ||
         TEST_FLAG(weapon->weapon.control_flags, _weapon_control_user_busy_bit) ||
         TEST_FLAG(weapon->weapon.control_flags, _weapon_control_user_switching_weapons_bit)) {
+        reload_log_gate(weapon_index, "weapon-busy-or-switching");
         vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
     }
     magazine = &weapon->weapon.magazines[0];
     magazine_definition = TAG_BLOCK_GET_ELEMENT(&definition->weapon.magazines, 0, struct weapon_magazine_definition);
     if (magazine->state != _magazine_idle || magazine_definition->rounds_reloaded <= 0 ||
         magazine_definition->rounds_recharged_per_second != 0) {
+        reload_log_gate(weapon_index, "magazine-busy-or-unsupported-policy");
         vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
     }
     unit_get_camera_position(unit_index, &camera);
@@ -396,13 +508,18 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
      * grip/weapon-trigger paths. */
     input.held = trigger_input ? vr_interaction_trigger(hand_index) :
         vr_interaction_grip(hand_index, NULL, NULL);
-    input.valid = vr_interaction_owner(hand_index) == VR_INTERACTION_NONE ||
-        vr_interaction_owner(hand_index) == VR_INTERACTION_RELOAD;
-    input.explicit_reload = explicit_reload;
+    reload_owner = vr_interaction_owner(hand_index);
+    input.valid = reload_owner == VR_INTERACTION_NONE ||
+        reload_owner == VR_INTERACTION_RELOAD;
+    input.explicit_reload = reload_pressed;
+    input.eject_pressed = reload_pressed;
     input.loose_round = reload.kind == RELOAD_SHELL || reload.kind == RELOAD_CRYSTALS;
     input.no_chamber = reload.kind == RELOAD_CRYSTALS;
     input.seated = vr_pose_time()-reload.insertion_time >= 0.10;
-    input.can_load = magazine->rounds_total > 0 && magazine->rounds_loaded < magazine_definition->rounds_loaded_maximum;
+    /* A full magazine can still be tactically replaced when reserve remains.
+     * The native finish_reload path retains or discards its rounds according
+     * to the authored magazine policy and performs the only ammo mutation. */
+    input.can_load = magazine->rounds_total > 0;
     if (reload.state.phase == VR_MR_IDLE &&
         (TEST_FLAG(weapon->weapon.control_flags, _weapon_control_primary_trigger_bit) ||
          TEST_FLAG(weapon->weapon.control_flags, _weapon_control_secondary_trigger_bit))) input.can_load = FALSE;
@@ -420,6 +537,33 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     real contact_radius=(real)(isfinite(configured_contact)?PIN(configured_contact,0.02,0.08):0.04)*units;
     input.near_pouch = vr_mr_pouch_enabled(config_boolean("vr.reload_hip"),config_boolean("vr.reload_shoulder"),
         reload_near(&hand,&hip,contact_radius),reload_near(&hand,&shoulder,contact_radius));
+    grip_pressed = input.held && !reload.state.down;
+    {
+		int diagnostic_state = (input.held ? 1 : 0) | (input.near_mag ? 2 : 0) |
+			(input.near_pouch ? 4 : 0) | (input.near_chamber ? 8 : 0) |
+			(input.valid ? 16 : 0) | (reload_pressed ? 32 : 0) |
+			(mapped_action_down ? 64 : 0) | (explicit_reload ? 128 : 0) |
+			((reload_owner & 7) << 8);
+		if (input_logged_weapon != weapon_index || input_logged_state != diagnostic_state) {
+			platform_log("VR manual reload input: weapon=%ld phase=%d grip=%d input=%s action_down=%d native_reload=%d grip_edge=%d contact_mag=%d contact_pouch=%d contact_chamber=%d owner=%d valid=%d",
+				weapon_index, reload.state.phase, input.held, trigger_input ? "trigger" : "grip",
+				mapped_action_down, explicit_reload, grip_pressed, input.near_mag,
+				input.near_pouch, input.near_chamber, reload_owner, input.valid);
+			input_logged_weapon = weapon_index;
+			input_logged_state = diagnostic_state;
+		}
+	}
+    if (reload_pressed || grip_pressed) {
+        platform_log("VR manual reload attempt: weapon=%ld phase=%d action=%s input=%s grip_edge=%d contact_mag=%d contact_pouch=%d contact_chamber=%d bounds_mag=%d bounds_chamber=%d rounds=%d reserve=%d capacity=%d can_load=%d owner=%d hand=(%.3f,%.3f,%.3f) magazine=(%.3f,%.3f,%.3f)",
+            weapon_index, reload.state.phase, reload_pressed ? "reload-button" : "grip",
+            trigger_input ? "trigger" : "grip", grip_pressed,
+            input.near_mag, input.near_pouch, input.near_chamber,
+            reload.bounds_valid[0], reload.bounds_valid[1],
+            magazine->rounds_loaded, magazine->rounds_total,
+            magazine_definition->rounds_loaded_maximum, input.can_load,
+            vr_interaction_owner(hand_index), hand.x, hand.y, hand.z,
+            reload.socket.position.x, reload.socket.position.y, reload.socket.position.z);
+    }
     if (reload.state.phase == VR_MR_NEW_HELD) {
         if (input.near_mag && !reload.aligned) vr_haptic(hand_index, 0.20f, 0.025f);
         reload.aligned = input.near_mag;
@@ -459,6 +603,17 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         event = vr_mr_step(&reload.state, &input);
         if (event == VR_MR_DISCARD && previous_phase == VR_MR_OLD_HELD)
             reload.debris_pending = TRUE;
+        else if (event == VR_MR_EJECT) {
+            reload.debris_pending = TRUE;
+            reload.held = reload.socket;
+            vr_magazine_debris_transaction_new_reload(&reload.debris_transaction);
+        }
+        else if (event == VR_MR_CANCEL)
+            debris_cancel_transaction();
+        else if (event == VR_MR_COMMIT)
+            debris_commit_transaction();
+        if (event == VR_MR_BEGIN)
+            vr_magazine_debris_transaction_new_reload(&reload.debris_transaction);
     }
     if (event == VR_MR_INSERT) {
         matrix4x3_inverse(&reload.gun, &inverse);
@@ -467,6 +622,8 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     }
     if (event == VR_MR_BEGIN || event == VR_MR_PICKUP || event == VR_MR_CHARGE) {
         if (!vr_interaction_claim_input(hand_index, VR_INTERACTION_RELOAD, input.held)) {
+            platform_log("VR manual reload: grip ownership refused weapon=%ld hand=%d event=%d owner=%d; transaction cancelled without ammo change",
+				weapon_index, hand_index, event, vr_interaction_owner(hand_index));
             vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
         }
         reload.grip_time=vr_pose_time();
@@ -475,15 +632,18 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
             matrix4x3_multiply(&inverse, &reload.socket, &reload.attachment);
             reload.have_attachment = TRUE;
         }
-        if (event == VR_MR_PICKUP && (reload.kind == RELOAD_SHELL || reload.kind == RELOAD_CRYSTALS)) {
-            /* A loose shell starts at the hand; no invisible magazine-removal
-             * phase or transfer of ammunition happens here. */
-            reload.attachment = reload.socket;
-            reload.attachment.position = hand;
-            matrix4x3_inverse(&hand_matrix, &inverse);
-            real_matrix4x3 attached = reload.attachment;
-            matrix4x3_multiply(&inverse, &attached, &reload.attachment);
-            reload.have_attachment = TRUE;
+        if (event == VR_MR_PICKUP) {
+            /* A replacement is taken from the configured body-side pouch. It
+             * starts at the palm using the authored part orientation, then
+             * follows the hand through a captured relative transform. This
+             * must also replace an old magazine's prior hand offset after
+             * direct pull-out. */
+            real_matrix4x3 attached = reload.socket;
+            attached.position = hand;
+            if (!reload_attach_to_hand(&hand_matrix, &attached)) {
+                reload_log_gate(weapon_index, "replacement-attachment-invalid");
+                vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
+            }
         }
         if (event == VR_MR_CHARGE) {
             matrix4x3_inverse_transform_point(&reload.gun, &hand, &reload.charge_start);
@@ -499,13 +659,10 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     }
     if (!input.held || event == VR_MR_CANCEL || event == VR_MR_COMMIT)
         vr_interaction_release(hand_index, VR_INTERACTION_RELOAD);
-    /* The reload button cancels the physical transaction but must never fall
-     * through to the native automatic reload for a supported profile. */
-    if (explicit_reload || !input.valid)
-        return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
-    return VR_MANUAL_SUPPRESS_AUTO |
-        (reload.state.phase != VR_MR_IDLE ? VR_MANUAL_BLOCK_FIRE : 0) |
-        (event == VR_MR_COMMIT ? VR_MANUAL_COMMIT : 0);
+    /* The edge is consumed by vr_mr_step() to eject/cancel. Do not return on
+     * the raw held button here: the active transaction must keep blocking fire. */
+    return vr_mr_output_flags(suppress_native, input.valid, reload.state.phase, event,
+        VR_MANUAL_SUPPRESS_AUTO, VR_MANUAL_BLOCK_FIRE, VR_MANUAL_COMMIT);
 }
 
 static boolean reload_node_under(struct model *model, short node, short root)
@@ -643,15 +800,28 @@ void vr_manual_reload_model(long weapon_index, long model_index, real_matrix4x3 
     if (!config_boolean("vr.manual_reload") || !vr_active() || game_connection() != _game_connection_local ||
         !reload_local_weapon(weapon_index, &unit_index) || !matrices) return;
     name = tag_get_name(model_index);
-    if (!name) return;
+    if (!name) {
+        reload_log_gate(weapon_index, "first-person-model-name-missing");
+        return;
+    }
     for (int index=0; index<NUMBEROF(profiles); ++index)
         if (!strcmp(name, profiles[index].path)) { profile = &profiles[index]; break; }
-    if (!profile) return;
+    if (!profile) {
+        if (profile_logged_model != model_index) {
+            platform_log("VR manual reload profile unavailable: weapon=%ld model=%ld tag=%s",
+                weapon_index, model_index, name);
+            profile_logged_model = model_index;
+        }
+        return;
+    }
     model = model_definition_get(model_index);
     magazine = model_find_node(model_index, profile->ammo);
     chamber = model_find_node(model_index, profile->chamber);
     if (model->nodes.count <= 0 || model->nodes.count > MAXIMUM_NODES_PER_MODEL || magazine < 0 ||
-        chamber < 0 || magazine >= model->nodes.count || chamber >= model->nodes.count) return;
+        chamber < 0 || magazine >= model->nodes.count || chamber >= model->nodes.count) {
+        reload_log_gate(weapon_index, "authored-reload-node-missing");
+        return;
+    }
     if (reload.weapon != weapon_index || reload.model != model_index || reload.hand != 1-vr_weapon_hand()) {
         vr_manual_reload_reset(); reload.weapon = weapon_index; reload.model = model_index;
         reload.hand = 1-vr_weapon_hand();

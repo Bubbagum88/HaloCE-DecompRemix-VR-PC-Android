@@ -39,6 +39,8 @@ prelude = r'''
 #include <stdio.h>
 #include <string.h>
 #include "vr_holster_math.h"
+#include "vr_hand_pending_math.h"
+#include "vr_weapon_release_latch.h"
 typedef float real;
 typedef int boolean;
 #define TRUE 1
@@ -65,6 +67,7 @@ enum { HAND_LOOSE,HAND_HELD,HAND_EMPTY };
 static char const *hand_state_names[] = {"loose","held","empty"};
 static struct { long noted_weapon,pending_expected_weapon,holster_unit,holster_draw_request;
  long holster_weapon[VR_HOLSTER_SLOT_COUNT];
+ struct vr_weapon_release_latch weapon_release;
  int pending_state,hand_state,grip_held[2],weapon_hand,gun_held,two_hand_held,support_near;
  double pending_until; float ungripped_seconds; int ungripped_warned; } vr;
 static double clock_ms;
@@ -152,6 +155,9 @@ int main(void) {
  vr.noted_weapon=-1;vr.pending_expected_weapon=-1;vr.holster_draw_request=-1;
  vr.pending_state=-1;vr.weapon_hand=1;vr.holster_unit=-1;
  vr_holster_slots_clear(vr.holster_weapon);
+ assert(vr_hand_pending_timeout_state(HAND_EMPTY,HAND_EMPTY,42,HAND_EMPTY,HAND_HELD)==HAND_HELD);
+ assert(vr_hand_pending_timeout_state(HAND_EMPTY,HAND_EMPTY,-1,HAND_EMPTY,HAND_HELD)==HAND_EMPTY);
+ vr.holster_weapon[0]=42;vr_holster_forget(vr.holster_weapon,42);assert(vr.holster_weapon[0]==-1);
  vr_note_weapon(7,42,inventory);assert(vr.hand_state==HAND_LOOSE);
  vr.pending_state=HAND_EMPTY;vr_note_weapon(7,43,inventory);assert(vr.hand_state==HAND_EMPTY);
  vr.pending_state=-1;vr.hand_state=HAND_HELD;vr_note_weapon(7,43,inventory);assert(vr.hand_state==HAND_HELD);
@@ -171,5 +177,5 @@ int main(void) {
 old_pose = function(render_1_0_7, "vr_pose_finger").replace("vr_pose_finger(", "vr_pose_finger_1_0_7(", 1)
 code = prelude + "\n".join(function(render, name) for name in helpers) + old_pose + function(frame, "vr_note_weapon") + tests
 (OUT / "vr_math.c").write_text(code)
-subprocess.run(["clang", "-std=c11", "-O1", "-g", "-fsanitize=address,undefined", "-I", str(ROOT / "port/linux/game"), str(OUT / "vr_math.c"), "-lm", "-o", str(OUT / "vr_math")], check=True)
+subprocess.run(["clang", "-std=c11", "-O1", "-g", "-fsanitize=address,undefined", "-I", str(ROOT / "port/linux/game"), "-I", str(ROOT / "port/linux/src"), str(OUT / "vr_math.c"), "-lm", "-o", str(OUT / "vr_math")], check=True)
 subprocess.run([str(OUT / "vr_math")], check=True)

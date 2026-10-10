@@ -188,6 +188,8 @@ void vr_set_network_game(int network);
 int vr_horn_held(void);
 /* Voice chat's remappable Quest Push-to-Talk; false when XR input is unfocused. */
 int vr_push_to_talk_held(void);
+/* Current mapped VR action/reload input for the manual reload transaction. */
+int vr_manual_reload_action_down(void);
 /* a hand's (0 left, 1 right) recent peak speed about the room, in metres a
 second, and vr.melee_speed, the speed a blow needs */
 float vr_hand_speed(int hand);

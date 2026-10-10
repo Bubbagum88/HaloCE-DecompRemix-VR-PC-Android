@@ -39,12 +39,12 @@ struct biped_datum{long definition_index;struct object_fields object;
 struct biped_definition{struct{float jump_velocity;}biped;}definition={.biped={.jump_velocity=.2f}};
 struct player_datum{long unit_index;}player={42};
 static real_vector3d zero,*global_zero_vector3d=&zero;
-static int enabled[3],network,focused=1,paused,inhibited,cinematic,grip[2],owner[2],tracked[2]={1,1},empty;
-static int queries,lookups,logs;static long now;
+static int enabled[3],contact_debug,network,focused=1,paused,inhibited,cinematic,grip[2],owner[2],tracked[2]={1,1},empty;
+static int queries,lookups,logs,probe_logs,gate_logs;static long now;
 static real_point3d hands[2]={{.n={.20f,0,1}},{.n={.20f,0,1}}};
 static real_vector3d gaze={.n={0,1,0}};
 static real_vector3d wall_normal={.n={1,0,0}};static float wall_offset;
-static int config_boolean(char const*k){return !strcmp(k,"vr.parkour_wallrun")?enabled[0]:!strcmp(k,"vr.parkour_walljump")?enabled[1]:enabled[2];}
+static int config_boolean(char const*k){return !strcmp(k,"vr.parkour_wallrun")?enabled[0]:!strcmp(k,"vr.parkour_walljump")?enabled[1]:!strcmp(k,"vr.contact_debug")?contact_debug:enabled[2];}
 static float config_real(char const*k){return !strcmp(k,"vr.wallrun_duration")?1.5f:!strcmp(k,"vr.wallrun_speed")?1.25f:!strcmp(k,"vr.interaction_reach")?.04f:1;}
 static float vr_world_hand_contact_radius(float metres,float units){if(metres<.02f)metres=.02f;if(metres>.08f)metres=.08f;return metres*units;}
 static short local_player_get_next(short x){(void)x;return 0;}
@@ -68,7 +68,7 @@ static int vr_interaction_claim(int h,int o){if(owner[h]&&owner[h]!=o)return 0;o
 static void vr_interaction_release(int h,int o){if(owner[h]==o)owner[h]=0;}
 static int vr_weapon_hand(void){return 1;}static int vr_hand_empty(void){return empty;}
 static void vr_haptic(int h,float a,float t){(void)h;(void)a;(void)t;}
-void platform_log(char const*f,...){(void)f;logs++;}
+void platform_log(char const*f,...){logs++;if(strstr(f,"VR parkour: probe"))probe_logs++;if(strstr(f,"VR parkour: gate blocked"))gate_logs++;}
 static float dot_product3d(real_vector3d const*a,real_vector3d const*b){return a->i*b->i+a->j*b->j+a->k*b->k;}
 static float magnitude3d(real_vector3d const*v){return sqrtf(dot_product3d(v,v));}
 static float normalize3d(real_vector3d*v){float n=magnitude3d(v);if(n>0)for(int i=0;i<3;i++)v->n[i]/=n;return n;}
@@ -139,6 +139,12 @@ int main(void){
  float anchor[3];assert(vr_parkour_hand(0,anchor)&&anchor[0]==0);
  hands[0].z-=.2f;v=tick(0,0,0);assert(v.k>0);
  grip[0]=0;v=tick(0,0,0);assert(v.k>0&&owner[0]==0&&!parkour.hand[0].active);
+ /* Opt-in logs expose a local probe and why an online session is gated. */
+ contact_debug=1;vr_parkour_reset();tick(0,0,0);assert(probe_logs==1);
+ for(int i=0;i<10;i++)tick(0,0,0);assert(probe_logs==1); /* rate limited */
+ now+=2*TICKS_PER_SECOND;network=1;tick(0,0,0);assert(gate_logs==1);
+ for(int i=0;i<10;i++)tick(0,0,0);assert(gate_logs==1); /* active climb reset cannot defeat rate limit */
+ network=0;contact_debug=0;
  tick(0,0,0);grip[0]=1;tick(0,0,0);assert(parkour.hand[0].active);
  focused=0;v=tick(.1f,.2f,.3f);assert(!parkour.hand[0].active&&owner[0]==0&&v.k==.3f);
  focused=1;tick(0,0,0);assert(!parkour.hand[0].active); /* held grip cannot re-acquire after focus loss */

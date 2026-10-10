@@ -64,6 +64,8 @@ OBJECTS.C
 #endif
 #ifdef HALO_VR
 #include "halo_vr.h"
+#include "../../port/linux/src/port_config.h"
+#include "active_garbage_limit_math.h"
 #endif
 
 /* ---------- constants */
@@ -4120,6 +4122,12 @@ static long active_garbage_limit(
 	long limit_per_16_players)
 {
 	long player_count = player_data ? player_data->actual_count : 0;
+	#ifdef HALO_VR
+	boolean local_solo = game_connection() == _game_connection_local && !game_engine_running();
+	boolean target_limit = limit_per_16_players == GARBAGE_LIMIT_ACTIVE_GARBAGE_TARGET;
+	limit_per_16_players = objects_vr_active_garbage_limit(limit_per_16_players,
+		config_integer("vr.ragdoll_retention"), target_limit, local_solo);
+	#endif
 
 	return limit_per_16_players * MAX(16, player_count) / 16;
 }

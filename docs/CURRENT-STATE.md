@@ -1,33 +1,40 @@
 # Current development state
 
-## Active private candidate: Test46 (2026-10-09)
+## Active private candidate: Test47 (2026-10-09)
 
-Candidate target is **1.0.27-test46 / Android code57** on
-`test39-interaction-completion`. It carries forward Test45 and all recorded
-changes since public v1.0.18. The complete scope and evidence are tracked in
-[TEST46-REQUIREMENT-DISPOSITION.md](TEST46-REQUIREMENT-DISPOSITION.md), with
-physical acceptance separated from source/test status.
+Candidate target is **1.0.28-test47 / Android code58** on
+`test39-interaction-completion`. It carries forward Test46/Test45 and all
+recorded work since public v1.0.18. The complete requirement disposition and
+evidence are tracked in
+[TEST47-REQUIREMENT-DISPOSITION.md](TEST47-REQUIREMENT-DISPOSITION.md);
+source/test status is separated from headset acceptance.
 
-Test46 preserves contact-then-fresh-Grip interaction, held NPC/prop ownership
-through ordinary motion with safe tracking rebases, friendly Marine/crew
-handling, the prior launcher/calibration/touch/network/co-op/saves/scopes/
-vehicles/manual-reload/parkour/haptics/Safe Geometry behavior, and the
-post-Test45 same-map magazine and bounded ground-vehicle lifting updates.
-Native corpse ragdoll eligibility remains engine-owned; `NPC RIG SLOTS` does
-not change an undocumented native corpse cap. NPC rescue is opt-in, solo-only
-recovery of eligible live encounter actors, not revival or script takeover.
+The priority arm solver fix preserves authored bone lengths and clamps wrist
+reach. Compared with the public v1.0.18 tag, this deliberately removes its
+up-to-18% arm extension and 35% compression workaround, which the supplied
+video showed as visible deformation. Manual
+reload reads the mapped VR USE/RELOAD action directly as well as the native
+weapon reload bit, keeps authored-part contact and Grip/Trigger acquisition,
+and records input/contact/ownership changes. Right-stick click remains melee.
+Solo VR's new BODY RETENTION setting raises active-garbage thresholds from
+OpenCE 50/30 to 75/45 by default (100/60 is optional, STOCK restores upstream);
+it remains disabled for all network and multiplayer sessions and cannot promise
+a fixed corpse count under memory pressure. The local solo multiplayer-map path avoids stale campaign continuation units,
+uses a valid native game-type spawn when present or a validated in-BSP fallback,
+and selects the multiplayer biped. Campaign and network player paths remain
+scoped to their previous logic.
 
-Selected OpenCE Build167 host-relayed Opus voice uses messages 80-82 without
-changing Build157/network24. Android requests `RECORD_AUDIO` asynchronously
-only when voice transmission is enabled and active. The VR menu offers
-Off/PTT/Open Mic, controller PTT, and 0-200% incoming voice volume. Permission
-denial and temporary microphone-device failure follow separate paths. Actual
-permission UI, routing and two-client voice still need headset acceptance.
+All prior interaction features remain in the source candidate: contact-driven
+object/NPC handling and recovery, ragdoll integration, parkour/climbing,
+manual reload, haptics, dropped magazines, bounded vehicle lifting, voice,
+managed game data, Android controls, co-op, networking, VR settings, Safe
+Geometry, scopes, calibration and launcher. Their actual status and device
+checks are itemized in the Test47 disposition; no headset/Android-device
+acceptance is inferred from host tests.
 
-Use [TEST46-DELIVERY-STATUS.md](TEST46-DELIVERY-STATUS.md),
-[TEST46-PLAYER-NOTES.md](TEST46-PLAYER-NOTES.md),
-[TEST46-DEVICE-CHECKLIST.md](TEST46-DEVICE-CHECKLIST.md), and
-[TEST46-VOICE-CHAT.md](TEST46-VOICE-CHAT.md). Preserve Test45 and older
+Use [TEST47-DELIVERY-STATUS.md](TEST47-DELIVERY-STATUS.md),
+[TEST47-PLAYER-NOTES.md](TEST47-PLAYER-NOTES.md), and
+[TEST47-DEVICE-CHECKLIST.md](TEST47-DEVICE-CHECKLIST.md). Preserve all older
 artifacts and public v1.0.18. Do not publish, install or launch the game.
 PC/Steam Frame remains deferred.
 

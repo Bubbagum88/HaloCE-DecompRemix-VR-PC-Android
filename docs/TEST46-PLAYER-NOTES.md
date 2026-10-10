@@ -110,8 +110,8 @@ and Java startup. Switching applies to the next launch. See
   in the documented fall/recovery state. Custom scenery uses validated
   collision bounds; it does not enable arbitrary BSP geometry or script-owned
   scenery.
-- **HAND CONTACT:** sets the shared palm-collider radius (2, 4, 6, or 8 cm; 4 cm default), not a target-search reach. World objects and NPCs can be grabbed only when the tracked hand volume overlaps their collision model; the co-op host repeats the NPC/object collision check. Manual reload part bounds, virtual pouch points, and optional vehicle-wheel handles use touch-then-press. Magazine insertion is a separate held-object alignment step. To climb, touch a solid vertical surface with a free hand, then squeeze Grip. Aim direction cannot select these targets. **NPC RIG SLOTS** controls 1-8
-  mod interaction rigs, not Halo's native corpse count. Source review found no
+- **HAND CONTACT:** sets the shared palm-collider radius (2, 4, 6, or 8 cm; 4 cm default), not a target-search reach. World objects and NPCs can be grabbed only when the tracked hand volume overlaps their collision model; the co-op host repeats the NPC/object collision check. Manual reload part bounds, virtual pouch points, and optional vehicle-wheel handles use touch-then-press. Magazine insertion is a separate held-object alignment step. To climb, touch a solid vertical surface with a free hand, then squeeze Grip. Aim direction cannot select these targets. **NPC RIG SLOTS** controls 1, 2, 4, 8, 12 or 16
+  mod interaction rigs (default 8), not Halo's native corpse count. Source review found no
   native corpse-count slider or fixed simultaneous corpse cap; per-corpse
   settling duration and general object/memory cleanup are separate.
   **HAPTICS** is the master controller-vibration control. **HOLSTER HAPTICS**
@@ -200,14 +200,16 @@ campaign co-op and its usual capacity are unchanged by these optional systems.
 
 ## Important limits
 
-NPC RIG SLOTS does not raise Halo's native corpse-ragdoll count. Source review
+NPC RIG SLOTS does not change Halo's native corpse-ragdoll rules or garbage thresholds. Source review
 found no native simultaneous corpse-count cap to raise: eligible bodies run a
 settling solver for a bounded duration, while general object/memory pressure
-may reclaim eligible off-screen garbage. Custom rig support is opt-in and
-solo-only for `_actor_none` and grounded custom `_actor_engineer` tags that
-pass the native head/pelvis, capsule, graph and non-flight checks. It reuses
-the authored graph; it is not universal retargeting for arbitrary mods or
-online custom-layout support. Dropped magazines are not serialized into save files, do not survive a
+may reclaim eligible off-screen garbage. NPC interaction slots now allow 1,
+2, 4, 8, 12 or 16 active mod rigs; new configurations remain at 8 to limit
+Quest CPU work. Custom rig support is opt-in and solo-only for otherwise-
+unprofiled grounded humanoid actor variants whose native biped capsule and
+authored graph checks pass. It simulates the captured graph without assuming
+stock head/pelvis markers; malformed,
+flying, swarm and online custom-layout rigs remain unsupported. Dropped magazines are not serialized into save files, do not survive a
 map change, create ammo, or replicate; the 32 visual props survive only same-map
 state restores in the current process. Vehicle lifting supports bounded
 hand-driven translation and rotation for the listed ground vehicle classes;

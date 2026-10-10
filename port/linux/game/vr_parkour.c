@@ -22,6 +22,9 @@ void platform_log(char const *format,...);
 /* Filled only on a Grip edge; a palm-sized overlap is cheap and never uses
  * an aim ray to search for a wall. */
 static struct collision_feature_list parkour_contact_features;
+/* Keep diagnostic rate limiting outside the transient parkour state so an
+ * online/paused gate that resets the active climb cannot spam every frame. */
+static long parkour_diagnostic_tick=NONE;
 static struct {
     long unit,tick;
     int jump_down,jump_age,run_ticks,running,jumped_wall,wall_valid;
@@ -51,20 +54,34 @@ static boolean parkour_enabled(void)
 {
     return config_boolean("vr.parkour_wallrun")||config_boolean("vr.parkour_walljump")||config_boolean("vr.parkour_climb");
 }
-static boolean parkour_local(long unit)
+static char const *parkour_gate_reason(long unit,int *is_local)
 {
     short local=local_player_get_next(NONE);
     long player=local!=NONE?local_player_get_player_index(local):NONE;
     struct biped_datum *biped;
     unsigned int buttons;float triggers[2],thumbs[4];
-    if(player==NONE||player_get(player)->unit_index!=unit||unit==NONE||
-        !vr_active()||!vr_controller(&buttons,triggers,thumbs)||game_connection()!=_game_connection_local||
-        game_time_get_paused()||cinematic_in_progress()||director_inhibited_input(local))return FALSE;
+    if(is_local)*is_local=0;
+    if(player==NONE)return "no-local-player";
+    if(player_get(player)->unit_index!=unit)return "not-local-player";
+    if(is_local)*is_local=1;
+    if(unit==NONE)return "invalid-unit";
+    if(!vr_active())return "vr-inactive";
+    if(!vr_controller(&buttons,triggers,thumbs))return "controller-unfocused-or-invalid";
+    if(game_connection()!=_game_connection_local)return "network-session";
+    if(game_time_get_paused())return "paused";
+    if(cinematic_in_progress())return "cinematic";
+    if(director_inhibited_input(local))return "director-inhibited";
     biped=biped_try_and_get(unit);
-    return biped&&biped->object.parent_object_index==NONE&&
-        !TEST_FLAG(biped->object.damage_flags,_object_dead_bit)&&
-        !TEST_FLAG(biped->biped.flags,_biped_no_collision_bit)&&
-        !TEST_FLAG(biped->unit.flags,_unit_suspended_bit);
+    if(!biped)return "unit-datum-invalid";
+    if(biped->object.parent_object_index!=NONE)return "seated-or-parented";
+    if(TEST_FLAG(biped->object.damage_flags,_object_dead_bit))return "player-dead";
+    if(TEST_FLAG(biped->biped.flags,_biped_no_collision_bit))return "no-collision";
+    if(TEST_FLAG(biped->unit.flags,_unit_suspended_bit))return "unit-suspended";
+    return NULL;
+}
+static boolean parkour_local(long unit)
+{
+    return parkour_gate_reason(unit,NULL)==NULL;
 }
 void vr_parkour_note_unit(long unit)
 {
@@ -128,6 +145,7 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
     real units,per_second,throttle;
     int jump,edge,airborne,contacts=0,released=0,wall_found=0;
     long tick;
+    tick=game_time_get();
     if(!parkour_enabled()){
         /* Disabling an active climb must release its hand ownership promptly.
          * Avoid rewriting state for every NPC when parkour is already idle. */
@@ -135,11 +153,24 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
             vr_parkour_reset();
         return; /* No probes or velocity changes when disabled. */
     }
-    if(!parkour_local(unit)){
-        if(unit==parkour.unit)vr_parkour_reset();
-        return; /* NPCs and network players never enter this path. */
+    {
+        int is_local=0;
+        char const *reason=parkour_gate_reason(unit,&is_local);
+        if(reason){
+            if(is_local&&config_boolean("vr.contact_debug")&&
+                (parkour_diagnostic_tick==NONE||tick<parkour_diagnostic_tick||tick-parkour_diagnostic_tick>=2*TICKS_PER_SECOND)){
+                unsigned int diagnostic_buttons;
+                float diagnostic_triggers[2],diagnostic_thumbs[4];
+                int focused=vr_active()&&vr_controller(&diagnostic_buttons,diagnostic_triggers,diagnostic_thumbs);
+                platform_log("VR parkour: gate blocked unit=%ld reason=%s connection=%d paused=%d focused=%d cinematic=%d",
+                    unit,reason,game_connection(),game_time_get_paused(),
+                    focused,cinematic_in_progress());
+                parkour_diagnostic_tick=tick;
+            }
+            if(unit==parkour.unit)vr_parkour_reset();
+            return; /* NPCs and network players never enter this path. */
+        }
     }
-    tick=game_time_get();
     if(tick==parkour.tick&&unit==parkour.unit)return;
     if(unit!=parkour.unit||tick<parkour.tick||tick>parkour.tick+1)vr_parkour_reset();
     parkour.unit=unit;parkour.tick=tick;
@@ -164,6 +195,17 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
             scale_vector3d(&ray,(direction%2?-1:1)*(radius+0.18f*units),&ray);
             if(parkour_surface(&center,&ray,unit,&hit)&&(!wall_found||hit.t<wall.t)){wall=hit;wall_found=TRUE;}
         }
+    }
+    if(config_boolean("vr.contact_debug")&&
+        (parkour_diagnostic_tick==NONE||tick<parkour_diagnostic_tick||tick-parkour_diagnostic_tick>=2*TICKS_PER_SECOND)){
+        int grip0=vr_interaction_grip(0,NULL,NULL),grip1=vr_interaction_grip(1,NULL,NULL);
+        platform_log("VR parkour: probe unit=%ld wallrun=%d walljump=%d climb=%d airborne=%d throttle=%.2f wall_hit=%d wall_normal=%.2f/%.2f/%.2f jump_age=%d grip=%d/%d active=%d/%d owner=%d/%d",
+            unit,config_boolean("vr.parkour_wallrun"),config_boolean("vr.parkour_walljump"),
+            config_boolean("vr.parkour_climb"),airborne,throttle,wall_found,
+            wall_found?wall.plane.n.i:0.f,wall_found?wall.plane.n.j:0.f,wall_found?wall.plane.n.k:0.f,
+            parkour.jump_age,grip0,grip1,parkour.hand[0].active,parkour.hand[1].active,
+            vr_interaction_owner(0),vr_interaction_owner(1));
+        parkour_diagnostic_tick=tick;
     }
     if(wall_found){
         boolean changed=FALSE;
