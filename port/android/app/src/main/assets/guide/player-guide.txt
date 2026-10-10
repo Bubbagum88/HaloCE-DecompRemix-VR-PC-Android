@@ -1,3 +1,23 @@
+# Test50 private candidate: 1.0.31-test50
+
+## Test50: voice diagnostics and sprint toggle
+
+- **Mounted reticle alignment:** driver and gunner shots (including tanks,
+  Ghosts and mounted turrets) now follow the selected reticle/muzzle ray. The
+  Test49 log showed native camera aim assist turning shots 2.28°/2.61° away
+  from the reticle. Test50 bypasses that correction only for the local VR
+  driver/gunner, avoiding target snapping. On-foot, passenger, remote-player
+  and flat Android aim assist stay unchanged. Random spread can still move
+  individual rounds around the center ray.
+
+- **Sprint:** in VR Settings → Locomotion, turn **Button Sprint** on. **Sprint Toggle** defaults to **Hold**; choose **Toggle** to click left stick once to start and again to stop. Hold remains unchanged unless Toggle is selected. Recenter, losing focus, seating, or losing the VR input state cancels the toggle. Sprint remains local/offline movement only and respects existing movement limits.
+- **Voice:** behavior and privacy defaults are unchanged. Test50 logs host voice settings, local mic mode and receive volume, encoded frames handed to the network path, host-accepted/relayed frames, and successful incoming Opus decoding. It never records/logs audio or player names. A host that sends no Build167 settings is called out after five seconds. Voice still requires a compatible, voice-enabled host and peers, host routing that includes the listener, nonzero receive volume, and a speaking player.
+- **Evidence boundary:** the supplied Test49 log shows Wi-Fi, a 48 kHz stereo output device without reported underruns, and microphone open/close without permission/device errors. It does not establish that anyone spoke or that remote audio was received. See [Test50 voice diagnostics](TEST50-VOICE-DIAGNOSTICS.md).
+- **Upstream:** the latest official release checked on 2026-10-10 is OpenCE Build177; the exact-match reticle art was already integrated. Engine base remains Build157/network24 with selected compatible changes through Build177, not a full Build177 rebase.
+
+Device checks: [TEST50-DEVICE-CHECKLIST.md](TEST50-DEVICE-CHECKLIST.md).
+
+---
 # Test49 private candidate: 1.0.30-test49
 
 This candidate carries forward Test48, Test47, and the cumulative

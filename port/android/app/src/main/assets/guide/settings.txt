@@ -1074,6 +1074,11 @@ Default: false
 Use left stick click for offline sprint. The VR menu temporarily frees
 that binding and restores it when this option is disabled.
 
+vr.button_sprint_toggle [boolean]
+Default: false
+When Button Sprint is enabled, click left stick once to start sprinting
+and click again to stop. Off keeps the hold-to-sprint behavior.
+
 vr.sprint_speed [real]
 Default: 1.5
 Maximum offline sprint movement multiplier, bounded from 1.0x to 1.5x.
