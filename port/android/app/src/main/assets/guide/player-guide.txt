@@ -1,3 +1,141 @@
+# Test56 private candidate: 1.0.23-test56
+
+## Test56: polish: ragdolls, immersive vehicles, throwing and lifting
+
+This private test build follows Test55. It was shaped by your two Test55
+sessions (the night fight against Elites, Grunts, Jackals and Hunters, and the
+Blood Gulch Ghost and Warthog drive) and your messages. It installs over
+Test55, Test54, Test53 and v1.0.19 (same package names and signing key,
+Android version code 68) and keeps your settings, profiles, saves and imported
+game data. Voice chat, multiplayer and co-op, OpenCE compatibility (network
+26), wall running, manual reload, aiming, scopes, holsters, sprint, button
+remapping, left-handed play and the launcher are unchanged.
+
+### Ragdolls that come to rest, for every species
+
+Your logs showed dead bodies still twitching 5 seconds after they fell
+(`settle still pending`), and living NPCs lying for the full 5 seconds before
+getting up. The cause: every joint's limits are authored relative to its
+parent bone, but the ragdoll compared them against the world. On an Elite, the
+spine is one rigid piece, so the chest was held upright while the rest of the
+body fell, and the two fought forever.
+
+The joints now work the way the game's own data describes them, relative to
+their parent: rigid pieces stay rigid, hips, shoulders and necks swing in
+cones, and knees and elbows bend one way only and never backwards. This was
+tested offline on the real skeletons from your Xbox disc: Elites, Grunts,
+Jackals, **Hunters**, Marines, crew, Keyes, and every **Flood** form (combat
+Elite and human, carrier, infection form, Flood Keyes), each dropped five
+ways. Every body now comes to rest, most within 1 to 2 seconds. The old
+ragdoll never settled most of them.
+
+### Deaths react to the shot
+
+A killed NPC is now pushed by what killed it, from where it hit:
+
+- light rounds snap a limb (assault rifle about 1 m/s at the hit), the pistol
+  harder, the sniper rifle hardest (about 4 m/s);
+- a leg shot buckles the leg, a side shot turns the body, a head shot snaps it
+  back;
+- melee shoves the body;
+- grenades and explosions throw it away from the blast and up;
+- shotgun pellets in one blast add up.
+
+The game's own push from the hit is never doubled. Bodies next to a wall fall
+into it, using the world's collision.
+
+### NPCs get up within 1 second
+
+A living NPC you let go of gets up as soon as it lies still, and never lies
+limp longer than **NPC RECOVERY** (new, IMMERSION → ADVANCED; 0.25 to 1 s,
+default 1 s). Dead bodies stay down and are never stood back up.
+
+### Throwing and lifting
+
+- **THROW** now defaults to **2X** (the row still goes from 0.75X to 2X).
+- A throw takes your hand's speed at the peak of the swing, from your last
+  few movements, so a flick carries and a hand already slowing at release
+  doesn't weaken it. This applies to props, weapons and NPCs.
+- Something you throw that hits a living body or a vehicle shoves it with
+  part of its momentum before the damage, so a kill flies on as a ragdoll.
+  A Hunter barely moves.
+- **NPC HOLD is now LIFT.** It's the same setting (your choice is kept), and it
+  now also sets how firmly props, turrets and vehicles follow your hands. The
+  default (SPARTAN) holds props exactly as before; IRON lifts heavy things
+  readily.
+- **Elites and Hunters:** one hand grabs and holds them back while you hold
+  Grip, but can't lift them. The second hand lifts, carries and throws. You
+  feel the weight arrive in the hand left holding, and both hands buzz when the
+  second hand takes it up. Grunts, Jackals and Marines stay one-hand
+  liftable and throwable.
+
+### Vehicles: IMMERSIVE VEHICLE
+
+All of this applies only with **IMMERSIVE VEHICLE** on. Ordinary vehicle
+controls are exactly as before.
+
+- **Steering goes the right way.** Every control steered backwards: moving
+  your hands left turned the Ghost right. Right is right now, for the Warthog,
+  Ghost, Scorpion and Banshee.
+- **Ghost:** the handlebar steers by turning and tilting. **Scorpion:** the
+  sticks steer like a tank's. **Banshee:** roll the yoke to turn; push to
+  dive, pull to climb. There's a small dead zone (1.5°), a full lock at 60°,
+  and the controls re-centre when you let go.
+- **Warthog wheel:** reach for its own wheel and grip anywhere on the rim. The
+  rim now comes from the wheel in the model, slightly higher and tilted, with
+  a little more reach. Your hands stay on it as it turns. Either hand can let
+  go and the other keeps steering.
+- **Feel:** a buzz when you grab, ticks as you turn, a stronger buzz at full
+  lock, and one when you let go.
+- **No more stutter.** The controls were placed where the vehicle is in the
+  game's newest tick, while the vehicle is drawn one tick behind (smoothed),
+  so the hands slid on the wheel and the steering jumped every frame. They now
+  sit on the vehicle as it's drawn.
+- **Steering apart from aiming.** Your hands steer and your head aims, so the
+  Ghost's and Banshee's guns and the Scorpion's turret follow where you look.
+  As an online co-op client, the Test55 behaviour is kept.
+- **Hands grip.** Your fingers close round the controls over about a tenth of
+  a second, even without finger tracking, and open again when you let go.
+
+### Manual reload: CHARGE GRAB
+
+**CHARGE GRAB** (new, IMMERSION → RELOAD; 2 to 10 cm, default 4 cm, as in
+Test55) sets how far past your hand the slide or charging handle is still
+caught, for every weapon. POUCH SIZE moved to the POUCH PLACES screen to make
+room.
+
+### Smaller fixes
+
+- The "heavy hold one hand" log line appeared about 100 times a session. It's
+  now written only when you actually let go.
+- A middle-finger gesture was considered and dropped. Quest Touch controllers
+  have no middle-finger sensor (the grip covers middle, ring and little
+  fingers). The only signal, trigger pressed with grip released, is your
+  ordinary resting or clicking hand, menu clicks included, so it would fire by
+  accident.
+
+### OpenCE Builds 189 and 190
+
+OpenCE Build 189 adds sharing of Custom Edition maps between players, and
+moves OpenCE to network 27. It's not included, so this build stays on network
+26 and works with the same servers and players as before. From Build 190 this
+build takes the lobby fix: a player joining or leaving the lobby no longer
+restarts the countdown (they join the game in progress instead). It changes
+only what your host does, not what it sends.
+
+### If the Ghost's hood blocks your view
+
+In first person, the Ghost's hood can fill the view, because the Ghost's seat
+is built for a third-person camera. VR Settings → VEHICLES → **GHOST UP** and
+**GHOST FWD** move your seat in the Ghost. Tell us what values suit you.
+
+These changes are checked on a PC (automated checks, an offline ragdoll
+simulation on your disc's skeletons, and builds), not yet in the headset.
+Please test with **CONTACT LOG** on and keep the log from Download/HaloCE:
+[Test56 device checks](TEST56-DEVICE-CHECKLIST.md).
+
+---
+
 # Test55 private candidate: 1.0.22-test55
 
 ## Test55: polish: grabbing everything, vehicles, calibration and one immersion menu

@@ -1320,6 +1320,10 @@ vr.holster_shoulder_back [real]
 Default: 0.0
 Moves the shoulder holsters back from its default, in metres (-0.20 to 0.20). A blue marker shows the zone while the row is on screen.
 
+vr.charge_grab_radius [real]
+Default: 0.04
+CHARGE GRAB: how far in metres (0.02 to 0.10) past HAND CONTACT a hand still takes a weapon's charging handle or slide during a manual reload; 0.04 keeps Test55's reach.
+
 vr.reload_pouch_size [real]
 Default: 0.16
 Reach of each magazine pouch in metres (0.08 to 0.30).
@@ -1334,11 +1338,11 @@ Extra reach in metres (0 to 0.15) added to an NPC's body volumes when grabbing i
 
 vr.npc_hold_strength [real]
 Default: 1.5
-How firmly a held NPC follows the hands (0.75 to 2.5; 1.5 Spartan). Heavier species still resist or need two hands.
+LIFT: how firmly what the hands lift follows them: NPCs, props, turrets and vehicles (0.75 to 2.5; 1.5 Spartan, the default, keeps props as before). Heavier species and objects still resist or need two hands.
 
 vr.throw_strength [real]
-Default: 1.0
-Multiplier on the hand's release velocity for thrown props and NPCs (0.75 to 2.0).
+Default: 2.0
+Multiplier on the hand's release velocity for thrown props and NPCs (0.75 to 2.0; 2.0 by default).
 
 vr.climb_grab_radius [real]
 Default: 0.10
@@ -1351,6 +1355,10 @@ Written by VR Settings: the settings it turned on only because an immersion feat
 vr.death_ragdolls [boolean]
 Default: false
 Solo (and co-op host): NPCs killed nearby fall as physical ragdolls carrying their momentum, then rest as grabbable corpses. Uses the NPC RIG SLOTS pool.
+
+vr.npc_recovery [real]
+Default: 1.0
+The longest time in seconds (0.25 to 1.0) a living NPC lies limp after being dropped or thrown before it gets up; it gets up sooner once it is at rest. Corpses never get up.
 
 vr.reload_input [string]
 Default: "grip"
