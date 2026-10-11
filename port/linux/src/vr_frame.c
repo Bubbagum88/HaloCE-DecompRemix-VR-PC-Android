@@ -3769,9 +3769,18 @@ unsigned int vr_head_look_actions(void)
 int vr_head_view(const float position[3], const float forward[3],
 	float out_position[3], float out_forward[3], float out_up[3])
 {
+	const unsigned int needed = HALO_XR_FRAME_SHOULD_RENDER | HALO_XR_FRAME_VIEWS_VALID;
 	float offset[3];
 
-	if (!vr.stereo)
+	/* test53: also this frame's head for the game's ticks. They run before
+	the stereo pass begins (main.c: game_time_update, then main_game_render's
+	vr_stereo_begin) and vr.stereo is cleared at the frame's end, so asking
+	from a tick was always refused: parkour reset itself every tick and the
+	manual reload cancelled every tick, so neither could ever run. vr_aim
+	begins the frame before the ticks; its head is as current as the grips
+	vr_hand_world gives them. */
+	if (!vr.stereo && !(vr.active && vr.stereo_enabled && vr.frame_begun &&
+		(vr.frame.flags & needed) == needed))
 		return 0;
 	head_offset(offset);
 	view(offset, vr.frame.head.orientation, position, forward, out_position, out_forward, out_up);
