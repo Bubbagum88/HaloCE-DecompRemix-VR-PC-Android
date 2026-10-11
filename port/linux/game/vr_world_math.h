@@ -105,6 +105,39 @@ static inline int vr_world_throw_velocity_spartan(float const average[3], float 
     }
     return vr_world_limit(out, fminf(units * 0.24f * strength * spartan, units * 0.8f));
 }
+/* Test56: the hand's motion at release: the mean of the two fastest of the
+ * last VR_WORLD_THROW_HISTORY ticks' movements. A throw peaks just before the
+ * grip opens, so the last tick is often already slowing (the Test54/55
+ * blend of a smoothed average and the last tick threw short and unevenly),
+ * and one noisy tick alone cannot spike it. history: per-tick movements in
+ * any order. */
+#define VR_WORLD_THROW_HISTORY 4
+static inline int vr_world_throw_peak(float const history[][3], int count, float out[3])
+{
+    int i, k, first = -1, second = -1;
+    float speed[VR_WORLD_THROW_HISTORY];
+    if (!history || !out || count < 1) return 0;
+    if (count > VR_WORLD_THROW_HISTORY) count = VR_WORLD_THROW_HISTORY;
+    for (i = 0; i < count; ++i) {
+        speed[i] = history[i][0] * history[i][0] + history[i][1] * history[i][1] + history[i][2] * history[i][2];
+        if (!isfinite(speed[i])) return 0;
+        if (first < 0 || speed[i] > speed[first]) { second = first; first = i; }
+        else if (second < 0 || speed[i] > speed[second]) second = i;
+    }
+    for (k = 0; k < 3; ++k)
+        out[k] = second < 0 ? history[first][k] : (history[first][k] + history[second][k]) * 0.5f;
+    return 1;
+}
+/* a tick's hand movement into the history ring */
+static inline void vr_world_throw_note(float history[][3], int *count, int *next, float const movement[3])
+{
+    int k;
+    if (!history || !count || !next || !movement) return;
+    if (*next < 0 || *next >= VR_WORLD_THROW_HISTORY) *next = 0;
+    for (k = 0; k < 3; ++k) history[*next][k] = movement[k];
+    *next = (*next + 1) % VR_WORLD_THROW_HISTORY;
+    if (*count < VR_WORLD_THROW_HISTORY) ++*count;
+}
 /* Test55: one hand on a body that needs two restrains it: the horizontal
  * velocity pulls toward the hand's anchor, slowly (heavier is slower, at most
  * 0.8 m/s), and the vertical stays the body's own (no lift). */

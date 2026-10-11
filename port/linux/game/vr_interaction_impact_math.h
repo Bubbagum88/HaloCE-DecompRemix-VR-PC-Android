@@ -16,4 +16,15 @@ static float vr_interaction_impact_scale(float normal_speed, float units,
     energy = (speed * speed - threshold * threshold) * weight / 36.0f;
     return fminf(maximum, fmaxf(0, energy));
 }
+/* Test56: the share of a thrown thing's velocity that a struck body or
+ * vehicle takes (momentum, gameplay-tuned): a light prop 0.3, a heavy body
+ * up to 0.48; the shove itself is capped at VR_IMPACT_SHOVE_MAXIMUM m/s. */
+#define VR_IMPACT_SHOVE_MAXIMUM 4.0f
+static float vr_interaction_impact_share(float mobility)
+{
+    float weight;
+    if (!isfinite(mobility) || mobility <= 0) return 0;
+    weight = fminf(4.0f, fmaxf(0.25f, 1.0f / mobility));
+    return 0.6f * weight / (weight + 1.0f);
+}
 #endif

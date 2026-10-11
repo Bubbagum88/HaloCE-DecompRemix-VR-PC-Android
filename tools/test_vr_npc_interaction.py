@@ -69,7 +69,7 @@ enum {_actor_elite,_actor_jackal,_actor_grunt,_actor_hunter,_actor_engineer,_act
 enum {_race_player=1,_race_human=2,_race_covenant=4,_race_floodcombat=8,_race_floodcarrier=16,_race_floodinfection=32,_race_sentinel=64};
 enum {_actor_definition_flying_bit=21,_actor_definition_swarm_actor_bit=26,_biped_flying_bit=2};
 enum {_game_connection_local=0};static int connection;static int game_connection(void){return connection;}
-static struct npc_state {int active,recovery,settling,minimum_hands,started,is_remote,getting_up,species_type,was_garbage,settle_stuck_logged,recovery_blocked_logged,torso_node,death,root_follow;float mobility;long index,tick,player;int held[2],edge[2],node[2],strain_logged[2];real_vector3d target[2],offset[2],root_anchor[2],velocity[2],root_offset,last_delta[2];struct{struct vr_articulated_body body;real_matrix4x3 captured[64];}rig;} npc_pool[NPC_POOL_SIZE],*npc_current=&npc_pool[0];
+static struct npc_state {int active,recovery,settling,minimum_hands,started,is_remote,getting_up,species_type,was_garbage,settle_stuck_logged,recovery_blocked_logged,torso_node,death,root_follow;float mobility;long index,tick,player;int held[2],edge[2],node[2],strain_logged[2];real_vector3d target[2],offset[2],root_anchor[2],velocity[2],root_offset,last_delta[2];float history[2][VR_WORLD_THROW_HISTORY][3];int history_count[2],history_next[2];struct{struct vr_articulated_body body;real_matrix4x3 captured[64];}rig;} npc_pool[NPC_POOL_SIZE],*npc_current=&npc_pool[0];
 #define npc (*npc_current)
 static struct remote_state {long player,candidate[2];int valid,held[2],seen[2],edge[2];real_vector3d point[2];} remote_pool[128];
 static struct {long definition;short type;int valid;} species_cache[64];

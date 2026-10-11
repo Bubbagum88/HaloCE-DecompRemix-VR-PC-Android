@@ -55,6 +55,17 @@ assert '"NPC RECOVERY", "vr.npc_recovery", _vr_setting_real, 4,' in menu and '{ 
 advanced = menu[menu.index("\t/* ADVANCED */"):menu.index("static struct vr_menu_section const vr_menu_immersion_sections")]
 assert "VR_IMMERSION_NPC_RECOVERY," in advanced and '{ "ADVANCED", 8 }' in menu
 
+# Throwing: THROW 2X by default, the release peak for props and NPCs; a thrown
+# thing shoves what it hits (before the damage, so a kill carries).
+world = read("port/linux/game/vr_world_interaction.c")
+impact = read("port/linux/game/vr_interaction_impact.c")
+assert '{ "vr.throw_strength", _config_real, "2.0",' in config
+assert 'npc_setting("vr.throw_strength",2.0f,0.75f,2.0f)' in npc and "isfinite(strength) ? (float)strength : 2.0f" in world
+assert "vr_world_throw_peak((float const (*)[3])npc.history[hand]" in npc
+assert "vr_world_throw_peak((float const (*)[3])held->history" in world
+collision = body(impact, "static void apply_collision(")
+assert collision.index("impact_shove(target,victim,velocity,entries[i].mobility,units);") < collision.index("object_cause_damage(&damage,target,")
+
 # Immersive vehicles (only with IMMERSIVE VEHICLE on: every path goes through
 # vr_vehicle_handles_enabled, which reads vr.vehicle_handles).
 handles = read("port/linux/game/vr_vehicle_handles.h")
@@ -91,6 +102,7 @@ code = r'''
 #include <math.h>
 #include <stdio.h>
 #include "port/linux/game/vr_npc_impulse.h"
+#include "port/linux/game/vr_world_math.h"
 static const float units = 0.32808399f;
 int main(void)
 {
@@ -124,6 +136,24 @@ int main(void)
  assert(vr_npc_hit_kick(-5, -1, 2, 0, units, &ar) && ar.local == 1.0f);
  printf("PASS: Test56 shot-reactive deaths (rifle %.1f, pistol %.1f, sniper %.1f, Hunter melee %.1f m/s; frag throws %.1f, rocket %.1f m/s)\n",
      rifle, pistol.local, sniper.local, hunter.local, frag.body, rocket.body);
+ /* throws: the hand's peak at release, not a lagging average: a swing that
+  * peaks and slows as the grip opens throws at about its peak */
+ {
+  float history[VR_WORLD_THROW_HISTORY][3], peak[3], out[3];
+  int count = 0, next = 0;
+  float swing[6] = {.05f, .15f, .30f, .32f, .20f, .10f}; /* units a tick */
+  for (int t = 0; t < 6; ++t) { float m[3] = {swing[t], 0, 0}; vr_world_throw_note(history, &count, &next, m); }
+  assert(count == VR_WORLD_THROW_HISTORY && vr_world_throw_peak((float const (*)[3])history, count, peak));
+  assert(fabsf(peak[0] - .31f) < 1e-5f); /* the two fastest of the last four */
+  /* the old blend of the average (~.2) and the last tick (.1) threw ~.14 */
+  assert(vr_world_throw_velocity_spartan(peak, peak, 2.0f, 1.0f, 1.0f, out) && out[0] > .4f);
+  /* one noisy tick does not spike it */
+  { float spike[VR_WORLD_THROW_HISTORY][3] = {{.1f,0,0},{.1f,0,0},{.1f,0,0},{.9f,0,0}};
+    assert(vr_world_throw_peak((float const (*)[3])spike, 4, peak) && peak[0] == .5f); }
+  { float bad[1][3] = {{NAN, 0, 0}}; assert(!vr_world_throw_peak((float const (*)[3])bad, 1, peak)); }
+  assert(!vr_world_throw_peak((float const (*)[3])history, 0, peak));
+ }
+ puts("PASS: Test56 throws at the hand's release peak");
  return 0;
 }
 '''
@@ -134,4 +164,4 @@ with tempfile.TemporaryDirectory(prefix="test56-") as temp:
                     "-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-I", str(ROOT),
                     str(path / "check.c"), "-o", str(path / "check"), "-lm"], check=True)
     subprocess.run([str(path / "check")], check=True)
-print("PASS: Test56 wiring (shot-reactive death kicks; NPC recovery within 1 s; immersive vehicles steer the right way from the drawn pose, Warthog wheel node, steering apart from head aiming, grip pose)")
+print("PASS: Test56 wiring (shot-reactive death kicks; NPC recovery within 1 s; THROW 2X, release peak, impact shove; immersive vehicles steer the right way from the drawn pose, Warthog wheel node, steering apart from head aiming, grip pose)")

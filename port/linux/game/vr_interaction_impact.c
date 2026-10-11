@@ -4,6 +4,10 @@
 #include "objects/damage.h"
 #include "units/units.h"
 #include "units/unit_definitions.h"
+#include "units/bipeds.h"
+#include "units/vehicles.h"
+#include "objects/object_definitions.h"
+#include "vr_npc_interaction.h"
 #include "physics/collisions.h"
 #include "network_coop.h"
 #include "network_interaction.h"
@@ -47,6 +51,28 @@ void vr_interaction_impact_track(long object, long owner_unit, float mobility, f
     entries[slot].owner=owner_unit; entries[slot].mobility=mobility;
     entries[slot].units=units; entries[slot].expiry=tick+90;
 }
+/* Test56: the blow carries: a living body or a vehicle struck by a thrown
+ * body or prop takes part of its momentum (vr_interaction_impact_share, as
+ * the native damage push scaled by the struck object's acceleration scale:
+ * a Hunter barely moves), so a Grunt thrown into an Elite staggers it. It is
+ * given before the damage, so a body the blow kills carries it into its
+ * ragdoll. Not for a body the NPC hands or a ragdoll already move. */
+static void impact_shove(long target, struct object_datum *victim, real_vector3d const *velocity,
+    float mobility, float units)
+{
+    real_vector3d shove;
+    real share=vr_interaction_impact_share(mobility),scale,speed;
+    struct object_definition *definition=object_definition_get(victim->definition_index);
+    if(!definition || !(share>0) || !(units>0) || vr_npc_interaction_owned(target)) return;
+    scale=definition->object.acceleration_scale;
+    if(!isfinite(scale) || !(scale>0)) return;
+    scale_vector3d(velocity,share*fminf(scale,1.0f),&shove);
+    speed=magnitude3d(&shove);
+    if(!isfinite(speed) || !(speed>0)) return;
+    if(speed>VR_IMPACT_SHOVE_MAXIMUM*units/30.0f) scale_vector3d(&shove,VR_IMPACT_SHOVE_MAXIMUM*units/30.0f/speed,&shove);
+    if(victim->object.type==_object_type_biped) biped_accelerate(target,&shove);
+    else if(victim->object.type==_object_type_vehicle) vehicle_accelerate(target,&shove);
+}
 static void apply_collision(long index, struct collision_result const *hit,
     real_vector3d const *velocity)
 {
@@ -86,6 +112,9 @@ static void apply_collision(long index, struct collision_result const *hit,
     damage.owner_team_index=owner->object.owner_team_index;
     damage.location=hit->location; damage.origin=hit->point; damage.epicenter=hit->point;
     damage.direction=*velocity; normalize3d(&damage.direction); damage.scale=scale;
+    if(hit->type==_collision_result_object && target!=index &&
+       (victim->object.type==_object_type_biped || victim->object.type==_object_type_vehicle))
+        impact_shove(target,victim,velocity,entries[i].mobility,units);
     object_cause_damage(&damage,target,hit->type==_collision_result_object?hit->node_index:NONE,
         hit->type==_collision_result_object?hit->region_index:NONE,
         hit->type==_collision_result_object?hit->material_index:NONE,&hit->plane.n);

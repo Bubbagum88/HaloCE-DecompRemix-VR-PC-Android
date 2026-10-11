@@ -29,8 +29,8 @@ assert 'npc_setting("vr.npc_grab_assist",0.0f,0.0f,0.15f)' in npc
 assert "body_capsule_hits=%d" in npc
 # Hold strength and throws.
 assert 'npc_setting("vr.npc_hold_strength",1.5f,0.75f,2.5f)' in npc
-assert "vr_world_throw_velocity_spartan(npc.velocity[hand].n,npc.last_delta[hand].n," in npc  # Test55: Spartan class
-assert "vr_world_throw_velocity_spartan(held->velocity.n, held->last_change.n," in world  # Test55
+assert "vr_world_throw_velocity_spartan(have_peak?peak.n:npc.velocity[hand].n,have_peak?peak.n:npc.last_delta[hand].n," in npc  # Test55: Spartan class; Test56: release peak
+assert "vr_world_throw_velocity_spartan(have_peak ? peak.n : held->velocity.n, have_peak ? peak.n : held->last_change.n," in world  # Test55; Test56: release peak
 # Released bodies: the root follows the pelvis; the rig is not dragged by it.
 assert "npc_begin_root_follow();" in npc
 assert "if(!(npc.root_follow&&npc.settling&&!npc.held[0]&&!npc.held[1]))" in npc

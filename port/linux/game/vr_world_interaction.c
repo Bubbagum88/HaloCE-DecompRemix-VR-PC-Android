@@ -41,6 +41,9 @@ static struct world_hand {
     long index;
     real_point3d local_grab, previous, point;
     real_vector3d velocity, last_change, local_forward, local_up, forward, up;
+    /* Test56: the last few ticks' hand movements (vr_world_throw_peak) */
+    float history[VR_WORLD_THROW_HISTORY][3];
+    int history_count, history_next;
 } hands[2];
 static long last_tick = NONE, last_unit = NONE;
 static int previous_grip[2] = {1,1};
@@ -447,11 +450,13 @@ static void release_hand(int hand, boolean throwing, real units,char const *reas
                  * times VR THROW STRENGTH. Test55: with the same Spartan
                  * strength as thrown NPCs: light things (a gun, a crate)
                  * fly far, heavy ones (low mobility) less. */
-                real_vector3d velocity;
+                real_vector3d velocity, peak;
                 double strength = config_real("vr.throw_strength");
                 float mobility = vr_world_object_mobility(held->index);
-                if (vr_world_throw_velocity_spartan(held->velocity.n, held->last_change.n,
-                        isfinite(strength) ? (float)strength : 1.0f,
+                /* Test56: the hand's peak at release (vr_world_throw_peak) */
+                int have_peak = vr_world_throw_peak((float const (*)[3])held->history, held->history_count, peak.n);
+                if (vr_world_throw_velocity_spartan(have_peak ? peak.n : held->velocity.n, have_peak ? peak.n : held->last_change.n,
+                        isfinite(strength) ? (float)strength : 2.0f,
                         vr_world_throw_class(isfinite(mobility) && mobility < 0.3f ? 2 : 1, mobility),
                         (float)units, velocity.n))
                     vr_world_object_velocity(held->index, &velocity, &item->object.angular_velocity);
@@ -564,13 +569,14 @@ void vr_world_interaction_tick(void)
         if (held->sample_valid) {
             vector_from_points3d(&held->previous, &point, &change);
             if (magnitude3d(&change) > 0.45f*units) {
-				held->velocity=*global_zero_vector3d;
+				held->velocity=*global_zero_vector3d;held->history_count=0;
 				if(!held->strain_logged)platform_log("VR world: hand sample rebased hand=%d object=%08lx grip=%d held=%d movement_m=%.3f",
 					hand,held->active?held->index:NONE,grip,held->active,(float)magnitude3d(&change)/(float)units);
 				held->strain_logged=TRUE;
 			} else {
 				held->last_change = change;
 				for (n=0;n<3;++n) held->velocity.n[n] = held->velocity.n[n]*0.55f + change.n[n]*0.45f;
+				vr_world_throw_note(held->history,&held->history_count,&held->history_next,change.n);
 			}
         }
         if(held->active) {
@@ -598,7 +604,7 @@ void vr_world_interaction_tick(void)
                 local_vector(&item->object.forward,&item->object.up,&change,(real_vector3d *)&held->local_grab);
                 local_vector(&forward,&up,&item->object.forward,&held->local_forward);
                 local_vector(&forward,&up,&item->object.up,&held->local_up);
-                held->velocity=*global_zero_vector3d;
+                held->velocity=*global_zero_vector3d;held->history_count=0;
                 vr_haptic(hand,0.25f,0.035f);
 				platform_log("VR world: grab hand=%d object=%08lx second=%d acquisition=authored-contact-plus-fresh-grip",
 					hand,index,hands[1-hand].active&&hands[1-hand].index==index);

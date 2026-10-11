@@ -15,6 +15,7 @@ stub = r'''
 #include <stdio.h>
 #include "vr_interaction_impact_math.h"
 typedef int boolean;
+typedef float real;
 typedef union { struct {float i,j,k;}; float n[3]; } real_vector3d;
 typedef real_vector3d real_point3d;
 struct location {int leaf;};
@@ -26,7 +27,7 @@ struct damage_data {long owner_object_index,owner_player_index;int owner_team_in
 enum {FALSE,TRUE};
 enum {_game_connection_local,_game_connection_network_server,_game_connection_network_client};
 enum {_collision_result_object=1,_collision_result_structure=2};
-enum {_object_type_biped=1,_object_dead_bit=0};
+enum {_object_type_biped=1,_object_type_vehicle=2,_object_dead_bit=0};
 #define NONE (-1)
 #define TEST_FLAG(v,b) ((v)&(1u<<(b)))
 static int tick,connection,campaign,enabled=1,damage_calls;
@@ -50,6 +51,15 @@ static void scale_vector3d(real_vector3d const*v,float s,real_vector3d*o){for(in
 static void damage_data_new(struct damage_data*d,long i){(void)i;memset(d,0,sizeof(*d));}
 static void object_cause_damage(struct damage_data*d,long target,int node,int region,int material,real_vector3d const*n){(void)n;assert(node>=-1&&region>=-1&&material>=-1);damage_calls++;damaged=target;damage_owner=d->owner_object_index;damage_scale=d->scale;}
 void platform_log(char const*f,...){(void)f;}
+/* Test56: the struck body's shove (before its damage) */
+struct object_definition {struct {float acceleration_scale;} object;};
+static struct object_definition victim_definition={{1}};
+static struct object_definition* object_definition_get(long i){(void)i;return &victim_definition;}
+static float magnitude3d(real_vector3d const*v){return sqrtf(dot_product3d(v,v));}
+static int shoves,shove_before_damage,owned;static real_vector3d shoved;
+static void biped_accelerate(long i,real_vector3d*a){(void)i;shoves++;shoved=*a;shove_before_damage=damage_calls;}
+static void vehicle_accelerate(long i,real_vector3d const*a){(void)i;shoves++;shoved=*a;shove_before_damage=damage_calls;}
+static int vr_npc_interaction_owned(long i){(void)i;return owned;}
 '''
 tests = r'''
 int main(void) {
@@ -75,8 +85,21 @@ int main(void) {
  vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_calls==3);
  objects[1].object.type=_object_type_biped;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_calls==4&&damaged==1);
  tick+=10;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_reset();vr_interaction_impact_flush();assert(damage_calls==4);
+ /* Test56: a thrown thing hitting a living body shoves it before the damage
+  * (so a kill carries into the ragdoll): 0.3 of a light prop's velocity,
+  * capped at 4 m/s, scaled by the body's acceleration scale; none for a body
+  * the NPC hands or a ragdoll move */
+ tick+=10;objects[1].object.type=0;objects[3].object.type=_object_type_biped;hit.type=_collision_result_object;hit.object_index=3;
+ hit.node_index=hit.region_index=hit.material_index=-1;
+ vr_interaction_impact_track(1,0,1,1);vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();
+ assert(shoves==1&&shove_before_damage==damage_calls-1&&fabsf(shoved.k+.2f*.3f)<1e-5);
+ tick+=10;velocity.k=-2;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();
+ assert(shoves==2&&fabsf(magnitude3d(&shoved)-VR_IMPACT_SHOVE_MAXIMUM/30.0f)<1e-5);
+ tick+=10;victim_definition.object.acceleration_scale=0;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(shoves==2);
+ victim_definition.object.acceleration_scale=1;owned=1;tick+=10;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(shoves==2);owned=0;
+ assert(vr_interaction_impact_share(.25f)>vr_interaction_impact_share(1)&&vr_interaction_impact_share(NAN)==0);
  enabled=0;vr_interaction_impact_track(1,0,1,1);assert(!entries[0].active);
- puts("PASS: production impact authority, deferred collision damage, native attribution, kinetic weights/cap, expiry/debounce, world/self hits, reset and finite guards");
+ puts("PASS: production impact authority, deferred collision damage, native attribution, kinetic weights/cap, expiry/debounce, world/self hits, reset and finite guards; Test56 struck bodies shoved by the blow");
 }
 '''
 c=out/'impact.c'; c.write_text(stub+production+tests)

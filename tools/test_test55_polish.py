@@ -63,8 +63,8 @@ for name, text in (("eligible", eligible), ("continuable", body(npc, "static str
 assert "type == VR_VEHICLE_TYPE_ALIEN_FIGHTER" in body(world, "static boolean vehicle_lift_type_supported(")
 assert "VR_VEHICLE_TYPE_HUMAN_PLANE" not in body(world, "static boolean vehicle_lift_type_supported(")
 # Throws: Spartan class for NPCs and for held props/weapons.
-assert "vr_world_throw_velocity_spartan(npc.velocity[hand].n" in npc
-assert "vr_world_throw_velocity_spartan(held->velocity.n" in world
+assert "vr_world_throw_velocity_spartan(have_peak?peak.n:npc.velocity[hand].n" in npc
+assert "vr_world_throw_velocity_spartan(have_peak ? peak.n : held->velocity.n" in world
 # Ragdolls: floor friction and leaf joints.
 assert "friction" in read("port/linux/game/vr_articulated_native.h")
 # Manual reload: grip pose, forgiving insertion, charging lock-on and grace.

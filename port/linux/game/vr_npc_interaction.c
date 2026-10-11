@@ -72,6 +72,9 @@ static struct npc_state {
     long index,tick,player;
     struct vr_articulated_native rig;
     int node[2],held[2],edge[2],sample[2],strain_logged[2],sample_rebased[2];
+    /* Test56: each hand's last few ticks of movement (vr_world_throw_peak) */
+    float history[2][VR_WORLD_THROW_HISTORY][3];
+    int history_count[2],history_next[2];
     real_vector3d offset[2],root_anchor[2],velocity[2];
     real_vector3d body_forward_local;
     real_point3d target[2],previous[2],root;
@@ -570,9 +573,11 @@ static void release(int hand,int throwing,char const *reason)
         npc.settling=1;
         npc_begin_root_follow();
         if(throwing && was_held && npc.started) {
-            real_vector3d velocity;
-            if(vr_world_throw_velocity_spartan(npc.velocity[hand].n,npc.last_delta[hand].n,
-                npc_setting("vr.throw_strength",1.0f,0.75f,2.0f),
+            real_vector3d velocity,peak;
+            /* Test56: the hand's peak at release (vr_world_throw_peak) */
+            int have_peak=vr_world_throw_peak((float const (*)[3])npc.history[hand],npc.history_count[hand],peak.n);
+            if(vr_world_throw_velocity_spartan(have_peak?peak.n:npc.velocity[hand].n,have_peak?peak.n:npc.last_delta[hand].n,
+                npc_setting("vr.throw_strength",2.0f,0.75f,2.0f),
                 vr_world_throw_class(npc.minimum_hands,npc.mobility),interaction_units(),velocity.n)) {
                 struct unit_datum *u=continuable(npc.index);
                 real units=interaction_units(),speed=magnitude3d(&velocity);
@@ -727,14 +732,14 @@ static void tick_player(int use_remote,long player)
         if((use_remote&&!remote.seen[h]) || (!use_remote&&((h==vr_weapon_hand()&&!vr_hand_empty()) || !vr_hand_world(h,camera.n,point.n,forward.n,up.n)))) {
             release(h,FALSE,use_remote&&!remote.seen[h]?"remote-pose-missing":
 				(!use_remote&&h==vr_weapon_hand()&&!vr_hand_empty()?"weapon-hand-occupied":"hand-tracking-lost"));
-			npc.sample[h]=0;npc.velocity[h]=*global_zero_vector3d;continue;
+			npc.sample[h]=0;npc.velocity[h]=*global_zero_vector3d;npc.history_count[h]=0;continue;
         }
         if(npc.sample[h]) {
             vector_from_points3d(&npc.previous[h],&point,&delta);
 			if(magnitude3d(&delta)>0.45f*units) {
 				/* A fast swing or tracking rebase is not a release gesture.
 				 * Rebase throw velocity so a pose jump cannot launch the target. */
-				npc.velocity[h]=*global_zero_vector3d;
+				npc.velocity[h]=*global_zero_vector3d;npc.history_count[h]=0;
 				if(!npc.sample_rebased[h])platform_log("VR NPC: hand sample rebased actor=%08lx hand=%d grip=%d held=%d movement_m=%.3f",
 					npc.index,h,grip,npc.held[h],(float)magnitude3d(&delta)/(float)units);
 				npc.sample_rebased[h]=1;
@@ -742,6 +747,7 @@ static void tick_player(int use_remote,long player)
 				npc.sample_rebased[h]=0;
 				npc.last_delta[h]=delta;
 				for(int k=0;k<3;++k) npc.velocity[h].n[k]=npc.velocity[h].n[k]*.55f+delta.n[k]*.45f;
+				vr_world_throw_note(npc.history[h],&npc.history_count[h],&npc.history_next[h],delta.n);
 			}
         }
         if(npc.held[h]) {
