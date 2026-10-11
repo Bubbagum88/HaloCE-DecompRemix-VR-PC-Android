@@ -1,6 +1,18 @@
 # Current development state
 
-## Active private candidate: Test53 (2026-10-11)
+## Active private candidate: Test54 (2026-10-11)
+
+**1.0.21-test54 / Android code66**, branch `test39-interaction-completion`,
+built from 938a0448 for the owner's Quest and phone tests (not a release).
+It follows the owner's Test53 report (voice working online, wall run and wall
+jump working) and refines manual reload, NPC grabbing, throwing, ragdolls
+(new DEATH RAGDOLLS), climbing, melee/grab separation, hands and fingers, and
+the steady first-person gun parts; IMMERSION+ holds the technical options.
+Item outcomes: [TEST54-CHECKLIST.md](TEST54-CHECKLIST.md); APKs and hashes:
+[TEST54-DELIVERY-STATUS.md](TEST54-DELIVERY-STATUS.md); online scope:
+[TEST54-NETWORK.md](TEST54-NETWORK.md). Device acceptance pending.
+
+## Previous private candidate: Test53 (2026-10-11)
 
 **1.0.20-test53 / Android code65**, branch `test39-interaction-completion`,
 built for the owner's Quest and phone tests (not a release). Test52 (code64)
@@ -9,10 +21,10 @@ v1.0.18 and every requested item is in [TEST53-CHECKLIST.md](TEST53-CHECKLIST.md
 with implemented / automated / device outcomes; the delivered APKs and hashes
 are in [TEST53-DELIVERY-STATUS.md](TEST53-DELIVERY-STATUS.md).
 
-- **Voice is not confirmed working.** v1.0.19 crashes when a player speaks
-  (the assembly converter corrupted Opus's `cache_bits50`; see
-  [TEST52-CRASH-ANALYSIS.md](TEST52-CRASH-ANALYSIS.md)). Fixed and hardened in
-  source; awaiting a device test.
+- Voice: v1.0.19 crashed when a player spoke (the assembly converter
+  corrupted Opus's `cache_bits50`; see
+  [TEST52-CRASH-ANALYSIS.md](TEST52-CRASH-ANALYSIS.md)). Fixed and hardened;
+  the owner reported voice working on Test53.
 - Interaction features had two blocking defects, now fixed: grabs used a
   zero-length pill sweep that cannot report a touch, and parkour/manual
   reload could not read the head pose from game ticks. Also: bounded NPC

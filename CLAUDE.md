@@ -1,6 +1,27 @@
 # Agent and contributor continuation
 
-## Active private Test53 candidate (2026-10-11)
+## Active private Test54 candidate (2026-10-11)
+
+Continue on `test39-interaction-completion`; private `1.0.21-test54`, Android
+code66, built from 938a0448 (docs/TEST54-DELIVERY-STATUS.md). Read
+docs/TEST54-CHECKLIST.md (owner's 2026-10-11 logs/videos, the 35-item brief
+and additions, each with implemented / automated / device outcome),
+docs/TEST54-NETWORK.md (what is and is not shared online) and
+docs/TEST54-DEVICE-CHECKLIST.md.
+
+Owner's Test53 report (2026-10-11): voice chat works online (log: frames
+encoded and decoded); wall run and wall jump work; many interaction systems
+finally run. **Do not regress them; do not touch voice code without cause.**
+Test54 refines manual reload (reload button drops the magazine, body pouches
+via `vr_reload_pouch_zone`, insert on contact, charge only when empty), NPC
+grabs (bone capsules of the live pose), throws/holds, thrown-body root
+follow, DEATH RAGDOLLS, climbing on slopes/overhangs/ledges, open hands never
+strike (FIST REQUIRED is a reference-counted soft dependency in
+`vr_menu_dependencies` / `vr.immersion_auto`), gun parts steady through the
+first-person walking overlays, and the IMMERSION+ page. None of Test54 is
+device-confirmed yet.
+
+## Previous private Test53 candidate (2026-10-11)
 
 Continue on `test39-interaction-completion`; private `1.0.20-test53`, Android
 code65 (Test52/code64 was committed but never built or delivered; Test53
@@ -8,11 +29,10 @@ supersedes it). Read docs/TEST53-CHECKLIST.md (every change and requested
 item with implemented / automated / device outcome), docs/TEST53-DELIVERY-STATUS.md,
 docs/TEST52-CRASH-ANALYSIS.md and docs/TEST53-DEVICE-CHECKLIST.md.
 
-**Voice chat is NOT confirmed working.** v1.0.19/Test51 closes on Quest as
-soon as a player speaks. Cause (re-proved in Test53): the arm64_32→ELF
-assembly converter corrupted Opus's `cache_bits50`. Fixed in Test52/53 and
-hardened, but no device has confirmed voice since; never claim it works
-until the owner reports it.
+Voice chat: v1.0.19/Test51 closed on Quest as soon as a player spoke. Cause
+(re-proved in Test53): the arm64_32→ELF assembly converter corrupted Opus's
+`cache_bits50`. Fixed in Test52/53 and hardened; the owner reported voice
+working on Test53 (2026-10-11).
 
 Test53 also fixes why the interaction features never worked: hand-contact
 grabs used a zero-length pill sweep that cannot report a touch
