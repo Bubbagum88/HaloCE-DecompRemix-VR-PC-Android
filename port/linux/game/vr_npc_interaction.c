@@ -1050,7 +1050,7 @@ void vr_npc_interaction_death(long index)
 {
 #ifdef HALO_VR
     struct unit_datum *u;
-    struct npc_state *state;
+    struct npc_state *state,*saved;
     int hands;
     real mobility,units=vr_units_per_metre();
     short local;
@@ -1072,10 +1072,13 @@ void vr_npc_interaction_death(long index)
         if(magnitude3d(&between)<=40.0f*units){near=TRUE;break;}
     }
     if(!near)return;
+    /* A death can come in the middle of another hold's tick (a thrown body's
+     * impact kills an NPC): keep that hold's state current afterwards. */
+    saved=npc_current;
     npc_current=state;
     reset_one();
     if(!interaction_profile(unit_species(u,index),u,index,&hands,&mobility) ||
-       !vr_articulated_native_capture(index,&npc.rig)) {reset_one();return;}
+       !vr_articulated_native_capture(index,&npc.rig)) {reset_one();npc_current=saved;return;}
     {
         real_vector3d velocity=u->object.translational_velocity;
         int torso=biped_definition_get(u->definition_index)->biped.runtime_pelvis_node_index;
@@ -1097,6 +1100,7 @@ void vr_npc_interaction_death(long index)
         platform_log("VR NPC: death ragdoll actor=%08lx species=%d nodes=%d speed_mps=%.2f",
             index,npc.species_type,npc.rig.body.count,(float)(magnitude3d(&velocity)*TICKS_PER_SECOND/units));
     }
+    npc_current=saved;
 #else
     (void)index;
 #endif

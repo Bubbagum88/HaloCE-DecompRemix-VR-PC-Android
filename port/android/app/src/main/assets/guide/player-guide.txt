@@ -1,3 +1,123 @@
+# Test54 private candidate: 1.0.21-test54
+
+## Test54: manual reload, grabbing, climbing and ragdolls refined
+
+This private test build follows Test53 (which made these systems run for the
+first time). It installs over Test53 and v1.0.19 (same package names and
+signing key, Android version code 66) and keeps your settings, profiles, saves
+and imported game data. It was shaped by your 2026-10-11 logs and videos.
+Voice chat, wall run, wall jump, the climb leap, multiplayer and co-op, aiming,
+holsters, sprint, left-handed play and the launcher are untouched; voice was
+working in your online log and its code was not changed.
+
+### Manual reload, start to finish
+
+- **B (Use / Reload) drops the magazine.** With MANUAL RELOAD on, the reload
+  button ejects the magazine wherever your free hand is. It never starts the
+  automatic reload, and pressing it again mid-reload does nothing (it used to
+  cancel). With MANUAL RELOAD off, B reloads as always. A gun with no spare
+  ammo keeps its magazine (you feel a short click).
+- **Fresh magazines on your body.** Reach your free hand to your **hip** or
+  **over your shoulder** on the free hand's side (left for a right-handed
+  player, mirrored when left-handed) and squeeze. You feel a tick when your
+  hand is over a pouch. The pouches are large and follow your body, so you can
+  find them without looking. **MAG POUCH SIDE** (AUTO, LEFT, RIGHT, BOTH)
+  moves them. The HIP and SHOULDER pouch switches are on IMMERSION+.
+- **Push it home.** Hold the magazine against the magazine well, roughly
+  lined up: it locks in while you still hold it (or when you let go there).
+- **Charge only when needed.** If the gun was empty, work the slide or
+  charging handle (pistol slide, assault-rifle handle, sniper bolt, shotgun
+  pump). After a **tactical reload** with a round still chambered, the gun is
+  ready as soon as the magazine locks.
+- **Feel each step:** grabbing, the magazine pulling free, the eject, the
+  pouch, touching the well, the lock, the slide reaching the end, and the gun
+  coming ready each have their own buzz (VR HAPTICS scales them).
+
+### Grabbing Marines, Grunts, Jackals, Elites and bodies
+
+Your log showed every NPC miss with no collision contact. The palm had to
+overlap the small hit-detection model at only 4 cm. Grabs now also count your
+hand touching any part of the body (the limbs and torso of its current pose),
+so a hand on a Marine's back, a Grunt's arm or a body lying on the floor
+grabs it. **GRAB ASSIST** adds reach (TOUCH by default: you must touch
+them). **NPC HOLD** (LIGHT, NORMAL, SPARTAN default, IRON) sets how firmly a
+held NPC follows your hand. A Grunt stays in one hand, while Elites and
+Hunters still need two hands and drag behind.
+
+### Throwing, ragdolls and bodies that stay
+
+- Throws use your hand's last motion (a flick carries), multiplied by the **THROW** setting.
+- **Thrown bodies no longer vanish.** The engine's "root" of a thrown body
+  stayed where you let go while the body flew on, so the game culled or
+  rebuilt it there. The root now follows the body, which lands and stays where
+  it lands and can be picked up again.
+- Bodies are heavier at the torso than at the hands and feet, and they come
+  to rest instead of jittering on the ground.
+- **DEATH RAGDOLLS** (new, on IMMERSION): enemies and allies killed near you
+  fall as physical ragdolls carrying the hit's momentum, then rest as bodies
+  you can pick up. It uses the NPC RIG SLOTS pool; with no free slot, the
+  usual death animation plays.
+
+### Climbing
+
+Grip climbing now holds onto rock faces and slopes steeper than about 40
+degrees, overhangs, and the top of a ledge at or above your waist. It no
+longer needs a perfectly vertical wall, and the floor at your feet is never a
+hold. A hand pushed *into* a wall grips the wall's surface (tracked hands pass
+through walls, which made most attempts miss). **CLIMB GRAB** (default 10 cm)
+sets how close the hand must be. A squeeze just before your hand arrives still
+catches. Wall runs ease out of the wall's hold through the run, so they arc
+into a fall instead of dropping suddenly. Wall run, wall jump direction and the
+climb leap are otherwise unchanged.
+
+### Melee and grabbing don't mix
+
+An open hand is for grabbing, and a fist or a hand holding a gun is for
+striking. With any grab or climb feature on, a fast open-hand reach makes no
+melee blow or sound. Turning on a grab or climb feature also turns on **FIST
+REQUIRED** (you can turn it off again). It goes back off when no grab or climb
+feature needs it, unless you set it yourself.
+
+### Hands and guns
+
+- The visible hand stays with your controller. A held prop, climbing hold or
+  magazine draws it at most 6 cm, so the arm no longer stretches.
+- Fingers ease into and out of contact with walls instead of snapping or
+  contorting.
+- The assault rifle's operating handle (and any other gun part) no longer
+  slides in and out while you walk or turn: the walking and sway animations
+  keep moving the arms but no longer move parts of the gun in your hand.
+
+### VR Settings: IMMERSION and IMMERSION+
+
+**IMMERSION** now holds the features and the tuning that changes how they
+feel. New rows: MAG POUCH SIDE, CLIMB GRAB, GRAB ASSIST, NPC HOLD, THROW,
+DEATH RAGDOLLS, plus HAPTICS, SPRINT SPEED and ARM EFFORT.
+**IMMERSION+** holds the technical options: pouch switches, hand-contact size,
+holster haptics, custom scenery and NPC rigs, rig slots, NPC rescue, impact
+limits, shake cooling, close contact and physical handles. Every row is also
+still on its usual page.
+
+Turning a feature on turns on what it needs. MAG DEBRIS turns on MANUAL
+RELOAD, CUSTOM SCENERY turns on WORLD GRAB, CUSTOM NPC RIGS turns on NPC GRAB,
+and grabbing or climbing turns on FIST REQUIRED. What was turned on only for a
+feature is counted and goes back off with the last feature that needed it.
+
+### Online
+
+Nothing here changes the network protocol. Death ragdolls and grabs follow the
+existing co-op path: a compatible co-op host simulates them and sends body
+poses to compatible clients (up to four). Stock OpenCE servers and Android
+players see the normal game. Manual reload and parkour stay off as a co-op
+client and in PvP, where the host's movement and ammo checks would undo them.
+That is listed as remaining work in TEST54-NETWORK.md.
+
+These changes are checked on a PC (automated checks and builds), not yet in
+the headset. Please test with **CONTACT LOG** on and keep the log from
+Download/HaloCE: [Test54 device checks](TEST54-DEVICE-CHECKLIST.md).
+
+---
+
 # Test53 private candidate: 1.0.20-test53
 
 ## Test53: voice crash fixed and immersion features repaired
