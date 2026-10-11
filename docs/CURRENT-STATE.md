@@ -1,6 +1,20 @@
 # Current development state
 
-## Active private candidate: Test54 (2026-10-11)
+## Active private candidate: Test55 (2026-10-11)
+
+**1.0.22-test55 / Android code67**, branch `test39-interaction-completion`,
+for the owner's Quest and phone tests (not a release). A polish pass on
+Test54 from the owner's Test54 session and messages: named campaign objects
+grabbable (Shades and other vehicles, bodies, weapons, props), busy NPCs,
+one-hand restraint, Spartan throws, looser ragdolls, magazine grip and
+charging lock-on, automatic wall running, pouch/holster calibration with
+markers, one IMMERSION menu, immersive vehicle controls with first-person
+hands, zoom on the right stick with physical melee, and OpenCE Build 188's
+decal batching. Item outcomes: [TEST55-CHECKLIST.md](TEST55-CHECKLIST.md);
+APKs and hashes: [TEST55-DELIVERY-STATUS.md](TEST55-DELIVERY-STATUS.md).
+Device acceptance pending.
+
+## Previous private candidate: Test54 (2026-10-11)
 
 **1.0.21-test54 / Android code66**, branch `test39-interaction-completion`,
 built from 938a0448 for the owner's Quest and phone tests (not a release).

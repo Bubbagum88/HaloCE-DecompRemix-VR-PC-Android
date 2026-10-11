@@ -46,6 +46,7 @@ static int config_boolean(char const*k){(void)k;return enabled;}
 static float config_real(char const*k){return !strcmp(k,"vr.impact_threshold")?threshold:cap;}
 static float dot_product3d(real_vector3d const*a,real_vector3d const*b){return a->i*b->i+a->j*b->j+a->k*b->k;}
 static void normalize3d(real_vector3d*v){float l=sqrtf(dot_product3d(v,v));if(l>0)for(int i=0;i<3;++i)v->n[i]/=l;}
+static void scale_vector3d(real_vector3d const*v,float s,real_vector3d*o){for(int i=0;i<3;++i)o->n[i]=v->n[i]*s;}
 static void damage_data_new(struct damage_data*d,long i){(void)i;memset(d,0,sizeof(*d));}
 static void object_cause_damage(struct damage_data*d,long target,int node,int region,int material,real_vector3d const*n){(void)n;assert(node>=-1&&region>=-1&&material>=-1);damage_calls++;damaged=target;damage_owner=d->owner_object_index;damage_scale=d->scale;}
 void platform_log(char const*f,...){(void)f;}

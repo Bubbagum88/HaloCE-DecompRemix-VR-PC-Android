@@ -78,6 +78,50 @@ static inline int vr_world_throw_velocity(float const average[3], float const la
     }
     return vr_world_limit(out, units * 0.24f * strength);
 }
+/* Test55: Spartan throwing strength by weight class (a gameplay class, not a
+ * kilogram claim): a body a hand lifts easily (Grunt, Jackal: one hand, light)
+ * flies 2.4x the hand's speed, a one-hand Marine 1.8x, a two-hand Elite or
+ * Hunter 1.25x. */
+static inline float vr_world_throw_class(int hands, float mobility)
+{
+    if (hands > 1) return 1.25f;
+    return isfinite(mobility) && mobility >= 0.4f ? 2.4f : 1.8f;
+}
+/* Test55: the NPC throw: the release velocity above times VR THROW STRENGTH
+ * and the weight class, capped at the class's multiple of the Test54 cap and
+ * never above 24 m/s (0.8 m a tick). */
+static inline int vr_world_throw_velocity_spartan(float const average[3], float const latest[3],
+    float strength, float spartan, float units, float out[3])
+{
+    int i;
+    if (!isfinite(strength)) strength = 1.0f;
+    strength = fmaxf(0.75f, fminf(2.0f, strength));
+    if (!isfinite(spartan)) spartan = 1.0f;
+    spartan = fmaxf(1.0f, fminf(2.5f, spartan));
+    if (!(units > 0.0f && units < 100.0f)) return 0;
+    for (i = 0; i < 3; ++i) {
+        if (!isfinite(average[i]) || !isfinite(latest[i])) return 0;
+        out[i] = (average[i] * 0.35f + latest[i] * 0.65f) * strength * spartan;
+    }
+    return vr_world_limit(out, fminf(units * 0.24f * strength * spartan, units * 0.8f));
+}
+/* Test55: one hand on a body that needs two restrains it: the horizontal
+ * velocity pulls toward the hand's anchor, slowly (heavier is slower, at most
+ * 0.8 m/s), and the vertical stays the body's own (no lift). */
+static inline int vr_world_restrain(float const error[3], float const current[3],
+    float mobility, float units, float out[3])
+{
+    float desired[3], alpha;
+    int i;
+    if (!(units > 0 && units < 100) || !isfinite(mobility)) return 0;
+    for (i = 0; i < 3; ++i) if (!isfinite(error[i]) || !isfinite(current[i])) return 0;
+    mobility = fmaxf(0.1f, fminf(1.0f, mobility));
+    alpha = 0.25f * sqrtf(mobility);
+    desired[0] = error[0] * alpha; desired[1] = error[1] * alpha; desired[2] = 0.0f;
+    if (!vr_world_limit(desired, units * (0.8f / 30.0f))) return 0;
+    out[0] = desired[0]; out[1] = desired[1]; out[2] = current[2];
+    return 1;
+}
 /* Distance from a point to the segment a-b (articulated bone capsules). */
 static inline float vr_world_segment_distance(float const point[3], float const a[3], float const b[3])
 {

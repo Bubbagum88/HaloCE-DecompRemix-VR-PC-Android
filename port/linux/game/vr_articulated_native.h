@@ -7,6 +7,9 @@ struct vr_articulated_native {
     long unit_index, graph_index;
     int impact_enabled;
     real impact_units;
+    /* Test55: ground friction on the solver's own integration sweeps only
+     * (never recovery or pins); set by vr_articulated_native_step */
+    int friction;
     struct vr_articulated_body body;
     unsigned long joint_flags[VR_ARTICULATED_NODES];
     real_vector3d joint_axis[VR_ARTICULATED_NODES];

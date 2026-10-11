@@ -1,6 +1,22 @@
 # Agent and contributor continuation
 
-## Active private Test54 candidate (2026-10-11)
+## Active private Test55 candidate (2026-10-11)
+
+Continue on `test39-interaction-completion`; private `1.0.22-test55`, Android
+code67 (docs/TEST55-DELIVERY-STATUS.md). Read docs/TEST55-CHECKLIST.md
+(evidence, each request with implemented / automated / device outcome) and
+docs/TEST55-DEVICE-CHECKLIST.md. Key findings: the stock campaign script-names
+most placed objects (59 of 61 Shades, most vehicles, bodies, and on some
+levels nearly all weapons/equipment), so interactions now allow named objects
+and exclude only cutscene (movie star) control; the Test54 frame-rate drop in
+long fights is decals (OpenCE Build 188's decal batching adopted; Builds
+185-188 made no network change). Zoom moves to the right stick click while
+physical melee is in use. Use the stock Xbox data for tag/scenario research:
+the USA XISOs in D:\Downloads (maps extracted with
+tools/steam_frame/extract_maps.py), never the SPV1 mod maps (Custom Edition,
+not supported) or D:\Games\Halo (Halo PC, cache version 7).
+
+## Previous private Test54 candidate (2026-10-11)
 
 Continue on `test39-interaction-completion`; private `1.0.21-test54`, Android
 code66, built from 938a0448 (docs/TEST54-DELIVERY-STATUS.md). Read

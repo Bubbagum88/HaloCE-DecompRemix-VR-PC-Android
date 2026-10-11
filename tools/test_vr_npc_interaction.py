@@ -47,6 +47,10 @@ c=r'''
 #define _unit_state_resurrect_back 35
 #define _unit_state_dying_airborne 36
 #define _unit_state_dying 37
+#define _unit_state_ai_impulse 29
+#define _unit_state_melee_attack 30
+#define _unit_state_melee_continuous 32
+#define TICKS_PER_SECOND 30
 #define _weapon_state_idle 0
 #define _trigger_idle 0
 #define _magazine_idle 0
@@ -59,6 +63,7 @@ typedef union {float n[3];struct{float x,y,z;};} real_vector3d;
 typedef union {float n[3];struct{float x,y,z;};} real_point3d;
 typedef struct {float values[13];} real_matrix4x3;
 #define MAX(a,b) ((a)>(b)?(a):(b))
+static float magnitude3d(real_vector3d const *v){return sqrtf(v->n[0]*v->n[0]+v->n[1]*v->n[1]+v->n[2]*v->n[2]);}
 static int valid_real_point3d(real_point3d const *p){return p&&isfinite(p->x)&&isfinite(p->y)&&isfinite(p->z);}
 enum {_actor_elite,_actor_jackal,_actor_grunt,_actor_hunter,_actor_engineer,_actor_assassin,_actor_player,_actor_marine,_actor_crew,_actor_combat_form,_actor_infection_form,_actor_carrier_form,_actor_monitor,_actor_sentinel,_actor_none,_actor_mounted_weapon,NUMBER_OF_ACTOR_TYPES};
 enum {_race_player=1,_race_human=2,_race_covenant=4,_race_floodcombat=8,_race_floodcarrier=16,_race_floodinfection=32,_race_sentinel=64};
@@ -96,11 +101,12 @@ static struct actor_definition *actor_definition_get(long index){return index>=0
 struct weapon_datum {struct{int state;struct{int state;}triggers[2],magazines[2];}weapon;};
 static struct weapon_datum weapon;
 static int weapon_valid=1,custom_animation,owner[2],lookups,recomputes,valid=1;
+static int haptics;static void vr_haptic(int hand,float amplitude,float seconds){(void)hand;(void)amplitude;(void)seconds;++haptics;}
 static void vr_interaction_release(int hand,int which){if(owner[hand]==which)owner[hand]=0;}
 static void *object_try_and_get_and_verify_type(long index,int mask){(void)index;(void)mask;++lookups;return valid?&unit:0;}
 static int unit_is_playing_custom_animation(long index){(void)index;return custom_animation;}
-static long unit_inventory_get_weapon(long index,short slot){(void)index;(void)slot;return weapon_valid?9:NONE;}
-static struct weapon_datum *weapon_try_and_get(long index){return weapon_valid&&index==9?&weapon:0;}
+__attribute__((unused)) static long unit_inventory_get_weapon(long index,short slot){(void)index;(void)slot;return weapon_valid?9:NONE;}
+__attribute__((unused)) static struct weapon_datum *weapon_try_and_get(long index){return weapon_valid&&index==9?&weapon:0;}
 static void object_compute_node_matrices(long index){(void)index;++recomputes;}
 static int owns(long index){return npc.active&&index==npc.index;}
 static struct unit_datum *unit_get(long index){(void)index;return &unit;}
@@ -241,7 +247,7 @@ int main(void){
  actor.state.command_list_index=NONE;actor.meta.type=_actor_grunt;actor.meta.team_index=3;
  unit.unit.player_index=3;assert(!eligible(7));unit.unit.player_index=NONE;
  unit.object.parent_object_index=55;assert(!eligible(7));unit.object.parent_object_index=NONE;
- unit.object.name_index=1;assert(!eligible(7));unit.object.name_index=NONE;
+ unit.object.name_index=1;assert(eligible(7)==&unit);unit.object.name_index=NONE; /* Test55: script-named NPCs and bodies too */
  unit.object.flags|=1u<<_object_movie_star_bit;assert(!eligible(7));unit.object.flags&=~(1u<<_object_movie_star_bit);
  unit.object.flags|=1u<<_object_no_collisions_bit;assert(!eligible(7));unit.object.flags&=~(1u<<_object_no_collisions_bit);
  unit.object.flags&=~(1u<<_object_connected_to_map_bit);assert(!eligible(7));unit.object.flags|=1u<<_object_connected_to_map_bit;
@@ -249,13 +255,16 @@ int main(void){
  unit.unit.flags|=1u<<_unit_possessed_by_recording_bit;assert(!eligible(7));unit.unit.flags&=~(1u<<_unit_possessed_by_recording_bit);
  custom_animation=1;assert(!eligible(7));custom_animation=0;
  unit.unit.grenade_throw_state=1;assert(!eligible(7));unit.unit.grenade_throw_state=_unit_grenade_throw_idle;
- unit.unit.animation.state=29;assert(!eligible(7));unit.unit.animation.state=_unit_state_idle;
+ unit.unit.animation.state=33;assert(!eligible(7));unit.unit.animation.state=_unit_state_idle; /* (29, an AI dive, and the melee states are grabbable since Test55) */
+ unit.unit.animation.state=_unit_state_ai_impulse;assert(eligible(7)==&unit);unit.unit.animation.state=_unit_state_melee_attack;assert(eligible(7)==&unit);unit.unit.animation.state=_unit_state_idle;
  actor.meta.active=0;assert(!eligible(7));actor.meta.active=1;
  actor.state.command_list_index=0;assert(eligible(7)==&unit);actor.state.command_list_index=NONE;
  actor.state.command_list_immediate=1;assert(!eligible(7));actor.state.command_list_immediate=0;
- weapon.weapon.state=1;assert(!eligible(7));weapon.weapon.state=_weapon_state_idle;
- weapon.weapon.triggers[1].state=1;assert(!eligible(7));weapon.weapon.triggers[1].state=_trigger_idle;
- weapon.weapon.magazines[0].state=1;assert(!eligible(7));weapon.weapon.magazines[0].state=_magazine_idle;
+ /* Test55: an NPC firing, bursting or reloading can be grabbed (Elites and
+    Marines are usually busy: about 12 of 32 nearby were eligible before) */
+ weapon.weapon.state=1;assert(eligible(7)==&unit);weapon.weapon.state=_weapon_state_idle;
+ weapon.weapon.triggers[1].state=1;assert(eligible(7)==&unit);weapon.weapon.triggers[1].state=_trigger_idle;
+ weapon.weapon.magazines[0].state=1;assert(eligible(7)==&unit);weapon.weapon.magazines[0].state=_magazine_idle;
  unit.unit.actor_index=NONE;assert(!eligible(7));unit.unit.actor_index=7;
  actor.meta.type=_actor_none;actor_races[_actor_none]=_race_covenant;custom_rigs=0;
  assert(!eligible(7));custom_rigs=1;assert(eligible(7)==&unit);custom_rigs=0;
@@ -267,7 +276,7 @@ int main(void){
  assert(continuable(7)==&unit);
  custom_animation=1;assert(!eligible(7));assert(continuable(7)==&unit);custom_animation=0;
  unit.unit.grenade_throw_state=1;assert(!eligible(7));assert(continuable(7)==&unit);unit.unit.grenade_throw_state=_unit_grenade_throw_idle;
- unit.unit.animation.state=29;assert(!eligible(7));assert(continuable(7)==&unit);unit.unit.animation.state=_unit_state_idle;
+ unit.unit.animation.state=33;assert(!eligible(7));assert(continuable(7)==&unit);unit.unit.animation.state=_unit_state_idle;
  actor.state.command_list_immediate=1;assert(!eligible(7));assert(continuable(7)==&unit);actor.state.command_list_immediate=0;
  unit.unit.player_index=0;assert(!continuable(7));unit.unit.player_index=NONE;
  unit.object.flags|=1u<<_object_movie_star_bit;assert(!continuable(7));unit.object.flags&=~(1u<<_object_movie_star_bit);
@@ -291,10 +300,14 @@ int main(void){
  release(0,0,"test-release");assert(npc.held[1]&&!npc.recovery&&owner[0]==0&&owner[1]==5);
  release(1,0,"test-release");assert(npc.settling==1&&owner[1]==0);
  npc.held[0]=npc.held[1]=1;npc.minimum_hands=2;npc.settling=0;
- release(0,0,"test-support-release");assert(!npc.held[0]&&!npc.held[1]&&npc.settling==1);
+ /* Test55: a heavy body let go by one hand stays restrained by the other */
+ release(0,0,"test-support-release");assert(!npc.held[0]&&npc.held[1]&&npc.settling==0);
+ release(1,0,"test-support-release");assert(!npc.held[0]&&!npc.held[1]&&npc.settling==1);
  npc.minimum_hands=1;npc.held[0]=1;npc.rig.body.count=1;npc.velocity[0].n[0]=20;
- release(0,1,"test-grip-release");assert(unit.object.translational_velocity.n[0]>.23f&&unit.object.translational_velocity.n[0]<.25f);
- assert(npc.rig.body.nodes[0].previous[0]<-.23f);
+ /* Test55: Spartan throw: a light one-hand species throws at 2.4x, capped at
+    0.24 x 2.4 units a tick; the held limb leads by 1.25 */
+ release(0,1,"test-grip-release");assert(unit.object.translational_velocity.n[0]>.57f&&unit.object.translational_velocity.n[0]<.58f);
+ assert(npc.rig.body.nodes[0].previous[0]<-.71f&&npc.rig.body.nodes[0].previous[0]>-.73f);
  npc.recovery=0;npc.held[0]=1;npc.root_anchor[0].n[2]=1;npc.offset[0].n[2]=.1f;
  npc.target[0].n[2]=1.6f;unit.object.position.n[2]=0;
  float v[3]={0};vr_npc_interaction_velocity(7,v);assert(v[2]>0&&v[2]<=.2f);
@@ -373,7 +386,7 @@ assert local_tick.index('if(!pressed || npc.held[h]') < local_tick.index('collis
 assert 'vr_interaction_hold_target_step(npc.target[h].n,point.n,.45f*units,&limited)' in local_tick
 assert 'if(magnitude3d(&delta)>0.45f*units) {release' not in local_tick
 assert 'if(magnitude3d(&delta)>.65f*units) {release' not in local_tick
-assert 'reason=minimum-hands-not-met' in source and '"grip-released"' in source
+assert 'reason=one-hand-drag (no lift)' in source and '"grip-released"' in source  # Test55: the other hand keeps a heavy body
 assert 'vr_interaction_hold_target_step' in source
 helper=r'''
 int main(void){float target[3]={0,0,0},desired[3]={1,0,0};int limited=0;
@@ -405,15 +418,16 @@ assert 'if(restore_garbage) object_set_garbage(index,TRUE)' in source
 assert 'temporary garbage hold' in source
 assert 'object_set_garbage(index,TRUE);' in palette and palette.index('object_set_garbage(index,TRUE)') < palette.index('biped_start_limp_body_physics(index)')
 eligible_source=function('static struct unit_datum *eligible(')
-for marker in ['u->unit.player_index!=NONE','u->object.parent_object_index!=NONE','u->object.name_index!=NONE',
+for marker in ['u->unit.player_index!=NONE','u->object.parent_object_index!=NONE',
                '_object_movie_star_bit','_unit_possessed_by_recording_bit','unit_is_playing_custom_animation(index)',
                'u->unit.grenade_throw_state!=_unit_grenade_throw_idle',
                'a->state.command_list_immediate']:
     assert marker in eligible_source,marker
 assert 'a->state.command_list_index!=NONE' not in eligible_source
+assert 'name_index' not in eligible_source and 'name_index' not in function('static struct unit_datum *continuable(')  # Test55: script-named NPCs/bodies
 assert 'game_team_is_enemy(_game_team_player,grabbed_actor->meta.team_index)' in source
 continuation_source=function('static struct unit_datum *continuable(')
-for marker in ['u->unit.player_index!=NONE','u->object.parent_object_index!=NONE','u->object.name_index!=NONE',
+for marker in ['u->unit.player_index!=NONE','u->object.parent_object_index!=NONE',
                '_object_movie_star_bit','_object_no_collisions_bit','_object_connected_to_map_bit',
                '_object_outside_of_map_bit','_unit_possessed_by_recording_bit']:
     assert marker in continuation_source,marker

@@ -34,6 +34,7 @@ static long parkour_diagnostic_tick=NONE;
 static struct {
     long unit,tick;
     int jump_down,jump_age,run_ticks,running,jumped_wall,wall_valid;
+    int walljump_age; /* Test55: ticks since the last wall jump (chained runs) */
     real run_speed;
     real_vector3d wall_normal;
     real_point3d wall_point;
@@ -53,7 +54,7 @@ void vr_parkour_reset(void)
     vr_interaction_release(1,VR_INTERACTION_PARKOUR);
     memset(&parkour,0,sizeof(parkour));parkour.unit=parkour.tick=NONE;
     parkour.jump_down=1;
-    parkour.jump_age=1000;parkour.hand[0].down=parkour.hand[1].down=1;
+    parkour.jump_age=1000;parkour.walljump_age=1000;parkour.hand[0].down=parkour.hand[1].down=1;
 }
 
 static boolean parkour_enabled(void)
@@ -233,6 +234,7 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
     jump=TEST_FLAG(biped->unit.control_flags,_unit_control_jump_bit);
     edge=jump&&!parkour.jump_down;parkour.jump_down=jump;
     if(edge)parkour.jump_age=0;else if(parkour.jump_age<1000)parkour.jump_age++;
+    if(parkour.walljump_age<1000)parkour.walljump_age++;
     airborne=TEST_FLAG(biped->biped.flags,_biped_airborne_bit);
     if(!airborne){parkour.run_ticks=0;parkour.jumped_wall=0;parkour.wall_valid=0;}
     throttle=sqrtf(biped->unit.throttle.i*biped->unit.throttle.i+biped->unit.throttle.j*biped->unit.throttle.j);
@@ -240,11 +242,23 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
     real waist_z=position->z+height*0.55f;
     left.i=-biped->object.forward.j;left.j=biped->object.forward.i;left.k=0;
     if(config_boolean("vr.parkour_wallrun")||config_boolean("vr.parkour_walljump")){
-        for(int direction=0;direction<4;direction++){
-            real_vector3d ray=direction<2?biped->object.forward:left;
+        /* Test55: eight directions (the diagonals catch a wall met at an
+         * angle), and while running a longer probe toward the wall being run
+         * on, a light lock that keeps it through small gaps and bends. */
+        for(int direction=0;direction<9;direction++){
+            real_vector3d ray;
             struct collision_result hit;
+            real reach=radius+0.18f*units;
+            if(direction<8){
+                real angle=(real)direction*0.7853982f;
+                for(int axis=0;axis<3;axis++)ray.n[axis]=biped->object.forward.n[axis]*cosf(angle)+left.n[axis]*sinf(angle);
+            }else{
+                if(!parkour.running||!parkour.wall_valid)continue;
+                scale_vector3d(&parkour.wall_normal,-1.0f,&ray);
+                reach=radius+0.35f*units;
+            }
             ray.k=0;if(normalize3d(&ray)<0.001f)continue;
-            scale_vector3d(&ray,(direction%2?-1:1)*(radius+0.18f*units),&ray);
+            scale_vector3d(&ray,reach,&ray);
             if(parkour_surface(&center,&ray,unit,&hit)&&(!wall_found||hit.t<wall.t)){wall=hit;wall_found=TRUE;}
         }
     }
@@ -348,7 +362,7 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
         real scale=vr_pk_bound(config_real("vr.walljump_scale"),1,0.5f,1.5f);
         real upward=biped_definition_get(biped->definition_index)->biped.jump_velocity*scale;
         vr_pk_leap(look.n,wall.plane.n.n,5.0f*per_second*scale,upward,velocity->n);
-        parkour.jumped_wall=1;parkour.running=0;parkour.run_ticks=(int)(3*TICKS_PER_SECOND);
+        parkour.jumped_wall=1;parkour.running=0;parkour.run_ticks=(int)(3*TICKS_PER_SECOND);parkour.walljump_age=0;
         for(int hand=0;hand<2;hand++){parkour.hand[hand].active=0;vr_interaction_release(hand,VR_INTERACTION_PARKOUR);}
         vr_haptic(0,0.30f,0.04f);vr_haptic(1,0.30f,0.04f);
         platform_log("VR parkour: wall jump unit=%ld",unit);return;
@@ -364,31 +378,46 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
         add_vectors3d(velocity,&release_launch,velocity);vr_pk_cap(velocity->n,10.0f*per_second);
         platform_log("VR parkour: climb release unit=%ld scale=%.2f",unit,scale);return;
     }
-    if(config_boolean("vr.parkour_wallrun")&&airborne&&wall_found&&throttle>0.6f&&
-        (parkour.running||parkour.jump_age<=PARKOUR_WALLRUN_ENTRY_TICKS)&&
+    /* Test55: more automatic wall running. A run starts with the stick
+     * pushed (over 60%) within a second of a jump, or of a wall jump two
+     * seconds back (chaining wall to wall); once running, a lightly held or
+     * released stick keeps it going along the wall at the speed it carries. */
+    if(config_boolean("vr.parkour_wallrun")&&airborne&&wall_found&&
+        (parkour.running?TRUE:throttle>0.6f)&&
+        (parkour.running||parkour.jump_age<=PARKOUR_WALLRUN_ENTRY_TICKS||parkour.walljump_age<=2*TICKS_PER_SECOND)&&
         parkour.run_ticks<vr_pk_bound(config_real("vr.wallrun_duration"),1.5f,0.5f,3)*TICKS_PER_SECOND){
         real speed=sqrtf(velocity->i*velocity->i+velocity->j*velocity->j);
         real into;
-        wall_move.i=biped->object.forward.i*biped->unit.throttle.i+left.i*biped->unit.throttle.j;
-        wall_move.j=biped->object.forward.j*biped->unit.throttle.i+left.j*biped->unit.throttle.j;
+        if(throttle>0.3f){
+            wall_move.i=biped->object.forward.i*biped->unit.throttle.i+left.i*biped->unit.throttle.j;
+            wall_move.j=biped->object.forward.j*biped->unit.throttle.i+left.j*biped->unit.throttle.j;
+        }else{
+            /* stick released: run on the way the body is already going */
+            wall_move.i=velocity->i;wall_move.j=velocity->j;
+        }
+        wall_move.k=0;
         into=dot_product3d(&wall_move,&wall.plane.n);
         for(int axis=0;axis<3;axis++)wall_move.n[axis]-=into*wall.plane.n.n[axis];
-        if(normalize3d(&wall_move)>0.15f&&speed>1.0f*per_second){
+        wall_move.k=0;
+        if(normalize3d(&wall_move)>(throttle>0.3f?0.15f:0.001f)&&speed>1.0f*per_second){
+            /* forward assist: at least the entry speed or 4 m/s, times
+             * WALL SPEED, at most 9 m/s */
             real multiplier=vr_pk_bound(config_real("vr.wallrun_speed"),1.25f,1,2);
+            real limit=vr_pk_bound(config_real("vr.wallrun_duration"),1.5f,0.5f,3)*TICKS_PER_SECOND;
+            real progress=PIN((real)parkour.run_ticks/limit,0.0f,1.0f);
             if(!parkour.running)parkour.run_speed=speed;
-            speed=vr_pk_bound(parkour.run_speed*multiplier,4.0f*per_second,2.0f*per_second,7.0f*per_second);
+            speed=vr_pk_bound(fmaxf(parkour.run_speed,4.0f*per_second)*multiplier,4.0f*per_second,2.0f*per_second,9.0f*per_second);
             velocity->i=velocity->i*0.65f+wall_move.i*speed*0.35f;
             velocity->j=velocity->j*0.65f+wall_move.j*speed*0.35f;
-            /* Test54: the wall holds the fall off strongly at first and less
-             * through the run (WALL TIME), so the run arcs down into a
-             * natural fall instead of ending in a sudden drop; horizontal
-             * momentum carries on past the wall either way. */
-            {
-                real limit=vr_pk_bound(config_real("vr.wallrun_duration"),1.5f,0.5f,3)*TICKS_PER_SECOND;
-                real keep=0.7f+0.3f*PIN((real)parkour.run_ticks/limit,0.0f,1.0f);
-                if(velocity->k< -0.5f*per_second)velocity->k=velocity->k*keep-0.5f*per_second*(1.0f-keep);
+            /* a light hold toward the wall keeps the feet on it */
+            velocity->i-=wall.plane.n.i*0.3f*per_second;
+            velocity->j-=wall.plane.n.j*0.3f*per_second;
+            /* level for the first 60% of WALL TIME, then easing into the fall */
+            if(velocity->k<0.0f){
+                if(progress<0.6f)velocity->k=0.0f;
+                else velocity->k*=PIN((progress-0.6f)/0.4f,0.0f,1.0f);
             }
-            if(!parkour.running)platform_log("VR parkour: wall run unit=%ld",unit);
+            if(!parkour.running)platform_log("VR parkour: wall run unit=%ld chained=%d",unit,parkour.walljump_age<=2*TICKS_PER_SECOND);
             parkour.running=1;parkour.run_ticks++;return;
         }
     }

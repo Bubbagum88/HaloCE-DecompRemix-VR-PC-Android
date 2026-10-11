@@ -18,16 +18,31 @@ assert len(macros) >= 30, len(macros)
 def page(name):
     text = menu[menu.index(f"static struct vr_menu_setting const {name}[] ="):]
     return text[:text.index("};")]
-# Test54: IMMERSION (features and how they feel) and IMMERSION+ (technical
-# options) together list every immersion row, each on exactly one of them.
+# Test55: one IMMERSION category whose screens are topics (sections); every
+# immersion row is on it exactly once.
 table = page("vr_menu_immersion")
-advanced = page("vr_menu_immersion_advanced")
-listed = re.findall(r"(VR_IMMERSION_\w+),", table) + re.findall(r"(VR_IMMERSION_\w+),", advanced)
-assert sorted(listed) == sorted(macros), "every immersion row is on IMMERSION or IMMERSION+, once"
+advanced = ""
+assert "vr_menu_immersion_advanced" not in menu and '"IMMERSION+"' not in menu
+listed = re.findall(r"(VR_IMMERSION_\w+),", table)
+assert sorted(listed) == sorted(macros), "every immersion row is on IMMERSION, once"
+sections_text = menu[menu.index("static struct vr_menu_section const vr_menu_immersion_sections[] ="):]
+sections_text = sections_text[:sections_text.index("};")]
+sections = [(label, int(count)) for label, count in re.findall(r'\{ "([A-Z +]+)", (\d+) \}', sections_text)]
+assert [label for label, _ in sections] == ["WEAPONS", "RELOAD", "POUCH PLACES", "HOLSTER PLACES",
+                                            "MOVEMENT", "BODY", "GRAB + NPCS", "ADVANCED"], sections
+assert all(0 < count <= 8 for _, count in sections) and sum(count for _, count in sections) == len(listed)
+# each topic's rows, in order, are the ones its comment heads
+blocks = re.split(r"/\* ([A-Z +]+) \*/", table)[1:]
+for (label, count), (comment, rows) in zip(sections, zip(blocks[0::2], blocks[1::2])):
+    assert label == comment, (label, comment)
+    assert len(re.findall(r"VR_IMMERSION_\w+,", rows)) == count, label
+assert '"NEXT: %s (%ld/%ld)"' in menu
+assert "vr_calibration_note_shown(1);" in menu and "vr_calibration_note_shown(2);" in menu
 for essential in ("VR_IMMERSION_MANUAL_RELOAD", "VR_IMMERSION_NPC_GRAB", "VR_IMMERSION_WORLD_GRAB",
                   "VR_IMMERSION_GRIP_CLIMB", "VR_IMMERSION_DEATH_RAGDOLLS", "VR_IMMERSION_FIST_REQUIRED",
                   "VR_IMMERSION_NPC_GRAB_ASSIST", "VR_IMMERSION_NPC_HOLD", "VR_IMMERSION_THROW_STRENGTH",
-                  "VR_IMMERSION_CLIMB_GRAB", "VR_IMMERSION_POUCH_SIDE"):
+                  "VR_IMMERSION_CLIMB_GRAB", "VR_IMMERSION_POUCH_SIDE", "VR_IMMERSION_POUCH_HIP_OUT",
+                  "VR_IMMERSION_HOLSTER_SHOULDER_BACK", "VR_IMMERSION_PHYSICAL_HANDLES"):
     assert essential + "," in table, essential
 rest = menu.replace(table, "").replace(advanced, "")
 for name, row in macros.items():
@@ -44,7 +59,7 @@ for required in ("vr.parkour_wallrun", "vr.parkour_walljump", "vr.parkour_climb"
 pages = menu[menu.index("} const vr_menu_pages[] ="):]
 pages = pages[:pages.index("};")]
 first = re.findall(r'\{ "([A-Z +]+)", vr_menu_\w+', pages)[:2]
-assert first == ["IMMERSION", "IMMERSION+"], first
+assert first[0] == "IMMERSION" and "IMMERSION+" not in first, first
 
 # Test54: dependencies. Grabbing and climbing turn FIST REQUIRED on (soft:
 # it may be turned off by hand), MAG DEBRIS / CUSTOM SCENERY / CUSTOM NPC RIGS
@@ -65,4 +80,4 @@ assert '{ "vr.immersion_auto", _config_string' in config
 for key in ("vr.death_ragdolls", "vr.npc_grab_assist", "vr.npc_hold_strength", "vr.throw_strength",
             "vr.climb_grab_radius", "vr.reload_pouch_side"):
     assert f'{{ "{key}"' in config, key
-print(f"PASS: IMMERSION and IMMERSION+ list {len(listed)} immersion settings, each the same row as on its usual page; dependencies reference-counted")
+print(f"PASS: one IMMERSION category, {len(sections)} topic screens, {len(listed)} immersion settings, each the same row as on its usual page; dependencies reference-counted")

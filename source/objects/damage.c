@@ -138,6 +138,9 @@ symbols in this file:
 #include "units/bipeds.h"
 #include "units/units.h"
 #include "units/vehicles.h"
+#ifdef HALO_VR
+#include "vr_npc_interaction.h"
+#endif
 
 /* network_game_globals.c's */
 boolean network_game_distributed_client(void);
@@ -1452,6 +1455,11 @@ void object_cause_damage(
 
 	/* port: a player who is gone is credited with nothing */
 	damage_data_validate_owner(damage);
+#ifdef HALO_VR
+	/* Test55: where the hit landed, for a death ragdoll's impact-located kick
+	(port/linux/game/vr_npc_interaction.c); nothing about the damage changes */
+	vr_npc_interaction_note_damage(object_index, &damage->epicenter, &damage->direction);
+#endif
 
 	damage_effect = damage_effect_definition_get(damage->definition_index);
 	damage_definition = &damage_effect->damage;

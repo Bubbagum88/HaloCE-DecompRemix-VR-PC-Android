@@ -29,8 +29,8 @@ assert 'npc_setting("vr.npc_grab_assist",0.0f,0.0f,0.15f)' in npc
 assert "body_capsule_hits=%d" in npc
 # Hold strength and throws.
 assert 'npc_setting("vr.npc_hold_strength",1.5f,0.75f,2.5f)' in npc
-assert "vr_world_throw_velocity(npc.velocity[hand].n,npc.last_delta[hand].n," in npc
-assert "vr_world_throw_velocity(held->velocity.n, held->last_change.n," in world
+assert "vr_world_throw_velocity_spartan(npc.velocity[hand].n,npc.last_delta[hand].n," in npc  # Test55: Spartan class
+assert "vr_world_throw_velocity_spartan(held->velocity.n, held->last_change.n," in world  # Test55
 # Released bodies: the root follows the pelvis; the rig is not dragged by it.
 assert "npc_begin_root_follow();" in npc
 assert "if(!(npc.root_follow&&npc.settling&&!npc.held[0]&&!npc.held[1]))" in npc
@@ -49,7 +49,7 @@ assert "parkour.hand[hand].grace=VR_PK_GRIP_GRACE_TICKS" in parkour
 assert "vr_melee_hand_permitted(vr.melee_requires_fist," in frame
 # Hands: controller authority and eased finger contact.
 assert "real_point3d tracked_hand = hand;" in render
-assert "real length, limit = 0.06f * units;" in render
+assert "real length, limit = (vehicle_grip ? 0.10f : 0.06f) * units;" in render
 assert "t = *state_t * (1.0f - ease);" in render
 # First-person gun parts keep the gun's pose through walking/sway overlays.
 assert fpw.count("vr_first_person_parts_save(first_person_weapon, animation_graph);") == 2

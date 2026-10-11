@@ -33,8 +33,10 @@ int vr_articulated_native_capture(long unit_index,struct vr_articulated_native *
     real_matrix4x3 *matrices;
     real radius;
     int n;
+    /* (Test55: script-named bodies are captured too; cutscene/custom
+     * animations still are not) */
     if(!unit || !rig || unit->unit.player_index!=NONE || unit->object.parent_object_index!=NONE ||
-        unit->object.name_index!=NONE || unit_is_playing_custom_animation(unit_index)) return FALSE;
+        TEST_FLAG(unit->object.flags,_object_movie_star_bit) || unit_is_playing_custom_animation(unit_index)) return FALSE;
     definition=object_definition_get(unit->definition_index);
     if(definition->object.animation_graph.index==NONE) return FALSE;
     graph=animation_graph_definition_get(definition->object.animation_graph.index);
@@ -93,14 +95,33 @@ int vr_articulated_native_sweep(void *context,float const old[3],float radius,fl
     collisions=collision_move_sphere(_collision_test_for_bipeds_dead_flags,&from,&delta,radius,rig->unit_index,
         &to,&clipped_velocity,4,planes);
     if(!valid_real_point3d(&to)) return FALSE;
+    /* Test55: a joint resting on the ground (an upward face) slides with
+     * friction, about 0.8 g of braking, instead of skating on: bodies used to
+     * slide across floors after landing. Fast flight is barely touched (the
+     * same fixed braking is a small share of a large step). */
+    if(rig->friction && collisions>0 && isfinite(rig->impact_units) && rig->impact_units>0) {
+        int floor=FALSE;
+        for(int p=0;p<collisions&&p<4;++p) if(planes[p].plane.n.k>.6f) floor=TRUE;
+        if(floor) {
+            real slide[2]={to.x-from.x,to.y-from.y},length=sqrtf(slide[0]*slide[0]+slide[1]*slide[1]);
+            real braking=rig->impact_units*7.8f/(30.0f*30.0f);
+            if(isfinite(length) && length>0.0f) {
+                real keep=length>braking?(length-braking)/length:0.0f;
+                to.x=from.x+slide[0]*keep;to.y=from.y+slide[1]*keep;
+            }
+        }
+    }
     if(collisions>0 && rig->impact_enabled && rig->impact_units>0 && magnitude3d(&delta)>rig->impact_units*(2.f/30.f)) {
         struct collision_result hit;
         /* Only a confirmed native hit can submit damage. Grazing sphere-only
          * contacts without a center ray hit remain physical, not damaging.
-         * Upward floor planes stay exclusively with native falling damage. */
+         * Test55: a floor counts too, but only for a violent landing (over 6
+         * m/s): a hard Spartan throw into the ground hurts; ordinary falls stay
+         * with native falling damage. */
         if(collision_test_vector(_collision_test_for_line_of_sight_flags|FLAG(_collision_test_back_facing_surfaces_bit),
                 &from,&delta,rig->unit_index,&hit) &&
-           (hit.type==_collision_result_structure || hit.type==_collision_result_object) && hit.plane.n.k<.65f)
+           (hit.type==_collision_result_structure || hit.type==_collision_result_object) &&
+           (hit.plane.n.k<.65f || magnitude3d(&delta)>rig->impact_units*(6.f/30.f)))
             vr_interaction_impact_collision(rig->unit_index,&hit,&delta);
     }
     memcpy(next,to.n,sizeof(to.n));
@@ -142,7 +163,9 @@ int vr_articulated_native_step(struct vr_articulated_native *rig,float dt,float 
     int n,k;
     if(!rig) return FALSE;
     work=*rig;
+    work.friction=TRUE;
     if(!vr_articulated_step(&work.body,dt,gravity,pins,pin_count,vr_articulated_native_sweep,&work)) return FALSE;
+    work.friction=FALSE;
     for(n=0;n<work.body.count;++n) {
         int parent=work.body.nodes[n].parent;
         real_vector3d old_direction,direction,axis;
@@ -181,6 +204,42 @@ int vr_articulated_native_step(struct vr_articulated_native *rig,float dt,float 
             rotate_vector_about_axis(&work.captured[parent].up,&axis,sinf(angle),cosine);
             cross_product3d(&work.captured[parent].up,&work.captured[parent].forward,&work.captured[parent].left);
             if(!valid_real_vector3d_axes3(&work.captured[parent].forward,&work.captured[parent].left,&work.captured[parent].up)) return FALSE;
+        }
+    }
+    /* Test55: a joint with no child (the head, hands, feet) has no bone of
+     * its own to turn it, so it kept its captured orientation while its limb
+     * swung: heads stayed upright on falling bodies (the puppet look). It now
+     * turns with its parent, keeping its pose relative to it. */
+    {
+        int has_child[VR_ARTICULATED_NODES];
+        memset(has_child,0,sizeof(has_child));
+        for(n=1;n<work.body.count;++n) if(work.body.nodes[n].parent>=0) has_child[work.body.nodes[n].parent]=TRUE;
+        for(n=1;n<work.body.count;++n) {
+            int parent=work.body.nodes[n].parent;
+            real_matrix4x3 const *before=&rig->captured[parent],*after=&work.captured[parent];
+            real_vector3d forward,up;
+            if(parent<0 || has_child[n]) continue;
+            for(k=0;k<3;++k) {
+                real f_forward=dot_product3d(&rig->captured[n].forward,&before->forward);
+                real f_left=dot_product3d(&rig->captured[n].forward,&before->left);
+                real f_up=dot_product3d(&rig->captured[n].forward,&before->up);
+                real u_forward=dot_product3d(&rig->captured[n].up,&before->forward);
+                real u_left=dot_product3d(&rig->captured[n].up,&before->left);
+                real u_up=dot_product3d(&rig->captured[n].up,&before->up);
+                forward.n[k]=after->forward.n[k]*f_forward+after->left.n[k]*f_left+after->up.n[k]*f_up;
+                up.n[k]=after->forward.n[k]*u_forward+after->left.n[k]*u_left+after->up.n[k]*u_up;
+            }
+            if(normalize3d(&forward)<0.00001f || normalize3d(&up)<0.00001f) continue;
+            {
+                real dot=dot_product3d(&forward,&up);
+                for(k=0;k<3;++k) up.n[k]-=forward.n[k]*dot;
+                if(normalize3d(&up)<0.00001f) continue;
+            }
+            work.captured[n].forward=forward;work.captured[n].up=up;
+            cross_product3d(&up,&forward,&work.captured[n].left);
+            if(!valid_real_vector3d_axes3(&work.captured[n].forward,&work.captured[n].left,&work.captured[n].up)) {
+                work.captured[n]=rig->captured[n];
+            }
         }
     }
     for(n=0;n<work.body.count;++n) {

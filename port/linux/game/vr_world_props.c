@@ -53,8 +53,9 @@ static struct object_datum *prop_get(long index)
 {
     struct object_datum *o=object_try_and_get_and_verify_type(index,_object_mask_scenery);
     struct object_definition *definition;
+    /* (Test55: script-named scenery too; movie stars stay stock) */
     if(!o || o->object.parent_object_index!=NONE || o->object.first_child_object_index!=NONE ||
-        o->object.name_index!=NONE || TEST_FLAG(o->object.flags,_object_movie_star_bit) ||
+        TEST_FLAG(o->object.flags,_object_movie_star_bit) ||
         TEST_FLAG(o->object.flags,_object_no_collisions_bit) ||
         !TEST_FLAG(o->object.flags,_object_connected_to_map_bit) || TEST_FLAG(o->object.flags,_object_outside_of_map_bit) ||
         !valid_real_vector3d_axes2(&o->object.forward,&o->object.up) ||

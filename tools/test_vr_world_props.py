@@ -99,7 +99,7 @@ int main(void){
  bsp.vertices=(struct block){8,vertices};node.region_index=0;node.bsps=(struct block){1,&bsp};model.nodes=(struct block){1,&node};
  vr_world_props_reset();tick++;vr_world_props_tick();assert(!sets); /* OFF/unactivated baseline */
  assert(vr_world_object_get(2)==&object);
- object.object.name_index=1;assert(!vr_world_object_get(2));object.object.name_index=NONE;
+ object.object.name_index=1;assert(vr_world_object_get(2)==&object);object.object.name_index=NONE; /* Test55: script-named scenery too */
  name="scenery\\trees\\tree_stump\\tree_stump";assert(!vr_world_object_get(2));
  custom_scenery=1;assert(vr_world_object_get(2)==&object);custom_scenery=0;
  name="scenery\\c_storage\\c_storage";

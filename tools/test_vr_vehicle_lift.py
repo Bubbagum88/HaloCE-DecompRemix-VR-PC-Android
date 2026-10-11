@@ -200,7 +200,7 @@ assert "if (is_vehicle && !vehicle_lift_enabled()) continue;" in candidate_path
 vehicle_get = function_body(gameplay, "vehicle_lift_get")
 for required in (
     "vehicle_lift_enabled()", "vehicle->object.parent_object_index != NONE",
-    "vehicle->object.name_index != NONE", "_object_movie_star_bit",
+    "_object_movie_star_bit",
     "_object_dead_bit",
     "vehicle->unit.driver_object_index != NONE", "vehicle->unit.gunner_object_index != NONE",
     "vehicle_lift_type_supported(definition->vehicle_type)",
@@ -210,6 +210,10 @@ for required in (
 ):
     assert required in vehicle_get, f"vehicle eligibility gate missing: {required}"
 assert "point_index < physics->mass_points.count" in vehicle_get
+# Test55: a script name alone no longer refuses (nearly every campaign vehicle,
+# 59 of 61 stock Shades, is named); cutscene (movie star) control still does
+assert "vehicle->object.name_index != NONE" not in vehicle_get
+assert "type == VR_VEHICLE_TYPE_ALIEN_FIGHTER" in function_body(gameplay, "vehicle_lift_type_supported")
 assert "isfinite(point->mass)" in vehicle_get
 assert "valid_real_point3d(&point->position)" in vehicle_get
 

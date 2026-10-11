@@ -1836,7 +1836,9 @@ unsigned long vr_render_actions(
 of the game's shot origin (which is pulled back out of walls). */
 int vr_render_first_person_gun_hidden(void)
 {
-	return vr_render.stereo && vr_hand_aiming() && vr_hand_empty();
+	/* (Test55: and while driving with immersive vehicle controls, whose
+	first-person hands are shown without the gun) */
+	return vr_render.stereo && ((vr_hand_aiming() && vr_hand_empty()) || vr_render_vehicle_first_person_hands());
 }
 
 int vr_render_immersive_cutscene(void)
@@ -2036,7 +2038,11 @@ int vr_render_first_person_vehicles(
 int vr_render_hide_first_person_weapon(
 	void)
 {
-	/* driving or on a turret, the player's own gun is put away */
+	/* driving or on a turret, the player's own gun is put away (Test55: a
+	driver holding immersive vehicle controls keeps the first-person hands;
+	vr_render_first_person_gun_hidden hides the gun itself) */
+	if (vr_render_vehicle_first_person_hands())
+		return FALSE;
 	return vr_render.cinematic_view || (vr_seat_view() && (vr_render.seat.driver || vr_render.seat.gunner));
 }
 
@@ -3953,7 +3959,7 @@ void vr_render_first_person_ik(
 	static real gun_position[3];
 	static struct animation_graph *logged;
 	short left[NUMBER_OF_VR_ARM_BONES], right[NUMBER_OF_VR_ARM_BONES];
-	int side, bone, draw_arms;
+	int side, bone, draw_arms, vehicle_hands;
     real_matrix4x3 authored[MAXIMUM_NODES_PER_ANIMATION];
     static struct vr_action_blend action;
     static struct animation_graph *action_graph;
@@ -3983,7 +3989,8 @@ void vr_render_first_person_ik(
 			gun_anchor ? "anchored to the controller" : "classic (camera-placed)",
 			gun_position[0], gun_position[1], gun_position[2]);
 	}
-	if (!vr_render.stereo || vr_render.cinematic_view || !vr_hand_aiming() || !graph ||
+	vehicle_hands = vr_render_vehicle_first_person_hands();
+	if (!vr_render.stereo || vr_render.cinematic_view || (!vr_hand_aiming() && !vehicle_hands) || !graph ||
 		graph->nodes.count <= 0 || graph->nodes.count > MAXIMUM_NODES_PER_ANIMATION)
 		return;
 	for (side = 0; side < 2; side++)
@@ -4106,7 +4113,7 @@ void vr_render_first_person_ik(
         action_hand != vr_weapon_hand() || action_generation != vr_settings_generation() ||
         !action.valid || vr_pose_time() - action.time > 0.25 || vr_pose_time() < action.time;
     if (action_reset) vr_avatar_hands[0].valid = vr_avatar_hands[1].valid = FALSE;
-    if (vr_hand_empty()) native_arms = 0;
+    if (vr_hand_empty() || vehicle_hands) native_arms = 0;
     vr_action_blend_update(&action, vr_pose_time(), native_arms, action_reset);
     action_graph = graph; action_unit = unit; action_weapon = weapon;
     action_hand = vr_weapon_hand(); action_generation = vr_settings_generation();
@@ -4252,13 +4259,13 @@ void vr_render_first_person_ik(
 				float curls[4];
 				real_matrix4x3 old_fore = matrices[chain[_vr_arm_fore]];
 				real_matrix4x3 old_hand = matrices[chain[_vr_arm_hand]];
-				if ((!gun_arm || vr_hand_empty()) &&
+				if ((!gun_arm || vr_hand_empty() || vehicle_hands) &&
 					vr_hand_pose(controller, vr_render.game_camera_position.n, hand.n, f.n, u.n) && vr_unit_vector(&f))
 				{
 					dot = dot_product3d(&f, &u);
 					u.i -= dot * f.i; u.j -= dot * f.j; u.k -= dot * f.k;
 					/* Proximity alone never captures the support hand. */
-					free_hand = vr_unit_vector(&u) && (gun_arm || vr_hand_empty() || !vr_two_handed());
+					free_hand = vr_unit_vector(&u) && (gun_arm || vr_hand_empty() || vehicle_hands || !vr_two_handed());
 					if (free_hand)
 					{
 						real_point3d tracked_hand = hand;
@@ -4274,15 +4281,20 @@ void vr_render_first_person_ik(
 							vr_npc_interaction_hand(controller, npc_contact.n);
 						boolean reload_grip = !world_grip && !climbing_grip && !npc_grip &&
 							vr_manual_reload_hand(controller, hand.n);
+						/* Test55: a hand holding immersive vehicle controls goes
+						onto the wheel rim or handle (up to 10 cm from the
+						controller) */
+						boolean vehicle_grip = !world_grip && !climbing_grip && !npc_grip && !reload_grip &&
+							vr_vehicle_handles_hand(controller, hand.n);
 						/* Test54: the controller stays the hand's authority. A held
 						 * prop, a climbing hold or a magazine draws the visible hand
 						 * onto its contact by at most 6 cm; beyond that the hand
 						 * stays that far toward the contact from the controller
 						 * rather than the arm stretching to an anchor left behind. */
-						if (world_grip || climbing_grip || reload_grip)
+						if (world_grip || climbing_grip || reload_grip || vehicle_grip)
 						{
 							real_vector3d pull;
-							real length, limit = 0.06f * units;
+							real length, limit = (vehicle_grip ? 0.10f : 0.06f) * units;
 							vr_point_minus(&hand, &tracked_hand, &pull);
 							length = vr_length(&pull);
 							if (isfinite(length) && length > limit && length > 0.0f)
@@ -4299,7 +4311,7 @@ void vr_render_first_person_ik(
 						target.z = hand.z - f.k * 0.075f * units;
 						/* The held item's native collision constrains this contact.
 						 * Pulling it back on the item's own collider breaks the grip. */
-						if (!world_grip && !climbing_grip && !npc_grip && !reload_grip) pressed = vr_hand_out_of_walls(controller, &target, &f, &depth, &normal);
+						if (!world_grip && !climbing_grip && !npc_grip && !reload_grip && !vehicle_grip) pressed = vr_hand_out_of_walls(controller, &target, &f, &depth, &normal);
 						cross_product3d(&f, &u, &palm);
 						if (controller == 1) scale_vector3d(&palm, -1.0f, &palm);
 						if (pressed && vr_unit_vector(&normal) && dot_product3d(&palm, &normal) < -0.2f)
@@ -4348,7 +4360,19 @@ void vr_render_first_person_ik(
 					if (tracking != 1)
 						vr_distribute_arm_twist(matrices, chain, &old_fore, &old_hand, &vr_arm_history[controller]);
 					if (vr_finger_pose(controller, curls))
+					{
+						/* Test55: a held magazine, slide or vehicle control is
+						gripped: the fingers close around it whatever the
+						controller's trigger finger is doing */
+						int owner = vr_interaction_owner(controller);
+						if (owner == VR_INTERACTION_RELOAD || owner == VR_INTERACTION_VEHICLE)
+						{
+							curls[0] = curls[0] > 0.7f ? curls[0] : 0.7f;
+							for (int finger = 1; finger < 4; finger++)
+								curls[finger] = curls[finger] > 0.9f ? curls[finger] : 0.9f;
+						}
 						contacts = vr_touch_fingers(graph, matrices, controller, chain[_vr_arm_hand], joints, curls, &palm, &f, &u, pressed);
+					}
 					/* Keep surface haptics on the same collision/animation gate as
 					 * v1.0.18. The separate head-to-hand collision probe could report
 					 * obstruction away from the hand, then renew pressure buzz each frame. */

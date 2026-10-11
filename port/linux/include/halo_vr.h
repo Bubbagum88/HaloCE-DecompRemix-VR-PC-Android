@@ -115,6 +115,9 @@ int vr_render_first_person_vehicles(void);
 seat */
 int vr_render_hide_first_person_weapon(void);
 int vr_render_first_person_gun_hidden(void);
+/* Test55: a driver holding immersive vehicle controls sees the first-person
+hands (finger poses) rather than the seat's third-person arms */
+int vr_render_vehicle_first_person_hands(void);
 int vr_render_immersive_cutscene(void);
 int vr_render_grab_point(long unit_index, union real_point3d *point);
 /* handle_one_player_input: what the headset's gestures ask of the first

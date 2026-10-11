@@ -117,6 +117,7 @@ static void vr_world_object_velocity(long id,real_vector3d const *linear,real_ve
 static void vr_interaction_release(int hand,int owner){assert(hand>=0&&hand<2&&owner==3);++releases;}
 static void platform_log(char const *format,...){(void)format;}
 static double config_real(char const *key){(void)key;return 1.0;} /* Test54 THROW: 1x */
+static float vr_world_object_mobility(long id){(void)id;return 1.0f;} /* Test55: a light item: Spartan class 2.4 */
 static real magnitude3d(real_vector3d const *v){return sqrtf(v->i*v->i+v->j*v->j+v->k*v->k);}
 static long last_tick,last_unit;
 static int previous_grip[2];
@@ -127,7 +128,7 @@ int main(void){
  release_hand(0,0,1,"tracking-loss");assert(throws==0&&!hands[0].active&&releases==1);
  hands[0].active=hands[1].active=1;hands[0].index=hands[1].index=42;
  release_hand(0,1,1,"shared-hand");assert(throws==0&&hands[1].active);
- hands[1].velocity.i=100;release_hand(1,1,1,"grip-release");assert(throws==1&&fabsf(applied.i-.24f)<.00001f);
+ hands[1].velocity.i=100;release_hand(1,1,1,"grip-release");assert(throws==1&&fabsf(applied.i-.576f)<.00001f);
  hands[0].active=1;hands[0].index=42;hands[0].velocity.i=100;item.object.type=_object_type_vehicle;
  vehicle.object.translational_velocity.i=1.0f;vehicle.object.angular_velocity.j=.2f;
  release_hand(0,1,1,"vehicle-release");assert(throws==1&&!hands[0].active);

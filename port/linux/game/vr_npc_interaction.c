@@ -362,14 +362,14 @@ static struct unit_datum *eligible(long index)
 {
     struct unit_datum *u=(struct unit_datum *)object_try_and_get_and_verify_type(index,_object_mask_biped);
     struct actor_datum *a;
-    struct weapon_datum *w;
     int required_hands;
     real mobility;
-    long weapon;
     struct npc_state *state=state_for_object(index);
     int dead=u&&TEST_FLAG(u->object.damage_flags,_object_dead_bit);
+    /* (Test55: script-named NPCs and bodies too: most placed bodies are
+     * named; movie stars and scripted immediate orders stay excluded) */
     if(!u || u->unit.player_index!=NONE || (!dead&&u->unit.actor_index==NONE) ||
-       u->object.parent_object_index!=NONE || u->object.name_index!=NONE ||
+       u->object.parent_object_index!=NONE ||
        TEST_FLAG(u->object.flags,_object_movie_star_bit) ||
        TEST_FLAG(u->object.flags,_object_no_collisions_bit) ||
        !TEST_FLAG(u->object.flags,_object_connected_to_map_bit) ||
@@ -379,6 +379,12 @@ static struct unit_datum *eligible(long index)
        u->unit.grenade_throw_state!=_unit_grenade_throw_idle ||
        (u->unit.animation.state>_unit_state_land_hard &&
         !(u->unit.animation.state==_unit_state_hard_ping) &&
+        /* Test55: a dodging (AI impulse) or swinging (melee) fighter is a
+         * normal combat state, not a scripted one: Elites dive and Marines
+         * melee constantly, which kept them out of reach */
+        !(u->unit.animation.state==_unit_state_ai_impulse) &&
+        !(u->unit.animation.state==_unit_state_melee_attack) &&
+        !(u->unit.animation.state==_unit_state_melee_continuous) &&
         !(dead&&(u->unit.animation.state==_unit_state_dying_airborne||
             u->unit.animation.state==_unit_state_dying)) &&
         !(state&&state->getting_up&&
@@ -394,13 +400,12 @@ static struct unit_datum *eligible(long index)
     if(!interaction_profile(unit_species(u,index),u,index,&required_hands,&mobility) ||
        (!dead&&(!a || !a->meta.active ||
         a->state.command_list_immediate))) return NULL;
-    weapon=unit_inventory_get_weapon(index,u->unit.current_weapon_index);
-    w=weapon!=NONE?weapon_try_and_get(weapon):NULL;
-    /* Match native weapon_busy: a burst/charge/reload already in progress
-     * cannot safely be cancelled by merely zeroing next-frame unit inputs. */
-    if(!dead && w && (w->weapon.state!=_weapon_state_idle ||
-             w->weapon.triggers[0].state!=_trigger_idle || w->weapon.triggers[1].state!=_trigger_idle ||
-             w->weapon.magazines[0].state!=_magazine_idle || w->weapon.magazines[1].state!=_magazine_idle)) return NULL;
+    /* Test55: a firing, bursting or reloading weapon no longer refuses the
+     * grab. Marines and Elites are almost always mid-burst in a fight, so the
+     * Test54 rule (match native weapon_busy) left them ungrabbable. The held
+     * body's next-tick controls are zeroed (vr_npc_interaction_controls): a
+     * burst in progress ends at its own trigger release and a reload finishes
+     * natively; no weapon state is written here. */
     return u;
 }
 /* Acquisition is deliberately strict: an unsupported animation, a busy
@@ -417,7 +422,6 @@ static struct unit_datum *continuable(long index)
 {
     struct unit_datum *u=(struct unit_datum *)object_try_and_get_and_verify_type(index,_object_mask_biped);
     if(!u || u->unit.player_index!=NONE || u->object.parent_object_index!=NONE ||
-       u->object.name_index!=NONE ||
        TEST_FLAG(u->object.flags,_object_movie_star_bit) ||
        TEST_FLAG(u->object.flags,_object_no_collisions_bit) ||
        !TEST_FLAG(u->object.flags,_object_connected_to_map_bit) ||
@@ -545,12 +549,13 @@ static void release(int hand,int throwing,char const *reason)
     if(was_held)platform_log("VR NPC: release actor=%08lx hand=%d grip_released=%d throw=%d reason=%s",
 		npc.index,hand,throwing,throwing,reason?reason:"unspecified");
     npc.held[hand]=0;if(!npc.is_remote) vr_interaction_release(hand,VR_INTERACTION_NPC);
-    if(npc.active && npc.started && npc.held[0]+npc.held[1]<npc.minimum_hands) {
-        if(npc.held[1-hand])platform_log("VR NPC: release actor=%08lx hand=%d grip=held throw=0 reason=minimum-hands-not-met",
-			npc.index,1-hand);
-		npc.held[1-hand]=0;npc.strain_logged[1-hand]=0;
-		if(!npc.is_remote) vr_interaction_release(1-hand,VR_INTERACTION_NPC);
-    }
+    /* Test55: a heavy (two-hand) body let go by one hand stays in the other:
+     * one hand still restrains and drags it but can no longer lift it
+     * (vr_npc_interaction_velocity, the palette's sinking pin). Test54 let go
+     * of both, which read as the grab failing. */
+    if(npc.active && npc.started && npc.held[1-hand] && npc.held[0]+npc.held[1]<npc.minimum_hands)
+        platform_log("VR NPC: heavy hold one hand actor=%08lx hand=%d grip=held reason=one-hand-drag (no lift)",
+            npc.index,1-hand);
     npc.strain_logged[hand]=0;
     if(npc.active && !npc.held[0] && !npc.held[1] && !npc.recovery) {
         if(!npc.started) {cancel_one();return;}
@@ -558,12 +563,25 @@ static void release(int hand,int throwing,char const *reason)
         npc_begin_root_follow();
         if(throwing && was_held && npc.started) {
             real_vector3d velocity;
-            if(vr_world_throw_velocity(npc.velocity[hand].n,npc.last_delta[hand].n,
-                npc_setting("vr.throw_strength",1.0f,0.75f,2.0f),interaction_units(),velocity.n)) {
+            if(vr_world_throw_velocity_spartan(npc.velocity[hand].n,npc.last_delta[hand].n,
+                npc_setting("vr.throw_strength",1.0f,0.75f,2.0f),
+                vr_world_throw_class(npc.minimum_hands,npc.mobility),interaction_units(),velocity.n)) {
                 struct unit_datum *u=continuable(npc.index);
+                real units=interaction_units(),speed=magnitude3d(&velocity);
                 if(u) u->object.translational_velocity=velocity;
-                for(int n=0;n<npc.rig.body.count;++n) for(int k=0;k<3;++k)
-                    npc.rig.body.nodes[n].previous[k]=npc.rig.body.nodes[n].position[k]-velocity.n[k];
+                /* The whole body carries the throw; the limb in the hand leads
+                 * a little, so the body tumbles about its torso. */
+                for(int n=0;n<npc.rig.body.count;++n) {
+                    real lead=n==npc.node[hand]?1.25f:1.0f;
+                    for(int k=0;k<3;++k)
+                        npc.rig.body.nodes[n].previous[k]=npc.rig.body.nodes[n].position[k]-velocity.n[k]*lead;
+                }
+                if(units>0.0f) {
+                    real mps=speed*(real)TICKS_PER_SECOND/units;
+                    platform_log("VR NPC: throw actor=%08lx hand=%d speed_mps=%.2f class=%.2f",
+                        npc.index,hand,(float)mps,(float)vr_world_throw_class(npc.minimum_hands,npc.mobility));
+                    if(!npc.is_remote) vr_haptic(hand,PIN(0.25f+mps*0.025f,0.25f,0.7f),0.05f);
+                }
             }
         }
     }
@@ -611,7 +629,9 @@ int vr_npc_interaction_remote_contact(long player,int hand,long *object,float po
 void vr_npc_interaction_controls(long index)
 {
     struct unit_datum *u;
-    if(!owns(index) || !npc.started) return;
+    /* Test55: a heavy body restrained by one hand (held, not yet lifted) is
+     * held still too: it neither walks off nor fires while restrained. */
+    if(!owns(index) || !(npc.started || npc.held[0] || npc.held[1])) return;
     u=unit_get(index);
     u->unit.control_flags=0;u->unit.primary_trigger=0;u->unit.throttle=*global_zero_vector3d;
     /* Timers, actor target, perception, team, inventory and command state stay
@@ -629,7 +649,9 @@ void vr_npc_interaction_velocity(long index,float velocity[3])
         for(k=0;k<3;++k) follow.n[k]=npc.rig.body.nodes[torso].position[k]-npc.root_offset.n[k]-u->object.position.n[k];
         /* The offset relaxes toward the pelvis (a lying body's root is under it). */
         for(k=0;k<2;++k) npc.root_offset.n[k]*=0.9f;
-        if(vr_world_limit(follow.n,.30f*interaction_units())) {
+        /* Test55: a hard throw flies faster than 9 m/s; the root keeps up
+         * (it is what the engine culls and collects by) */
+        if(vr_world_limit(follow.n,.90f*interaction_units())) {
             velocity[0]=follow.n[0];velocity[1]=follow.n[1];
             if(follow.n[2]>velocity[2]) velocity[2]=follow.n[2]; /* rise with a body thrown up; fall natively */
         }
@@ -644,8 +666,17 @@ void vr_npc_interaction_velocity(long index,float velocity[3])
         for(k=0;k<3;++k) error.n[k]+=npc.target[h].n[k]-offset.n[k]-npc.root_anchor[h].n[k]-unit_get(index)->object.position.n[k];
         ++count;
     }
-    if(count<npc.minimum_hands) return;
+    if(!count) return;
     for(k=0;k<3;++k) error.n[k]/=count;
+    if(count<npc.minimum_hands) {
+        /* Test55: fewer hands than the body needs (one on an Elite or Hunter)
+         * restrain and drag it along the ground, slowly, but never lift it:
+         * the root keeps its native vertical motion. */
+        if(vr_world_restrain(error.n,velocity,npc.mobility,interaction_units(),result.n)) {
+            velocity[0]=result.n[0];velocity[1]=result.n[1];
+        }
+        return;
+    }
     if(vr_world_spring_strength(error.n,velocity,npc.mobility,count,interaction_units(),global_gravity,
         npc.is_remote?1.5f:npc_setting("vr.npc_hold_strength",1.5f,0.75f,2.5f),result.n))
         memcpy(velocity,result.n,sizeof(result.n));
@@ -729,6 +760,16 @@ static void tick_player(int use_remote,long player)
 					npc.index,h,(float)magnitude3d(&delta)/(float)units);
 				npc.strain_logged[h]=1;
 			} else if(magnitude3d(&delta)<.50f*units)npc.strain_logged[h]=0;
+			if(!npc.started && !use_remote) {
+				/* Test55: one hand restraining a heavy body: its resistance in
+				 * the hand, and a hand pulled well clear loses its hold (a
+				 * Spartan cannot keep an Elite at arm's length plus a metre). */
+				real speed=magnitude3d(&npc.velocity[h])*(real)TICKS_PER_SECOND/units;
+				vr_world_interaction_weight_feedback(h,npc.mobility,(float)(magnitude3d(&delta)/units),(float)speed);
+				if(magnitude3d(&delta)>1.2f*units) {
+					release(h,FALSE,"restraint-slipped");npc.sample[h]=0;continue;
+				}
+			}
         }
         if(npc.held[h] && (!grip || (!use_remote&&vr_interaction_owner(h)!=VR_INTERACTION_NPC))) {
             int intentional=!grip&&(use_remote||vr_interaction_owner(h)==VR_INTERACTION_NPC);
@@ -838,7 +879,9 @@ static void tick_player(int use_remote,long player)
 						friendly,h,node,npc.minimum_hands);
 				}
                 if(mapped)platform_log("VR NPC: contact fallback actor=%08lx mapped_node=%d",it.index,node);
-                if(!use_remote) vr_haptic(h,.25f,.035f);
+                /* Test55: the grab's weight in the hand: a short strong pulse
+                 * for a heavy body, a light tap for a Grunt or Jackal */
+                if(!use_remote) vr_haptic(h,npc.minimum_hands>1?.60f:.25f,npc.minimum_hands>1?.06f:.035f);
                 acquired=1;
                 break;
             }
@@ -947,6 +990,11 @@ void vr_npc_interaction_palette(long index)
             pins[count].node=npc.node[n];
             for(k=0;k<3;++k) pins[count].position[k]=npc.target[n].n[k]-offset.n[k];
             if(npc.node[n]<0||npc.node[n]>=npc.rig.body.count) {cancel_one_reason("invalid-pinned-node");return;}
+            /* Test55: one hand on a body that needs two cannot hold it up: the
+             * held limb follows the hand across and down, never up, and sinks
+             * about 12 cm a second until the body rests on the ground. */
+            if(npc.held[0]+npc.held[1]<npc.minimum_hands)
+                pins[count].position[2]=MIN(pins[count].position[2],npc.rig.body.nodes[npc.node[n]].position[2]-.004f*units);
 			if(!vr_articulated_native_sweep(&npc.rig,npc.rig.body.nodes[npc.node[n]].position,
 					npc.rig.body.nodes[npc.node[n]].radius,pins[count].position)) {cancel_one_reason("pinned-node-collision-state-invalid");return;}
             ++count;
@@ -1018,13 +1066,18 @@ void vr_npc_interaction_palette(long index)
 		for(h=0;h<2;++h) if(npc.held[h] && npc.node[h]>=0 && npc.node[h]<npc.rig.body.count) {
 			real_vector3d offset, strain, movement;
 			struct vr_articulated_node *node=&npc.rig.body.nodes[npc.node[h]];
+			real lift=0.0f;
 			surface_offset(h,&offset);
 			for(k=0;k<3;++k) {
 				strain.n[k]=npc.target[h].n[k]-offset.n[k]-node->position[k];
 				movement.n[k]=node->position[k]-node->previous[k];
 			}
+			/* Test55: a heavy body raised high (chest height and over the
+			 * head) weighs more in the hands than one held low */
+			if(npc.minimum_hands>1)
+				lift=PIN((node->position[2]-u->object.position.n[2])/units-0.9f,0.0f,1.0f)*0.3f;
 			vr_world_interaction_weight_feedback(h,npc.mobility,
-				(float)(magnitude3d(&strain)/units),
+				(float)(magnitude3d(&strain)/units+lift),
 				(float)(magnitude3d(&movement)*(real)TICKS_PER_SECOND/units));
 		}
 	}
@@ -1037,6 +1090,40 @@ void vr_npc_interaction_palette(long index)
             timing_frames=timing_total=timing_maximum=0;
         }
     }
+}
+
+/* Test55: the last few hits on bipeds (object_cause_damage), so a death
+ * ragdoll can start from where the killing blow landed. Fixed storage; read
+ * only within a couple of ticks of the hit. */
+static struct {long object,tick;real_point3d point;real_vector3d direction;} npc_damage_notes[16];
+static int npc_damage_cursor;
+void vr_npc_interaction_note_damage(long object,real_point3d const *point,real_vector3d const *direction)
+{
+#ifdef HALO_VR
+    real_vector3d unit_direction;
+    if(object==NONE || !point || !direction || !valid_real_point3d(point) ||
+       !config_boolean("vr.death_ragdolls")) return;
+    unit_direction=*direction;
+    if(!valid_real_vector3d(&unit_direction) || normalize3d(&unit_direction)<0.0001f) return;
+    npc_damage_notes[npc_damage_cursor].object=object;
+    npc_damage_notes[npc_damage_cursor].tick=game_time_get();
+    npc_damage_notes[npc_damage_cursor].point=*point;
+    npc_damage_notes[npc_damage_cursor].direction=unit_direction;
+    npc_damage_cursor=(npc_damage_cursor+1)%(int)NUMBEROF(npc_damage_notes);
+#else
+    (void)object;(void)point;(void)direction;
+#endif
+}
+static int npc_recent_damage(long object,real_point3d *point,real_vector3d *direction)
+{
+    long now=game_time_get();
+    for(int n=0;n<(int)NUMBEROF(npc_damage_notes);++n) {
+        int slot=(npc_damage_cursor+(int)NUMBEROF(npc_damage_notes)-1-n)%(int)NUMBEROF(npc_damage_notes);
+        if(npc_damage_notes[slot].object==object && now>=npc_damage_notes[slot].tick && now-npc_damage_notes[slot].tick<=2) {
+            *point=npc_damage_notes[slot].point;*direction=npc_damage_notes[slot].direction;return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 /* Test54: DEATH RAGDOLLS. A supported NPC killed where this machine owns the
@@ -1053,13 +1140,13 @@ void vr_npc_interaction_death(long index)
     struct npc_state *state,*saved;
     int hands;
     real mobility,units=vr_units_per_metre();
-    short local;
+    short local,species;
     int near=FALSE;
     if(!config_boolean("vr.death_ragdolls") || !vr_active() || !authority() || !(units>0.0f) ||
        state_for_object(index) || !(state=free_state())) return;
     u=(struct unit_datum *)object_try_and_get_and_verify_type(index,_object_mask_biped);
     if(!u || u->unit.player_index!=NONE || !TEST_FLAG(u->object.damage_flags,_object_dead_bit) ||
-       u->object.parent_object_index!=NONE || u->object.name_index!=NONE ||
+       u->object.parent_object_index!=NONE ||
        TEST_FLAG(u->object.flags,_object_movie_star_bit) || TEST_FLAG(u->object.flags,_object_outside_of_map_bit) ||
        !TEST_FLAG(u->object.flags,_object_connected_to_map_bit) || cinematic_in_progress()) return;
     for(local=local_player_get_next(NONE);local!=NONE;local=local_player_get_next(local)) {
@@ -1077,14 +1164,19 @@ void vr_npc_interaction_death(long index)
     saved=npc_current;
     npc_current=state;
     reset_one();
-    if(!interaction_profile(unit_species(u,index),u,index,&hands,&mobility) ||
+    /* Test55: the species is read before this slot claims the body. Test54
+     * read it after (npc.active and npc.index already set), so it found this
+     * slot's own blank species: every corpse was logged as an Elite (0) and a
+     * still-settling Grunt corpse needed two hands to pick up. */
+    species=unit_species(u,index);
+    if(!interaction_profile(species,u,index,&hands,&mobility) ||
        !vr_articulated_native_capture(index,&npc.rig)) {reset_one();npc_current=saved;return;}
     {
         real_vector3d velocity=u->object.translational_velocity;
         int torso=biped_definition_get(u->definition_index)->biped.runtime_pelvis_node_index;
         if(!vr_world_limit(velocity.n,.30f*units))velocity=*global_zero_vector3d;
         npc.active=1;npc.started=1;npc.death=1;npc.index=index;npc.player=NONE;npc.tick=game_time_get();
-        npc.species_type=unit_species(u,index);npc.minimum_hands=hands;npc.mobility=mobility;
+        npc.species_type=species;npc.minimum_hands=hands;npc.mobility=mobility;
         npc.root=u->object.position;npc.settling=1;
         npc.torso_node=torso>=0&&torso<npc.rig.body.count?torso:0;
         {
@@ -1094,11 +1186,34 @@ void vr_npc_interaction_death(long index)
         }
         for(int n=0;n<npc.rig.body.count;++n) for(int k=0;k<3;++k)
             npc.rig.body.nodes[n].previous[k]=npc.rig.body.nodes[n].position[k]-velocity.n[k];
-        npc.was_garbage=TEST_FLAG(u->object.flags,_object_garbage_bit);
-        object_activate(index);object_set_garbage(index,FALSE);
-        npc_begin_root_follow();
-        platform_log("VR NPC: death ragdoll actor=%08lx species=%d nodes=%d speed_mps=%.2f",
-            index,npc.species_type,npc.rig.body.count,(float)(magnitude3d(&velocity)*TICKS_PER_SECOND/units));
+        /* Test55: the killing blow lands where it hit. The joints nearest the
+         * impact take a kick along the shot (falling off over ~35 cm), so a
+         * shot leg buckles, a head shot snaps back and the body turns about
+         * the hit instead of the whole body sliding as one piece. */
+        {
+            real_point3d hit;real_vector3d direction;
+            int hit_node=NONE;
+            if(npc_recent_damage(index,&hit,&direction)) {
+                real kick=2.2f*units/(real)TICKS_PER_SECOND,falloff=.35f*units,nearest=INFINITY;
+                for(int n=0;n<npc.rig.body.count;++n) {
+                    real_vector3d to;real distance;
+                    for(int k=0;k<3;++k) to.n[k]=npc.rig.body.nodes[n].position[k]-hit.n[k];
+                    distance=magnitude3d(&to);
+                    if(distance<nearest){nearest=distance;hit_node=n;}
+                    if(!(distance<2.0f*falloff)) continue;
+                    {
+                        real weight=expf(-(distance*distance)/(falloff*falloff))*kick;
+                        for(int k=0;k<3;++k) npc.rig.body.nodes[n].previous[k]-=direction.n[k]*weight;
+                    }
+                }
+                if(!(nearest<.6f*units)) hit_node=NONE;
+            }
+            npc.was_garbage=TEST_FLAG(u->object.flags,_object_garbage_bit);
+            object_activate(index);object_set_garbage(index,FALSE);
+            npc_begin_root_follow();
+            platform_log("VR NPC: death ragdoll actor=%08lx species=%d nodes=%d speed_mps=%.2f hit_node=%d",
+                index,npc.species_type,npc.rig.body.count,(float)(magnitude3d(&velocity)*TICKS_PER_SECOND/units),hit_node);
+        }
     }
     npc_current=saved;
 #else

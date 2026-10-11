@@ -313,10 +313,15 @@ static void item_adjust_for_angular_velocity_change(
 	return;
 }
 
+/* Test55: script-named objects are allowed. In the stock campaign nearly
+ * every placed vehicle (59 of 61 Shades), most placed bodies and, on some
+ * levels, nearly every weapon and piece of equipment carries a script name,
+ * so refusing names refused most of them. Cutscene-controlled (movie star)
+ * objects stay excluded, as do objects in cinematics or custom animations. */
 struct item_datum *item_vr_grabbable(long index)
 {
     struct item_datum *item = item_try_and_get(index);
-    if (!item || item->object.parent_object_index != NONE || item->object.name_index != NONE ||
+    if (!item || item->object.parent_object_index != NONE ||
         item->object.first_child_object_index != NONE || item->item.detonation_ticks ||
         TEST_FLAG(item->item.flags, _item_attached_to_unit_bit) ||
         TEST_FLAG(item->item.flags, _item_does_not_accelerate_bit) ||

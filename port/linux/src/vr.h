@@ -193,6 +193,10 @@ int vr_manual_reload_action_down(void);
 /* Test54: the body pouch a hand is in (1 hip, 2 shoulder, 0 none), for the
 pouches enabled (vr.reload_pouch_side picks the side) */
 int vr_reload_pouch_zone(int hand, int hip, int shoulder);
+/* Test55: while the menu shows pouch (mask 1) or holster (mask 2) place rows,
+the zones' world centres and radii for the blue calibration markers */
+void vr_calibration_note_shown(int mask);
+int vr_calibration_markers(const float camera[3], float points[][3], float radii[], int capacity);
 /* a hand's (0 left, 1 right) recent peak speed about the room, in metres a
 second, and vr.melee_speed, the speed a blow needs */
 float vr_hand_speed(int hand);

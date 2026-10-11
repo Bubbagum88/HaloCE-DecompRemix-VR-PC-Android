@@ -22,8 +22,11 @@ struct vr_mr_state { int phase, down, pulled, chambered; };
 struct vr_mr_input {
     int valid, held, near_mag, near_pouch, near_chamber, magazine_out,
         chamber_pulled, can_load, explicit_reload, eject_pressed, loose_round, seated, no_chamber,
-        chambered;
+        chambered, grace_press;
 };
+/* Test55: grace_press: Grip was squeezed within the last 0.35 s and is still
+ * held, so a hand that closed just before reaching the slide or charging
+ * handle still takes it. */
 /* Grip is the compatibility default. Unknown/missing config values fail back
  * to grip so a typo cannot leave manual reload without an input. */
 static int vr_mr_input_uses_trigger(char const *source)
@@ -134,7 +137,7 @@ static int vr_mr_step(struct vr_mr_state *s, struct vr_mr_input const *i)
         }
         break;
     case VR_MR_NEED_CHAMBER:
-        if (press && i->near_chamber) {
+        if ((press || (i->grace_press && i->held)) && i->near_chamber) {
             s->phase = VR_MR_CHAMBER_HELD; s->pulled = 0; return VR_MR_CHARGE;
         }
         break;

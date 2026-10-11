@@ -90,6 +90,23 @@ static void apply_collision(long index, struct collision_result const *hit,
         hit->type==_collision_result_object?hit->region_index:NONE,
         hit->type==_collision_result_object?hit->material_index:NONE,&hit->plane.n);
     platform_log("VR impact: object=%08lx target=%08lx owner=%08lx scale=%.3f",index,target,entries[i].owner,scale);
+    /* Test55: a thrown body that hits another body hurts itself too (a Grunt
+     * thrown into an Elite takes the same blow it deals). The struck body is
+     * not the thrown one, so this is the thrown body's only damage from it. */
+    if(target!=index && source->object.type==_object_type_biped &&
+       victim->object.type==_object_type_biped &&
+       !TEST_FLAG(source->object.damage_flags,_object_dead_bit)) {
+        damage_data_new(&damage,definition->unit.melee_damage.index);
+        damage.owner_object_index=entries[i].owner;
+        damage.owner_player_index=owner->unit.player_index;
+        damage.owner_team_index=owner->object.owner_team_index;
+        damage.location=hit->location; damage.origin=hit->point; damage.epicenter=hit->point;
+        damage.direction=*velocity; scale_vector3d(&damage.direction,-1.0f,&damage.direction);
+        normalize3d(&damage.direction); damage.scale=scale;
+        object_cause_damage(&damage,index,NONE,NONE,NONE,&hit->plane.n);
+        platform_log("VR impact: object=%08lx target=%08lx owner=%08lx scale=%.3f (the thrown body itself)",
+            index,index,entries[i].owner,scale);
+    }
 }
 
 void vr_interaction_impact_collision(long object, struct collision_result const *hit,

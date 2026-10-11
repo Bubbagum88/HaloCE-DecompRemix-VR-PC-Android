@@ -198,6 +198,14 @@ struct vr_menu_setting
 	} values[VR_MENU_MAXIMUM_VALUES];
 };
 
+/* a page's screens as named topics (each at most VR_MENU_SETTINGS_PER_SCREEN
+rows); pages without sections are cut into screens of eight */
+struct vr_menu_section
+{
+	char const *label;
+	long count;
+};
+
 /* an effect's setting (vr_graphics.c): as the preset, or on or off */
 #define VR_MENU_EFFECT(label, key) \
 	{ label, key, _vr_setting_string, 3, { { "AUTO", "auto" }, { "ON", "on" }, { "OFF", "off" } } }
@@ -238,7 +246,7 @@ one place (the same setting either way: changing one shows on the other) */
 #define VR_IMMERSION_IMPACT_CAP { "IMPACT CAP", "vr.impact_damage_cap", _vr_setting_real, 4, { { "25%", "0.25" }, { "50%", "0.5" }, { "100%", "1" }, { "150%", "1.5" } } }
 #define VR_IMMERSION_SHAKE_COOLING { "SHAKE COOLING", "vr.cooldown_shake", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_CLOSE_CONTACT { "CLOSE CONTACT", "vr.close_contact", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
-#define VR_IMMERSION_PHYSICAL_HANDLES { "PHYSICAL HANDLES", "vr.vehicle_handles", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_PHYSICAL_HANDLES { "IMMERSIVE VEHICLE", "vr.vehicle_handles", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_FINGERS { "FINGERS", "vr.fingers", _vr_setting_boolean, 2, { { "OFF", "false" }, { "TRACKED", "true" } } }
 #define VR_IMMERSION_ROOM_SCALE { "ROOM-SCALE", "vr.roomscale", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 /* Test54: tuning that changes how the features feel, one row per decision */
@@ -250,6 +258,21 @@ one place (the same setting either way: changing one shows on the other) */
 #define VR_IMMERSION_DEATH_RAGDOLLS { "DEATH RAGDOLLS", "vr.death_ragdolls", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_HAPTICS { "HAPTICS", "vr.haptics", _vr_setting_real, 11, { { "0%", "0.0" }, { "10%", "0.1" }, { "20%", "0.2" }, { "30%", "0.3" }, { "40%", "0.4" }, { "50%", "0.5" }, { "60%", "0.6" }, { "70%", "0.7" }, { "80%", "0.8" }, { "90%", "0.9" }, { "100%", "1.0" } } }
 #define VR_IMMERSION_SPRINT_SPEED { "SPRINT SPEED", "vr.sprint_speed", _vr_setting_real, 6, { { "1.0X", "1.0" }, { "1.1X", "1.1" }, { "1.2X", "1.2" }, { "1.3X", "1.3" }, { "1.4X", "1.4" }, { "1.5X", "1.5" } } }
+/* Test55: calibration: where the pouches and holsters sit (1 cm steps,
++-20 cm; a blue marker shows each zone while these rows are on screen) */
+#define VR_IMMERSION_POUCH_SIZE { "POUCH SIZE", "vr.reload_pouch_size", _vr_setting_real, 5, { { "10 CM", "0.10" }, { "13 CM", "0.13" }, { "16 CM", "0.16" }, { "20 CM", "0.20" }, { "25 CM", "0.25" } } }
+#define VR_IMMERSION_POUCH_HIP_OUT { "MAG HIP OUT", "vr.pouch_hip_out", _vr_setting_centimetres, 0, { { NULL, NULL } } }
+#define VR_IMMERSION_POUCH_HIP_UP { "MAG HIP UP", "vr.pouch_hip_up", _vr_setting_centimetres, 0, { { NULL, NULL } } }
+#define VR_IMMERSION_POUCH_HIP_BACK { "MAG HIP BACK", "vr.pouch_hip_back", _vr_setting_centimetres, 0, { { NULL, NULL } } }
+#define VR_IMMERSION_POUCH_SHOULDER_OUT { "MAG SHD OUT", "vr.pouch_shoulder_out", _vr_setting_centimetres, 0, { { NULL, NULL } } }
+#define VR_IMMERSION_POUCH_SHOULDER_UP { "MAG SHD UP", "vr.pouch_shoulder_up", _vr_setting_centimetres, 0, { { NULL, NULL } } }
+#define VR_IMMERSION_POUCH_SHOULDER_BACK { "MAG SHD BACK", "vr.pouch_shoulder_back", _vr_setting_centimetres, 0, { { NULL, NULL } } }
+#define VR_IMMERSION_HOLSTER_HIP_OUT { "GUN HIP OUT", "vr.holster_hip_out", _vr_setting_centimetres, 0, { { NULL, NULL } } }
+#define VR_IMMERSION_HOLSTER_HIP_UP { "GUN HIP UP", "vr.holster_hip_up", _vr_setting_centimetres, 0, { { NULL, NULL } } }
+#define VR_IMMERSION_HOLSTER_HIP_BACK { "GUN HIP BACK", "vr.holster_hip_back", _vr_setting_centimetres, 0, { { NULL, NULL } } }
+#define VR_IMMERSION_HOLSTER_SHOULDER_OUT { "GUN SHD OUT", "vr.holster_shoulder_out", _vr_setting_centimetres, 0, { { NULL, NULL } } }
+#define VR_IMMERSION_HOLSTER_SHOULDER_UP { "GUN SHD UP", "vr.holster_shoulder_up", _vr_setting_centimetres, 0, { { NULL, NULL } } }
+#define VR_IMMERSION_HOLSTER_SHOULDER_BACK { "GUN SHD BACK", "vr.holster_shoulder_back", _vr_setting_centimetres, 0, { { NULL, NULL } } }
 #define VR_IMMERSION_ARM_EFFORT { "ARM EFFORT", "vr.arm_run_speed", _vr_setting_real, 6, { { "0.3 M/S", "0.3" }, { "0.45", "0.45" }, { "0.6", "0.6" }, { "0.8", "0.8" }, { "1.0", "1.0" }, { "1.2", "1.2" } } }
 
 /* test20d: one row per decision. Rows that only mattered with another
@@ -288,6 +311,19 @@ static struct vr_menu_setting const vr_menu_controls[] =
 	VR_IMMERSION_CUSTOM_NPC_RIGS,
 	VR_IMMERSION_MAG_DEBRIS,
 	VR_IMMERSION_POUCH_SIDE,
+	VR_IMMERSION_POUCH_SIZE,
+	VR_IMMERSION_POUCH_HIP_OUT,
+	VR_IMMERSION_POUCH_HIP_UP,
+	VR_IMMERSION_POUCH_HIP_BACK,
+	VR_IMMERSION_POUCH_SHOULDER_OUT,
+	VR_IMMERSION_POUCH_SHOULDER_UP,
+	VR_IMMERSION_POUCH_SHOULDER_BACK,
+	VR_IMMERSION_HOLSTER_HIP_OUT,
+	VR_IMMERSION_HOLSTER_HIP_UP,
+	VR_IMMERSION_HOLSTER_HIP_BACK,
+	VR_IMMERSION_HOLSTER_SHOULDER_OUT,
+	VR_IMMERSION_HOLSTER_SHOULDER_UP,
+	VR_IMMERSION_HOLSTER_SHOULDER_BACK,
 	{ "AIM", "vr.aim", _vr_setting_string, 2, { { "HAND", "hand" }, { "HEAD", "head" } } },
 	{ "CONTROLS", "vr.controls", _vr_setting_string, 2, { { "VR", "vr" }, { "XBOX", "pad" } } },
 	/* test26: the left stick's click: the reticle's toggle or crouch, as before */
@@ -560,16 +596,45 @@ static struct vr_menu_setting const vr_menu_align_right[] =
 /* Test53: every VR immersion feature on one page (physical weapons and
 melee, manual reload, parkour, world/NPC/vehicle grabbing, bodies, impact
 damage, contact and tracking). The rows stay on their usual pages too. */
-/* Test54: IMMERSION holds the features and the tuning that changes how they
-feel; IMMERSION+ the technical options (pouch places, contact radii, rig
-slots, custom content, rescue, impact limits). Every row is still also on its
-usual page. Turning a feature on turns on what it needs (vr_menu_dependencies). */
+/* Test55: one IMMERSION category, its screens topics (vr_menu_immersion_sections):
+every immersion row once, each also still on its usual page. Turning a
+feature on turns on what it needs (vr_menu_dependencies); optional extras are
+never turned on for the player. */
 static struct vr_menu_setting const vr_menu_immersion[] =
 {
+	/* WEAPONS */
+	VR_IMMERSION_WEAPONS,
+	VR_IMMERSION_HOLSTERS,
+	VR_IMMERSION_HOLSTER_HAPTICS,
+	VR_IMMERSION_MELEE,
+	VR_IMMERSION_MELEE_SPEED,
+	VR_IMMERSION_FIST_REQUIRED,
+	VR_IMMERSION_SHAKE_COOLING,
+	VR_IMMERSION_PHYSICAL_HANDLES,
+	/* RELOAD */
 	VR_IMMERSION_MANUAL_RELOAD,
 	VR_IMMERSION_RELOAD_INPUT,
 	VR_IMMERSION_POUCH_SIDE,
 	VR_IMMERSION_MAG_DEBRIS,
+	VR_IMMERSION_SHOULDER_POUCH,
+	VR_IMMERSION_HIP_POUCH,
+	VR_IMMERSION_POUCH_SIZE,
+	VR_IMMERSION_HAND_CONTACT,
+	/* POUCH PLACES */
+	VR_IMMERSION_POUCH_HIP_OUT,
+	VR_IMMERSION_POUCH_HIP_UP,
+	VR_IMMERSION_POUCH_HIP_BACK,
+	VR_IMMERSION_POUCH_SHOULDER_OUT,
+	VR_IMMERSION_POUCH_SHOULDER_UP,
+	VR_IMMERSION_POUCH_SHOULDER_BACK,
+	/* HOLSTER PLACES */
+	VR_IMMERSION_HOLSTER_HIP_OUT,
+	VR_IMMERSION_HOLSTER_HIP_UP,
+	VR_IMMERSION_HOLSTER_HIP_BACK,
+	VR_IMMERSION_HOLSTER_SHOULDER_OUT,
+	VR_IMMERSION_HOLSTER_SHOULDER_UP,
+	VR_IMMERSION_HOLSTER_SHOULDER_BACK,
+	/* MOVEMENT */
 	VR_IMMERSION_WALLRUN,
 	VR_IMMERSION_WALLJUMP,
 	VR_IMMERSION_GRIP_CLIMB,
@@ -578,6 +643,15 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_WALL_TIME,
 	VR_IMMERSION_WALL_LEAP,
 	VR_IMMERSION_CLIMB_LAUNCH,
+	/* BODY */
+	VR_IMMERSION_ARM_RUN,
+	VR_IMMERSION_ARM_EFFORT,
+	VR_IMMERSION_SPRINT_SPEED,
+	VR_IMMERSION_HAPTICS,
+	VR_IMMERSION_FINGERS,
+	VR_IMMERSION_ROOM_SCALE,
+	VR_IMMERSION_CLOSE_CONTACT,
+	/* GRAB + NPCS */
 	VR_IMMERSION_WORLD_GRAB,
 	VR_IMMERSION_LIFT_VEHICLES,
 	VR_IMMERSION_NPC_GRAB,
@@ -586,35 +660,20 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_THROW_STRENGTH,
 	VR_IMMERSION_DEATH_RAGDOLLS,
 	VR_IMMERSION_BODY_RETENTION,
+	/* ADVANCED */
 	VR_IMMERSION_IMPACT_DAMAGE,
-	VR_IMMERSION_MELEE,
-	VR_IMMERSION_MELEE_SPEED,
-	VR_IMMERSION_FIST_REQUIRED,
-	VR_IMMERSION_WEAPONS,
-	VR_IMMERSION_HOLSTERS,
-	VR_IMMERSION_ARM_RUN,
-	VR_IMMERSION_ARM_EFFORT,
-	VR_IMMERSION_SPRINT_SPEED,
-	VR_IMMERSION_HAPTICS,
-	VR_IMMERSION_FINGERS,
-	VR_IMMERSION_ROOM_SCALE,
-};
-
-static struct vr_menu_setting const vr_menu_immersion_advanced[] =
-{
-	VR_IMMERSION_SHOULDER_POUCH,
-	VR_IMMERSION_HIP_POUCH,
-	VR_IMMERSION_HAND_CONTACT,
-	VR_IMMERSION_HOLSTER_HAPTICS,
+	VR_IMMERSION_IMPACT_SPEED,
+	VR_IMMERSION_IMPACT_CAP,
+	VR_IMMERSION_NPC_RESCUE,
 	VR_IMMERSION_CUSTOM_SCENERY,
 	VR_IMMERSION_CUSTOM_NPC_RIGS,
 	VR_IMMERSION_NPC_RIG_SLOTS,
-	VR_IMMERSION_NPC_RESCUE,
-	VR_IMMERSION_IMPACT_SPEED,
-	VR_IMMERSION_IMPACT_CAP,
-	VR_IMMERSION_SHAKE_COOLING,
-	VR_IMMERSION_CLOSE_CONTACT,
-	VR_IMMERSION_PHYSICAL_HANDLES,
+};
+
+static struct vr_menu_section const vr_menu_immersion_sections[] =
+{
+	{ "WEAPONS", 8 }, { "RELOAD", 8 }, { "POUCH PLACES", 6 }, { "HOLSTER PLACES", 6 },
+	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 8 }, { "ADVANCED", 7 },
 };
 
 
@@ -768,10 +827,12 @@ static struct vr_menu_page
 	char const *label;
 	struct vr_menu_setting const *settings;
 	long count;
+	struct vr_menu_section const *sections;
+	long section_count;
 } const vr_menu_pages[] =
 {
-	{ "IMMERSION", vr_menu_immersion, NUMBEROF(vr_menu_immersion) },
-	{ "IMMERSION+", vr_menu_immersion_advanced, NUMBEROF(vr_menu_immersion_advanced) },
+	{ "IMMERSION", vr_menu_immersion, NUMBEROF(vr_menu_immersion),
+		vr_menu_immersion_sections, NUMBEROF(vr_menu_immersion_sections) },
 	{ "CONTROLS", vr_menu_controls, NUMBEROF(vr_menu_controls) },
 	{ "BUTTONS", vr_menu_buttons, NUMBEROF(vr_menu_buttons) },
 	{ "VOICE CHAT", vr_menu_voice, NUMBEROF(vr_menu_voice) },
@@ -1030,7 +1091,7 @@ static long vr_menu_value_index(
 
 /* ---------- the tags */
 
-struct vr_menu_navigation { long tag, next, total; };
+struct vr_menu_navigation { long tag, next, total; char const *label; };
 
 static struct
 {
@@ -1291,15 +1352,36 @@ static long vr_menu_screen(
 /* Build back-to-front so each NEXT button references an existing screen.
  * The native widget stack makes B return to the preceding page, then the
  * categories. No looping links or unbounded history growth. */
-static long vr_menu_paged(long pause, long list, long resume, long group,
-    long const *buttons, long count, short column_x, short hints_x)
+/* Test55: a page's screens: its sections (topics) when it has them, each
+screen's first row and length; otherwise screens of eight */
+static long vr_menu_screen_count(struct vr_menu_section const *sections, long section_count, long count)
 {
-    long pages = VR_MENU_PAGES(count), next = NONE, sub;
+    return sections && section_count > 0 ? section_count : VR_MENU_PAGES(count);
+}
+
+static long vr_menu_paged(long pause, long list, long resume, long group,
+    long const *buttons, long count, short column_x, short hints_x,
+    struct vr_menu_section const *sections, long section_count)
+{
+    long pages = vr_menu_screen_count(sections, section_count, count), next = NONE, sub;
+    if (sections && section_count > 0) {
+        long total = 0;
+        for (sub = 0; sub < section_count; sub++) {
+            if (sections[sub].count <= 0 || sections[sub].count > VR_MENU_SETTINGS_PER_SCREEN) return NONE;
+            total += sections[sub].count;
+        }
+        if (total != count) return NONE;
+    }
     for (sub = pages - 1; sub >= 0; --sub) {
         long visible[VR_MENU_SETTINGS_PER_SCREEN + 1];
-        long length = MIN(VR_MENU_SETTINGS_PER_SCREEN, count - sub * VR_MENU_SETTINGS_PER_SCREEN);
+        long first = sub * VR_MENU_SETTINGS_PER_SCREEN, length;
         struct vr_menu_event_handler handler;
-        memcpy(visible, buttons + sub * VR_MENU_SETTINGS_PER_SCREEN, length * sizeof(long));
+        if (sections && section_count > 0) {
+            long before;
+            for (first = 0, before = 0; before < sub; before++) first += sections[before].count;
+            length = sections[sub].count;
+        } else length = MIN(VR_MENU_SETTINGS_PER_SCREEN, count - first);
+        memcpy(visible, buttons + first, length * sizeof(long));
         if (next != NONE) {
             long slot = vr_menu.navigation_count;
             if (slot >= vr_menu.navigation_capacity) return NONE;
@@ -1311,6 +1393,7 @@ static long vr_menu_paged(long pause, long list, long resume, long group,
             vr_menu.navigation[slot].tag = visible[length++];
             vr_menu.navigation[slot].next = sub + 2;
             vr_menu.navigation[slot].total = pages;
+            vr_menu.navigation[slot].label = sections && section_count > 0 ? sections[sub + 1].label : NULL;
             vr_menu.navigation_count++;
         }
         next = vr_menu_screen(pause, list,
@@ -1531,7 +1614,8 @@ void vr_menu_tags_loaded(void)
     vr_menu_widget_get(vr_menu.hints_tag_index)->bounds.x1 = 512;
     vr_menu.navigation_capacity = VR_MENU_PAGES(VR_MENU_PAGE_COUNT);
     for (page = 0; page < VR_MENU_PAGE_COUNT; page++)
-        vr_menu.navigation_capacity += VR_MENU_PAGES(vr_menu_pages[page].count);
+        vr_menu.navigation_capacity += vr_menu_screen_count(vr_menu_pages[page].sections,
+            vr_menu_pages[page].section_count, vr_menu_pages[page].count);
     vr_menu.navigation = vr_menu_allocate(vr_menu.navigation_capacity * sizeof(*vr_menu.navigation));
     if (!vr_menu.navigation) return;
     for (page = 0; page < VR_MENU_PAGE_COUNT; page++) {
@@ -1573,7 +1657,8 @@ void vr_menu_tags_loaded(void)
 				return;
 		}
 		vr_menu.page_tag_indices[page] = vr_menu_paged(pause_index, list_index, resume_index,
-            page, vr_menu.setting_tag_indices[page], definition->count, right_column_x, hints_x);
+            page, vr_menu.setting_tag_indices[page], definition->count, right_column_x, hints_x,
+            definition->sections, definition->section_count);
 		if (vr_menu.page_tag_indices[page] == NONE)
 			return;
 	}
@@ -1589,7 +1674,7 @@ void vr_menu_tags_loaded(void)
 			return;
 	}
 	vr_menu.categories_tag_index = vr_menu_paged(pause_index, list_index, resume_index,
-        VR_MENU_PAGE_COUNT, vr_menu.category_tag_indices, VR_MENU_PAGE_COUNT, right_column_x, hints_x);
+        VR_MENU_PAGE_COUNT, vr_menu.category_tag_indices, VR_MENU_PAGE_COUNT, right_column_x, hints_x, NULL, 0);
 	if (vr_menu.categories_tag_index == NONE)
 		return;
 
@@ -1729,8 +1814,12 @@ boolean vr_menu_setting_text(
     }
 	else if (kind == _vr_menu_navigation)
     {
-        snprintf(line, sizeof(line), "NEXT PAGE (%ld/%ld)",
-            vr_menu.navigation[setting_index].next, vr_menu.navigation[setting_index].total);
+        if (vr_menu.navigation[setting_index].label)
+            snprintf(line, sizeof(line), "NEXT: %s (%ld/%ld)", vr_menu.navigation[setting_index].label,
+                vr_menu.navigation[setting_index].next, vr_menu.navigation[setting_index].total);
+        else
+            snprintf(line, sizeof(line), "NEXT PAGE (%ld/%ld)",
+                vr_menu.navigation[setting_index].next, vr_menu.navigation[setting_index].total);
     }
     else if (kind == _vr_menu_category)
 	{
@@ -1740,6 +1829,12 @@ boolean vr_menu_setting_text(
 	{
 		struct vr_menu_setting const *setting = &vr_menu_pages[page].settings[setting_index];
 		long value_index = vr_menu_value_index(setting);
+
+		/* Test55: a pouch or holster place row on screen shows the zones */
+		if (!strncmp(setting->key, "vr.pouch_", 9) || !strcmp(setting->key, "vr.reload_pouch_size"))
+			vr_calibration_note_shown(1);
+		else if (!strncmp(setting->key, "vr.holster_hip_", 15) || !strncmp(setting->key, "vr.holster_shoulder_", 20))
+			vr_calibration_note_shown(2);
 
         if(setting->type == _vr_setting_gun_aim) {
             int kind=vr_gun_class(); char key[64];

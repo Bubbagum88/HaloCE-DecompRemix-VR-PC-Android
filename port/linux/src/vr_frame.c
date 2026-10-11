@@ -997,7 +997,7 @@ void vr_initialize(void)
 		return;
 	vr.initialized = 1;
 	config_vr_vehicle_defaults();
-	platform_log("vr: HaloCE Quest test54 candidate 1.0.21-test54 code66 (OpenCE Build157 base / network26; selected fixes through Build184 including network25 unit lights and network26 signalling; clients 11-26, All compatible by default; voice unchanged from test53; manual reload end to end: the reload button drops the magazine, body pouches, insert on contact, charging only when empty; NPC grabs by body touch with hold and throw strength; death ragdolls; thrown bodies keep their root; climbing on slopes, overhangs and ledges; open hands never strike; IMMERSION+ and feature dependencies; gun parts steady while walking; device acceptance pending)");
+	platform_log("vr: HaloCE Quest test55 candidate 1.0.22-test55 code67 (OpenCE Build157 base / network26; selected fixes through Build184 plus Build188 decal batching; clients 11-26, All compatible by default; voice unchanged; script-named campaign objects grabbable (Shades, vehicles, bodies, weapons, props); busy NPCs grabbable, one-hand restraint and Spartan throws; looser ragdolls with floor friction and hit reactions; magazine grip, charging lock-on; automatic wall running; pouch and holster calibration with markers; one IMMERSION menu with topics; immersive vehicle controls with first-person hands; zoom on the right stick with physical melee; device acceptance pending)");
 	platform_log("vr: retained baseline history: HaloCE Quest test30 candidate 1.0.12 (the menus' face buttons as the Xbox's of the same letter: X deletes a profile; the co-op host's server name; test29: OpenCE build 144 netcode, network 21; the HUD head tap held by the temple, HUD and head tap on the HUD page, wrist HUD on the wrist and movable, moving with a hand while holding the gun in both, glasses FOV and resolution to 200%% (PR #1); test28: co-op games entered in progress keep their camera upright, release checks as OpenCE ships, co-op hosted for 2 to 128 players as OpenCE's Server Setup offers, gyro aim on phones as an option; test27: OpenCE build 138 netcode, network 20, with its co-op for up to 16 players; test26: co-op: death screams no longer stop the second player, cutscene characters placed and animated as on the first; HUD head tap, reticle toggle on the left stick click with crouch on the turning stick held down (or crouch kept on the click: Controls), optional wrist HUD, adjustable head taps; impact melee along the gun with a follow-through; fingers bend smoothly against walls; test25: vehicle seat and recentre diagnostics, first-person horizon option and seat glass, settings rows that fit, vehicle offset reset; test24b: comfort vignette, smooth speed and snap angle, SPV1 compatibility note; test24: co-op cutscenes animate for the second player; test23: remappable Quest buttons with the grenade on X; test22: co-op campaign host crash fixed, steady first-person vehicle view, left-hand ammo display, adjustable scopes, shot diagnostics; test21b: floating hands restored, torso-following arms, neck-pivot full body, auto two-hand lock, horn, online melee off, two-hand gun roll, pistol shots from the hand, reticle converges as shots do, per-gun aim, horn from either stick)");
 	if (!config_boolean("vr.enabled"))
 	{
@@ -1514,6 +1514,23 @@ switch weapons Y, grenade X (a tap throws; held, X switches grenades,
 "hold"), as the Quest always had them but the grenade, which was the grip
 with locked weapons (a locked gun's grip now does nothing but draw at a
 holster). A grenade on the grip throws while it is held, as it used to */
+/* Test55: with physical melee in use the arms strike, and a fist closes
+the off hand's index trigger, which zoomed. Zoom then moves to the right
+stick's click (the melee button's default, which the arms replace) when
+nothing but melee is mapped there; seated (stick clicks sound the horn) and
+with physical melee off, the trigger zooms as before. */
+static int stick_zoom_active(void)
+{
+	int action;
+
+	if (!vr.touch_layout || vr.seated || !physical_melee_allowed())
+		return 0;
+	for (action = 0; action < VR_BUTTON_ACTIONS; action++)
+		if (action != VR_BUTTON_ACTION_MELEE && vr.button_source[action] == VR_BUTTON_SOURCE_RIGHT_STICK)
+			return 0;
+	return 1;
+}
+
 static unsigned int touch_buttons(unsigned int right, unsigned int left, double seconds, int *grenade_down)
 {
 	static const unsigned int pad[VR_BUTTON_ACTIONS] =
@@ -1526,8 +1543,14 @@ static unsigned int touch_buttons(unsigned int right, unsigned int left, double 
 	int hold_switches = vr.button_source[VR_BUTTON_ACTION_SWITCH_GRENADE] == VR_BUTTON_SOURCE_HOLD &&
 		grenade != VR_BUTTON_SOURCE_GRIP;
 
+	int stick_zoom = stick_zoom_active();
+
 	for (action = 0; action < VR_BUTTON_ACTIONS; action++)
 	{
+		/* (Test55: the stick's click zooms instead, stick_zoom_active) */
+		if (stick_zoom && action == VR_BUTTON_ACTION_MELEE &&
+			vr.button_source[action] == VR_BUTTON_SOURCE_RIGHT_STICK)
+			continue;
 		if (action != VR_BUTTON_ACTION_GRENADE && pad[action] &&
 			touch_source_down(vr.button_source[action], right, left))
 			buttons |= pad[action];
@@ -1683,14 +1706,28 @@ static void layout_controls(void)
 		vr.x_hold_switched = 1;
 	}
 	/* the off hand's trigger zooms */
+	/* (Test55: or, with physical melee, the right stick's click:
+	stick_zoom_active) */
 	/* Record only changes in its useful range, including a partial squeeze
 	that never reaches the activation threshold. */
 	{
 		int off_hand = 1 - vr.weapon_hand;
 		float trigger = vr.frame.trigger[off_hand];
-		int state;
+		int state, stick_zoom = stick_zoom_active();
+		static int previous_stick_zoom = -1;
 
-		if (trigger > zoom_on)
+		if (stick_zoom != previous_stick_zoom)
+		{
+			platform_log("vr: zoom on %s", stick_zoom ? "the right stick's click (physical melee uses the arms; a fist no longer zooms)" :
+				"the off hand's index trigger");
+			previous_stick_zoom = stick_zoom;
+		}
+		if (stick_zoom)
+		{
+			vr.zoom_down = touch_source_down(VR_BUTTON_SOURCE_RIGHT_STICK, right, left);
+			trigger = vr.zoom_down ? 1.0f : 0.0f;
+		}
+		else if (trigger > zoom_on)
 			vr.zoom_down = 1;
 		else if (trigger < zoom_off)
 			vr.zoom_down = 0;
@@ -1784,43 +1821,93 @@ magazine at the hip or over the shoulder on its own side (left for a
 right-handed player, mirrored left-handed), or on the side vr.reload_pouch_side
 names ("left", "right", "both"). They are generous volumes so a hand reaching
 without looking finds them. 1 the hip, 2 the shoulder, 0 neither. */
-#define RELOAD_POUCH_RADIUS 0.16f
+/* Test55: the pouches' and holsters' places can be moved (VR Settings,
+IMMERSION: POUCH PLACES / HOLSTER PLACES): metres out from the body's middle,
+up and back from each default (vr.pouch_*, vr.holster_*), and the pouches'
+reach (vr.reload_pouch_size). A side's "out" mirrors with the side, so a
+left-handed player's pouches move the same way on the other side. */
+static float calibration_offset(const char *key)
+{
+	double value = config_real(key);
+
+	return isfinite(value) ? (float)(value < -0.2 ? -0.2 : value > 0.2 ? 0.2 : value) : 0.0f;
+}
+
+static void calibrated_place(const float base[3], const char *prefix, float side, float out[3])
+{
+	char key[64];
+
+	snprintf(key, sizeof(key), "%s_out", prefix);
+	out[0] = (fabsf(base[0]) + calibration_offset(key)) * side;
+	snprintf(key, sizeof(key), "%s_up", prefix);
+	out[1] = base[1] + calibration_offset(key);
+	snprintf(key, sizeof(key), "%s_back", prefix);
+	out[2] = base[2] + calibration_offset(key);
+}
+
+/* a holster's place in the head-heading frame, with its calibration */
+static void holster_place(int index, float out[3])
+{
+	calibrated_place(holster_places[index], index < 2 ? "vr.holster_shoulder" : "vr.holster_hip",
+		holster_places[index][0] < 0.0f ? -1.0f : 1.0f, out);
+}
+
+static float reload_pouch_radius(void)
+{
+	double size = config_real("vr.reload_pouch_size");
+
+	return isfinite(size) ? (float)(size < 0.08 ? 0.08 : size > 0.30 ? 0.30 : size) : 0.16f;
+}
+
+static const float pouch_hip_place[3] = { 0.20f, -0.60f, 0.03f };
+static const float pouch_shoulder_place[3] = { 0.16f, -0.13f, 0.12f };
+
+/* the body sides (-1 left, +1 right) whose pouches serve `hand` */
+static int reload_pouch_sides(int hand, float sides[2])
+{
+	const char *side = config_string("vr.reload_pouch_side");
+	int count = 0;
+
+	if (side && !strcmp(side, "left"))
+		sides[count++] = -1.0f;
+	else if (side && !strcmp(side, "right"))
+		sides[count++] = 1.0f;
+	else if (side && !strcmp(side, "both"))
+	{
+		sides[count++] = -1.0f;
+		sides[count++] = 1.0f;
+	}
+	else
+		sides[count++] = hand == 0 ? -1.0f : 1.0f;
+	return count;
+}
+
+static void reload_pouch_place(int which, float side, float out[3])
+{
+	calibrated_place(which ? pouch_shoulder_place : pouch_hip_place,
+		which ? "vr.pouch_shoulder" : "vr.pouch_hip", side, out);
+}
+
 int vr_reload_pouch_zone(int hand, int hip, int shoulder)
 {
-	static const float hip_place[3] = { 0.20f, -0.60f, 0.03f };
-	static const float shoulder_place[3] = { 0.16f, -0.13f, 0.12f };
-	const char *side = config_string("vr.reload_pouch_side");
 	float sides[2];
-	int side_count = 0, index, zone = 0;
-	float nearest = RELOAD_POUCH_RADIUS;
+	int side_count, index, zone = 0;
+	float nearest = reload_pouch_radius();
 
 	if (!vr.active || hand < 0 || hand > 1 || !(vr.frame.hand_valid[hand] & 1))
 		return 0;
-	if (side && !strcmp(side, "left"))
-		sides[side_count++] = -1.0f;
-	else if (side && !strcmp(side, "right"))
-		sides[side_count++] = 1.0f;
-	else if (side && !strcmp(side, "both"))
-	{
-		sides[side_count++] = -1.0f;
-		sides[side_count++] = 1.0f;
-	}
-	else
-		sides[side_count++] = hand == 0 ? -1.0f : 1.0f;
+	side_count = reload_pouch_sides(hand, sides);
 	for (index = 0; index < side_count; index++)
 	{
 		int which;
 
 		for (which = 0; which < 2; which++)
 		{
-			const float *base = which ? shoulder_place : hip_place;
 			float offset[3], place[3], distance;
 
 			if (which ? !shoulder : !hip)
 				continue;
-			offset[0] = base[0] * sides[index];
-			offset[1] = base[1];
-			offset[2] = base[2];
+			reload_pouch_place(which, sides[index], offset);
 			heading_point(offset, place);
 			distance = distance3(vr.frame.grip[hand].position, place);
 			if (distance < nearest)
@@ -1831,6 +1918,75 @@ int vr_reload_pouch_zone(int hand, int hip, int shoulder)
 		}
 	}
 	return zone;
+}
+
+/* Test55: calibration markers. While a POUCH PLACES / HOLSTER PLACES row is
+on screen (the menu reports it each frame it draws one), the real zones are
+shown as translucent blue spheres: the same places and sizes the pouch and
+holster tests use (vr_reload_pouch_zone, the holster loop), converted to the
+world like a hand. Hidden 0.2 s after the rows leave the screen. */
+static int hand_view(const struct halo_xr_pose *pose, const float extra[3], const float position[3],
+	float out_position[3], float out_forward[3], float out_up[3]);
+static double calibration_until;
+static int calibration_mask;
+
+void vr_calibration_note_shown(int mask)
+{
+	double now = now_ms() * 1e-3;
+
+	if (now > calibration_until)
+		calibration_mask = 0;
+	calibration_mask |= mask;
+	calibration_until = now + 0.2;
+}
+
+static int calibration_marker(const float offset[3], float radius, const float camera[3], float point[3], float *world_radius)
+{
+	struct halo_xr_pose pose;
+	float place[3], forward[3], up[3];
+
+	heading_point(offset, place);
+	memcpy(pose.position, place, sizeof(place));
+	pose.orientation[0] = pose.orientation[1] = pose.orientation[2] = 0.0f;
+	pose.orientation[3] = 1.0f;
+	if (!hand_view(&pose, NULL, camera, point, forward, up))
+		return 0;
+	*world_radius = radius * vr.units_per_metre;
+	return isfinite(point[0]) && isfinite(point[1]) && isfinite(point[2]) && isfinite(*world_radius);
+}
+
+int vr_calibration_markers(const float camera[3], float points[][3], float radii[], int capacity)
+{
+	int count = 0, index;
+
+	if (!vr.active || !camera || now_ms() * 1e-3 > calibration_until || !calibration_mask)
+		return 0;
+	if ((calibration_mask & 1) && config_boolean("vr.manual_reload"))
+	{
+		float sides[2], offset[3];
+		int hip = config_boolean("vr.reload_hip") || !config_boolean("vr.reload_shoulder");
+		int side_count = reload_pouch_sides(1 - vr.weapon_hand, sides);
+
+		for (index = 0; index < side_count; index++)
+			for (int which = 0; which < 2; which++)
+			{
+				if ((which ? !config_boolean("vr.reload_shoulder") : !hip) || count >= capacity)
+					continue;
+				reload_pouch_place(which, sides[index], offset);
+				if (calibration_marker(offset, reload_pouch_radius(), camera, points[count], &radii[count]))
+					count++;
+			}
+	}
+	if ((calibration_mask & 2) && vr.holsters)
+		for (index = 0; index < HOLSTER_COUNT && count < capacity; index++)
+		{
+			float offset[3];
+
+			holster_place(index, offset);
+			if (calibration_marker(offset, vr.holster_size, camera, points[count], &radii[count]))
+				count++;
+		}
+	return count;
 }
 
 /* HUD gesture in head-relative metres: a deliberate hold, followed by a
@@ -2210,7 +2366,10 @@ static void update_gestures(void)
 		{
 			float place[3], distance;
 
-			heading_point(holster_places[index], place);
+			float offset[3];
+
+			holster_place(index, offset);
+			heading_point(offset, place);
 			distance = distance3(vr.frame.grip[w].position, place);
 			if (distance < nearest)
 			{

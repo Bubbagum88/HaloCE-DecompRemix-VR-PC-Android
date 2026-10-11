@@ -103,9 +103,13 @@ static boolean vehicle_lift_type_supported(short type)
 	/* The first integrated subset uses ground-native update families only.
 	 * Boats and powered aircraft use distinct buoyancy/flight solvers and stay
 	 * stock until their hand-force behavior is separately validated. */
+	/* Test55: and the Banshee (alien fighter): parked and unoccupied it
+	 * rests on point physics like the ground vehicles. Pelicans and
+	 * dropships (human plane) are scripted transports and stay stock. */
 	return type == VR_VEHICLE_TYPE_HUMAN_TANK ||
 		type == VR_VEHICLE_TYPE_HUMAN_JEEP ||
 		type == VR_VEHICLE_TYPE_ALIEN_SCOUT ||
+		type == VR_VEHICLE_TYPE_ALIEN_FIGHTER ||
 		type == VR_VEHICLE_TYPE_TURRET;
 }
 
@@ -124,7 +128,6 @@ static struct vehicle_datum *vehicle_lift_get(long index)
 	if (!vehicle_lift_enabled() ||
 		!(vehicle = vehicle_datum_try_and_get(index)) ||
 		vehicle->object.parent_object_index != NONE ||
-		vehicle->object.name_index != NONE ||
 		TEST_FLAG(vehicle->object.damage_flags, _object_dead_bit) ||
 		TEST_FLAG(vehicle->object.flags, _object_movie_star_bit) ||
 		vehicle->unit.driver_object_index != NONE ||
@@ -174,8 +177,9 @@ static struct vehicle_datum *vehicle_lift_get(long index)
 	candidate.occupied = vehicle->unit.driver_object_index != NONE ||
 		vehicle->unit.gunner_object_index != NONE;
 	candidate.destroyed = TEST_FLAG(vehicle->object.damage_flags, _object_dead_bit);
-	candidate.scripted_or_mission_owned = vehicle->object.name_index != NONE ||
-		TEST_FLAG(vehicle->object.flags, _object_movie_star_bit);
+	/* (Test55: a script name alone is not mission ownership: nearly every
+	 * campaign vehicle, Shades included, is named; cutscene control is) */
+	candidate.scripted_or_mission_owned = TEST_FLAG(vehicle->object.flags, _object_movie_star_bit);
 	candidate.mass_point_count = physics->mass_points.count;
 	candidate.powered_mass_point_count = physics->powered_mass_points.count;
 	candidate.native_mass = physics->mass;
@@ -440,11 +444,16 @@ static void release_hand(int hand, boolean throwing, real units,char const *reas
                 }
             } else {
                 /* Test54: the latest hand motion weighted over the average,
-                 * times VR THROW STRENGTH (vr_world_throw_velocity). */
+                 * times VR THROW STRENGTH. Test55: with the same Spartan
+                 * strength as thrown NPCs: light things (a gun, a crate)
+                 * fly far, heavy ones (low mobility) less. */
                 real_vector3d velocity;
                 double strength = config_real("vr.throw_strength");
-                if (vr_world_throw_velocity(held->velocity.n, held->last_change.n,
-                        isfinite(strength) ? (float)strength : 1.0f, (float)units, velocity.n))
+                float mobility = vr_world_object_mobility(held->index);
+                if (vr_world_throw_velocity_spartan(held->velocity.n, held->last_change.n,
+                        isfinite(strength) ? (float)strength : 1.0f,
+                        vr_world_throw_class(isfinite(mobility) && mobility < 0.3f ? 2 : 1, mobility),
+                        (float)units, velocity.n))
                     vr_world_object_velocity(held->index, &velocity, &item->object.angular_velocity);
             }
         }

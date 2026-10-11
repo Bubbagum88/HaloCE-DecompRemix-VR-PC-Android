@@ -54,6 +54,7 @@ static struct {
     unsigned long long component_nodes;
     int bounds_tried, bounds_valid[2];
     int hand_sample_valid, debris_pending, pouch_zone;
+    double grip_press_time;
     struct vr_magazine_debris_transaction debris_transaction;
     real_point3d bounds_min[2], bounds_max[2];
 } reload;
@@ -355,14 +356,15 @@ void vr_manual_reload_debris_render(void)
     }
 }
 
-static boolean reload_hand_touches_part(int part, real_matrix4x3 const *transform, real_point3d const *hand)
+static boolean reload_hand_touches_part(int part, real_matrix4x3 const *transform, real_point3d const *hand,
+    real extra_metres)
 {
     real_point3d local;
     real radius, units=vr_units_per_metre();
     if(part<0 || part>1 || !reload.bounds_valid[part] || !transform || !hand ||
         !reload_matrix_valid(transform) || !(units>0.0f))return FALSE;
     double configured_contact=config_real("vr.interaction_reach");
-    radius=(real)(isfinite(configured_contact)?PIN(configured_contact,0.02,0.08):0.04)*units;
+    radius=((real)(isfinite(configured_contact)?PIN(configured_contact,0.02,0.08):0.04)+extra_metres)*units;
     matrix4x3_inverse_transform_point(transform,hand,&local);
     return vr_reload_sphere_touches_box(local.n,reload.bounds_min[part].n,
         reload.bounds_max[part].n,radius/transform->scale);
@@ -421,7 +423,7 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     long unit_index = NONE;
     real units = vr_units_per_metre();
     real_point3d camera, hand, weapon_hand;
-    real_vector3d forward, up;
+    real_vector3d forward, up, gun_forward, gun_up;
     real_matrix4x3 hand_matrix, inverse;
     struct weapon_datum *weapon;
     struct weapon_definition *definition;
@@ -499,7 +501,7 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     }
     unit_get_camera_position(unit_index, &camera);
     reload.camera=camera;
-    if (!vr_hand_world(vr_weapon_hand(), camera.n, weapon_hand.n, forward.n, up.n) ||
+    if (!vr_hand_world(vr_weapon_hand(), camera.n, weapon_hand.n, gun_forward.n, gun_up.n) ||
         !vr_hand_world(hand_index, camera.n, hand.n, forward.n, up.n)) {
         vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
     }
@@ -531,16 +533,21 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
          TEST_FLAG(weapon->weapon.control_flags, _weapon_control_secondary_trigger_bit))) input.can_load = FALSE;
     /* Pickup begins only when the free hand's contact sphere overlaps the
      * authored magazine bounds. A center-to-socket reach radius is not touch. */
-    input.near_mag = reload_hand_touches_part(0,&reload.socket,&hand);
+    input.near_mag = reload_hand_touches_part(0,&reload.socket,&hand,0.015f); /* Test55: 1.5 cm more forgiving */
     if (reload.state.phase == VR_MR_NEW_HELD) {
         real alignment = dot_product3d(&reload.held.forward, &reload.socket.forward);
         real up_alignment = dot_product3d(&reload.held.up, &reload.socket.up);
         /* Test54: a hand-held magazine finds the well within 1.5 cm and
          * 50 degrees, then locks itself home (SEATING blends the rest). */
-        input.near_mag = reload_component_bounds_touch(&reload.socket,&reload.held,0.015f*units) &&
-            alignment > (reload.aligned ? 0.55f : 0.64f) && up_alignment > (reload.aligned ? 0.55f : 0.64f);
+        /* Test55: forgiving but deliberate: within 3 cm of the well and about
+         * 63 degrees (66 once aligned) of its direction, then it locks home */
+        input.near_mag = reload_component_bounds_touch(&reload.socket,&reload.held,0.03f*units) &&
+            alignment > (reload.aligned ? 0.40f : 0.45f) && up_alignment > (reload.aligned ? 0.40f : 0.45f);
     }
-    input.near_chamber = reload_hand_touches_part(1,&reload.charge,&hand);
+    /* Test55: the slide / charging handle locks on from 4 cm further away
+     * once it is the next step (or while held) */
+    input.near_chamber = reload_hand_touches_part(1,&reload.charge,&hand,
+        reload.state.phase == VR_MR_NEED_CHAMBER || reload.state.phase == VR_MR_CHAMBER_HELD ? 0.04f : 0.0f);
     {
         /* Test54: the pouches are body volumes in the head-heading frame
          * (vr_reload_pouch_zone), on the free hand's side by default. With
@@ -556,6 +563,9 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         reload.pouch_zone = zone;
     }
     grip_pressed = input.held && !reload.state.down;
+    if (grip_pressed) reload.grip_press_time = vr_pose_time();
+    input.grace_press = reload.state.phase == VR_MR_NEED_CHAMBER && input.held && !grip_pressed &&
+        vr_pose_time() - reload.grip_press_time <= 0.35 && vr_pose_time() >= reload.grip_press_time;
     {
 		int diagnostic_state = (input.held ? 1 : 0) | (input.near_mag ? 2 : 0) |
 			(input.near_pouch ? 4 : 0) | (input.near_chamber ? 8 : 0) |
@@ -656,8 +666,31 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
              * follows the hand through a captured relative transform. This
              * must also replace an old magazine's prior hand offset after
              * direct pull-out. */
-            real_matrix4x3 attached = reload.socket;
+            real_matrix4x3 attached = reload.socket, gun_matrix;
             attached.position = hand;
+            /* Test55: held as it sits in the gun: the magazine keeps the same
+             * relation to the free hand that it has to the gun hand, with its
+             * body centred in the palm (the fingers close around it:
+             * vr_render.c), instead of the socket's world angle at the palm. */
+            matrix4x3_from_point_and_vectors(&gun_matrix, &weapon_hand, &gun_forward, &gun_up);
+            if (reload_matrix_valid(&gun_matrix)) {
+                real_matrix4x3 gun_inverse, relative, grip;
+                matrix4x3_inverse(&gun_matrix, &gun_inverse);
+                matrix4x3_multiply(&gun_inverse, &reload.socket, &relative);
+                matrix4x3_multiply(&hand_matrix, &relative, &grip);
+                if (reload_matrix_valid(&grip)) {
+                    if (reload.bounds_valid[0]) {
+                        real_point3d middle, world_middle;
+                        for (int axis = 0; axis < 3; ++axis)
+                            middle.n[axis] = (reload.bounds_min[0].n[axis] + reload.bounds_max[0].n[axis]) * 0.5f;
+                        matrix4x3_transform_point(&grip, &middle, &world_middle);
+                        if (valid_real_point3d(&world_middle))
+                            for (int part_axis = 0; part_axis < 3; ++part_axis)
+                                grip.position.n[part_axis] += hand.n[part_axis] - world_middle.n[part_axis];
+                    }
+                    attached = grip;
+                }
+            }
             if (!reload_attach_to_hand(&hand_matrix, &attached)) {
                 reload_log_gate(weapon_index, "replacement-attachment-invalid");
                 vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;

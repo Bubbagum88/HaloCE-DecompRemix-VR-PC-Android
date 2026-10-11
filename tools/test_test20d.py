@@ -357,6 +357,7 @@ static void platform_log(const char *f, ...){(void)f;}
 static int physical_weapons(void){return vr.physical;}
 static void host_xr_recenter(void){recentres++;}
 static void vr_haptic(int h,float a,float s){(void)h;(void)a;(void)s;buzzes++;}
+static int stick_zoom_active(void){return 0;} /* Test55: physical melee off in these frames: the trigger zooms */
 '''
 # test23: the Quest's buttons come from the remappable table, at its defaults here
 run('mirror', common + '#include <string.h>\n#include "port/android/include/halo_android_abi.h"\n' + button_names + host +
