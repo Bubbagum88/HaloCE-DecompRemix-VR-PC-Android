@@ -1,3 +1,120 @@
+# Test55 private candidate: 1.0.22-test55
+
+## Test55: polish: grabbing everything, vehicles, calibration and one immersion menu
+
+This private test build follows Test54 and was shaped by your Test54 play
+session, the Blood Gulch vehicle test, and your messages. It installs over
+Test54, Test53 and v1.0.19 (same package names and signing key, Android version
+code 67) and keeps your settings, profiles, saves and imported game data. Voice
+chat, multiplayer and co-op, OpenCE compatibility, aiming, scopes, holsters,
+sprint, button remapping, left-handed play and the launcher are unchanged.
+
+### Why so many things could not be grabbed
+
+The stock campaign gives most placed objects a script name, and the grab code
+refused anything with one. Reading your own USA Xbox disc showed how much that
+excluded. 59 of the 61 Shade turrets carry a name, as do nearly all Ghosts,
+Warthogs, Banshees, Wraiths and Scorpions, most placed bodies (88 of 95 on
+343 Guilty Spark) and, on Assault on the Control Room, 201 of 203 pieces of
+equipment and 43 of 45 weapons. Named things can now be grabbed and lifted:
+**Shades**, vehicles, bodies, weapons, equipment and scenery. Things a
+cutscene is controlling still can't. **LIFT VEHICLES** now also takes the
+Banshee. Pelicans and dropships stay as they are, because they're scripted
+transports.
+
+### NPCs
+
+- Elites, Marines and anyone mid-shot, mid-reload, diving or meleeing can be
+  grabbed. Before, about two in three NPCs nearby were refused for being
+  "busy".
+- One hand on an Elite or Hunter holds it back and drags it (no lifting), and
+  you feel its weight. Two hands lift it. Letting go with one hand keeps it
+  in the other.
+- Throws have Spartan strength. Light NPCs fly farthest, heavy ones less, up
+  to about 24 m/s. A thrown body hitting something hard is hurt by the impact,
+  as is what it hits, scaled by speed. Thrown bodies stay where they land.
+
+### Ragdolls
+
+Bodies are less stiff and puppet-like, because heads, hands and feet now
+rotate with their limbs. They grip the floor instead of sliding. A killed NPC
+is pushed from where the shot hit it.
+
+### Manual reload
+
+- A magazine from a pouch sits in your hand the way it sits in the gun, centred
+  in your palm, with your fingers closed around it.
+- Inserting is more forgiving: about 3 cm and a wider angle. Grabbing the old
+  magazine is 1.5 cm more forgiving too.
+- The slide and charging handle lock on from 4 cm further away. A squeeze up to
+  a third of a second before your hand arrives still catches it.
+
+### Calibrating pouches and holsters
+
+IMMERSION → **POUCH PLACES** and **HOLSTER PLACES** move the magazine pouches
+and the holsters: out from your body, up and back, in 1 cm steps. While those
+rows are on screen, a translucent blue ball shows each real zone, exactly
+where and how big it triggers. It hides when you leave the rows. Left-handed,
+the pouches mirror to your other side. **POUCH SIZE** sets how big the pouches
+are.
+
+### Wall running
+
+Wall running is more automatic:
+
+- it finds walls you meet at an angle, and holds you lightly to the wall;
+- it carries you along at least 4 m/s (times WALL SPEED, up to 9 m/s), even if
+  you ease off the stick;
+- it keeps you level for most of WALL TIME before you start to fall;
+- you can chain wall to wall: after a wall jump, a new wall within two seconds
+  starts a new run.
+
+The wall jump still goes where you look.
+
+### Vehicles: IMMERSIVE VEHICLE
+
+The **IMMERSIVE VEHICLE** toggle (formerly PHYSICAL HANDLES) gives you first-person
+driving controls:
+
+- **Warthog:** grab its own steering wheel anywhere on the rim. No extra wheel
+  is drawn.
+- **Ghost:** a handlebar with grips.
+- **Scorpion:** two control sticks.
+- **Banshee:** a yoke. Push it to dive, pull it to climb.
+- While it's on, the controls own the steering (the controller's aim no longer
+  fights them), and they return to centre when you let go.
+- Your own first-person hands, with finger poses, hold them.
+
+### Zoom with physical melee
+
+Making a fist with your off hand used to zoom, because a fist pulls the index
+trigger. With physical melee in use, zoom moves to the **right stick** click,
+which used to be melee. The arms do the meleeing now. This only happens if
+nothing else is mapped to that click, and you're on foot. Otherwise the trigger
+still zooms.
+
+### One IMMERSION menu
+
+IMMERSION and IMMERSION+ are one category now. Its screens are topics, and the
+NEXT button names the next one: WEAPONS, RELOAD, POUCH PLACES, HOLSTER PLACES,
+MOVEMENT, BODY, GRAB + NPCS, ADVANCED. Turning a feature on still turns on what
+it needs, and never anything optional.
+
+### Performance in big fights (OpenCE Build 188)
+
+Your Test54 log shows draws per frame climbing from about 600 to over 3,000
+during a long fight (the frame rate fell from 72 to 45), and dropping back
+after a revert. That's bullet holes and blood decals building up, each drawn
+separately in both eyes. OpenCE Build 188 draws them in batches, and that
+change is included here. OpenCE Builds 185 to 188 made no network change, so
+Build 188 servers are joined as before.
+
+These changes are checked on a PC (automated checks and builds), not yet in the
+headset. Please test with **CONTACT LOG** on and keep the log from
+Download/HaloCE: [Test55 device checks](TEST55-DEVICE-CHECKLIST.md).
+
+---
+
 # Test54 private candidate: 1.0.21-test54
 
 ## Test54: manual reload, grabbing, climbing and ragdolls refined
