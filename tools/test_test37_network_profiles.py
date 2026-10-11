@@ -22,15 +22,15 @@ def function(source, name):
 
 
 limits = read("port/linux/include/halo_port_limits.h")
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 24$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 26$", limits, re.M)
 assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MINIMUM 11$", limits, re.M)
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MAXIMUM 24$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MAXIMUM 26$", limits, re.M)
 assert re.search(r"^#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15$", limits, re.M)
 assert re.search(r"^#define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23$", limits, re.M)
 assert "int halo_port_active_network_version(void);" in limits
 
 config = read("port/linux/src/port_config.c")
-assert '{ "network.protocol_version", _config_integer, "24"' in config
+assert '{ "network.protocol_version", _config_integer, "0"' in config  # Test53: All compatible by default
 assert "pthread_mutex_lock(&active_network_version_lock)" in config
 assert "active_network_version_initialized" in config
 assert "configured == 0" in function(config, "network_protocol_version_resolve")
@@ -106,9 +106,9 @@ fixture = r'''#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define HALO_PORT_NETWORK_VERSION 24
+#define HALO_PORT_NETWORK_VERSION 26
 #define HALO_PORT_NETWORK_VERSION_MINIMUM 11
-#define HALO_PORT_NETWORK_VERSION_MAXIMUM 24
+#define HALO_PORT_NETWORK_VERSION_MAXIMUM 26
 #define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15
 #define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23
 #define HALO_PORT_ADVERTISED_DISTRIBUTED_FLAG 0x01
@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
     assert(halo_port_active_network_version() == expected_target);
     assert(logs == startup_logs); /* selected client target is immutable until restart */
 
-    for (long version = 0; version <= 26; version++) {
+    for (long version = 0; version <= 28; version++) {
         int expected = version >= HALO_PORT_NETWORK_VERSION_MINIMUM && version <= HALO_PORT_NETWORK_VERSION_MAXIMUM &&
             (expected_target == 0 || version == expected_target);
         assert(listing_version_matches_target((int)version) == expected);
@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
     assert(!listing_version_matches_target(0xCE01));
     assert(!network_protocol_target_allows_version(0, 0));
     assert(!network_protocol_target_allows_version(25, 24));
-    for (long bad = -1; bad <= 26; bad++) {
+    for (long bad = -1; bad <= 28; bad++) {
         int supported = bad == 0 || (bad >= HALO_PORT_NETWORK_VERSION_MINIMUM && bad <= HALO_PORT_NETWORK_VERSION_MAXIMUM);
         assert(network_protocol_version_resolve(bad) == (supported ? bad : HALO_PORT_NETWORK_VERSION));
     }
@@ -270,7 +270,7 @@ int main(int argc, char **argv) {
     snprintf(update.map.name,sizeof(update.map.name),"custom_maps\\test");
     for(int remote=12;remote<=24;remote++)assert(network_game_client_settings_version_compatible(remote,&update)==(remote>=23));
     legacy_consent=0;
-    puts("PASS: config cache, host-24 advertising, PvP 11..24, campaign15+/CE23+ admission and post-join transition guard with fresh host-version capture");
+    puts("PASS: config cache, host-26 advertising, PvP 11..26, campaign15+/CE23+ admission and post-join transition guard with fresh host-version capture");
 }
 '''
 
@@ -283,4 +283,4 @@ subprocess.run(["clang", "-std=gnu11", "-O1", "-Wall", "-Wextra", "-Wno-unused-f
 for target in [0, *range(11, 25), -1, 10, 25, 65535]:
     subprocess.run([str(binary), str(target)], check=True)
 
-print("PASS: native discovery and admission use client target selection while the host remains protocol 24")
+print("PASS: native discovery and admission use client target selection while the host remains protocol 26")

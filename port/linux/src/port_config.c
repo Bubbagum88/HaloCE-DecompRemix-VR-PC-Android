@@ -379,14 +379,14 @@ static const struct config_setting config_settings[] =
 		"Hosting: proximity voice range in world units (5 to 100)." },
     { "network.legacy_coop", _config_boolean, "false", "HALO_NET_LEGACY_COOP", _environment_value, _platform_all,
         "Opt in to legacy network12-14 campaign clients. Old hosts omit scripted team allegiance; marine reticles/team behavior may be wrong.\n"
-        "Uses old native presentation behavior without invented allegiance. Prefer network15-24. Hosting stays24." },
-	{ "network.protocol_version", _config_integer, "24", "HALO_NETWORK_PROTOCOL_VERSION", _environment_value,
+        "Uses old native presentation behavior without invented allegiance. Prefer network15-26. Hosting stays26." },
+	{ "network.protocol_version", _config_integer, "0", "HALO_NETWORK_PROTOCOL_VERSION", _environment_value,
 		_platform_all,
-		"Client protocol target: 0 lists/joins all compatible PvP versions 11-24;\n"
-		"11-24 selects one exact server version. This build always hosts as 24.\n"
-		"Campaign needs15+, or consented legacy12-14; Custom Edition needs23+. This\n"
-		"is read once when the game starts; restart after changing it. Invalid\n"
-		"values fall back to the default, 24." },
+		"Client protocol target: 0 (the default) lists/joins all compatible PvP\n"
+		"versions 11-26; 11-26 selects one exact server version. This build always\n"
+		"hosts as 26. Campaign needs15+, or consented legacy12-14; Custom Edition\n"
+		"needs23+. This is read once when the game starts; restart after changing\n"
+		"it. Invalid values fall back to the build's own version, 26." },
 	{ "network.join_from_clipboard", _config_boolean, "true", "HALO_NET_JOIN_FROM_CLIPBOARD", _environment_value,
 		_platform_all,
 		"Join the game of an invite link found on the clipboard when the game\n"

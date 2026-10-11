@@ -5,20 +5,22 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 
-/** Compatible host targets, selected between game processes. Hosting stays on current protocol 24. */
+/** Compatible host targets, selected between game processes. Hosting stays on current protocol 26.
+ * All compatible networks is the default (most servers); a selection the player made is kept. */
 final class NetworkProfile {
-    static final int DEFAULT = 24;
-    static final int[] SUPPORTED = {24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11};
+    static final int DEFAULT = 0;
+    static final int CURRENT = 26;
+    static final int[] SUPPORTED = {26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11};
     private static volatile int runningVersion;
     private static volatile boolean gameRunning;
 
     // Native exit ends the process. Never clear this on pause/backgrounding.
     static void gameStarted(File root) { runningVersion = configured(root); gameRunning = true; }
 
-    static boolean supported(int version) { return version == 0 || (version >= 11 && version <= 24); }
+    static boolean supported(int version) { return version == 0 || (version >= 11 && version <= CURRENT); }
     static String label(int version) { return version == 0 ? "All compatible networks" : "Network v" + version; }
     static int minimum(int target) { return target == 0 ? 11 : target; }
-    static int maximum(int target) { return target == 0 ? 24 : target; }
+    static int maximum(int target) { return target == 0 ? CURRENT : target; }
 
     static int selected(Context context) {
         int version = context.getSharedPreferences("network_profile", Context.MODE_PRIVATE)
@@ -28,7 +30,7 @@ final class NetworkProfile {
 
     static int configured(File root) {
         try {
-            int version = Integer.parseInt(ConfigSettings.read(root, "network", "protocol_version", "24"));
+            int version = Integer.parseInt(ConfigSettings.read(root, "network", "protocol_version", Integer.toString(DEFAULT)));
             return supported(version) ? version : DEFAULT;
         } catch (NumberFormatException e) { return DEFAULT; }
     }
@@ -47,15 +49,15 @@ final class NetworkProfile {
     static final String LEGACY_WARNING = "Legacy network 12-14 co-op is optional and OFF by default. "
         + "These old hosts do not send scripted team allegiance: Marines may show hostile/red reticles and other team behavior can differ. "
         + "The client preserves the old native behavior rather than inventing host allegiance. Other old-host bugs remain. "
-        + "Prefer network 15-24 for campaign. Network 11 has no campaign co-op. Custom Edition still requires 23 or 24. "
-        + "Enhanced physical interactions stay disabled unless the host and all peers negotiate support. Hosting remains network 24.";
+        + "Prefer network 15-26 for campaign. Network 11 has no campaign co-op. Custom Edition still requires 23 or newer. "
+        + "Enhanced physical interactions stay disabled unless the host and all peers negotiate support. Hosting remains network 26.";
 
     static boolean legacyCoop(File root) {
         return "true".equalsIgnoreCase(ConfigSettings.read(root, "network", "legacy_coop", "false"));
     }
 
     static boolean campaignCompatible(int version, boolean legacy) {
-        return version >= 15 && version <= 24 || legacy && version >= 12 && version <= 14;
+        return version >= 15 && version <= CURRENT || legacy && version >= 12 && version <= 14;
     }
 
     static void setLegacyCoop(File root, boolean enabled) throws IOException {

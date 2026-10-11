@@ -132,7 +132,7 @@ final class ServerBrowser {
         text(content, "Choose a network above, then join a server or return to Play. Network changes apply on the next game launch. Counts are directory reports and may lag.");
         button(content, "Network & joining help", () -> LauncherHelp.page(activity, "Network & joining help",
             "The selector ranks networks by reported player population. Select an available profile to change which host versions the native game discovers and can join on its next launch. "
-            + "All compatible networks searches every supported host version. Original Xbox-map PvP supports networks 11–24; campaign co-op supports 15–24; Custom Edition requires 23 or 24. Older hosts retain their original gameplay limitations. Hosting always uses current network 24.\n\n"
+            + "All compatible networks searches every supported host version. Original Xbox-map PvP supports networks 11–26; campaign co-op supports 15–26; Custom Edition requires 23 or newer. Older hosts retain their original gameplay limitations. Hosting always uses current network 26.\n\n"
             + NetworkProfile.LEGACY_WARNING + "\n\n"
             + "A directory Join passes the host's invite to the game. Open Multiplayer > Join Game > LAN and choose that host once the connection appears. "
             + "Direct Link also accepts invites. Public in-game listings are under Multiplayer > Join Game > Server Browser.\n\n"
@@ -339,7 +339,7 @@ final class ServerBrowser {
     private void selectNetwork() {
         List<NetworkPopulation> populations = networkPopulations();
         String[] choices = new String[populations.size() + 1];
-        choices[0] = "All compatible networks (11–24) · " + (directoryLoaded ? compatibleReportedPlayers() + " reported players" : "population unavailable");
+        choices[0] = "All compatible networks (11–26) · " + (directoryLoaded ? compatibleReportedPlayers() + " reported players" : "population unavailable");
         int checked = selectedNetworkVersion == 0 ? 0 : -1;
         for (int i = 0; i < populations.size(); i++) {
             NetworkPopulation population = populations.get(i);
@@ -361,7 +361,7 @@ final class ServerBrowser {
                         LauncherHelp.page(activity, "Network unavailable", e.getMessage());
                         return;
                     }
-                    status.setText(NetworkProfile.label(version) + " selected for the next launch. Return to Play or join a listed server. Hosting remains on network 24.");
+                    status.setText(NetworkProfile.label(version) + " selected for the next launch. Return to Play or join a listed server. Hosting remains on network 26.");
                 selectedNetworkVersion = version;
                 visibleListings = 50;
                 render();
@@ -410,9 +410,9 @@ final class ServerBrowser {
         });
         String blocked = old ? "This co-op game is from this app 1.0.8 or older, whose co-op this version no longer "
             + "plays (it plays co-op as OpenCE does). Ask the host to update to " + BuildConfig.VERSION_NAME + " or later."
-            : entry.customEdition && entry.version > 0 && entry.version < 23 ? "Custom Edition maps require a network 23 or 24 host."
+            : entry.customEdition && entry.version > 0 && entry.version < 23 ? "Custom Edition maps require a network 23 or newer host."
             : campaign && entry.version == 11 ? "Network 11 predates OpenCE campaign co-op. Ask the host to update."
-            : campaign && entry.version >= 12 && entry.version <= 14 && !NetworkProfile.legacyCoop(gameRoot()) ? "Legacy co-op is disabled. Read the Legacy co-op 12-14 warning above and explicitly enable it; network 15-24 is recommended."
+            : campaign && entry.version >= 12 && entry.version <= 14 && !NetworkProfile.legacyCoop(gameRoot()) ? "Legacy co-op is disabled. Read the Legacy co-op 12-14 warning above and explicitly enable it; network 15-26 is recommended."
             : !compatible ? "Protocol mismatch: this host uses " + networkLabel(entry.version) + ". "
             + (NetworkProfile.supported(entry.version) ? "Choose it in the Network selector above, then join."
                 : "This app has no implementation for that version. Disc revision cannot change the network protocol.")

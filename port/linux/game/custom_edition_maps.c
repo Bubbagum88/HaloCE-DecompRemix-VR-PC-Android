@@ -28,6 +28,8 @@ are read only from the same active set as the map, never a desktop install.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <xtl.h>
 
 /* ---------- constants */
 
@@ -376,10 +378,9 @@ static void custom_edition_maps_look_for(
 	void)
 {
 	struct custom_edition_maps_globals *globals = &custom_edition_maps_globals;
-	struct file_reference directory;
-	struct file_reference file;
-	char name[MAXIMUM_FILENAME_LENGTH + 1];
-	char extension[MAXIMUM_FILENAME_LENGTH + 1];
+	char pattern[MAXIMUM_FILENAME_LENGTH + 1];
+	WIN32_FIND_DATAA data;
+	HANDLE find;
 
 	custom_edition_maps_forget();
 	globals->looked_for = TRUE;
@@ -389,13 +390,34 @@ static void custom_edition_maps_look_for(
 
 	/* The managed active set remains the sole source. Do not add upstream's
 	custom_maps or desktop install folders behind the launcher's selection. */
-	file_reference_create_from_path(&directory, cache_files_map_directory(), TRUE);
-	find_files_start(0, &directory);
-	while (find_files_next(&file, NULL))
+	/* (OpenCE a845bbf5, Build184) Listed through a handle of its own, never
+	with find_files_start and find_files_next: those keep their place in one
+	global, and as the game starts a thread of the menus' deletes the files
+	of folders with them (ui_widget.c's file system checks,
+	directory_create_or_delete_contents). A listing here at the same time
+	took that one's place, and the thread then deleted this folder's files:
+	the active set's maps. */
+	csprintf(pattern, "%s*.*", cache_files_map_directory());
+	find = FindFirstFileA(pattern, &data);
+	if (find != INVALID_HANDLE_VALUE)
 	{
-		file_reference_get_name(&file, FLAG(_name_filename_bit), name);
-		file_reference_get_name(&file, FLAG(_name_extension_bit), extension);
-		custom_edition_map_add(name, extension);
+		do
+		{
+			char name[sizeof(data.cFileName) + 1];
+			char *extension;
+
+			if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+				continue;
+			csmemcpy(name, data.cFileName, sizeof(data.cFileName));
+			name[sizeof(data.cFileName)] = 0;
+			extension = strrchr(name, '.');
+			if (extension)
+			{
+				*extension++ = 0;
+				custom_edition_map_add(name, extension);
+			}
+		} while (FindNextFileA(find, &data));
+		CloseHandle(find);
 	}
 	qsort(globals->maps, globals->map_count, sizeof(globals->maps[0]), custom_edition_map_compare);
 	qsort(globals->campaigns, globals->campaign_count, sizeof(globals->campaigns[0]), custom_edition_map_compare);

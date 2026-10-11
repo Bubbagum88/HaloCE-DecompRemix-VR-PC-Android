@@ -23,7 +23,7 @@ def function(source, name):
 
 # Preserve the released Build 148 fixes while the candidate moves to Build 157.
 limits = read("port/linux/include/halo_port_limits.h")
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 24$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 26$", limits, re.M)
 gradle = read("port/android/app/build.gradle")
 assert ("versionCode Math.max(64, buildNumber)" in gradle or
         "versionCode Math.max(63, buildNumber)" in gradle or

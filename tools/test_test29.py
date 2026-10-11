@@ -52,9 +52,9 @@ updater = read('port/android/app/src/main/java/com/halo/decomp/Updater.java')
 
 # --- 1. OpenCE's network version 21, exactly; its co-op, lobby and message files byte for byte
 network = int(re.search(r'#define HALO_PORT_NETWORK_VERSION (\d+)\b', limits).group(1))
-assert network == 24
+assert network == 26
 assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MINIMUM 11\b', limits)
-assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MAXIMUM 24\b', limits)
+assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MAXIMUM 26\b', limits)
 assert re.search(r'#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15\b', limits)
 assert re.search(r'#define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23\b', limits)
 UPSTREAM_144 = [

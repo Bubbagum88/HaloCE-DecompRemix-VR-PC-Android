@@ -3178,10 +3178,10 @@ static boolean network_protocol_target_allows_version(unsigned int target, unsig
 joins the first open game the client's search has found, as picking it in
 the system link list does (network_game_join_game_from_server_list) */
 /* whether this client can join the advertised game: its host's network
-version matches the selected client target (or is anywhere in 11..24 when
+version matches the selected client target (or is anywhere in 11..26 when
 target is zero), and it plays distributed netcode. Campaign joins require15
 (the full presentation/allegiance record), Custom Edition maps require23. This build itself always
-hosts as version 24. Incompatible hosts are rejected before joining. */
+hosts as version 26. Incompatible hosts are rejected before joining. */
 boolean network_game_client_advertised_game_compatible(
 	struct network_game_client *client,
 	struct network_advertised_game const *game,

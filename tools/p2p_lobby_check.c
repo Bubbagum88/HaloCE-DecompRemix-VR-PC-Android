@@ -350,7 +350,7 @@ int main(void)
 	crypto_checks();
 	lobby_checks();
 	check(discovery_logs > 0 && !discovery_too_frequent, "discovery logs are bounded to one per ten seconds");
-	check(strstr(discovery_text, "discovery target=24") && strstr(discovery_text, "local_host=24") &&
+	check(strstr(discovery_text, "discovery target=26") && strstr(discovery_text, "local_host=26") &&
 		strstr(discovery_text, "broker_ready=1") && strstr(discovery_text, "version_rejected=1 "),
 		"discovery distinguishes the selected target, local host version, broker status and version filtering");
 	check(!strstr(discovery_text, "halo://") && !strstr(discovery_text, "hunter2"),

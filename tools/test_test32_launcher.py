@@ -254,7 +254,7 @@ class GuideCheck { public static void main(String[] args) {
             assert text in pages[2], text
         for text in ['Direct Link', 'PASTE LINK', 'ENTER LINK', 'PASSWORDS', 'does not ask', 'Saved invites', 'not automatically imported']:
             assert text in pages[3], text
-        assert 'network 24' in pages[4] and '11–24' in pages[4] and 'original Xbox-map PvP only' in pages[4]
+        assert 'network 26' in pages[4] and '11–26' in pages[4] and 'original Xbox-map PvP only' in pages[4]
         for text in ['ISO/revision', 'Versions & updates', 'no relay', 'Download/HaloCE', 'discord.gg/S9uSCKxKx', '@MeWhenINameMyself']:
             assert text in pages[4], text
 

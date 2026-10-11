@@ -232,8 +232,12 @@ int main(void){
 ''')
 
 # --- the menu: every combined row identifies what it wrote, and shows the defaults
-# (test24b: Turning is one macro, on Controls; read as the row it is)
-menu_rows = re.sub(r'#define VR_MENU_TURNING_ROW (\{.*\})\n', r'\1,\n', menu)
+# (test24b: Turning is one macro, on Controls; Test53's immersion rows are
+# macros used on their pages and on IMMERSION: each read as the row it is)
+row_macros = dict(re.findall(r'^#define (VR_(?:MENU|IMMERSION)_\w+) (\{.*\})$', menu, re.M))
+menu = re.sub(r'^#define VR_(?:MENU|IMMERSION)_\w+ \{.*\}\n', '', menu, flags=re.M)
+menu = re.sub(r'\b(VR_(?:MENU|IMMERSION)_\w+)\b', lambda m: row_macros.get(m.group(1), m.group(1)), menu)
+menu_rows = menu
 rows = re.findall(r'\{ "([A-Z +\-]+)", "[\w.]+", _vr_setting_multi, (\d+), \{ (.*?) \} \},', menu_rows)
 assert {r[0] for r in rows} >= {'TURNING', 'WEAPONS', 'HOLSTERS', 'HANDS', 'MELEE', 'NPC RIG SLOTS'}, rows
 locomotion = menu[menu.index('vr_menu_locomotion[]'):menu.index('static struct vr_menu_page')]
@@ -279,8 +283,7 @@ assert multi_options['MANUAL RELOAD'] == [
     ('OFF', 'vr.manual_reload=false;vr.dropped_magazines=false'),
     ('ON', 'vr.manual_reload=true')]
 assert '"NPC RIG SLOTS"' in menu and '"WORLD GRAB"' in menu and '"NPC GRAB"' in menu
-pages = menu[menu.index('#define VR_MENU_TURNING_ROW'):].split('\n')[0] + '\n' + \
-    ''.join(block(menu, f'static struct vr_menu_setting const {name}[] =', '};')
+pages = ''.join(block(menu, f'static struct vr_menu_setting const {name}[] =', '};')
                 for name in ('vr_menu_controls', 'vr_menu_body', 'vr_menu_vr', 'vr_menu_hands'))
 cfg = ',\n'.join('{"%s",%d,"%s"}' % (k, {'_config_boolean': 0, '_config_integer': 1, '_config_real': 2}.get(v[0], 3), v[1])
                  for k, v in table.items())

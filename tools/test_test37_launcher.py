@@ -65,17 +65,17 @@ class ProfileCheck {
   Files.writeString(new File(root,"config.toml").toPath(),"[vr]\nbody = 2\n[network]\nonline = true\n");
   check(!NetworkProfile.legacyCoop(root));
   NetworkProfile.setLegacyCoop(root,true);check(NetworkProfile.legacyCoop(root));
-  for(int v=0;v<=25;v++)check(NetworkProfile.campaignCompatible(v,true)==(v>=12&&v<=24));
+  for(int v=0;v<=27;v++)check(NetworkProfile.campaignCompatible(v,true)==(v>=12&&v<=26));
   NetworkProfile.setLegacyCoop(root,false);check(!NetworkProfile.legacyCoop(root));
-  check(NetworkProfile.selected(app)==24);
-  NetworkProfile.prepare(app,root); check(NetworkProfile.configured(root)==24);
+  check(NetworkProfile.selected(app)==0);
+  NetworkProfile.prepare(app,root); check(NetworkProfile.configured(root)==0);
   NetworkProfile.select(app,root,23); check(NetworkProfile.selected(app)==23);
   check(NetworkProfile.configured(root)==23);
   NetworkProfile.prepare(app,other); check(NetworkProfile.configured(other)==23);
   check(ConfigSettings.read(root,"vr","body","").equals("2"));
   check(ConfigSettings.read(root,"network","online","").equals("true"));
   String before=ConfigSettings.contents(root);
-  for(int bad:new int[]{1,5,10,25,65535,-1}) {
+  for(int bad:new int[]{1,5,10,27,65535,-1}) {
    try {NetworkProfile.select(app,root,bad);throw new AssertionError();}catch(IOException expected){}
    check(ConfigSettings.contents(root).equals(before));
   }
@@ -85,20 +85,21 @@ class ProfileCheck {
   NetworkProfile.prepare(app,root);check(NetworkProfile.configured(root)==23);
   app.prefs.fail=false;
   NetworkProfile.select(app,root,24);check(NetworkProfile.selected(app)==24);
-  app.prefs.data.put("version",10);check(NetworkProfile.selected(app)==24);
+  NetworkProfile.select(app,root,26);check(NetworkProfile.selected(app)==26);
+  app.prefs.data.put("version",10);check(NetworkProfile.selected(app)==0);
   ConfigSettings.write(root,"network",Collections.singletonMap("protocol_version","10"));
-  check(NetworkProfile.configured(root)==24);
-  NetworkProfile.prepare(app,root);check(ConfigSettings.read(root,"network","protocol_version","").equals("24"));
+  check(NetworkProfile.configured(root)==0);
+  NetworkProfile.prepare(app,root);check(ConfigSettings.read(root,"network","protocol_version","").equals("0"));
   File invalid=new File(root,"not-a-directory");Files.writeString(invalid.toPath(),"keep");
   try {NetworkProfile.select(app,invalid,23);throw new AssertionError();}catch(IOException expected){}
-  check(NetworkProfile.selected(app)==24);
+  check(NetworkProfile.selected(app)==0);
   for(int version:NetworkProfile.SUPPORTED){NetworkProfile.select(app,root,version);check(NetworkProfile.configured(root)==version);}
   NetworkProfile.select(app,root,0);check(NetworkProfile.selected(app)==0);
   NetworkProfile.gameStarted(root);
   try {NetworkProfile.setLegacyCoop(root,true);throw new AssertionError();}catch(IOException expected){}
   try {NetworkProfile.select(app,root,23);throw new AssertionError();}catch(IOException expected){}
   NetworkProfile.prepare(app,root);check(NetworkProfile.configured(root)==0);
-  System.out.println("PASS: all14 targets and auto persistence, per-data handoff, live-game switch blocked, invalid versions, write failures and config preservation");
+  System.out.println("PASS: all 16 targets (default All compatible) and persistence, per-data handoff, live-game switch blocked, invalid versions, write failures and config preservation");
  }
 }'''
     }
@@ -132,7 +133,7 @@ class PopulationCheck {
   check(rows.size()==2 && rows.get(0).players==10 && rows.get(1).players==4);
   b.selectedNetworkVersion=0;check(b.filteredDirectory().size()==5);
   check(b.compatibleReportedPlayers()==44);
-  b.directory.add(new Entry(25,9));check(b.totalReportedPlayers()==53 && b.compatibleReportedPlayers()==44);
+  b.directory.add(new Entry(27,9));check(b.totalReportedPlayers()==53 && b.compatibleReportedPlayers()==44);
   b.directory.get(1).customEdition=true;check(b.compatibleReportedPlayers()==36);
   b.campaign=true;check(b.compatibleReportedPlayers()==28);
   b.directory.add(new Entry(14,7));check(b.compatibleReportedPlayers()==28);

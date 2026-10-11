@@ -46,7 +46,7 @@ assert "if (event == VR_MR_PICKUP)" in reload_source
 assert "attached.position = hand;" in reload_source
 assert "reload_attach_to_hand(&hand_matrix, &attached)" in reload_source
 assert "replacement-attachment-invalid" in reload_source
-assert "VR manual reload gate: weapon=%ld reason=%s" in reload_source
+assert "VR manual reload gate: weapon=%08lx reason=%s" in reload_source
 assert "hand=(%.3f,%.3f,%.3f) magazine=(%.3f,%.3f,%.3f)" in reload_source
 assert "return vr_mr_output_flags(suppress_native, input.valid, reload.state.phase, event," in reload_source
 assert "if (explicit_reload || !input.valid)" not in reload_source
