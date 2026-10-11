@@ -655,7 +655,9 @@ void vr_world_interaction_tick(void)
         }
         mobility=vr_world_object_mobility(held->index);
         vr_interaction_impact_track(held->index,unit,mobility,units);
-        if (!vr_world_spring(error.n,item->object.translational_velocity.n,mobility,count,units,global_gravity,velocity.n)) {
+        /* Test56: LIFT STRENGTH (vr_world_lift_strength) */
+        if (!vr_world_spring_strength(error.n,item->object.translational_velocity.n,mobility,count,units,global_gravity,
+                vr_world_lift_strength((float)config_real("vr.npc_hold_strength")),velocity.n)) {
 			if(!held->strain_logged)platform_log("VR world: constraint paused hand=%d object=%08lx reason=invalid-physics-state grip=held",
 				hand,held->index);
 			held->strain_logged=TRUE;continue;

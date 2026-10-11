@@ -64,6 +64,15 @@ static inline int vr_world_spring_strength(float const error[3], float const cur
     for (i = 0; i < 3; ++i) out[i] = current[i] + delta[i];
     return vr_world_limit(out, units * 0.20f * fminf(strength, 1.75f));
 }
+/* Test56: LIFT STRENGTH (vr.npc_hold_strength, the NPC hold's 0.75..2.5 with
+ * SPARTAN 1.5 its default) for props, turrets and vehicles: relative to that
+ * default, so the default holds them exactly as before (strength 1) and IRON
+ * lifts heavy things (a Shade, a Ghost) more readily. */
+static inline float vr_world_lift_strength(float setting)
+{
+    if (!isfinite(setting)) return 1.0f;
+    return fmaxf(0.75f, fminf(2.5f, fmaxf(0.75f, fminf(2.5f, setting)) / 1.5f));
+}
 /* Test54: a release velocity weighted to the latest hand motion (an average
  * alone lags a flick's peak), scaled by VR THROW STRENGTH and capped. */
 static inline int vr_world_throw_velocity(float const average[3], float const latest[3],

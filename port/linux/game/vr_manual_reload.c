@@ -546,8 +546,13 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     }
     /* Test55: the slide / charging handle locks on from 4 cm further away
      * once it is the next step (or while held) */
-    input.near_chamber = reload_hand_touches_part(1,&reload.charge,&hand,
-        reload.state.phase == VR_MR_NEED_CHAMBER || reload.state.phase == VR_MR_CHAMBER_HELD ? 0.04f : 0.0f);
+    {
+        /* Test56: CHARGE GRAB (vr.charge_grab_radius, 4 cm as Test55's lock-on) */
+        double charge_reach = config_real("vr.charge_grab_radius");
+        input.near_chamber = reload_hand_touches_part(1,&reload.charge,&hand,
+            reload.state.phase == VR_MR_NEED_CHAMBER || reload.state.phase == VR_MR_CHAMBER_HELD ?
+            (real)(isfinite(charge_reach) ? PIN(charge_reach, 0.02, 0.10) : 0.04) : 0.0f);
+    }
     {
         /* Test54: the pouches are body volumes in the head-heading frame
          * (vr_reload_pouch_zone), on the free hand's side by default. With

@@ -66,6 +66,22 @@ assert "vr_world_throw_peak((float const (*)[3])held->history" in world
 collision = body(impact, "static void apply_collision(")
 assert collision.index("impact_shove(target,victim,velocity,entries[i].mobility,units);") < collision.index("object_cause_damage(&damage,target,")
 
+# Heavy holds: the "heavy hold one hand" line only on a real let-go (it
+# repeated ~100 times a test), the weight felt in the remaining hand, both
+# hands buzz when the second takes a heavy body up.
+release_body = body(npc, "static void release(")
+assert "if(was_held && npc.active && npc.started && npc.held[1-hand] && npc.held[0]+npc.held[1]<npc.minimum_hands) {" in release_body
+assert "if(!npc.is_remote) vr_haptic(1-hand,.45f,.08f);" in release_body
+assert "if(!use_remote && npc.minimum_hands>1) {vr_haptic(0,.5f,.05f);vr_haptic(1,.5f,.05f);}" in npc
+# LIFT (was NPC HOLD; same key) also for props, turrets and vehicles, relative
+# to its 1.5 default so props are held as before by default
+assert '{ "LIFT", "vr.npc_hold_strength",' in menu
+assert 'vr_world_lift_strength((float)config_real("vr.npc_hold_strength"))' in world
+# CHARGE GRAB: the charging handle's extra reach, 4 cm (Test55) by default
+reload_source = read("port/linux/game/vr_manual_reload.c")
+assert '{ "vr.charge_grab_radius", _config_real, "0.04",' in config and '"CHARGE GRAB", "vr.charge_grab_radius"' in menu
+assert 'config_real("vr.charge_grab_radius")' in reload_source
+
 # Immersive vehicles (only with IMMERSIVE VEHICLE on: every path goes through
 # vr_vehicle_handles_enabled, which reads vr.vehicle_handles).
 handles = read("port/linux/game/vr_vehicle_handles.h")
@@ -153,7 +169,9 @@ int main(void)
   { float bad[1][3] = {{NAN, 0, 0}}; assert(!vr_world_throw_peak((float const (*)[3])bad, 1, peak)); }
   assert(!vr_world_throw_peak((float const (*)[3])history, 0, peak));
  }
- puts("PASS: Test56 throws at the hand's release peak");
+ /* LIFT for props: the default (1.5) holds them as before (1), IRON lifts harder */
+ assert(fabsf(vr_world_lift_strength(1.5f) - 1.0f) < 1e-6f && vr_world_lift_strength(2.5f) > 1.6f && vr_world_lift_strength(0.75f) == 0.75f && vr_world_lift_strength(NAN) == 1.0f);
+ puts("PASS: Test56 throws at the hand's release peak; LIFT for props");
  return 0;
 }
 '''
@@ -164,4 +182,4 @@ with tempfile.TemporaryDirectory(prefix="test56-") as temp:
                     "-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-I", str(ROOT),
                     str(path / "check.c"), "-o", str(path / "check"), "-lm"], check=True)
     subprocess.run([str(path / "check")], check=True)
-print("PASS: Test56 wiring (shot-reactive death kicks; NPC recovery within 1 s; THROW 2X, release peak, impact shove; immersive vehicles steer the right way from the drawn pose, Warthog wheel node, steering apart from head aiming, grip pose)")
+print("PASS: Test56 wiring (shot-reactive death kicks; NPC recovery within 1 s; THROW 2X, release peak, impact shove; heavy-hold log once and haptics; LIFT for props; CHARGE GRAB; immersive vehicles steer the right way from the drawn pose, Warthog wheel node, steering apart from head aiming, grip pose)")

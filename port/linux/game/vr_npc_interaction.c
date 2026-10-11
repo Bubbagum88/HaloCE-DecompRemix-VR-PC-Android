@@ -564,9 +564,14 @@ static void release(int hand,int throwing,char const *reason)
      * one hand still restrains and drags it but can no longer lift it
      * (vr_npc_interaction_velocity, the palette's sinking pin). Test54 let go
      * of both, which read as the grab failing. */
-    if(npc.active && npc.started && npc.held[1-hand] && npc.held[0]+npc.held[1]<npc.minimum_hands)
+    /* Test56: only when this hand really let go (release() also runs every
+     * tick for a hand that holds nothing: the log repeated 100 times). The
+     * hand still holding feels the weight come onto it. */
+    if(was_held && npc.active && npc.started && npc.held[1-hand] && npc.held[0]+npc.held[1]<npc.minimum_hands) {
         platform_log("VR NPC: heavy hold one hand actor=%08lx hand=%d grip=held reason=one-hand-drag (no lift)",
             npc.index,1-hand);
+        if(!npc.is_remote) vr_haptic(1-hand,.45f,.08f);
+    }
     npc.strain_logged[hand]=0;
     if(npc.active && !npc.held[0] && !npc.held[1] && !npc.recovery) {
         if(!npc.started) {cancel_one();return;}
@@ -872,6 +877,9 @@ static void tick_player(int use_remote,long player)
 					npc.started=1;
 					platform_log("VR NPC: hold constraint started actor=%08lx species=%d hands=%d remote=%d",
 						it.index,npc.species_type,npc.held[0]+npc.held[1],use_remote);
+					/* Test56: a heavy body taken up by the second hand: both
+					 * hands feel it come off the ground */
+					if(!use_remote && npc.minimum_hands>1) {vr_haptic(0,.5f,.05f);vr_haptic(1,.5f,.05f);}
 				}
                 {
                     real_matrix4x3 inverse;

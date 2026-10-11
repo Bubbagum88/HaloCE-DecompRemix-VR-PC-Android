@@ -15,7 +15,7 @@ assert "model=%ld magazine=%d chamber=%d" in reload_source
 assert "bounds_log_initialized=TRUE" in reload_source
 assert 'config_string("vr.reload_input")' in reload_source
 assert 'reload_hand_touches_part(0,&reload.socket,&hand,0.015f)' in reload_source
-assert 'reload_hand_touches_part(1,&reload.charge,&hand,' in reload_source and 'VR_MR_CHAMBER_HELD ? 0.04f : 0.0f' in reload_source
+assert 'reload_hand_touches_part(1,&reload.charge,&hand,' in reload_source and 'PIN(charge_reach, 0.02, 0.10) : 0.04) : 0.0f' in reload_source  # Test56: CHARGE GRAB, default 4 cm
 assert 'vr_reload_pouch_zone(hand_index, hip_enabled, config_boolean("vr.reload_shoulder"))' in reload_source
 assert "int vr_reload_pouch_zone(int hand, int hip, int shoulder)" in input_source
 assert "heading_point(offset, place);" in input_source[input_source.index("int vr_reload_pouch_zone"):]

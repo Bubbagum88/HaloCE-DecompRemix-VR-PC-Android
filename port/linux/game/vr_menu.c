@@ -255,13 +255,18 @@ one place (the same setting either way: changing one shows on the other) */
 #define VR_IMMERSION_POUCH_SIDE { "MAG POUCH SIDE", "vr.reload_pouch_side", _vr_setting_string, 4, { { "AUTO", "auto" }, { "LEFT", "left" }, { "RIGHT", "right" }, { "BOTH", "both" } } }
 #define VR_IMMERSION_CLIMB_GRAB { "CLIMB GRAB", "vr.climb_grab_radius", _vr_setting_real, 5, { { "6 CM", "0.06" }, { "10 CM", "0.10" }, { "14 CM", "0.14" }, { "18 CM", "0.18" }, { "20 CM", "0.20" } } }
 #define VR_IMMERSION_NPC_GRAB_ASSIST { "GRAB ASSIST", "vr.npc_grab_assist", _vr_setting_real, 4, { { "TOUCH", "0" }, { "5 CM", "0.05" }, { "10 CM", "0.10" }, { "15 CM", "0.15" } } }
-#define VR_IMMERSION_NPC_HOLD { "NPC HOLD", "vr.npc_hold_strength", _vr_setting_real, 4, { { "LIGHT", "0.75" }, { "NORMAL", "1.0" }, { "SPARTAN", "1.5" }, { "IRON", "2.5" } } }
+/* Test56: NPC HOLD became LIFT (strength): the same setting (and saved key),
+now for everything a hand lifts (NPCs, props, turrets, vehicles) */
+#define VR_IMMERSION_NPC_HOLD { "LIFT", "vr.npc_hold_strength", _vr_setting_real, 4, { { "LIGHT", "0.75" }, { "NORMAL", "1.0" }, { "SPARTAN", "1.5" }, { "IRON", "2.5" } } }
 #define VR_IMMERSION_THROW_STRENGTH { "THROW", "vr.throw_strength", _vr_setting_real, 5, { { "0.75X", "0.75" }, { "1X", "1.0" }, { "1.25X", "1.25" }, { "1.5X", "1.5" }, { "2X", "2.0" } } }
 #define VR_IMMERSION_DEATH_RAGDOLLS { "DEATH RAGDOLLS", "vr.death_ragdolls", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_HAPTICS { "HAPTICS", "vr.haptics", _vr_setting_real, 11, { { "0%", "0.0" }, { "10%", "0.1" }, { "20%", "0.2" }, { "30%", "0.3" }, { "40%", "0.4" }, { "50%", "0.5" }, { "60%", "0.6" }, { "70%", "0.7" }, { "80%", "0.8" }, { "90%", "0.9" }, { "100%", "1.0" } } }
 #define VR_IMMERSION_SPRINT_SPEED { "SPRINT SPEED", "vr.sprint_speed", _vr_setting_real, 6, { { "1.0X", "1.0" }, { "1.1X", "1.1" }, { "1.2X", "1.2" }, { "1.3X", "1.3" }, { "1.4X", "1.4" }, { "1.5X", "1.5" } } }
 /* Test55: calibration: where the pouches and holsters sit (1 cm steps,
 +-20 cm; a blue marker shows each zone while these rows are on screen) */
+/* Test56: how far past HAND CONTACT a hand still takes a charging handle or
+slide (every weapon; 4 cm was Test55's fixed lock-on) */
+#define VR_IMMERSION_CHARGE_GRAB { "CHARGE GRAB", "vr.charge_grab_radius", _vr_setting_real, 5, { { "2 CM", "0.02" }, { "4 CM", "0.04" }, { "6 CM", "0.06" }, { "8 CM", "0.08" }, { "10 CM", "0.10" } } }
 #define VR_IMMERSION_POUCH_SIZE { "POUCH SIZE", "vr.reload_pouch_size", _vr_setting_real, 5, { { "10 CM", "0.10" }, { "13 CM", "0.13" }, { "16 CM", "0.16" }, { "20 CM", "0.20" }, { "25 CM", "0.25" } } }
 #define VR_IMMERSION_POUCH_HIP_OUT { "MAG HIP OUT", "vr.pouch_hip_out", _vr_setting_centimetres, 0, { { NULL, NULL } } }
 #define VR_IMMERSION_POUCH_HIP_UP { "MAG HIP UP", "vr.pouch_hip_up", _vr_setting_centimetres, 0, { { NULL, NULL } } }
@@ -314,6 +319,7 @@ static struct vr_menu_setting const vr_menu_controls[] =
 	VR_IMMERSION_CUSTOM_NPC_RIGS,
 	VR_IMMERSION_MAG_DEBRIS,
 	VR_IMMERSION_POUCH_SIDE,
+	VR_IMMERSION_CHARGE_GRAB,
 	VR_IMMERSION_POUCH_SIZE,
 	VR_IMMERSION_POUCH_HIP_OUT,
 	VR_IMMERSION_POUCH_HIP_UP,
@@ -621,9 +627,10 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_MAG_DEBRIS,
 	VR_IMMERSION_SHOULDER_POUCH,
 	VR_IMMERSION_HIP_POUCH,
-	VR_IMMERSION_POUCH_SIZE,
+	VR_IMMERSION_CHARGE_GRAB,
 	VR_IMMERSION_HAND_CONTACT,
 	/* POUCH PLACES */
+	VR_IMMERSION_POUCH_SIZE,
 	VR_IMMERSION_POUCH_HIP_OUT,
 	VR_IMMERSION_POUCH_HIP_UP,
 	VR_IMMERSION_POUCH_HIP_BACK,
@@ -676,7 +683,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
-	{ "WEAPONS", 8 }, { "RELOAD", 8 }, { "POUCH PLACES", 6 }, { "HOLSTER PLACES", 6 },
+	{ "WEAPONS", 8 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
 	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 8 }, { "ADVANCED", 8 },
 };
 

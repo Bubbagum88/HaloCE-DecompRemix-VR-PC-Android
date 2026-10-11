@@ -70,7 +70,7 @@ assert "friction" in read("port/linux/game/vr_articulated_native.h")
 # Manual reload: grip pose, forgiving insertion, charging lock-on and grace.
 assert "matrix4x3_multiply(&gun_inverse, &reload.socket, &relative);" in reload
 assert "reload_component_bounds_touch(&reload.socket,&reload.held,0.03f*units)" in reload
-assert "VR_MR_CHAMBER_HELD ? 0.04f : 0.0f" in reload
+assert "PIN(charge_reach, 0.02, 0.10) : 0.04) : 0.0f" in reload  # Test56: CHARGE GRAB
 assert "vr_pose_time() - reload.grip_press_time <= 0.35" in reload
 assert "(press || (i->grace_press && i->held)) && i->near_chamber" in reload_math
 assert "owner == VR_INTERACTION_RELOAD || owner == VR_INTERACTION_VEHICLE" in render
