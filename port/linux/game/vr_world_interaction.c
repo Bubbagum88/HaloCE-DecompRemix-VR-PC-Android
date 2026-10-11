@@ -40,7 +40,7 @@ static struct world_hand {
     boolean active, sample_valid, strain_logged;
     long index;
     real_point3d local_grab, previous, point;
-    real_vector3d velocity, local_forward, local_up, forward, up;
+    real_vector3d velocity, last_change, local_forward, local_up, forward, up;
 } hands[2];
 static long last_tick = NONE, last_unit = NONE;
 static int previous_grip[2] = {1,1};
@@ -439,8 +439,12 @@ static void release_hand(int hand, boolean throwing, real units,char const *reas
                         (float)magnitude3d(&angular));
                 }
             } else {
-                real_vector3d velocity = held->velocity;
-                if (vr_world_limit(velocity.n, units * 0.24f))
+                /* Test54: the latest hand motion weighted over the average,
+                 * times VR THROW STRENGTH (vr_world_throw_velocity). */
+                real_vector3d velocity;
+                double strength = config_real("vr.throw_strength");
+                if (vr_world_throw_velocity(held->velocity.n, held->last_change.n,
+                        isfinite(strength) ? (float)strength : 1.0f, (float)units, velocity.n))
                     vr_world_object_velocity(held->index, &velocity, &item->object.angular_velocity);
             }
         }
@@ -555,7 +559,10 @@ void vr_world_interaction_tick(void)
 				if(!held->strain_logged)platform_log("VR world: hand sample rebased hand=%d object=%08lx grip=%d held=%d movement_m=%.3f",
 					hand,held->active?held->index:NONE,grip,held->active,(float)magnitude3d(&change)/(float)units);
 				held->strain_logged=TRUE;
-			} else for (n=0;n<3;++n) held->velocity.n[n] = held->velocity.n[n]*0.55f + change.n[n]*0.45f;
+			} else {
+				held->last_change = change;
+				for (n=0;n<3;++n) held->velocity.n[n] = held->velocity.n[n]*0.55f + change.n[n]*0.45f;
+			}
         }
         if(held->active) {
 			int limited=0;

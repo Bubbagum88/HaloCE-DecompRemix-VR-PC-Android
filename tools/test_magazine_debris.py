@@ -44,7 +44,7 @@ int main(void) {
        the ejected clone is provisional until native ammo commits. */
     {
         struct vr_mr_state reload={.phase=VR_MR_NEED_MAG};
-        struct vr_mr_input cancel={.valid=1,.held=1,.explicit_reload=1};
+        struct vr_mr_input cancel={.valid=0,.held=1}; /* Test54: Reload no longer cancels; a weapon switch or tracking loss does */
         struct vr_magazine_debris_transaction tx;
         int drops[2]={0,0}, provisional[2]={0,0};
         vr_magazine_debris_transaction_init(&tx);
@@ -93,7 +93,7 @@ renderer = (ROOT / "source/render/render_objects.c").read_text()
 state = (ROOT / "source/saved games/game_state.c").read_text()
 spawn = reload[reload.index("static void debris_spawn_from_reload"):reload.index("void vr_manual_reload_debris_tick")]
 tick = reload[reload.index("void vr_manual_reload_debris_tick"):reload.index("void vr_manual_reload_debris_render")]
-render = reload[reload.index("void vr_manual_reload_debris_render"):reload.index("static boolean reload_near")]
+render = reload[reload.index("void vr_manual_reload_debris_render"):reload.index("static boolean reload_hand_touches_part")]
 map_init = objects[objects.index("void objects_initialize_for_new_map"):objects.index("void objects_dispose_from_old_map")]
 map_dispose = objects[objects.index("void objects_dispose_from_old_map"):objects.index("void objects_dispose(")]
 before_load = state[state.index("static void game_state_call_before_load_procs"):state.index("static void game_state_call_after_load_procs")]

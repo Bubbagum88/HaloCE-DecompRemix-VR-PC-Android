@@ -66,6 +66,16 @@ int vr_articulated_native_capture(long unit_index,struct vr_articulated_native *
         result.joint_flags[n]=tag->flags;result.joint_axis[n]=tag->base_vector;result.joint_range[n]=tag->range;
         result.captured[n]=matrices[n];
     }
+    /* Test54: mass by what each joint carries. The pelvis and spine (with the
+     * most joints below them) are heavy, hands and feet light, so a thrown or
+     * shot body swings about its torso instead of every joint weighing the
+     * same as a fingertip. Pins still override any mass. */
+    {
+        int below[VR_ARTICULATED_NODES];
+        memset(below,0,sizeof(below));
+        for(n=result.body.count-1;n>0;--n) below[result.body.nodes[n].parent]+=below[n]+1;
+        for(n=0;n<result.body.count;++n) result.body.nodes[n].inverse_mass=1.0f/(1.0f+0.35f*(real)below[n]);
+    }
     *rig=result;
     return TRUE;
 }

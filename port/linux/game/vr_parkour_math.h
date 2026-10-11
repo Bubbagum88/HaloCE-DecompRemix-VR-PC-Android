@@ -26,4 +26,16 @@ static int vr_pk_vertical(float const normal[3])
     float length=normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2];
     return isfinite(length)&&length>0.9f&&length<1.1f&&fabsf(normal[2])<0.35f;
 }
+/* Test54: what a free hand may grip to climb: walls, rock faces steeper than
+ * about 40 degrees, overhangs and ceilings, and any surface (a ledge's top)
+ * at or above the waist. The floor under the feet is never a hold. */
+static inline int vr_pk_climbable(float const normal[3], int above_waist)
+{
+    float length=normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2];
+    if(!(isfinite(length)&&length>0.9f&&length<1.1f))return 0;
+    return normal[2]<0.75f||above_waist;
+}
+/* A grip squeezed just before the hand meets the surface still takes hold
+ * within this many ticks (a reaching hand closes as it arrives). */
+#define VR_PK_GRIP_GRACE_TICKS 6
 #endif

@@ -64,7 +64,7 @@ enum {_actor_elite,_actor_jackal,_actor_grunt,_actor_hunter,_actor_engineer,_act
 enum {_race_player=1,_race_human=2,_race_covenant=4,_race_floodcombat=8,_race_floodcarrier=16,_race_floodinfection=32,_race_sentinel=64};
 enum {_actor_definition_flying_bit=21,_actor_definition_swarm_actor_bit=26,_biped_flying_bit=2};
 enum {_game_connection_local=0};static int connection;static int game_connection(void){return connection;}
-static struct npc_state {int active,recovery,settling,minimum_hands,started,is_remote,getting_up,species_type,was_garbage,settle_stuck_logged,recovery_blocked_logged;float mobility;long index,tick,player;int held[2],edge[2],node[2],strain_logged[2];real_vector3d target[2],offset[2],root_anchor[2],velocity[2];struct{struct vr_articulated_body body;real_matrix4x3 captured[64];}rig;} npc_pool[NPC_POOL_SIZE],*npc_current=&npc_pool[0];
+static struct npc_state {int active,recovery,settling,minimum_hands,started,is_remote,getting_up,species_type,was_garbage,settle_stuck_logged,recovery_blocked_logged,torso_node,death,root_follow;float mobility;long index,tick,player;int held[2],edge[2],node[2],strain_logged[2];real_vector3d target[2],offset[2],root_anchor[2],velocity[2],root_offset,last_delta[2];struct{struct vr_articulated_body body;real_matrix4x3 captured[64];}rig;} npc_pool[NPC_POOL_SIZE],*npc_current=&npc_pool[0];
 #define npc (*npc_current)
 static struct remote_state {long player,candidate[2];int valid,held[2],seen[2],edge[2];real_vector3d point[2];} remote_pool[128];
 static struct {long definition;short type;int valid;} species_cache[64];
@@ -109,11 +109,12 @@ static float interaction_units(void){return 1;}
 static float global_gravity=.003f;
 static int maximum=8;
 static long config_integer(char const *name){(void)name;return maximum;}
+static double config_real(char const *name){(void)name;return 1.0;} /* Test54 THROW/HOLD 1x */
 static void cancel_one(void);
 '''
 c=c.replace('#define VR_NPC_INTERACTION_POOL_SIZE {POOL_SIZE}',
             f'#define VR_NPC_INTERACTION_POOL_SIZE {POOL_SIZE}')
-for sig in ['static int species(', 'static int custom_rig_graph_valid(', 'static int custom_humanoid_rig(', 'static int interaction_profile(', 'static int npc_contact_node(', 'static struct npc_state *free_state(', 'static struct npc_state *state_for_object(', 'static int select_owner(', 'static short unit_species(', 'static struct unit_datum *eligible(', 'static struct unit_datum *continuable(', 'static void reset_one(', 'static void cancel_one(', 'void vr_npc_interaction_reset(', 'void vr_npc_interaction_cancel(', 'static void release(', 'void vr_npc_interaction_velocity(', 'int vr_npc_interaction_snapshot(', 'int vr_npc_interaction_remote_contact(']:
+for sig in ['static int species(', 'static int custom_rig_graph_valid(', 'static int custom_humanoid_rig(', 'static int interaction_profile(', 'static int npc_contact_node(', 'static struct npc_state *free_state(', 'static struct npc_state *state_for_object(', 'static int select_owner(', 'static short unit_species(', 'static struct unit_datum *eligible(', 'static struct unit_datum *continuable(', 'static real npc_setting(', 'static void npc_begin_root_follow(', 'static void reset_one(', 'static void cancel_one(', 'void vr_npc_interaction_reset(', 'void vr_npc_interaction_cancel(', 'static void release(', 'void vr_npc_interaction_velocity(', 'int vr_npc_interaction_snapshot(', 'int vr_npc_interaction_remote_contact(']:
     c+=function(sig)+'\n'
 c+=r'''
 int main(void){

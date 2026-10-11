@@ -2754,6 +2754,11 @@ void unit_died(
 	long equipment_index;
 
 	unit = unit_get(unit_index);
+#ifdef HALO_VR
+	/* (Test54: a player's body never becomes a death ragdoll; the player
+	index is cleared below, so note it now) */
+	boolean vr_player_body = unit->unit.player_index != NONE;
+#endif
 	if (!feigned)
 	{
 		unit->unit.feign_death_timer = 0;
@@ -2805,6 +2810,10 @@ void unit_died(
 
 		unit->unit.time_of_death = game_time_get();
 	}
+#ifdef HALO_VR
+	if (!feigned && !vr_player_body)
+		vr_npc_interaction_death(unit_index);
+#endif
 
 	unit->unit.flags &= ~(
 		FLAG(_unit_actively_controlled_bit) |

@@ -241,6 +241,16 @@ one place (the same setting either way: changing one shows on the other) */
 #define VR_IMMERSION_PHYSICAL_HANDLES { "PHYSICAL HANDLES", "vr.vehicle_handles", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_FINGERS { "FINGERS", "vr.fingers", _vr_setting_boolean, 2, { { "OFF", "false" }, { "TRACKED", "true" } } }
 #define VR_IMMERSION_ROOM_SCALE { "ROOM-SCALE", "vr.roomscale", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+/* Test54: tuning that changes how the features feel, one row per decision */
+#define VR_IMMERSION_POUCH_SIDE { "MAG POUCH SIDE", "vr.reload_pouch_side", _vr_setting_string, 4, { { "AUTO", "auto" }, { "LEFT", "left" }, { "RIGHT", "right" }, { "BOTH", "both" } } }
+#define VR_IMMERSION_CLIMB_GRAB { "CLIMB GRAB", "vr.climb_grab_radius", _vr_setting_real, 5, { { "6 CM", "0.06" }, { "10 CM", "0.10" }, { "14 CM", "0.14" }, { "18 CM", "0.18" }, { "20 CM", "0.20" } } }
+#define VR_IMMERSION_NPC_GRAB_ASSIST { "GRAB ASSIST", "vr.npc_grab_assist", _vr_setting_real, 4, { { "TOUCH", "0" }, { "5 CM", "0.05" }, { "10 CM", "0.10" }, { "15 CM", "0.15" } } }
+#define VR_IMMERSION_NPC_HOLD { "NPC HOLD", "vr.npc_hold_strength", _vr_setting_real, 4, { { "LIGHT", "0.75" }, { "NORMAL", "1.0" }, { "SPARTAN", "1.5" }, { "IRON", "2.5" } } }
+#define VR_IMMERSION_THROW_STRENGTH { "THROW", "vr.throw_strength", _vr_setting_real, 5, { { "0.75X", "0.75" }, { "1X", "1.0" }, { "1.25X", "1.25" }, { "1.5X", "1.5" }, { "2X", "2.0" } } }
+#define VR_IMMERSION_DEATH_RAGDOLLS { "DEATH RAGDOLLS", "vr.death_ragdolls", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_HAPTICS { "HAPTICS", "vr.haptics", _vr_setting_real, 11, { { "0%", "0.0" }, { "10%", "0.1" }, { "20%", "0.2" }, { "30%", "0.3" }, { "40%", "0.4" }, { "50%", "0.5" }, { "60%", "0.6" }, { "70%", "0.7" }, { "80%", "0.8" }, { "90%", "0.9" }, { "100%", "1.0" } } }
+#define VR_IMMERSION_SPRINT_SPEED { "SPRINT SPEED", "vr.sprint_speed", _vr_setting_real, 6, { { "1.0X", "1.0" }, { "1.1X", "1.1" }, { "1.2X", "1.2" }, { "1.3X", "1.3" }, { "1.4X", "1.4" }, { "1.5X", "1.5" } } }
+#define VR_IMMERSION_ARM_EFFORT { "ARM EFFORT", "vr.arm_run_speed", _vr_setting_real, 6, { { "0.3 M/S", "0.3" }, { "0.45", "0.45" }, { "0.6", "0.6" }, { "0.8", "0.8" }, { "1.0", "1.0" }, { "1.2", "1.2" } } }
 
 /* test20d: one row per decision. Rows that only mattered with another
 (turn speed with smooth turning, holster size with holsters, multiplayer
@@ -262,6 +272,10 @@ static struct vr_menu_setting const vr_menu_controls[] =
     VR_IMMERSION_NPC_RIG_SLOTS,
     VR_IMMERSION_BODY_RETENTION,
     VR_IMMERSION_NPC_GRAB,
+    VR_IMMERSION_NPC_GRAB_ASSIST,
+    VR_IMMERSION_NPC_HOLD,
+    VR_IMMERSION_THROW_STRENGTH,
+    VR_IMMERSION_DEATH_RAGDOLLS,
     VR_IMMERSION_NPC_RESCUE,
     VR_IMMERSION_IMPACT_SPEED,
     VR_IMMERSION_IMPACT_CAP,
@@ -273,6 +287,7 @@ static struct vr_menu_setting const vr_menu_controls[] =
 	VR_IMMERSION_CUSTOM_SCENERY,
 	VR_IMMERSION_CUSTOM_NPC_RIGS,
 	VR_IMMERSION_MAG_DEBRIS,
+	VR_IMMERSION_POUCH_SIDE,
 	{ "AIM", "vr.aim", _vr_setting_string, 2, { { "HAND", "hand" }, { "HEAD", "head" } } },
 	{ "CONTROLS", "vr.controls", _vr_setting_string, 2, { { "VR", "vr" }, { "XBOX", "pad" } } },
 	/* test26: the left stick's click: the reticle's toggle or crouch, as before */
@@ -304,14 +319,14 @@ static struct vr_menu_setting const vr_menu_locomotion[] =
 	{ "BUTTON SPRINT", "vr.button_sprint", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "SPRINT TOGGLE", "vr.button_sprint_toggle", _vr_setting_boolean, 2, { { "HOLD", "false" }, { "TOGGLE", "true" } } },
 	VR_IMMERSION_ARM_RUN,
-	{ "ARM EFFORT", "vr.arm_run_speed", _vr_setting_real, 6, { { "0.3 M/S", "0.3" }, { "0.45", "0.45" }, { "0.6", "0.6" }, { "0.8", "0.8" }, { "1.0", "1.0" }, { "1.2", "1.2" } } },
-	{ "SPRINT SPEED", "vr.sprint_speed", _vr_setting_real, 6, { { "1.0X", "1.0" }, { "1.1X", "1.1" }, { "1.2X", "1.2" }, { "1.3X", "1.3" }, { "1.4X", "1.4" }, { "1.5X", "1.5" } } },
+	VR_IMMERSION_ARM_EFFORT,
+	VR_IMMERSION_SPRINT_SPEED,
 };
 
 /* the feel of play, with the crosshair (formerly its own page) */
 static struct vr_menu_setting const vr_menu_vr[] =
 {
-	{ "HAPTICS", "vr.haptics", _vr_setting_real, 11, { { "0%", "0.0" }, { "10%", "0.1" }, { "20%", "0.2" }, { "30%", "0.3" }, { "40%", "0.4" }, { "50%", "0.5" }, { "60%", "0.6" }, { "70%", "0.7" }, { "80%", "0.8" }, { "90%", "0.9" }, { "100%", "1.0" } } },
+	VR_IMMERSION_HAPTICS,
 	{ "SCOPE", "vr.scope", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "CUTSCENES", "vr.cutscenes", _vr_setting_string, 3, { { "IMMERSIVE", "immersive" }, { "3D SCREEN", "screen" }, { "FLAT", "flat" } } },
     { "GRAB CONTACT", "vr.grab_contact", _vr_setting_string, 3, { { "AUTO", "auto" }, { "OFF", "off" }, { "ON", "on" } } },
@@ -323,6 +338,7 @@ static struct vr_menu_setting const vr_menu_vr[] =
     VR_IMMERSION_WALL_TIME,
     VR_IMMERSION_WALL_LEAP,
     VR_IMMERSION_CLIMB_LAUNCH,
+    VR_IMMERSION_CLIMB_GRAB,
 	VR_IMMERSION_CLOSE_CONTACT,
 };
 
@@ -544,45 +560,206 @@ static struct vr_menu_setting const vr_menu_align_right[] =
 /* Test53: every VR immersion feature on one page (physical weapons and
 melee, manual reload, parkour, world/NPC/vehicle grabbing, bodies, impact
 damage, contact and tracking). The rows stay on their usual pages too. */
+/* Test54: IMMERSION holds the features and the tuning that changes how they
+feel; IMMERSION+ the technical options (pouch places, contact radii, rig
+slots, custom content, rescue, impact limits). Every row is still also on its
+usual page. Turning a feature on turns on what it needs (vr_menu_dependencies). */
 static struct vr_menu_setting const vr_menu_immersion[] =
 {
-	VR_IMMERSION_WEAPONS,
-	VR_IMMERSION_HOLSTERS,
-	VR_IMMERSION_HOLSTER_HAPTICS,
-	VR_IMMERSION_MELEE,
-	VR_IMMERSION_MELEE_SPEED,
-	VR_IMMERSION_FIST_REQUIRED,
-	VR_IMMERSION_ARM_RUN,
 	VR_IMMERSION_MANUAL_RELOAD,
 	VR_IMMERSION_RELOAD_INPUT,
-	VR_IMMERSION_SHOULDER_POUCH,
-	VR_IMMERSION_HIP_POUCH,
+	VR_IMMERSION_POUCH_SIDE,
 	VR_IMMERSION_MAG_DEBRIS,
 	VR_IMMERSION_WALLRUN,
 	VR_IMMERSION_WALLJUMP,
 	VR_IMMERSION_GRIP_CLIMB,
+	VR_IMMERSION_CLIMB_GRAB,
 	VR_IMMERSION_WALL_SPEED,
 	VR_IMMERSION_WALL_TIME,
 	VR_IMMERSION_WALL_LEAP,
 	VR_IMMERSION_CLIMB_LAUNCH,
 	VR_IMMERSION_WORLD_GRAB,
-	VR_IMMERSION_HAND_CONTACT,
 	VR_IMMERSION_LIFT_VEHICLES,
-	VR_IMMERSION_CUSTOM_SCENERY,
 	VR_IMMERSION_NPC_GRAB,
-	VR_IMMERSION_NPC_RIG_SLOTS,
-	VR_IMMERSION_CUSTOM_NPC_RIGS,
-	VR_IMMERSION_NPC_RESCUE,
+	VR_IMMERSION_NPC_GRAB_ASSIST,
+	VR_IMMERSION_NPC_HOLD,
+	VR_IMMERSION_THROW_STRENGTH,
+	VR_IMMERSION_DEATH_RAGDOLLS,
 	VR_IMMERSION_BODY_RETENTION,
 	VR_IMMERSION_IMPACT_DAMAGE,
+	VR_IMMERSION_MELEE,
+	VR_IMMERSION_MELEE_SPEED,
+	VR_IMMERSION_FIST_REQUIRED,
+	VR_IMMERSION_WEAPONS,
+	VR_IMMERSION_HOLSTERS,
+	VR_IMMERSION_ARM_RUN,
+	VR_IMMERSION_ARM_EFFORT,
+	VR_IMMERSION_SPRINT_SPEED,
+	VR_IMMERSION_HAPTICS,
+	VR_IMMERSION_FINGERS,
+	VR_IMMERSION_ROOM_SCALE,
+};
+
+static struct vr_menu_setting const vr_menu_immersion_advanced[] =
+{
+	VR_IMMERSION_SHOULDER_POUCH,
+	VR_IMMERSION_HIP_POUCH,
+	VR_IMMERSION_HAND_CONTACT,
+	VR_IMMERSION_HOLSTER_HAPTICS,
+	VR_IMMERSION_CUSTOM_SCENERY,
+	VR_IMMERSION_CUSTOM_NPC_RIGS,
+	VR_IMMERSION_NPC_RIG_SLOTS,
+	VR_IMMERSION_NPC_RESCUE,
 	VR_IMMERSION_IMPACT_SPEED,
 	VR_IMMERSION_IMPACT_CAP,
 	VR_IMMERSION_SHAKE_COOLING,
 	VR_IMMERSION_CLOSE_CONTACT,
 	VR_IMMERSION_PHYSICAL_HANDLES,
-	VR_IMMERSION_FINGERS,
-	VR_IMMERSION_ROOM_SCALE,
 };
+
+
+/* Test54: immersion features turn on what they need. A hard requirement
+(MAG DEBRIS needs MANUAL RELOAD, CUSTOM SCENERY needs WORLD GRAB, CUSTOM NPC
+RIGS needs NPC GRAB) is turned on with its feature, and turning the
+requirement off turns its features off. A soft one (FIST REQUIRED, so an open
+hand reaching to grab or climb never strikes) is turned on with the first
+grab or climb feature but may be turned off by hand. What was turned on only
+for a feature is counted in vr.immersion_auto and turned off again when the
+last feature needing it is; a setting chosen by hand stays as chosen. */
+static struct vr_menu_dependency
+{
+	char const *feature, *requires;
+	boolean soft;
+} const vr_menu_dependency_table[] =
+{
+	{ "vr.dropped_magazines", "vr.manual_reload", FALSE },
+	{ "vr.custom_scenery_grab", "vr.world_interaction", FALSE },
+	{ "vr.custom_npc_rigs", "vr.npc_interaction", FALSE },
+	{ "vr.npc_interaction", "vr.melee_requires_fist", TRUE },
+	{ "vr.world_interaction", "vr.melee_requires_fist", TRUE },
+	{ "vr.parkour_climb", "vr.melee_requires_fist", TRUE },
+	{ "vr.vehicle_lift", "vr.melee_requires_fist", TRUE },
+};
+
+static boolean vr_menu_auto_has(char const *list, char const *key)
+{
+	size_t length = strlen(key);
+	char const *at = list;
+	while (at && *at)
+	{
+		size_t item = strcspn(at, ",");
+		if (item == length && !strncmp(at, key, length))
+			return TRUE;
+		at += item;
+		if (*at == ',')
+			at++;
+	}
+	return FALSE;
+}
+
+static void vr_menu_auto_set(char *list, size_t size, char const *key, boolean present)
+{
+	char result[256] = "";
+	char const *at = list;
+	while (*at)
+	{
+		size_t item = strcspn(at, ",");
+		if (item && item < 96 && !(item == strlen(key) && !strncmp(at, key, item)) &&
+			strlen(result) + item + 2 < sizeof(result))
+		{
+			if (*result)
+				strcat(result, ",");
+			strncat(result, at, item);
+		}
+		at += item;
+		if (*at == ',')
+			at++;
+	}
+	if (present && strlen(result) + strlen(key) + 2 < sizeof(result))
+	{
+		if (*result)
+			strcat(result, ",");
+		strcat(result, key);
+	}
+	snprintf(list, size, "%s", result);
+}
+
+/* whether this menu choice wrote `key` (the row's own key, or one a combined
+row's value sets) */
+static boolean vr_menu_choice_writes(struct vr_menu_setting const *setting, char const *value, char const *key)
+{
+	char pattern[96];
+	if (!strcmp(setting->key, key))
+		return TRUE;
+	if (setting->type != _vr_setting_multi)
+		return FALSE;
+	snprintf(pattern, sizeof(pattern), "%s=", key);
+	return strstr(value, pattern) != NULL;
+}
+
+static boolean vr_menu_dependencies(struct vr_menu_setting const *setting, char const *value)
+{
+	char automatic[256], before[256];
+	int pass;
+	long index;
+	boolean changed = FALSE;
+
+	snprintf(automatic, sizeof(automatic), "%s", config_string("vr.immersion_auto"));
+	snprintf(before, sizeof(before), "%s", automatic);
+	/* a requirement chosen by hand is the player's from now on */
+	for (index = 0; index < (long)NUMBEROF(vr_menu_dependency_table); index++)
+		if (vr_menu_choice_writes(setting, value, vr_menu_dependency_table[index].requires))
+			vr_menu_auto_set(automatic, sizeof(automatic), vr_menu_dependency_table[index].requires, FALSE);
+	for (pass = 0; pass < 3; pass++)
+	{
+		for (index = 0; index < (long)NUMBEROF(vr_menu_dependency_table); index++)
+		{
+			struct vr_menu_dependency const *dependency = &vr_menu_dependency_table[index];
+			if (!config_boolean(dependency->feature) || config_boolean(dependency->requires))
+				continue;
+			if (vr_menu_choice_writes(setting, value, dependency->requires))
+			{
+				/* the requirement was just turned off by hand */
+				if (!dependency->soft)
+				{
+					config_write_boolean(dependency->feature, FALSE);
+					changed = TRUE;
+					platform_log("vr: %s off (it needs %s)", dependency->feature, dependency->requires);
+				}
+				continue;
+			}
+			if (!vr_menu_choice_writes(setting, value, dependency->feature) && dependency->soft)
+				continue; /* a soft requirement turned off earlier stays off */
+			config_write_boolean(dependency->requires, TRUE);
+			changed = TRUE;
+			vr_menu_auto_set(automatic, sizeof(automatic), dependency->requires, TRUE);
+			platform_log("vr: %s on (needed by %s)", dependency->requires, dependency->feature);
+		}
+		/* release what was turned on only for features now off */
+		for (index = 0; index < (long)NUMBEROF(vr_menu_dependency_table); index++)
+		{
+			char const *requirement = vr_menu_dependency_table[index].requires;
+			long other;
+			boolean needed = FALSE;
+			if (!vr_menu_auto_has(automatic, requirement))
+				continue;
+			for (other = 0; other < (long)NUMBEROF(vr_menu_dependency_table); other++)
+				if (!strcmp(vr_menu_dependency_table[other].requires, requirement) &&
+					config_boolean(vr_menu_dependency_table[other].feature))
+					needed = TRUE;
+			if (!needed)
+			{
+				config_write_boolean(requirement, FALSE);
+				changed = TRUE;
+				vr_menu_auto_set(automatic, sizeof(automatic), requirement, FALSE);
+				platform_log("vr: %s off (no feature needs it now)", requirement);
+			}
+		}
+	}
+	if (strcmp(before, automatic))
+		config_write_string("vr.immersion_auto", automatic);
+	return changed;
+}
 
 /* a page of settings, opened from the categories: its first `left_count`
 settings in the left column, the rest in the right */
@@ -594,6 +771,7 @@ static struct vr_menu_page
 } const vr_menu_pages[] =
 {
 	{ "IMMERSION", vr_menu_immersion, NUMBEROF(vr_menu_immersion) },
+	{ "IMMERSION+", vr_menu_immersion_advanced, NUMBEROF(vr_menu_immersion_advanced) },
 	{ "CONTROLS", vr_menu_controls, NUMBEROF(vr_menu_controls) },
 	{ "BUTTONS", vr_menu_buttons, NUMBEROF(vr_menu_buttons) },
 	{ "VOICE CHAT", vr_menu_voice, NUMBEROF(vr_menu_voice) },
@@ -1844,6 +2022,8 @@ boolean vr_menu_setting_change(
 		break;
 	}
 	vr_reload_settings();
+	if (written && vr_menu_dependencies(setting, value))
+		vr_reload_settings();
 	platform_log("vr: %s set to %s%s", setting->key, value, written ? "" : " (not saved to config.toml)");
 	return TRUE;
 }

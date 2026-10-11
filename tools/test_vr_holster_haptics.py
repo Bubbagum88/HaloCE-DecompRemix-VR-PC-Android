@@ -47,8 +47,9 @@ assert "vr_haptic(w, 0.5f, 0.05f)" in physical_region, "dropping away from a hol
 # their switching/reload actions remain independent even when both use hip or
 # shoulder regions. Reload feedback stays under the master HAPTICS strength.
 assert "hand_index = 1-vr_weapon_hand()" in RELOAD
-assert "vr_mr_pouch_side(hand_index)" in RELOAD
-assert 'config_boolean("vr.reload_hip"),config_boolean("vr.reload_shoulder")' in RELOAD
+# Test54: the pouches are body volumes on the free hand's side (vr_reload_pouch_zone)
+assert 'vr_reload_pouch_zone(hand_index, hip_enabled, config_boolean("vr.reload_shoulder"))' in RELOAD
+assert 'config_boolean("vr.reload_hip") || !config_boolean("vr.reload_shoulder")' in RELOAD
 assert "vr_haptic(hand_index" in RELOAD and "holster_haptic" not in RELOAD
 
 wrapper = extract_function(FRAME, "static void holster_haptic(")

@@ -16,4 +16,6 @@ void vr_npc_interaction_remote_cancel(long player_index,int hand);
 /* WORLD surface coordinate, transformed by channel if it needs root-local. */
 int vr_npc_interaction_remote_contact(long player,int hand,long *object,float point[3]);
 int vr_npc_interaction_snapshot(long *index,int *count,real_matrix4x3 *matrices,int capacity);
+/* Test54: a supported NPC just killed falls as a ragdoll (vr.death_ragdolls) */
+void vr_npc_interaction_death(long index);
 #endif

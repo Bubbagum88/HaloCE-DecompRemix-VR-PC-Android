@@ -16,8 +16,13 @@ assert "bounds_log_initialized=TRUE" in reload_source
 assert 'config_string("vr.reload_input")' in reload_source
 assert 'reload_hand_touches_part(0,&reload.socket,&hand)' in reload_source
 assert 'reload_hand_touches_part(1,&reload.charge,&hand)' in reload_source
-assert 'reload_near(&hand,&hip,contact_radius)' in reload_source
-assert 'reload_near(&hand,&shoulder,contact_radius)' in reload_source
+assert 'vr_reload_pouch_zone(hand_index, hip_enabled, config_boolean("vr.reload_shoulder"))' in reload_source
+assert "int vr_reload_pouch_zone(int hand, int hip, int shoulder)" in input_source
+assert "heading_point(offset, place);" in input_source[input_source.index("int vr_reload_pouch_zone"):]
+assert '"vr.reload_pouch_side", _config_string, "\\"auto\\""' in config_source
+assert "input.chambered = magazine->rounds_loaded > 0;" in reload_source
+assert "static void reload_event_haptic(int event, int free_hand)" in reload_source
+assert "vr_head_view(" not in reload_source  # the pouches no longer depend on the head pose
 assert '0.09f*units' not in reload_source and '0.075f*units' not in reload_source
 assert '0.19f*units' not in reload_source and '0.16f*units' not in reload_source
 assert "vr_interaction_trigger(hand_index)" in reload_source
@@ -128,13 +133,13 @@ int main(void){
    int held_event=vr_mr_step(&held_reload,&eject_input);
    assert(!reload_edge&&held_event==VR_MR_NONE&&held_reload.phase==VR_MR_NEED_MAG);
    assert(vr_mr_output_flags(1,eject_input.valid,held_reload.phase,held_event,1u,2u,4u)==3u);
-   /* A new Reload edge deliberately cancels; firing unlocks only after the
-      transaction is back at IDLE. */
+   /* Test54: a new Reload edge during an open transaction is ignored: it
+      neither cancels nor reloads natively, and firing stays blocked. */
    was_down=0;reload_edge=vr_mr_button_pressed(was_down,1);
-   eject_input.explicit_reload=reload_edge;
-   int cancel_event=vr_mr_step(&held_reload,&eject_input);
-   assert(cancel_event==VR_MR_CANCEL&&held_reload.phase==VR_MR_IDLE);
-   assert(vr_mr_output_flags(1,eject_input.valid,held_reload.phase,cancel_event,1u,2u,4u)==1u);
+   eject_input.explicit_reload=reload_edge;eject_input.eject_pressed=reload_edge;
+   int again_event=vr_mr_step(&held_reload,&eject_input);
+   assert(again_event==VR_MR_NONE&&held_reload.phase==VR_MR_NEED_MAG);
+   assert(vr_mr_output_flags(1,eject_input.valid,held_reload.phase,again_event,1u,2u,4u)==3u);
  }
  assert(!vr_mr_trigger_held(0,0.75f) && vr_mr_trigger_held(0,0.751f));
  assert(vr_mr_trigger_held(1,0.56f) && !vr_mr_trigger_held(1,0.55f));
@@ -156,19 +161,28 @@ int main(void){
  assert(s.phase==VR_MR_SEATING);
  struct vr_mr_input early={.valid=1,.held=0,.near_chamber=1,.can_load=1};
  assert(vr_mr_step(&s,&early)==VR_MR_NONE&&s.phase==VR_MR_SEATING);
- assert(step(&s,1,0,0,0,0,0)==VR_MR_NONE);
+ assert(step(&s,1,0,0,0,0,0)==VR_MR_SEATED); /* empty chamber: locked, charging still needed */
+ assert(s.phase==VR_MR_NEED_CHAMBER);
  step(&s,0,0,0,0,0,0);
  assert(step(&s,1,0,0,1,0,0)==VR_MR_CHARGE);
  assert(step(&s,0,0,0,0,0,0)==VR_MR_NONE); /* insufficient pull */
  assert(step(&s,1,0,0,1,0,0)==VR_MR_CHARGE);
- step(&s,1,0,0,0,0,1);
+ assert(step(&s,1,0,0,0,0,1)==VR_MR_RACKED); /* end of travel felt before release */
+ assert(step(&s,1,0,0,0,0,1)==VR_MR_NONE);   /* felt once */
  assert(step(&s,0,0,0,0,0,1)==VR_MR_COMMIT);
  for(int j=0;j<100;j++) assert(step(&s,0,0,0,0,0,0)==VR_MR_NONE); /* one commit only */
- for(int phase=0;phase<=VR_MR_SEATING;phase++) for(int why=0;why<2;why++) {
+ for(int phase=0;phase<=VR_MR_SEATING;phase++) {
   s=(struct vr_mr_state){.phase=phase,.pulled=1,.down=1};
-  struct vr_mr_input i={.valid=!why,.explicit_reload=!why,.held=1,.can_load=1};
+  struct vr_mr_input i={.valid=0,.held=1,.can_load=1};
   assert(vr_mr_step(&s,&i)!=(int)VR_MR_COMMIT);assert(s.phase==VR_MR_IDLE);
- } /* tracking/drop/switch/seat/network invalidation and explicit B cannot award ammo */
+ } /* tracking/drop/switch/seat/network invalidation cannot award ammo */
+ for(int phase=1;phase<=VR_MR_SEATING;phase++) {
+  s=(struct vr_mr_state){.phase=phase,.pulled=1,.down=1};
+  struct vr_mr_input i={.valid=1,.explicit_reload=1,.eject_pressed=1,.held=1,.can_load=1};
+  int event=vr_mr_step(&s,&i);
+  assert(event!=(int)VR_MR_COMMIT&&event!=(int)VR_MR_CANCEL&&event!=(int)VR_MR_EJECT);
+  assert(s.phase!=VR_MR_IDLE||phase==VR_MR_IDLE);
+ } /* Reload during a transaction neither cancels, ejects again nor awards ammo */
  /* Gun-local displacement: translating gun and hand together preserves local x. */
  for(int gun=-100;gun<=100;gun++) {
   float world_hand=gun+0.25f, local_hand=world_hand-gun;
@@ -225,18 +239,43 @@ int main(void){
   i.held=0;i.near_mag=1;
   assert(vr_mr_step(&eject,&i)==VR_MR_INSERT);
   i.seated=1;
-  assert(vr_mr_step(&eject,&i)==VR_MR_NONE);
+  assert(vr_mr_step(&eject,&i)==VR_MR_SEATED);
   i.held=1;i.near_chamber=1;
   assert(vr_mr_step(&eject,&i)==VR_MR_CHARGE);
   i.chamber_pulled=1;i.held=0;
   assert(vr_mr_step(&eject,&i)==VR_MR_COMMIT);
   eject=(struct vr_mr_state){0};
   i=(struct vr_mr_input){.valid=1,.can_load=1,.near_mag=0,.eject_pressed=1};
-  assert(vr_mr_step(&eject,&i)==VR_MR_NONE); /* no contact */
+  assert(vr_mr_step(&eject,&i)==VR_MR_EJECT); /* Test54: Reload drops the magazine without palm contact */
+  eject=(struct vr_mr_state){0};
   i.near_mag=1;i.can_load=0;
   assert(vr_mr_step(&eject,&i)==VR_MR_NONE); /* no reserve */
   i.can_load=1;i.loose_round=1;
   assert(vr_mr_step(&eject,&i)==VR_MR_NONE); /* no magazine eject for loose rounds */
+ }
+ /* Test54: a tactical reload (round chambered) commits once seated, with no
+    charging; the magazine seats while still held when it meets the well. */
+ {
+  struct vr_mr_state t={0};
+  struct vr_mr_input i={.valid=1,.can_load=1,.eject_pressed=1,.chambered=1};
+  assert(vr_mr_step(&t,&i)==VR_MR_EJECT&&t.chambered==1);
+  i=(struct vr_mr_input){.valid=1,.can_load=1,.held=1,.near_pouch=1};
+  assert(vr_mr_step(&t,&i)==VR_MR_PICKUP&&t.phase==VR_MR_NEW_HELD);
+  i.near_pouch=0;assert(vr_mr_step(&t,&i)==VR_MR_NONE);
+  i.near_mag=1;assert(vr_mr_step(&t,&i)==VR_MR_INSERT&&t.phase==VR_MR_SEATING); /* still gripped */
+  i.near_mag=0;i.seated=1;
+  assert(vr_mr_step(&t,&i)==VR_MR_COMMIT&&t.phase==VR_MR_IDLE&&!t.chambered);
+  /* an empty gun's reload still needs the slide/handle */
+  t=(struct vr_mr_state){0};
+  i=(struct vr_mr_input){.valid=1,.can_load=1,.eject_pressed=1,.chambered=0};
+  assert(vr_mr_step(&t,&i)==VR_MR_EJECT&&!t.chambered);
+  /* pulling an old magazine free is felt while still held */
+  t=(struct vr_mr_state){0};
+  i=(struct vr_mr_input){.valid=1,.can_load=1,.held=1,.near_mag=1};
+  assert(vr_mr_step(&t,&i)==VR_MR_BEGIN);
+  i.magazine_out=1;assert(vr_mr_step(&t,&i)==VR_MR_PULLED);
+  assert(vr_mr_step(&t,&i)==VR_MR_NONE);
+  i.held=0;assert(vr_mr_step(&t,&i)==VR_MR_DISCARD&&t.phase==VR_MR_NEED_MAG);
  }
  puts("PASS: physical reload sequence, fresh grip edges, cancellation and exact native tactical/empty ammo conservation");
 }

@@ -53,6 +53,7 @@ assert loop.index("player_control_update(") < loop.index("game_time_update(") < 
     "ticks run after player control (vr_aim) and before the frame's stereo pass"
 
 for path, call in (("port/linux/game/vr_parkour.c", "vr_head_view(camera.n,biped->object.forward.n"),
-                   ("port/linux/game/vr_manual_reload.c", "vr_head_view(camera.n, object_get(unit_index)->object.forward.n")):
+                   # Test54: manual reload's pouches use the body frame (vr_reload_pouch_zone), not the head
+                   ("port/linux/game/vr_manual_reload.c", "vr_reload_pouch_zone(hand_index,")):
     assert call in read(path), path
 print("PASS: the tracked head is available to the game's ticks (parkour and manual reload no longer reset every tick)")

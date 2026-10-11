@@ -3219,6 +3219,18 @@ static int vr_touch_fingers(struct animation_graph *graph, real_matrix4x3 *matri
 			}
 			memcpy(matrices, saved, count * sizeof(*matrices));
 		}
+		/* Test54: no snapping. A finger meeting a surface eases into its
+		contact pose over a few frames, and one that should bend the other way
+		(flat against a wall rather than curled, or back) first eases out of
+		the old bend: flipping at once made fingers jump and contort as the
+		hand slid along rock. */
+		else if (!reset && *state_direction && direction != *state_direction && *state_t > 0.05f)
+		{
+			direction = *state_direction;
+			t = *state_t * (1.0f - ease);
+		}
+		else if (!reset && t > *state_t && (direction == *state_direction || *state_t <= 0.05f))
+			t = *state_t + (t - *state_t) * (1.0f - (real)exp(-30.0 * MIN(dt, 0.05)));
 		if (t <= 0.001f && clear >= 1.0f)
 		{
 			t = 0.0f;
@@ -4249,6 +4261,7 @@ void vr_render_first_person_ik(
 					free_hand = vr_unit_vector(&u) && (gun_arm || vr_hand_empty() || !vr_two_handed());
 					if (free_hand)
 					{
+						real_point3d tracked_hand = hand;
 						boolean world_grip = vr_interaction_client_hand(controller, hand.n) || vr_world_interaction_hand(controller, hand.n);
 						boolean climbing_grip = !world_grip && vr_parkour_hand(controller, hand.n);
 						/* Keep the first-person arm driven by the tracked controller.
@@ -4261,6 +4274,26 @@ void vr_render_first_person_ik(
 							vr_npc_interaction_hand(controller, npc_contact.n);
 						boolean reload_grip = !world_grip && !climbing_grip && !npc_grip &&
 							vr_manual_reload_hand(controller, hand.n);
+						/* Test54: the controller stays the hand's authority. A held
+						 * prop, a climbing hold or a magazine draws the visible hand
+						 * onto its contact by at most 6 cm; beyond that the hand
+						 * stays that far toward the contact from the controller
+						 * rather than the arm stretching to an anchor left behind. */
+						if (world_grip || climbing_grip || reload_grip)
+						{
+							real_vector3d pull;
+							real length, limit = 0.06f * units;
+							vr_point_minus(&hand, &tracked_hand, &pull);
+							length = vr_length(&pull);
+							if (isfinite(length) && length > limit && length > 0.0f)
+							{
+								hand.x = tracked_hand.x + pull.i * limit / length;
+								hand.y = tracked_hand.y + pull.j * limit / length;
+								hand.z = tracked_hand.z + pull.k * limit / length;
+							}
+							else if (!isfinite(length))
+								hand = tracked_hand;
+						}
 						target.x = hand.x - f.i * 0.075f * units;
 						target.y = hand.y - f.j * 0.075f * units;
 						target.z = hand.z - f.k * 0.075f * units;

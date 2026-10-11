@@ -6,12 +6,23 @@
 /* Pure transaction state. Ammo belongs to the engine and is never stored here. */
 enum { VR_MR_IDLE, VR_MR_OLD_HELD, VR_MR_NEED_MAG, VR_MR_NEW_HELD,
     VR_MR_NEED_CHAMBER, VR_MR_CHAMBER_HELD, VR_MR_SEATING };
+/* Test54: VR_MR_SEATED (the magazine locked; charging still needed),
+ * VR_MR_RACKED (the slide/handle reached the end of its travel) and
+ * VR_MR_PULLED (the old magazine came free of the well) are feedback-only
+ * events: they carry no ammo and exist so each step has its own haptic. */
 enum { VR_MR_NONE, VR_MR_BEGIN, VR_MR_DISCARD, VR_MR_PICKUP,
-    VR_MR_INSERT, VR_MR_CHARGE, VR_MR_COMMIT, VR_MR_CANCEL, VR_MR_EJECT };
-struct vr_mr_state { int phase, down, pulled; };
+    VR_MR_INSERT, VR_MR_CHARGE, VR_MR_COMMIT, VR_MR_CANCEL, VR_MR_EJECT,
+    VR_MR_SEATED, VR_MR_RACKED, VR_MR_PULLED };
+struct vr_mr_state { int phase, down, pulled, chambered; };
+/* eject_pressed: the Reload button's rising edge. With manual reload on it
+ * physically drops the magazine from IDLE and is otherwise ignored: it never
+ * cancels an open transaction and never starts the native automatic reload.
+ * chambered: a round stayed in the chamber when the transaction began (a
+ * tactical reload), so the new magazine needs no charging. */
 struct vr_mr_input {
     int valid, held, near_mag, near_pouch, near_chamber, magazine_out,
-        chamber_pulled, can_load, explicit_reload, eject_pressed, loose_round, seated, no_chamber;
+        chamber_pulled, can_load, explicit_reload, eject_pressed, loose_round, seated, no_chamber,
+        chambered;
 };
 /* Grip is the compatibility default. Unknown/missing config values fail back
  * to grip so a typo cannot leave manual reload without an input. */
@@ -71,29 +82,30 @@ static int vr_mr_step(struct vr_mr_state *s, struct vr_mr_input const *i)
 {
     int press = i->held && !s->down, release = !i->held && s->down;
     s->down = i->held;
-    if (!i->valid || (i->explicit_reload && s->phase != VR_MR_IDLE)) {
+    if (!i->valid) {
         int active = s->phase != VR_MR_IDLE;
-        s->phase = VR_MR_IDLE; s->pulled = 0;
+        s->phase = VR_MR_IDLE; s->pulled = 0; s->chambered = 0;
         return active ? VR_MR_CANCEL : VR_MR_NONE;
     }
     switch (s->phase) {
     case VR_MR_IDLE:
-        /* The ordinary reload button doubles as a contextual magazine
-         * release, but only when the free palm physically touches the
-         * authored magazine bounds. Away from that contact it never starts
-         * an eject action or changes the stock button mapping. */
-        if (i->eject_pressed && i->near_mag && i->can_load && !i->loose_round) {
-            s->phase = VR_MR_NEED_MAG; s->pulled = 0; return VR_MR_EJECT;
+        /* Test54: the Reload button drops the magazine wherever the free hand
+         * is; the replacement comes from a body pouch. It is a magazine
+         * release only: a gun with no reserve keeps its magazine. */
+        if (i->eject_pressed && i->can_load && !i->loose_round) {
+            s->phase = VR_MR_NEED_MAG; s->pulled = 0; s->chambered = i->chambered;
+            return VR_MR_EJECT;
         }
         if (press && i->near_pouch && i->can_load && i->loose_round) {
-            s->phase = VR_MR_NEW_HELD; return VR_MR_PICKUP;
+            s->phase = VR_MR_NEW_HELD; s->chambered = i->chambered; return VR_MR_PICKUP;
         }
         if (press && i->near_mag && i->can_load && !i->loose_round) {
-            s->phase = VR_MR_OLD_HELD; s->pulled = 0; return VR_MR_BEGIN;
+            s->phase = VR_MR_OLD_HELD; s->pulled = 0; s->chambered = i->chambered;
+            return VR_MR_BEGIN;
         }
         break;
     case VR_MR_OLD_HELD:
-        if (i->magazine_out) s->pulled = 1;
+        if (i->magazine_out && !s->pulled) { s->pulled = 1; if (i->held) return VR_MR_PULLED; }
         if (release) {
             s->phase = s->pulled ? VR_MR_NEED_MAG : VR_MR_IDLE;
             return s->pulled ? VR_MR_DISCARD : VR_MR_CANCEL;
@@ -105,15 +117,20 @@ static int vr_mr_step(struct vr_mr_state *s, struct vr_mr_input const *i)
         }
         break;
     case VR_MR_NEW_HELD:
-        if (release) {
-            s->phase = i->near_mag ? VR_MR_SEATING : VR_MR_NEED_MAG;
-            return i->near_mag ? VR_MR_INSERT : VR_MR_DISCARD;
+        /* Seated by pushing it home: aligned contact with the well inserts
+         * while the grip is still held, as a real magazine locks before the
+         * hand lets go. Releasing at the well inserts too; elsewhere drops. */
+        if (i->near_mag && (i->held || release)) {
+            s->phase = VR_MR_SEATING; return VR_MR_INSERT;
         }
+        if (release) { s->phase = VR_MR_NEED_MAG; return VR_MR_DISCARD; }
         break;
     case VR_MR_SEATING:
         if (i->seated) {
-            s->phase = i->no_chamber ? VR_MR_IDLE : VR_MR_NEED_CHAMBER;
-            if(i->no_chamber)return VR_MR_COMMIT;
+            if (i->no_chamber || s->chambered) {
+                s->phase = VR_MR_IDLE; s->chambered = 0; return VR_MR_COMMIT;
+            }
+            s->phase = VR_MR_NEED_CHAMBER; return VR_MR_SEATED;
         }
         break;
     case VR_MR_NEED_CHAMBER:
@@ -122,9 +139,10 @@ static int vr_mr_step(struct vr_mr_state *s, struct vr_mr_input const *i)
         }
         break;
     case VR_MR_CHAMBER_HELD:
-        if (i->chamber_pulled) s->pulled = 1;
+        if (i->chamber_pulled && !s->pulled) { s->pulled = 1; if (i->held) return VR_MR_RACKED; }
         if (release) {
             s->phase = s->pulled ? VR_MR_IDLE : VR_MR_NEED_CHAMBER;
+            if (s->pulled) s->chambered = 0;
             return s->pulled ? VR_MR_COMMIT : VR_MR_NONE;
         }
         break;

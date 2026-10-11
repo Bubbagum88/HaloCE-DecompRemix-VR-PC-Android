@@ -11,6 +11,23 @@ static inline int vr_fist_melee_permitted(int required, float squeeze,
 	return isfinite(squeeze) && isfinite(trigger) && squeeze >= 0.75f && trigger >= 0.75f;
 }
 
+/* Test54: an open hand is for grabbing, a fist (or a hand holding a gun) for
+ * striking. With any grab or climb feature on, a hand open on both the grip
+ * and the trigger never strikes, so reaching fast for an NPC or a ledge makes
+ * no melee blow or sound; FIST REQUIRED additionally needs a closed fist on an
+ * empty hand. A gun-holding hand strikes with the gun. */
+static inline int vr_melee_hand_permitted(int fist_required, int grab_features,
+	int armed, float squeeze, float trigger, int interaction_owned)
+{
+	int open;
+	if (interaction_owned) return 0;
+	if (armed) return 1;
+	if (!isfinite(squeeze) || !isfinite(trigger)) return 0;
+	open = squeeze < 0.35f && trigger < 0.35f;
+	if (grab_features && open) return 0;
+	return vr_fist_melee_permitted(fist_required, squeeze, trigger, 0);
+}
+
 static inline int vr_button_sprint_input(int enabled, int pressed,
 	int recenter_chord, int focused, int aiming, int seated)
 {

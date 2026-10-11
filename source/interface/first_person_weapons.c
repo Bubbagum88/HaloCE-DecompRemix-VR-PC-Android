@@ -1163,6 +1163,49 @@ static boolean first_person_weapon_animation_fits(
 	return FALSE;
 }
 
+#ifdef HALO_VR
+/* Test54: the walking ("moving"), sway/turn and push-back overlays animate the
+whole first-person rig, the gun's own parts included: the assault rifle's
+operating handle slid in and out whenever the player walked. In VR the gun is
+the controller's, so those overlays keep moving the arms but every part of the
+gun model other than its root keeps the pose the gun's own state animation
+gives it (reloads, firing and the ammunition overlay still move parts). */
+int vr_active(void);
+static real_orientation vr_first_person_part_orientations[MAXIMUM_NODES_PER_ANIMATION];
+
+static void vr_first_person_parts_save(
+	struct first_person_weapon const *first_person_weapon,
+	struct animation_graph const *animation_graph)
+{
+	short count = (short)MIN(animation_graph->nodes.count, MAXIMUM_NODES_PER_ANIMATION);
+
+	if (vr_active() && count > 0)
+		memcpy(vr_first_person_part_orientations, first_person_weapon->node_orientations,
+			count * sizeof(*vr_first_person_part_orientations));
+}
+
+static void vr_first_person_parts_restore(
+	struct first_person_weapon *first_person_weapon,
+	struct model const *model,
+	struct animation_graph const *animation_graph)
+{
+	short count = (short)MIN(animation_graph->nodes.count, MAXIMUM_NODES_PER_ANIMATION);
+	short model_count = (short)MIN(model->nodes.count, MAXIMUM_NODES_PER_ANIMATION);
+	short root, node;
+
+	if (!vr_active() || !first_person_weapon->weapon_node_remapping_table_valid || model_count <= 1 || count <= 0)
+		return;
+	root = first_person_weapon->weapon_node_remapping_table[0];
+	for (node = 1; node < model_count; node++)
+	{
+		short graph_node = first_person_weapon->weapon_node_remapping_table[node];
+
+		if (graph_node >= 0 && graph_node < count && graph_node != root)
+			first_person_weapon->node_orientations[graph_node] = vr_first_person_part_orientations[graph_node];
+	}
+}
+#endif
+
 static void first_person_weapon_build_node_matrices(
 	short local_player_index)
 {
@@ -1341,6 +1384,9 @@ static void first_person_weapon_build_node_matrices(
 					}
 				}
 
+#ifdef HALO_VR
+				vr_first_person_parts_save(first_person_weapon, animation_graph);
+#endif
 				if (first_person_weapon->moving_animation.index!=NONE)
 				{
 					struct animation *moving_animation= TAG_BLOCK_GET_ELEMENT(
@@ -1358,6 +1404,9 @@ static void first_person_weapon_build_node_matrices(
 					}
 				}
 
+#ifdef HALO_VR
+				vr_first_person_parts_restore(first_person_weapon, model, animation_graph);
+#endif
 				if (first_person_weapon->overcharged_jitter_animation.index!=NONE)
 				{
 					struct animation *overcharged_jitter_animation= TAG_BLOCK_GET_ELEMENT(
@@ -1383,6 +1432,9 @@ static void first_person_weapon_build_node_matrices(
 						&first_person_weapon_animations->animations)
 							[_first_person_weapon_animation_overlays].animation_index :
 					(short)NONE;
+#ifdef HALO_VR
+				vr_first_person_parts_save(first_person_weapon, animation_graph);
+#endif
 				if (overlay_animation_index!=NONE)
 				{
 					struct animation *overlay_animation= TAG_BLOCK_GET_ELEMENT(
@@ -1473,6 +1525,10 @@ static void first_person_weapon_build_node_matrices(
 					}
 				}
 
+#ifdef HALO_VR
+				if (overlay_animation_index!=NONE)
+					vr_first_person_parts_restore(first_person_weapon, model, animation_graph);
+#endif
 				if (first_person_weapon->interpolation_frame_count>0)
 				{
 					interpolate_node_orientations(

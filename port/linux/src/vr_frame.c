@@ -997,7 +997,7 @@ void vr_initialize(void)
 		return;
 	vr.initialized = 1;
 	config_vr_vehicle_defaults();
-	platform_log("vr: HaloCE Quest test53 candidate 1.0.20-test53 code65 (OpenCE Build157 base / network26; selected fixes through Build184 including network25 unit lights and network26 signalling; clients 11-26, All compatible by default; voice crash fixed: the guest assembly converter no longer alters string/table data (Opus pulse cache); voice input and bitrate hardened; guest calls require exact prototypes; hand-contact grabs use sphere overlap; parkour and manual reload read the head from game ticks; bounded NPC handoff; solo body retention through script collections; IMMERSION settings page; built with the v1.0.18 clang18 toolchain; device acceptance pending)");
+	platform_log("vr: HaloCE Quest test54 candidate 1.0.21-test54 code66 (OpenCE Build157 base / network26; selected fixes through Build184 including network25 unit lights and network26 signalling; clients 11-26, All compatible by default; voice unchanged from test53; manual reload end to end: the reload button drops the magazine, body pouches, insert on contact, charging only when empty; NPC grabs by body touch with hold and throw strength; death ragdolls; thrown bodies keep their root; climbing on slopes, overhangs and ledges; open hands never strike; IMMERSION+ and feature dependencies; gun parts steady while walking; device acceptance pending)");
 	platform_log("vr: retained baseline history: HaloCE Quest test30 candidate 1.0.12 (the menus' face buttons as the Xbox's of the same letter: X deletes a profile; the co-op host's server name; test29: OpenCE build 144 netcode, network 21; the HUD head tap held by the temple, HUD and head tap on the HUD page, wrist HUD on the wrist and movable, moving with a hand while holding the gun in both, glasses FOV and resolution to 200%% (PR #1); test28: co-op games entered in progress keep their camera upright, release checks as OpenCE ships, co-op hosted for 2 to 128 players as OpenCE's Server Setup offers, gyro aim on phones as an option; test27: OpenCE build 138 netcode, network 20, with its co-op for up to 16 players; test26: co-op: death screams no longer stop the second player, cutscene characters placed and animated as on the first; HUD head tap, reticle toggle on the left stick click with crouch on the turning stick held down (or crouch kept on the click: Controls), optional wrist HUD, adjustable head taps; impact melee along the gun with a follow-through; fingers bend smoothly against walls; test25: vehicle seat and recentre diagnostics, first-person horizon option and seat glass, settings rows that fit, vehicle offset reset; test24b: comfort vignette, smooth speed and snap angle, SPV1 compatibility note; test24: co-op cutscenes animate for the second player; test23: remappable Quest buttons with the grenade on X; test22: co-op campaign host crash fixed, steady first-person vehicle view, left-hand ammo display, adjustable scopes, shot diagnostics; test21b: floating hands restored, torso-following arms, neck-pivot full body, auto two-hand lock, horn, online melee off, two-hand gun roll, pistol shots from the hand, reticle converges as shots do, per-gun aim, horn from either stick)");
 	if (!config_boolean("vr.enabled"))
 	{
@@ -1250,7 +1250,10 @@ int vr_physical_melee_hand_allowed(int hand)
 	if (!vr.active || hand < 0 || hand > 1 || !(vr.frame.hand_valid[hand] & 1) ||
 		vr_interaction_owner(hand) != VR_INTERACTION_NONE)
 		return 0;
-	return vr_fist_melee_permitted(vr.melee_requires_fist,
+	return vr_melee_hand_permitted(vr.melee_requires_fist,
+		config_boolean("vr.npc_interaction") || config_boolean("vr.world_interaction") ||
+			config_boolean("vr.parkour_climb") || config_boolean("vr.vehicle_lift"),
+		hand == vr.weapon_hand && !vr_hand_empty(),
 		vr.frame.squeeze[hand], vr.frame.trigger[hand], 0);
 }
 
@@ -1773,6 +1776,61 @@ static void heading_point(const float offset[3], float out[3])
 	out[0] = vr.frame.head.position[0] + offset[0] * c + offset[2] * s;
 	out[1] = vr.frame.head.position[1] + offset[1];
 	out[2] = vr.frame.head.position[2] - offset[0] * s + offset[2] * c;
+}
+
+/* Test54: the manual-reload magazine pouches, in the holsters' frame (the
+head's heading; x right, y up, z back, metres): the free hand finds a fresh
+magazine at the hip or over the shoulder on its own side (left for a
+right-handed player, mirrored left-handed), or on the side vr.reload_pouch_side
+names ("left", "right", "both"). They are generous volumes so a hand reaching
+without looking finds them. 1 the hip, 2 the shoulder, 0 neither. */
+#define RELOAD_POUCH_RADIUS 0.16f
+int vr_reload_pouch_zone(int hand, int hip, int shoulder)
+{
+	static const float hip_place[3] = { 0.20f, -0.60f, 0.03f };
+	static const float shoulder_place[3] = { 0.16f, -0.13f, 0.12f };
+	const char *side = config_string("vr.reload_pouch_side");
+	float sides[2];
+	int side_count = 0, index, zone = 0;
+	float nearest = RELOAD_POUCH_RADIUS;
+
+	if (!vr.active || hand < 0 || hand > 1 || !(vr.frame.hand_valid[hand] & 1))
+		return 0;
+	if (side && !strcmp(side, "left"))
+		sides[side_count++] = -1.0f;
+	else if (side && !strcmp(side, "right"))
+		sides[side_count++] = 1.0f;
+	else if (side && !strcmp(side, "both"))
+	{
+		sides[side_count++] = -1.0f;
+		sides[side_count++] = 1.0f;
+	}
+	else
+		sides[side_count++] = hand == 0 ? -1.0f : 1.0f;
+	for (index = 0; index < side_count; index++)
+	{
+		int which;
+
+		for (which = 0; which < 2; which++)
+		{
+			const float *base = which ? shoulder_place : hip_place;
+			float offset[3], place[3], distance;
+
+			if (which ? !shoulder : !hip)
+				continue;
+			offset[0] = base[0] * sides[index];
+			offset[1] = base[1];
+			offset[2] = base[2];
+			heading_point(offset, place);
+			distance = distance3(vr.frame.grip[hand].position, place);
+			if (distance < nearest)
+			{
+				nearest = distance;
+				zone = which + 1;
+			}
+		}
+	}
+	return zone;
 }
 
 /* HUD gesture in head-relative metres: a deliberate hold, followed by a

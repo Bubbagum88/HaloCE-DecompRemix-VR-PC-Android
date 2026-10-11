@@ -53,7 +53,7 @@ static struct {
     real chamber_travel;
     unsigned long long component_nodes;
     int bounds_tried, bounds_valid[2];
-    int hand_sample_valid, debris_pending;
+    int hand_sample_valid, debris_pending, pouch_zone;
     struct vr_magazine_debris_transaction debris_transaction;
     real_point3d bounds_min[2], bounds_max[2];
 } reload;
@@ -355,12 +355,6 @@ void vr_manual_reload_debris_render(void)
     }
 }
 
-static boolean reload_near(real_point3d const *a, real_point3d const *b, real radius)
-{
-    real x = a->x-b->x, y = a->y-b->y, z = a->z-b->z;
-    return radius > 0 && x*x+y*y+z*z <= radius*radius;
-}
-
 static boolean reload_hand_touches_part(int part, real_matrix4x3 const *transform, real_point3d const *hand)
 {
     real_point3d local;
@@ -400,12 +394,34 @@ void vr_manual_reload_note_weapon(long weapon_index)
         vr_manual_reload_reset();
 }
 
+/* Test54: each physical step has its own feel (VR HAPTICS scales them all):
+ * the free hand feels grabbing, pulling free, the pouch, the well and the
+ * slide; the gun hand feels the magazine leave, lock and the gun come ready. */
+static void reload_event_haptic(int event, int free_hand)
+{
+    int gun_hand = vr_weapon_hand();
+    switch (event) {
+    case VR_MR_BEGIN: vr_haptic(free_hand, 0.30f, 0.035f); break;
+    case VR_MR_PULLED: vr_haptic(free_hand, 0.45f, 0.040f); vr_haptic(gun_hand, 0.25f, 0.030f); break;
+    case VR_MR_EJECT: vr_haptic(gun_hand, 0.50f, 0.050f); break;
+    case VR_MR_DISCARD: vr_haptic(free_hand, 0.15f, 0.020f); break;
+    case VR_MR_PICKUP: vr_haptic(free_hand, 0.40f, 0.040f); break;
+    case VR_MR_INSERT: vr_haptic(free_hand, 0.55f, 0.045f); vr_haptic(gun_hand, 0.40f, 0.040f); break;
+    case VR_MR_SEATED: vr_haptic(free_hand, 0.35f, 0.030f); vr_haptic(gun_hand, 0.70f, 0.050f); break;
+    case VR_MR_CHARGE: vr_haptic(free_hand, 0.30f, 0.030f); break;
+    case VR_MR_RACKED: vr_haptic(free_hand, 0.60f, 0.045f); vr_haptic(gun_hand, 0.35f, 0.035f); break;
+    case VR_MR_COMMIT: vr_haptic(free_hand, 0.50f, 0.040f); vr_haptic(gun_hand, 0.80f, 0.060f); break;
+    case VR_MR_CANCEL: vr_haptic(free_hand, 0.10f, 0.020f); break;
+    default: break;
+    }
+}
+
 unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
 {
     long unit_index = NONE;
     real units = vr_units_per_metre();
-    real_point3d camera, hand, head, hip, shoulder, weapon_hand;
-    real_vector3d forward, up, head_forward, head_up, left;
+    real_point3d camera, hand, weapon_hand;
+    real_vector3d forward, up;
     real_matrix4x3 hand_matrix, inverse;
     struct weapon_datum *weapon;
     struct weapon_definition *definition;
@@ -484,25 +500,11 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     unit_get_camera_position(unit_index, &camera);
     reload.camera=camera;
     if (!vr_hand_world(vr_weapon_hand(), camera.n, weapon_hand.n, forward.n, up.n) ||
-        !vr_hand_world(hand_index, camera.n, hand.n, forward.n, up.n) ||
-        !vr_head_view(camera.n, object_get(unit_index)->object.forward.n, head.n, head_forward.n, head_up.n)) {
+        !vr_hand_world(hand_index, camera.n, hand.n, forward.n, up.n)) {
         vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
     }
     matrix4x3_from_point_and_vectors(&hand_matrix, &hand, &forward, &up);
     if (reload.have_attachment) matrix4x3_multiply(&hand_matrix, &reload.attachment, &reload.held);
-    /* Ammo follows the free hand's body side. Shoulder and hip are independently
-     * enabled; handedness changes cancel/reacquire the transaction above. */
-    head_forward.k = 0;
-    if (normalize3d(&head_forward) <= 0.001f) {
-        vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
-    }
-    left.i = -head_forward.j; left.j = head_forward.i; left.k = 0;
-    scale_vector3d(&left,vr_mr_pouch_side(hand_index),&left);
-    for (int axis=0; axis<3; ++axis) {
-        hip.n[axis] = head.n[axis] + left.n[axis]*0.22f*units;
-        shoulder.n[axis] = head.n[axis] + left.n[axis]*0.20f*units - head_forward.n[axis]*0.10f*units;
-    }
-    hip.z -= 0.55f*units; shoulder.z -= 0.15f*units;
     /* The selected input applies only to the free-hand manual-reload state
      * machine. Other grab systems and game firing continue to use their usual
      * grip/weapon-trigger paths. */
@@ -512,7 +514,11 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     input.valid = reload_owner == VR_INTERACTION_NONE ||
         reload_owner == VR_INTERACTION_RELOAD;
     input.explicit_reload = reload_pressed;
+    /* Test54: with manual reload on, Reload is the magazine release: it drops
+     * the magazine wherever the free hand is and never reloads by itself. */
     input.eject_pressed = reload_pressed;
+    /* A round left in the chamber (a tactical reload) needs no charging. */
+    input.chambered = magazine->rounds_loaded > 0;
     input.loose_round = reload.kind == RELOAD_SHELL || reload.kind == RELOAD_CRYSTALS;
     input.no_chamber = reload.kind == RELOAD_CRYSTALS;
     input.seated = vr_pose_time()-reload.insertion_time >= 0.10;
@@ -529,14 +535,26 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     if (reload.state.phase == VR_MR_NEW_HELD) {
         real alignment = dot_product3d(&reload.held.forward, &reload.socket.forward);
         real up_alignment = dot_product3d(&reload.held.up, &reload.socket.up);
-        input.near_mag = reload_component_bounds_touch(&reload.socket,&reload.held,0.005f*units) &&
-            alignment > (reload.aligned ? 0.65f : 0.7f) && up_alignment > (reload.aligned ? 0.65f : 0.7f);
+        /* Test54: a hand-held magazine finds the well within 1.5 cm and
+         * 50 degrees, then locks itself home (SEATING blends the rest). */
+        input.near_mag = reload_component_bounds_touch(&reload.socket,&reload.held,0.015f*units) &&
+            alignment > (reload.aligned ? 0.55f : 0.64f) && up_alignment > (reload.aligned ? 0.55f : 0.64f);
     }
     input.near_chamber = reload_hand_touches_part(1,&reload.charge,&hand);
-    double configured_contact=config_real("vr.interaction_reach");
-    real contact_radius=(real)(isfinite(configured_contact)?PIN(configured_contact,0.02,0.08):0.04)*units;
-    input.near_pouch = vr_mr_pouch_enabled(config_boolean("vr.reload_hip"),config_boolean("vr.reload_shoulder"),
-        reload_near(&hand,&hip,contact_radius),reload_near(&hand,&shoulder,contact_radius));
+    {
+        /* Test54: the pouches are body volumes in the head-heading frame
+         * (vr_reload_pouch_zone), on the free hand's side by default. With
+         * both turned off the hip stays, so a dropped magazine is never a
+         * dead end. */
+        int hip_enabled = config_boolean("vr.reload_hip") || !config_boolean("vr.reload_shoulder");
+        int zone = vr_reload_pouch_zone(hand_index, hip_enabled, config_boolean("vr.reload_shoulder"));
+        input.near_pouch = vr_mr_pouch_enabled(hip_enabled, config_boolean("vr.reload_shoulder"),
+            zone == 1, zone == 2);
+        if (zone && zone != reload.pouch_zone &&
+            (reload.state.phase == VR_MR_NEED_MAG || (reload.state.phase == VR_MR_IDLE && input.loose_round)))
+            vr_haptic(hand_index, 0.18f, 0.02f);
+        reload.pouch_zone = zone;
+    }
     grip_pressed = input.held && !reload.state.down;
     {
 		int diagnostic_state = (input.held ? 1 : 0) | (input.near_mag ? 2 : 0) |
@@ -652,11 +670,13 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     }
     if (reload.have_attachment) matrix4x3_multiply(&hand_matrix, &reload.attachment, &reload.held);
     if (event != VR_MR_NONE) {
-        platform_log("VR manual reload: input=%s weapon=%ld event=%d phase=%d rounds=%d reserve=%d",
+        platform_log("VR manual reload: input=%s weapon=%ld event=%d phase=%d rounds=%d reserve=%d chambered=%d",
             trigger_input ? "trigger" : "grip", weapon_index, event, reload.state.phase,
-            magazine->rounds_loaded, magazine->rounds_total);
-        vr_haptic(hand_index, event == VR_MR_COMMIT ? 0.65f : 0.35f, 0.045f);
+            magazine->rounds_loaded, magazine->rounds_total, reload.state.chambered);
+        reload_event_haptic(event, hand_index);
     }
+    if (reload_pressed && event == VR_MR_NONE && reload.state.phase == VR_MR_IDLE && !input.can_load)
+        vr_haptic(vr_weapon_hand(), 0.12f, 0.02f); /* no reserve: the release clicks, nothing drops */
     if (!input.held || event == VR_MR_CANCEL || event == VR_MR_COMMIT)
         vr_interaction_release(hand_index, VR_INTERACTION_RELOAD);
     /* The edge is consumed by vr_mr_step() to eject/cancel. Do not return on

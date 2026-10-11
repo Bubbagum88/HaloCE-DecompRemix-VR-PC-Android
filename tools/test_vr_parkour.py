@@ -26,6 +26,7 @@ typedef struct {real_vector3d n;float d;} real_plane3d;
 #define TICKS_PER_SECOND 30
 #define FLAG(b) (1u<<(b))
 #define TEST_FLAG(v,b) (!!((v)&FLAG(b)))
+#define PIN(v,a,b) ((v)<(a)?(a):((v)>(b)?(b):(v)))
 enum{_collision_test_structure_bit,_collision_test_objects_bit,_collision_test_objects_scenery_bit};
 enum{_collision_result_structure=1,_collision_result_object=2};
 enum{_object_dead_bit,_biped_no_collision_bit,_unit_suspended_bit,_unit_control_jump_bit,_biped_airborne_bit};
@@ -47,7 +48,6 @@ static real_vector3d gaze={.n={0,1,0}};
 static real_vector3d wall_normal={.n={1,0,0}};static float wall_offset;
 static int config_boolean(char const*k){return !strcmp(k,"vr.parkour_wallrun")?enabled[0]:!strcmp(k,"vr.parkour_walljump")?enabled[1]:!strcmp(k,"vr.contact_debug")?contact_debug:enabled[2];}
 static float config_real(char const*k){return !strcmp(k,"vr.wallrun_duration")?1.5f:!strcmp(k,"vr.wallrun_speed")?1.25f:!strcmp(k,"vr.interaction_reach")?.04f:1;}
-static float vr_world_hand_contact_radius(float metres,float units){if(metres<.02f)metres=.02f;if(metres>.08f)metres=.08f;return metres*units;}
 static short local_player_get_next(short x){(void)x;return 0;}
 static long local_player_get_player_index(short x){(void)x;return 0;}
 static struct player_datum *player_get(long x){(void)x;return &player;}
@@ -117,22 +117,26 @@ int main(void){
     It does not search outward or depend on controller aim. */
  touch_plane.plane.n=(real_vector3d){.n={.9238795f,.3826834f,0}};touch_plane.object_index=NONE;touch_surface=1;
  struct collision_result contact_hit;int initial_rays=queries;
- assert(parkour_grab_surface(42,&hands[0],1,&contact_hit));
+ assert(parkour_grab_surface(42,&hands[0],1,1000.0f,&contact_hit));
  assert(contact_gathers==1&&contact_tests==1&&queries==initial_rays);
  assert(fabsf(plane3d_distance_to_point(&contact_hit.plane,&contact_hit.point))<.00001f);
- touch_surface=0;assert(!parkour_grab_surface(42,&hands[0],1,&contact_hit));assert(queries==initial_rays);
+ touch_surface=0;assert(!parkour_grab_surface(42,&hands[0],1,1000.0f,&contact_hit));assert(queries==initial_rays);
  touch_surface=1;touch_plane.plane.n=(real_vector3d){.n={0,0,1}};
- assert(!parkour_grab_surface(42,&hands[0],1,&contact_hit)); /* floor is not a wall grip */
+ assert(!parkour_grab_surface(42,&hands[0],1,1000.0f,&contact_hit)); /* floor is not a wall grip */
  touch_plane.plane.n=(real_vector3d){.n={1,0,0}};overflow_features=1;
- assert(!parkour_grab_surface(42,&hands[0],1,&contact_hit));overflow_features=0;
+ assert(!parkour_grab_surface(42,&hands[0],1,1000.0f,&contact_hit));overflow_features=0;
  wall_normal=(real_vector3d){.n={1,0,0}};touch_plane.plane.n=wall_normal;touch_surface=1;wall_offset=0;queries=0;
- /* Grip first, contact second must not latch. Release, touch the wall, then
-    press Grip: that is the only acquisition sequence. */
+ /* Test54: a squeeze just before the hand arrives still catches within the
+    grace window (VR_PK_GRIP_GRACE_TICKS); after it, grip first and contact
+    second must not latch: release, touch the wall, then press Grip. */
  enabled[2]=1;touch_surface=0;grip[0]=0;vr_parkour_reset();tick(0,0,0);
  grip[0]=1;tick(0,0,0);assert(!parkour.hand[0].active);
+ touch_surface=1;tick(0,0,0);assert(parkour.hand[0].active);
+ grip[0]=0;touch_surface=0;tick(0,0,0);assert(!parkour.hand[0].active);
+ grip[0]=1;tick(0,0,0);for(int i=0;i<VR_PK_GRIP_GRACE_TICKS;i++)tick(0,0,0);assert(!parkour.hand[0].active);
  touch_surface=1;tick(0,0,0);assert(!parkour.hand[0].active);
  grip[0]=0;tick(0,0,0);grip[0]=1;tick(0,0,0);assert(parkour.hand[0].active);
- grip[0]=0;tick(0,0,0);vr_parkour_reset();enabled[2]=0;
+ grip[0]=0;tick(0,0,0);vr_parkour_reset();enabled[2]=0;queries=0; /* (the climb above may also ray through the wall: Test54) */
  real_vector3d v=tick(.1f,.2f,.3f);assert(v.i==.1f&&v.j==.2f&&v.k==.3f&&queries==0);
  enabled[2]=1;network=1;v=tick(.1f,.2f,.3f);assert(v.k==.3f&&queries==0);network=0;
  /* A network client and a PvP host keep stock movement; a co-op host's own
@@ -179,6 +183,7 @@ int main(void){
  assert(parkour_hit_object(&poisoned)==NONE);poisoned.type=_collision_result_object;assert(parkour_hit_object(&poisoned)==0x55555555);
  assert(vr_pk_bound(NAN,1,0,2)==1);float bad[3]={INFINITY,0,0};vr_pk_cap(bad,1);assert(bad[0]==0);
  float floor[3]={0,0,1};assert(!vr_pk_vertical(floor));
+ assert(!vr_pk_climbable(floor,0)&&vr_pk_climbable(floor,1)); /* Test54: ledge tops above the waist only */
  float into[3]={-1,0,0},normal[3]={1,0,0},out[3];vr_pk_leap(into,normal,1,.4f,out);assert(out[0]>0&&out[2]>=.4f);
  puts("PASS: production parkour contact-only climb, no-aim gate, overflow/floor rejection, grip/focus ownership, bounded run and jump exhaustion");
 }

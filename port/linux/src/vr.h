@@ -190,6 +190,9 @@ int vr_horn_held(void);
 int vr_push_to_talk_held(void);
 /* Current mapped VR action/reload input for the manual reload transaction. */
 int vr_manual_reload_action_down(void);
+/* Test54: the body pouch a hand is in (1 hip, 2 shoulder, 0 none), for the
+pouches enabled (vr.reload_pouch_side picks the side) */
+int vr_reload_pouch_zone(int hand, int hip, int shoulder);
 /* a hand's (0 left, 1 right) recent peak speed about the room, in metres a
 second, and vr.melee_speed, the speed a blow needs */
 float vr_hand_speed(int hand);

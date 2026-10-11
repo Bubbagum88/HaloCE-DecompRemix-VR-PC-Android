@@ -116,6 +116,7 @@ static struct vehicle_datum *vehicle_lift_get(long id){return id==42?&vehicle:0;
 static void vr_world_object_velocity(long id,real_vector3d const *linear,real_vector3d const *angular){assert(id==42);(void)angular;++throws;applied=*linear;}
 static void vr_interaction_release(int hand,int owner){assert(hand>=0&&hand<2&&owner==3);++releases;}
 static void platform_log(char const *format,...){(void)format;}
+static double config_real(char const *key){(void)key;return 1.0;} /* Test54 THROW: 1x */
 static real magnitude3d(real_vector3d const *v){return sqrtf(v->i*v->i+v->j*v->j+v->k*v->k);}
 static long last_tick,last_unit;
 static int previous_grip[2];
