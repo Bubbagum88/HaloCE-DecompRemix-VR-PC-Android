@@ -15,6 +15,10 @@ the specific declarations; the build itself enforces the rest.
 """
 from pathlib import Path
 import re
+import shutil
+import subprocess
+import tempfile
+import textwrap
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,10 +30,12 @@ def read(path):
 build = read("tools/android_build.py")
 assert 'prototype_flag = "-Wno-everything -Werror=implicit-function-declaration"' in build
 assert 'token != "-w"' in build, "strict units must drop -w (it overrides -Werror= in C89)"
-assert "cflags = strict(cflags)" in build
-assert "guest_object(source, strict(game_cflags))" in build
-assert '"-DHALO_LINUX_PLATFORM_LAYER", prototype_flag,' in build
-assert 'startswith("source/bitmaps/libtiff/")' in build
+# Every guest unit (game, port, platform, runtime, musl, libtiff, Opus and the
+# other third-party code) is compiled through guest_object, which applies it.
+guest_object = build[build.index("    def guest_object("):]
+guest_object = guest_object[:guest_object.index("\n\n")]
+assert "cflags = strict(cflags)" in guest_object, "guest_object must make every unit strict"
+assert "libtiff/" not in build, "libtiff is reachable (screenshots) and must not be exempt"
 
 declarations = {
     "port/linux/game/network_voice.c": "void platform_log(char const *format, ...);",
@@ -39,9 +45,28 @@ declarations = {
     "source/objects/object_types.c": "boolean game_engine_vehicle_placement_allowed(",
     "port/linux/game/network_campaign_session.c": "short main_get_solo_level_from_name(char const *name);",
     "source/interface/ui_widget_event_handler_functions.c": "boolean playlist_profile_get_options(",
+    "source/bitmaps/libtiff/tiffioP.h": "extern\tvoid *debug_malloc(unsigned int, unsigned char, const char *, long);",
 }
 for path, text in declarations.items():
     assert text in read(path), f"{path} lost its declaration: {text}"
+
+# The flags themselves: once strict() has rewritten them, a C89 unit built
+# with -w must still fail on an undeclared call (where clang is available).
+clang = shutil.which("clang")
+if clang:
+    namespace = {}
+    source = build[build.index("    prototype_flag = "):build.index("    def guest_object(")]
+    exec(textwrap.dedent(source), namespace)
+    flags = namespace["strict"]("-std=gnu89 -w").split()
+    with tempfile.TemporaryDirectory() as tmp:
+        unit = Path(tmp) / "unit.c"
+        unit.write_text('int f(void) { return undeclared_call(1.5f, "x"); }\n', encoding="utf-8")
+        result = subprocess.run([clang, *flags, "-fsyntax-only", str(unit)], capture_output=True, text=True)
+        assert result.returncode != 0 and "implicit" in result.stderr, result.stderr
+        unit.write_text("int g(int); int f(void) { return g(1); }\n", encoding="utf-8")
+        result = subprocess.run([clang, *flags, "-fsyntax-only", str(unit)], capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+    print("PASS: the strict guest flags reject an undeclared call even in C89 with -w")
 
 # The voice diagnostics must not reintroduce the misdiagnosis.
 voice = read("port/linux/game/network_voice.c")

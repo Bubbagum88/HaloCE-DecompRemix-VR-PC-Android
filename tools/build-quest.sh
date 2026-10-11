@@ -37,6 +37,11 @@ python3 tools/run-quest-checks.py
 # log and play goes on, instead of halting the game: test28)
 python3 configure.py "${flags[@]}"
 ninja -j "${HALO_BUILD_JOBS:-6}" android_apk
+# The guest image just built must carry the exact Opus tables (the Test51
+# voice crash), and every guest call must match its callee's definition on
+# the arm64_32 ABI (the Test50/51 logging garbage, libtiff's lseek).
+HALO_REQUIRE_GUEST_IMAGE=1 python3 tools/test_android_asm_convert.py
+python3 tools/android_guest_abi_lint.py
 # The upstream Ninja APK edge lists native staging inputs only. Always let
 # Gradle check Java/resources too, including on launcher-only edits.
 cd port/android

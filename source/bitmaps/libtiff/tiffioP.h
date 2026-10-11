@@ -331,4 +331,33 @@ extern	int TIFFNoRowDecode();
 extern	int TIFFNoStripDecode();
 extern	int TIFFNoTileDecode();
 #endif
+
+/* Everything these sources call without a declaration of their own (the
+game's allocator and string functions, POSIX file I/O, and libtiff's own
+internal entry points). The Android guest ABI (arm64_32) miscompiles calls
+without a prototype, so tools/android_build.py builds libtiff, like every
+guest unit, with -Werror=implicit-function-declaration (the screenshot path,
+main.c -> tiff_export, reaches it). tiffcompat.h has the C library's. */
+#include <string.h>
+#ifndef bcopy
+#define	bcopy(src,dst,len)	memcpy((char *)(dst), (char *)(src), (len))
+#endif
+#if defined(__cplusplus)
+extern "C" {
+#endif
+extern	void *debug_malloc(unsigned int, unsigned char, const char *, long);
+extern	void *debug_realloc(void *, unsigned int, const char *, long);
+extern	void debug_free(void *, const char *, long);
+extern	void *csmemcpy(void *, const void *, unsigned long);
+extern	void *csmemset(void *, long, unsigned long);
+extern	unsigned long csstrlen(const char *);
+extern	char *csstrcpy(char *, const char *);
+extern	int TIFFInitCCITTFax3(TIFF*);
+extern	int TIFFSetCompressionScheme(TIFF*, int);
+extern	int TIFFDefaultDirectory(TIFF*);
+extern	int TIFFFreeDirectory(TIFF*);
+extern	int TIFFFlushData1(TIFF*);
+#if defined(__cplusplus)
+}
+#endif
 #endif /* _TIFFIOP_ */

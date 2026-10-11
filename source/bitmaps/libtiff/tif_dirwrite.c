@@ -51,7 +51,7 @@ static struct tif_dirwrite_data data_002b8688 =
 
 extern unsigned long csstrlen(const char *string);
 extern void *csmemcpy(void *destination, const void *source, unsigned long size);
-extern void *debug_malloc(unsigned int size, int clear, const char *file, long line);
+extern void *debug_malloc(unsigned int size, unsigned char clear, const char *file, long line);
 extern void debug_free(void *pointer, const char *file, long line);
 
 #define TIFF_DIRWRITE_FILE "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_dirwrite.c"

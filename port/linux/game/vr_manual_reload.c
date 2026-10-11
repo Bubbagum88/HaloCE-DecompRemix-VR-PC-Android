@@ -95,7 +95,7 @@ static void reload_log_gate(long weapon_index, char const *reason)
 	if (gate_logged_weapon != weapon_index || strcmp(gate_logged_reason, reason) ||
 		!isfinite(now) || now - gate_logged_time >= 3.0)
 	{
-		platform_log("VR manual reload gate: weapon=%ld reason=%s", weapon_index, reason);
+		platform_log("VR manual reload gate: weapon=%08lx reason=%s", (unsigned long)weapon_index, reason);
 		gate_logged_weapon = weapon_index;
 		snprintf(gate_logged_reason, sizeof(gate_logged_reason), "%s", reason);
 		gate_logged_time = isfinite(now) ? now : 0.0;

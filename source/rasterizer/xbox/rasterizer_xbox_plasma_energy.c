@@ -111,17 +111,18 @@ typedef char pixel_shader_definition_size_assert[
 
 /* ---------- prototypes */
 
-void rasterizer_set_texture(
+/* (rasterizer_xbox.c's, with their exact types) */
+union point2d *rasterizer_set_texture(
 	short stage,
 	short bitmap_type,
-	short bitmap_index,
+	short bitmap_usage,
 	long bitmap_definition_index,
 	short bitmap_sequence_index);
 
 void rasterizer_set_vertex_shader_permutation(
+	short vertex_shader_index,
 	short vertex_type,
-	short permutation,
-	boolean one_node);
+	short permutation_index);
 
 void rasterizer_set_pixel_shader(
 	struct pixel_shader_definition const *definition);

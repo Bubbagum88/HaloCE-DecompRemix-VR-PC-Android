@@ -419,7 +419,21 @@ def generate_android_build(n: Writer, sln: Any) -> None:
     if profile:
         tool_implicit.append(profile)
 
+    # The guest ABI passes variadic arguments on the stack, promoted floats in
+    # double registers and leaves narrow return values unextended, so a call
+    # without a prototype is silently miscompiled (Test50/51 voice logging,
+    # the Test46+ NPC clearance radius). Every guest unit -- game, port,
+    # platform, runtime, musl, libtiff and the third-party libraries -- must
+    # declare what it calls. (In C89 an implicit declaration is only a
+    # warning, which -w silences even when promoted, so -w gives way to
+    # -Wno-everything here.)
+    prototype_flag = "-Wno-everything -Werror=implicit-function-declaration"
+
+    def strict(cflags: str) -> str:
+        return " ".join(token for token in cflags.split(" ") if token != "-w") + " " + prototype_flag
+
     def guest_object(source: Path, cflags: str, prefix: str = "") -> Path:
+        cflags = strict(cflags)
         obj = obj_dir / prefix / Path(str(source).lstrip("/")).with_suffix(".o")
         if str(source).startswith(str(BUILD)):
             obj = obj_dir / prefix / source.relative_to(BUILD).with_suffix(".o")
@@ -465,33 +479,19 @@ def generate_android_build(n: Writer, sln: Any) -> None:
         f"-iquote {Path(config['game_sources'])}",
         game_defines_and_includes(config), *libc_includes, f"-idirafter {XDK_INCLUDE}",
     ])
-    # The guest ABI passes variadic arguments on the stack, promoted floats in
-    # double registers and leaves narrow return values unextended, so a call
-    # without a prototype is silently miscompiled (Test50/51 voice logging,
-    # the Test46+ NPC clearance radius). Every game, port and platform unit
-    # must declare what it calls; only the unused original libtiff is exempt.
-    # (In C89 an implicit declaration is only a warning, which -w silences
-    # even when promoted, so -w gives way to -Wno-everything here.)
-    prototype_flag = "-Wno-everything -Werror=implicit-function-declaration"
-
-    def strict(cflags: str) -> str:
-        return " ".join(token for token in cflags.split(" ") if token != "-w") + " " + prototype_flag
-
     for source in game_sources(config):
         cflags = game_cflags
-        if not source.as_posix().startswith("source/bitmaps/libtiff/"):
-            cflags = strict(cflags)
         if source.as_posix() == "source/main/main.c":
             cflags += " " + updater_defines(getattr(sln, "port_release", False))
         if source.as_posix() in VARIADIC_PROTOTYPE_FILES:
             cflags += f" -include {PORT_DIR}/include/halo_android_variadic_prototypes.h"
         objects.append(guest_object(source, cflags))
     for source in sorted(Path(config["game_sources"]).glob("*.c")):
-        objects.append(guest_object(source, strict(game_cflags)))
+        objects.append(guest_object(source, game_cflags))
 
     # the platform layer shared with Linux, and the guest runtime
     platform_cflags = " ".join([
-        guest_abi, guest_code, "-std=gnu11", "-D_GNU_SOURCE", "-DHALO_LINUX_PLATFORM_LAYER", prototype_flag, profile_flags,
+        guest_abi, guest_code, "-std=gnu11", "-D_GNU_SOURCE", "-DHALO_LINUX_PLATFORM_LAYER", profile_flags,
         f"-include {prefix_header}", f"-include {platform_semantics_header}",
         f"-I{LINUX_DIR}/src", f"-I{LINUX_DIR}/include", f"-I{PORT_DIR}/guest/runtime",
         f"-I{PORT_DIR}/include", f"-I{TOML_DIR}", f"-I{EXPAT_DIR}", f"-I{KCP_DIR}", f"-Iport/third_party/monocypher", f"-I{ZLIB_DIR}",

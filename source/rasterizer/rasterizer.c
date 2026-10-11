@@ -394,8 +394,8 @@ void _rasterizer_dynamic_vertices_unlock(
 void _rasterizer_dynamic_vertices_delete(
 	long dynamic_vertex_buffer_index);
 void *_rasterizer_decal_vertices_lock(
-	short cache_index,
-	unsigned long cache_size);
+	long cache_index,
+	long cache_size);
 long _rasterizer_decal_vertices_new(
 	long size);
 void _rasterizer_decal_vertices_delete(
@@ -560,7 +560,7 @@ void _rasterizer_environment_fog_screen_wind_get_vector(
 	real animation_time,
 	real_vector3d *wind_vector);
 void _rasterizer_environment_fog_screen_begin(
-	boolean render_fog);
+	short pass);
 void _rasterizer_screen_flash(
 	void);
 /* ---------- globals */

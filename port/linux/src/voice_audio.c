@@ -298,8 +298,27 @@ float voice_audio_level(const float *frame)
 
 int voice_audio_encode(const float *frame, int bitrate, unsigned char *packet, int maximum)
 {
+	/* (Opus's input: never NaN, infinite or past full scale, whatever a
+	capture device hands over) */
+	float clean[VOICE_FRAME_SAMPLES];
+	static BOOL failure_logged;
 	int length;
+	int index;
 
+	if (!frame || !packet || maximum <= 0)
+		return 0;
+	/* (the bitrate network_voice.c's PIN allows, again here: a value read
+	from garbage must never reach the encoder) */
+	bitrate = bitrate < VOICE_MINIMUM_BITRATE ? VOICE_MINIMUM_BITRATE :
+		bitrate > VOICE_MAXIMUM_BITRATE ? VOICE_MAXIMUM_BITRATE : bitrate;
+	if (maximum > VOICE_MAXIMUM_PACKET)
+		maximum = VOICE_MAXIMUM_PACKET;
+	for (index = 0; index < VOICE_FRAME_SAMPLES; index++)
+	{
+		float sample = frame[index];
+
+		clean[index] = !isfinite(sample) ? 0.0f : sample > 1.0f ? 1.0f : sample < -1.0f ? -1.0f : sample;
+	}
 	if (!encoder)
 	{
 		int error = 0;
@@ -323,8 +342,13 @@ int voice_audio_encode(const float *frame, int bitrate, unsigned char *packet, i
 		opus_encoder_ctl(encoder, OPUS_SET_BITRATE(bitrate));
 		encoder_bitrate = bitrate;
 	}
-	length = opus_encode_float(encoder, frame, VOICE_FRAME_SAMPLES, packet, maximum);
-	return length > 0 ? length : 0;
+	length = opus_encode_float(encoder, clean, VOICE_FRAME_SAMPLES, packet, maximum);
+	if (length < 0 && !failure_logged)
+	{
+		failure_logged = TRUE;
+		platform_log("voice chat: Opus encode failed (%d) at %d bps; frames are dropped", length, bitrate);
+	}
+	return length > 0 && length <= maximum ? length : 0;
 }
 
 /* ---------- the voices */

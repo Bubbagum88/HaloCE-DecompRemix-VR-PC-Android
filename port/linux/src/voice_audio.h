@@ -14,6 +14,9 @@ dsound_sdl.c (the mix).
 #define VOICE_FRAME_SAMPLES 960
 /* the longest packet sent or taken (64 kbps is 160 bytes a frame) */
 #define VOICE_MAXIMUM_PACKET 400
+/* the encoder's bitrate is held to network.voice_kbps's 8 to 64 kbps */
+#define VOICE_MINIMUM_BITRATE 8000
+#define VOICE_MAXIMUM_BITRATE 64000
 
 /* voice_audio_microphone() result values. Permission denial is distinct from
  * a transient device-open failure so callers can retry the latter without

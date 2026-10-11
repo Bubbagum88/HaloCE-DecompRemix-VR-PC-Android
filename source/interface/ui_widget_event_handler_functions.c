@@ -1041,10 +1041,12 @@ void game_engine_playlist_next(
 	long);
 void playlist_profile_delete(
 	long profile_index);
+/* (virtual_keyboard.c's; the exact types: arm64_32 callers must extend
+narrow arguments themselves) */
 boolean virtual_keyboard_launch(
 	void *text,
-	long maximum_length,
-	long keyboard_type);
+	word maximum_length,
+	short keyboard_type);
 void playlist_profiles_enumerate_available_to_local_player_index(
 	short local_player_index,
 	long *profile_count,
