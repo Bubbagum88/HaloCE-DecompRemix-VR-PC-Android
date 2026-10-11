@@ -952,6 +952,8 @@ static const struct config_setting config_settings[] =
 		"Written by VR Settings: the settings it turned on only because an immersion feature needs them (FIST REQUIRED for grabbing and climbing, MANUAL RELOAD for MAG DEBRIS...), turned off again when no feature needs them." },
 	{ "vr.death_ragdolls", _config_boolean, "false", "HALO_VR_DEATH_RAGDOLLS", _environment_value, _platform_vr,
 		"Solo (and co-op host): NPCs killed nearby fall as physical ragdolls carrying their momentum, then rest as grabbable corpses. Uses the NPC RIG SLOTS pool." },
+	{ "vr.npc_recovery", _config_real, "1.0", "HALO_VR_NPC_RECOVERY", _environment_value, _platform_vr,
+		"The longest time in seconds (0.25 to 1.0) a living NPC lies limp after being dropped or thrown before it gets up; it gets up sooner once it is at rest. Corpses never get up." },
 	{ "vr.reload_input", _config_string, "\"grip\"", "HALO_VR_RELOAD_INPUT", _environment_value, _platform_vr,
 		"Input for the free hand during optional manual reload only: grip (default) or trigger. Other interaction and firing inputs are unchanged." },
 	{ "vr.dropped_magazines", _config_boolean, "false", "HALO_VR_DROPPED_MAGAZINES", _environment_value, _platform_vr,

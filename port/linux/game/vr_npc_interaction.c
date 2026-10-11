@@ -29,6 +29,7 @@
 #include "vr_world_interaction.h"
 #include "network_interaction.h"
 #include "vr_interaction_impact.h"
+#include "vr_npc_impulse.h"
 #include <math.h>
 #include <string.h>
 void platform_log(char const *,...);
@@ -55,8 +56,9 @@ enum { NPC_POOL_SIZE=VR_NPC_INTERACTION_POOL_SIZE, NPC_REMOTE_PLAYERS=128 };
  * body lying on a floor or against a wall may never be), and a corpse for
  * the engine's at-rest flag, so the AI stayed suppressed indefinitely. */
 enum {
-    NPC_SETTLE_LIMIT_TICKS=150,   /* 5 s settling: recover/hand back anyway */
-    NPC_HANDOFF_LIMIT_TICKS=45    /* 1.5 s blocked pose handoff: native pose */
+    NPC_SETTLE_LIMIT_TICKS=150,   /* 5 s a corpse settles before native dead-body physics */
+    NPC_RECOVERY_BLEND_TICKS=12,  /* Test56: 0.4 s from the limp pose to the get-up (was 0.6 s) */
+    NPC_HANDOFF_LIMIT_TICKS=9     /* Test56: 0.3 s blocked pose handoff, then the native pose (was 1.5 s) */
 };
 static struct npc_state {
     int active,recovery,settling,minimum_hands,started,is_remote,getting_up,torso_node,species_type,was_garbage;
@@ -111,6 +113,12 @@ static real npc_setting(char const *key,real fallback,real low,real high)
 {
     double value=config_real(key);
     return isfinite(value)?PIN((real)value,low,high):fallback;
+}
+/* Test56: NPC RECOVERY, the longest a living NPC lies limp after a hand lets
+ * it go (0.25 to 1 s; the owner: never more than 1 s) */
+static int npc_recovery_ticks(void)
+{
+    return (int)ceilf(npc_setting("vr.npc_recovery",1.0f,0.25f,1.0f)*(real)TICKS_PER_SECOND);
 }
 /* Test54: whether the state's feature is still on (a death ragdoll needs only
  * DEATH RAGDOLLS; a hand's grab needs NPC GRAB). */
@@ -1014,22 +1022,27 @@ void vr_npc_interaction_palette(long index)
         }
         if(npc.settling) {
             real maximum=0;
-            int overdue;
+            int overdue,dead=TEST_FLAG(u->object.damage_flags,_object_dead_bit);
+            /* Test56: a living NPC dropped or thrown gets up as soon as it
+             * rests (a third of a second at the least) and never lies limp
+             * longer than NPC RECOVERY (vr.npc_recovery, at most 1 s); a
+             * corpse keeps the 5 s settle before native dead-body physics */
+            int limit=dead?NPC_SETTLE_LIMIT_TICKS:npc_recovery_ticks(),rest=dead?30:MIN(10,limit);
             for(n=0;n<npc.rig.body.count;++n) {
                 real_vector3d motion;
                 for(k=0;k<3;++k) motion.n[k]=npc.rig.body.nodes[n].position[k]-npc.rig.body.nodes[n].previous[k];
                 maximum=MAX(maximum,magnitude3d(&motion));
             }
             npc.settling=MIN(npc.settling+1,300);
-            overdue=npc.settling>=NPC_SETTLE_LIMIT_TICKS;
-            if(overdue && !npc.settle_stuck_logged) {
+            overdue=npc.settling>=limit;
+            if(overdue && dead && !npc.settle_stuck_logged) {
                 platform_log("VR NPC: settle still pending actor=%08lx ticks=%d dead=%d native_at_rest=%d max_node_step=%.4f garbage_queued=%d; handing back to the engine",
                     index,npc.settling,TEST_FLAG(u->object.damage_flags,_object_dead_bit),
                     TEST_FLAG(u->object.flags,_object_at_rest_bit),maximum,npc.was_garbage);
                 npc.settle_stuck_logged=1;
             }
-            if((npc.settling>=30 && maximum<.02f*interaction_units()) || overdue) {
-                if(TEST_FLAG(u->object.damage_flags,_object_dead_bit)) {
+            if((npc.settling>=rest && maximum<.02f*interaction_units()) || overdue) {
+                if(dead) {
                     /* A corpse never enters live get-up or AI recovery. Give
                      * the actual settled palette back to native dead-body
                      * relaxation when its root has reached rest (or the
@@ -1051,7 +1064,7 @@ void vr_npc_interaction_palette(long index)
                     matrix4x3_transform_vector(&npc.rig.captured[npc.torso_node],&npc.body_forward_local,&body_forward);
                     npc.getting_up=unit_interaction_recover(index,body_forward.k<0);
                     npc.settling=0;npc.settle_stuck_logged=0;
-                    npc.recovery=18;npc.recovery_blocked_logged=0;npc.recovery_blocked_ticks=0;
+                    npc.recovery=NPC_RECOVERY_BLEND_TICKS;npc.recovery_blocked_logged=0;npc.recovery_blocked_ticks=0;
                     platform_log("VR NPC: recovery object=%08lx front=%d authored=%d",index,body_forward.k<0,npc.getting_up);
                 }
                 }
@@ -1093,34 +1106,53 @@ void vr_npc_interaction_palette(long index)
 }
 
 /* Test55: the last few hits on bipeds (object_cause_damage), so a death
- * ragdoll can start from where the killing blow landed. Fixed storage; read
- * only within a couple of ticks of the hit. */
-static struct {long object,tick;real_point3d point;real_vector3d direction;} npc_damage_notes[16];
+ * ragdoll can start from where the killing blow landed. Test56: with how hard
+ * it was (vr_npc_impulse.h); hits on one body in one tick (shotgun pellets)
+ * add up in one note, which keeps the point of the hardest. Fixed storage;
+ * read only within a couple of ticks of the hit. */
+static struct {long object,tick;int area;real_point3d point;real_vector3d direction;struct vr_npc_hit hit;} npc_damage_notes[16];
 static int npc_damage_cursor;
-void vr_npc_interaction_note_damage(long object,real_point3d const *point,real_vector3d const *direction)
+void vr_npc_interaction_note_damage(long object,real_point3d const *point,real_vector3d const *direction,
+    real damage,real acceleration,short category,int area)
 {
 #ifdef HALO_VR
     real_vector3d unit_direction;
+    struct vr_npc_hit hit;
+    long now;
+    int last=(npc_damage_cursor+(int)NUMBEROF(npc_damage_notes)-1)%(int)NUMBEROF(npc_damage_notes);
     if(object==NONE || !point || !direction || !valid_real_point3d(point) ||
-       !config_boolean("vr.death_ragdolls")) return;
+       !config_boolean("vr.death_ragdolls") ||
+       !vr_npc_hit_kick(damage,acceleration,category,area,vr_units_per_metre(),&hit)) return;
     unit_direction=*direction;
     if(!valid_real_vector3d(&unit_direction) || normalize3d(&unit_direction)<0.0001f) return;
+    now=game_time_get();
+    if(npc_damage_notes[last].object==object && npc_damage_notes[last].tick==now) {
+        if(hit.local>npc_damage_notes[last].hit.local) {
+            npc_damage_notes[last].point=*point;npc_damage_notes[last].direction=unit_direction;
+        }
+        if(area) npc_damage_notes[last].area=TRUE;
+        vr_npc_hit_add(&npc_damage_notes[last].hit,&hit);
+        return;
+    }
     npc_damage_notes[npc_damage_cursor].object=object;
-    npc_damage_notes[npc_damage_cursor].tick=game_time_get();
+    npc_damage_notes[npc_damage_cursor].tick=now;
+    npc_damage_notes[npc_damage_cursor].area=area?TRUE:FALSE;
     npc_damage_notes[npc_damage_cursor].point=*point;
     npc_damage_notes[npc_damage_cursor].direction=unit_direction;
+    npc_damage_notes[npc_damage_cursor].hit=hit;
     npc_damage_cursor=(npc_damage_cursor+1)%(int)NUMBEROF(npc_damage_notes);
 #else
-    (void)object;(void)point;(void)direction;
+    (void)object;(void)point;(void)direction;(void)damage;(void)acceleration;(void)category;(void)area;
 #endif
 }
-static int npc_recent_damage(long object,real_point3d *point,real_vector3d *direction)
+static int npc_recent_damage(long object,real_point3d *point,real_vector3d *direction,struct vr_npc_hit *hit,int *area)
 {
     long now=game_time_get();
     for(int n=0;n<(int)NUMBEROF(npc_damage_notes);++n) {
         int slot=(npc_damage_cursor+(int)NUMBEROF(npc_damage_notes)-1-n)%(int)NUMBEROF(npc_damage_notes);
         if(npc_damage_notes[slot].object==object && now>=npc_damage_notes[slot].tick && now-npc_damage_notes[slot].tick<=2) {
-            *point=npc_damage_notes[slot].point;*direction=npc_damage_notes[slot].direction;return TRUE;
+            *point=npc_damage_notes[slot].point;*direction=npc_damage_notes[slot].direction;
+            *hit=npc_damage_notes[slot].hit;*area=npc_damage_notes[slot].area;return TRUE;
         }
     }
     return FALSE;
@@ -1189,12 +1221,33 @@ void vr_npc_interaction_death(long index)
         /* Test55: the killing blow lands where it hit. The joints nearest the
          * impact take a kick along the shot (falling off over ~35 cm), so a
          * shot leg buckles, a head shot snaps back and the body turns about
-         * the hit instead of the whole body sliding as one piece. */
+         * the hit instead of the whole body sliding as one piece. Test56: as
+         * hard as the weapon (vr_npc_impulse.h): a sniper round snaps harder
+         * than a rifle bullet, a melee blow shoves the body, an explosion
+         * throws it away from the blast with some lift. */
         {
             real_point3d hit;real_vector3d direction;
-            int hit_node=NONE;
-            if(npc_recent_damage(index,&hit,&direction)) {
-                real kick=2.2f*units/(real)TICKS_PER_SECOND,falloff=.35f*units,nearest=INFINITY;
+            struct vr_npc_hit blow={0,0,0};
+            int hit_node=NONE,area=FALSE;
+            if(npc_recent_damage(index,&hit,&direction,&blow,&area)) {
+                real kick=blow.local*units/(real)TICKS_PER_SECOND,falloff=.35f*units,nearest=INFINITY;
+                real_vector3d push;
+                if(area) {
+                    /* away from the blast, through the body's middle */
+                    real_vector3d away;
+                    for(int axis=0;axis<3;++axis) away.n[axis]=npc.rig.body.nodes[npc.torso_node].position[axis]-hit.n[axis];
+                    if(normalize3d(&away)>=0.0001f) direction=away;
+                }
+                /* the whole body: what the blow adds beyond the momentum the
+                 * engine already gave it (its own acceleration for melee and
+                 * explosions), never taking any away */
+                {
+                    real along=dot_product3d(&velocity,&direction),want=blow.body*units/(real)TICKS_PER_SECOND;
+                    real lift=blow.lift*units/(real)TICKS_PER_SECOND;
+                    for(int axis=0;axis<3;++axis) push.n[axis]=direction.n[axis]*MAX(want-along,0.0f);
+                    push.k+=MAX(lift-velocity.k,0.0f);
+                }
+                for(int joint=0;joint<npc.rig.body.count;++joint) for(int axis=0;axis<3;++axis) npc.rig.body.nodes[joint].previous[axis]-=push.n[axis];
                 for(int n=0;n<npc.rig.body.count;++n) {
                     real_vector3d to;real distance;
                     for(int k=0;k<3;++k) to.n[k]=npc.rig.body.nodes[n].position[k]-hit.n[k];
@@ -1211,8 +1264,9 @@ void vr_npc_interaction_death(long index)
             npc.was_garbage=TEST_FLAG(u->object.flags,_object_garbage_bit);
             object_activate(index);object_set_garbage(index,FALSE);
             npc_begin_root_follow();
-            platform_log("VR NPC: death ragdoll actor=%08lx species=%d nodes=%d speed_mps=%.2f hit_node=%d",
-                index,npc.species_type,npc.rig.body.count,(float)(magnitude3d(&velocity)*TICKS_PER_SECOND/units),hit_node);
+            platform_log("VR NPC: death ragdoll actor=%08lx species=%d nodes=%d speed_mps=%.2f hit_node=%d kick_mps=%.1f push_mps=%.1f explosion=%d",
+                index,npc.species_type,npc.rig.body.count,(float)(magnitude3d(&velocity)*TICKS_PER_SECOND/units),hit_node,
+                (float)blow.local,(float)blow.body,area);
         }
     }
     npc_current=saved;

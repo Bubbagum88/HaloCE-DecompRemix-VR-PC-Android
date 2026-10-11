@@ -50,7 +50,7 @@ assert "w->weapon.state!=_weapon_state_idle" not in eligible
 assert "vr_world_restrain(" in npc and "restraint-slipped" in npc
 death = body(npc, "void vr_npc_interaction_death(long index)")
 assert death.index("species=unit_species(u,index);") < death.index("npc.active=1;"), "species read before the slot is marked active (it read its own blank slot: species 0)"
-assert "vr_npc_interaction_note_damage(object_index, &damage->epicenter, &damage->direction)" in damage
+assert "vr_npc_interaction_note_damage(object_index, &damage->epicenter, &damage->direction," in damage
 # Script-named objects (most campaign placements) are no longer refused;
 # cutscene (movie star) control still is.
 for name, text in (("eligible", eligible), ("continuable", body(npc, "static struct unit_datum *continuable(")),

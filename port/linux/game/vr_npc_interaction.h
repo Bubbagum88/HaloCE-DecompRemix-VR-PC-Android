@@ -19,6 +19,9 @@ int vr_npc_interaction_snapshot(long *index,int *count,real_matrix4x3 *matrices,
 /* Test54: a supported NPC just killed falls as a ragdoll (vr.death_ragdolls) */
 void vr_npc_interaction_death(long index);
 /* Test55: where a biped was just hit (object_cause_damage), for the death
- * ragdoll's impact-located kick */
-void vr_npc_interaction_note_damage(long object,real_point3d const *point,real_vector3d const *direction);
+ * ragdoll's impact-located kick. Test56: and how hard (vr_npc_impulse.h):
+ * damage and acceleration already scaled by the hit's scale; area: an
+ * explosion's damage. */
+void vr_npc_interaction_note_damage(long object,real_point3d const *point,real_vector3d const *direction,
+    real damage,real acceleration,short category,int area);
 #endif

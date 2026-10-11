@@ -240,6 +240,8 @@ one place (the same setting either way: changing one shows on the other) */
 #define VR_IMMERSION_NPC_RIG_SLOTS { "NPC RIG SLOTS", "vr.npc_max_ragdolls", _vr_setting_multi, 6, { { "1", "vr.npc_max_ragdolls=1" }, { "2", "vr.npc_max_ragdolls=2" }, { "4", "vr.npc_max_ragdolls=4" }, { "8", "vr.npc_max_ragdolls=8" }, { "12", "vr.npc_max_ragdolls=12" }, { "16", "vr.npc_max_ragdolls=16" } } }
 #define VR_IMMERSION_CUSTOM_NPC_RIGS { "CUSTOM NPC RIGS", "vr.custom_npc_rigs", _vr_setting_multi, 2, { { "OFF", "vr.custom_npc_rigs=false" }, { "ON", "vr.custom_npc_rigs=true;vr.npc_interaction=true" } } }
 #define VR_IMMERSION_NPC_RESCUE { "NPC RESCUE", "vr.npc_rescue", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+/* Test56: the longest a living NPC lies limp after a hand lets it go (never over 1 s) */
+#define VR_IMMERSION_NPC_RECOVERY { "NPC RECOVERY", "vr.npc_recovery", _vr_setting_real, 4, { { "0.25 S", "0.25" }, { "0.5 S", "0.5" }, { "0.75 S", "0.75" }, { "1 S", "1.0" } } }
 #define VR_IMMERSION_BODY_RETENTION { "BODY RETENTION", "vr.ragdoll_retention", _vr_setting_multi, 3, { { "STOCK", "vr.ragdoll_retention=0" }, { "75", "vr.ragdoll_retention=75" }, { "100", "vr.ragdoll_retention=100" } } }
 #define VR_IMMERSION_IMPACT_DAMAGE { "IMPACT DAMAGE", "vr.interaction_damage", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_IMPACT_SPEED { "IMPACT SPEED", "vr.impact_threshold", _vr_setting_real, 4, { { "1 M/S", "1" }, { "2 M/S", "2" }, { "3 M/S", "3" }, { "4 M/S", "4" } } }
@@ -300,6 +302,7 @@ static struct vr_menu_setting const vr_menu_controls[] =
     VR_IMMERSION_THROW_STRENGTH,
     VR_IMMERSION_DEATH_RAGDOLLS,
     VR_IMMERSION_NPC_RESCUE,
+    VR_IMMERSION_NPC_RECOVERY,
     VR_IMMERSION_IMPACT_SPEED,
     VR_IMMERSION_IMPACT_CAP,
     VR_IMMERSION_IMPACT_DAMAGE,
@@ -665,6 +668,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_IMPACT_SPEED,
 	VR_IMMERSION_IMPACT_CAP,
 	VR_IMMERSION_NPC_RESCUE,
+	VR_IMMERSION_NPC_RECOVERY,
 	VR_IMMERSION_CUSTOM_SCENERY,
 	VR_IMMERSION_CUSTOM_NPC_RIGS,
 	VR_IMMERSION_NPC_RIG_SLOTS,
@@ -673,7 +677,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
 	{ "WEAPONS", 8 }, { "RELOAD", 8 }, { "POUCH PLACES", 6 }, { "HOLSTER PLACES", 6 },
-	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 8 }, { "ADVANCED", 7 },
+	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 8 }, { "ADVANCED", 8 },
 };
 
 
