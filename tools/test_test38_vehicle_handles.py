@@ -5,6 +5,12 @@ its rim, or a handle along its outer half, within the palm contact radius plus
 4 cm (10 cm away still misses). While the controls are shown they own the
 steering (controller aim no longer fights them) and self-centre when let go;
 the Banshee yoke's push/pull sets the pitch.
+
+Test56: turning the controls right steers right (Test55 had every control
+inverted: the owner's Ghost turned the wrong way); the Ghost's handlebar also
+twists and the Scorpion's sticks steer as a tank's; 1.5 degrees of dead zone;
+self-centring by time; the Warthog's rim takes a hand 2 cm further (12 cm
+misses); haptics as the controls turn, at full lock and on release.
 """
 from pathlib import Path
 import re,subprocess,tempfile
@@ -27,7 +33,10 @@ typedef union {struct {float i,j,k;};float n[3];} real_vector3d;
 typedef struct {real_vector3d forward,left,up;real_point3d position;}real_matrix4x3;
 #define VR_INTERACTION_VEHICLE 2
 #define PIN(x,l,h) ((x)<(l)?(l):((x)>(h)?(h):(x)))
-static struct {long unit;int kind,valid,log_pending,down[2],steering_logged;real_matrix4x3 root;real_point3d center,target[2];float radius,angle,pitch,grip_phase[2],push_start[2];struct vr_wheel_grip grip[2];}vr_wheel;
+static struct {long unit;int kind,valid,log_pending,down[2],steering_logged;real_matrix4x3 root;real_point3d center,target[2];float radius,angle,pitch,grip_phase[2],push_start[2];struct vr_wheel_grip grip[2];
+ float anchor[3],scale;double steered;int at_limit[2];float felt[2];real_vector3d normal,plane_left,plane_up,simulated_forward,steer;int steer_valid;}vr_wheel;
+static double clock_now;static double vr_pose_time(void){return clock_now+=1.0/72.0;}
+static void vr_wheel_drawn_refresh(void){}
 static struct {real_point3d game_camera_position;}vr_render;
 static const char *vr_wheel_keys[]={"warthog","ghost","scorpion","banshee"};
 #define platform_log(...) ((void)0)
@@ -48,29 +57,34 @@ static void vector_from_points3d(const real_point3d*a,const real_point3d*b,real_
 static float dot_product3d(const real_vector3d*a,const real_vector3d*b){return a->i*b->i+a->j*b->j+a->k*b->k;}
 static float magnitude3d(const real_vector3d*v){return sqrtf(dot_product3d(v,v));}
 static float vr_yaw(const real_vector3d*v){return atan2f(v->j,v->i);}
-static real_point3d vr_wheel_point(real x,real y,real z){real_point3d p=vr_wheel.center;for(int i=0;i<3;i++)p.n[i]+=vr_wheel.root.forward.n[i]*x+vr_wheel.root.left.n[i]*y+vr_wheel.root.up.n[i]*z;return p;}
+static real_point3d vr_wheel_point(real x,real y,real z){real_point3d p=vr_wheel.center;for(int i=0;i<3;i++)p.n[i]+=vr_wheel.root.forward.n[i]*x+vr_wheel.plane_left.n[i]*y+vr_wheel.plane_up.n[i]*z;return p;}
+/* the heading the controls give for a turn (+ right): the yaw falls, past the dead zone */
+static float steered(float a){float m=fabsf(a)<=VR_WHEEL_DEAD_ZONE?0:(a-copysignf(VR_WHEEL_DEAD_ZONE,a))*VR_WHEEL_LOCK/(VR_WHEEL_LOCK-VR_WHEEL_DEAD_ZONE);return -m;}
 '''+fn('vr_wheel_grip_distance')+fn('vr_vehicle_handles_update')+fn('vr_vehicle_handles_hand')+r'''
 static void hands(float angle){for(int h=0;h<2;h++){float sign=h?-1:1;pose[h]=(real_point3d){{0,sign*.2f*cosf(angle),sign*.2f*sinf(angle)}};}}
 int main(void){
  struct vr_wheel_grip g;float p[2]={-1,.001f},q[2]={-1,-.001f};vr_wheel_grip_start(&g,p,0);assert(fabsf(vr_wheel_grip_angle(&g,q))<.003f);
  q[0]=NAN;assert(vr_wheel_grip_angle(&g,q)==g.base);p[0]=p[1]=0;vr_wheel_grip_start(&g,p,0);assert(!g.held);
  vr_wheel.root.forward=(real_vector3d){{1,0,0}};vr_wheel.root.left=(real_vector3d){{0,1,0}};vr_wheel.root.up=(real_vector3d){{0,0,1}};
+ vr_wheel.plane_left=vr_wheel.root.left;vr_wheel.plane_up=vr_wheel.root.up;vr_wheel.normal=(real_vector3d){{-1,0,0}};vr_wheel.simulated_forward=vr_wheel.root.forward;vr_wheel.scale=1;
  vr_wheel.target[0]=(real_point3d){{0,.2f,0}};vr_wheel.target[1]=(real_point3d){{0,-.2f,0}};vr_wheel.valid=1;
  /* prepared controls own the steering even untouched (no controller steering) */
  real_vector3d f={{0,1,0}};hands(0);assert(vr_vehicle_handles_update(1,&f));assert(fabsf(f.j)<1e-6&&f.i>.99f);
  /* A Grip press 10 cm off the rim is not contact. Release, move onto the rim,
   * and squeeze again before the wheel can be acquired. */
- pose[0].x=.10f;held[0]=pressed[0]=1;vr_vehicle_handles_update(1,&f);assert(!owner[0]&&!vr_wheel.grip[0].held);
- held[0]=pressed[0]=0;vr_vehicle_handles_update(1,&f);pose[0].x=.06f; /* 6 cm off the rim: within 4+4 cm */
+ pose[0].x=.12f;held[0]=pressed[0]=1;vr_vehicle_handles_update(1,&f);assert(!owner[0]&&!vr_wheel.grip[0].held);
+ held[0]=pressed[0]=0;vr_vehicle_handles_update(1,&f);pose[0].x=.09f; /* 9 cm off the rim: within 4+4+2 cm */
  held[0]=held[1]=pressed[0]=pressed[1]=1;assert(vr_vehicle_handles_update(1,&f));assert(buzz==2&&vr_wheel.grip[0].held&&vr_wheel.grip[1].held&&fabsf(f.j)<1e-6);
  pose[0].x=0;
  /* the Warthog rim is grabbed anywhere, not only at the authored targets */
  { float point[3];assert(vr_vehicle_handles_hand(0,point)&&fabsf(point[1]-.2f)<1e-5); }
- pressed[0]=pressed[1]=0;hands(.4f);assert(vr_vehicle_handles_update(1,&f));assert(fabsf(atan2f(f.j,f.i)-.4f)<1e-5);
+ /* the wheel turned right (the left hand rising) steers right */
+ pressed[0]=pressed[1]=0;hands(.4f);assert(vr_vehicle_handles_update(1,&f));assert(fabsf(atan2f(f.j,f.i)-steered(.4f))<1e-5&&atan2f(f.j,f.i)<-.35f);
+ assert(vr_wheel.steer_valid&&fabsf(vr_wheel.steer.j-f.j)<1e-6);
  { float point[3];assert(vr_vehicle_handles_hand(0,point)&&fabsf(atan2f(point[2],point[1])-.4f)<1e-4); }
- held[1]=0;released[1]=1;hands(.6f);assert(vr_vehicle_handles_update(1,&f));assert(!owner[1]&&owner[0]==2);assert(fabsf(atan2f(f.j,f.i)-.6f)<1e-5);
+ held[1]=0;released[1]=1;hands(.6f);assert(vr_vehicle_handles_update(1,&f));assert(!owner[1]&&owner[0]==2);assert(fabsf(atan2f(f.j,f.i)-steered(.6f))<1e-5);
  /* ownership lost: the grip ends and the controls come back toward centre */
- owner[0]=0;assert(vr_vehicle_handles_update(1,&f));assert(!vr_wheel.grip[0].held);assert(fabsf(vr_wheel.angle-.6f*.92f)<1e-5);
+ owner[0]=0;assert(vr_vehicle_handles_update(1,&f));assert(!vr_wheel.grip[0].held);assert(fabsf(vr_wheel.angle-.6f*expf(-(1.0f/72.0f)/0.17f))<1e-4);
  for(int i=0;i<200;i++)vr_vehicle_handles_update(1,&f);assert(fabsf(vr_wheel.angle)<1e-3&&fabsf(atan2f(f.j,f.i))<1e-3);
  hands(0);vr_wheel.down[0]=0;pressed[0]=1;held[0]=1;vr_wheel.angle=0;vr_vehicle_handles_update(1,&f);assert(owner[0]==2);
  pressed[0]=0;tracked[0]=0;vr_vehicle_handles_update(1,&f);assert(!owner[0]);
@@ -91,9 +105,25 @@ int main(void){
  pose[0].x=.12f;vr_vehicle_handles_update(1,&f);assert(f.k<-.6f);
  pose[0].x=-.12f;vr_vehicle_handles_update(1,&f);assert(f.k>.6f);
  held[0]=0;for(int i=0;i<200;i++)vr_vehicle_handles_update(1,&f);assert(fabsf(f.k)<1e-3);
+ /* Ghost: the handlebar twisted (left hand forward, right back) turns right */
+ vr_wheel.kind=1;vr_wheel.angle=0;vr_wheel.radius=.2f;hands(0);held[0]=pressed[0]=held[1]=pressed[1]=1;
+ vr_vehicle_handles_update(1,&f);assert(owner[0]==2&&owner[1]==2);pressed[0]=pressed[1]=0;
+ pose[0].x=.05f;pose[1].x=-.05f;vr_vehicle_handles_update(1,&f);assert(atan2f(f.j,f.i)<-.2f);
+ pose[0].x=-.05f;pose[1].x=.05f;vr_vehicle_handles_update(1,&f);assert(atan2f(f.j,f.i)>.2f);
+ held[0]=held[1]=0;for(int i=0;i<200;i++)vr_vehicle_handles_update(1,&f);
+ /* Scorpion: tank sticks (left forward, right back turns right); lifting a
+  * stick does not steer */
+ vr_wheel.kind=2;vr_wheel.angle=0;hands(0);held[0]=pressed[0]=held[1]=pressed[1]=1;
+ vr_vehicle_handles_update(1,&f);pressed[0]=pressed[1]=0;
+ pose[0].x=.08f;pose[1].x=-.08f;vr_vehicle_handles_update(1,&f);assert(atan2f(f.j,f.i)<-.3f);
+ pose[0].x=pose[1].x=0;pose[0].z=.05f;vr_vehicle_handles_update(1,&f);assert(fabsf(atan2f(f.j,f.i))<1e-6);
+ /* haptics: a firm buzz at full lock, a light one on release */
+ {int before=buzz;pose[0].z=0;pose[0].x=.4f;pose[1].x=-.4f;vr_vehicle_handles_update(1,&f);assert(buzz>before&&fabsf(vr_wheel.angle-VR_WHEEL_LOCK)<1e-5);
+  before=buzz;held[0]=0;vr_vehicle_handles_update(1,&f);assert(buzz>before&&!owner[0]);}
+ held[1]=0;vr_vehicle_handles_update(1,&f);
  vr_wheel.kind=0;
  eligible=0;assert(!vr_vehicle_handles_update(1,&f));
- puts("PASS: immersive vehicle controls: rim/handle contact (8 cm, 10 cm misses), controls own steering and self-centre, Banshee yoke pitch, exclusive claims, two hands/release, tracking/recenter reset, 60-degree clamp and eligibility fallback");}
+ puts("PASS: immersive vehicle controls: rim/handle contact (8 cm, 10 cm misses), controls own steering and self-centre, Banshee yoke pitch, exclusive claims, two hands/release, tracking/recenter reset, 60-degree clamp and eligibility fallback; Test56: right is right, Ghost twist, Scorpion tank sticks, dead zone, timed self-centring, steering haptics");}
 '''
 # Replay actual closed prism mesh; every perimeter edge must belong to two faces.
 mesh=r'''

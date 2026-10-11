@@ -1554,7 +1554,14 @@ void vr_player_control_facing(
 	{
 		/* Drivers and mounted gunners select independently; passengers keep
 		their existing head-aim behavior. */
-		int hand_may_aim = vr_vehicle_aim_source();
+		/* Test56: with IMMERSIVE VEHICLE controls the hands are on them, so
+		the guns (the Ghost's and Banshee's, the Scorpion's turret) aim where
+		the head looks, and the controls steer through the driver's facing
+		alone (vr_vehicle_handles_facing, players.c). An online client's vehicle,
+		run by the host, still takes its facing from the controls (Test55). */
+		real_vector3d steering;
+		int handles = vr_vehicle_handles_update(unit_index, &steering);
+		int hand_may_aim = handles ? 0 : vr_vehicle_aim_source();
 		real heading = vr_render.seat.heading;
 
         int aimed = vr_aim(angles->yaw, seated, hand_may_aim, vr_seat_view() ? &heading : NULL, forward.n);
@@ -1562,7 +1569,10 @@ void vr_player_control_facing(
             if (unit_index != NONE) unit_get_aiming_vector(unit_index, &forward);
             else forward = *global_forward3d;
         }
-        if (vr_vehicle_handles_update(unit_index, &forward)) aimed = TRUE;
+        if (handles) {
+            if (!vr_vehicle_steering_split()) forward = steering;
+            aimed = TRUE;
+        }
 		if (!aimed)
 		{
 			vr_render.hand_origin_valid = FALSE;
@@ -4359,19 +4369,36 @@ void vr_render_first_person_ik(
 					vr_orient_hand(graph, matrices, chain[_vr_arm_hand], joints, &f, &u);
 					if (tracking != 1)
 						vr_distribute_arm_twist(matrices, chain, &old_fore, &old_hand, &vr_arm_history[controller]);
-					if (vr_finger_pose(controller, curls))
 					{
 						/* Test55: a held magazine, slide or vehicle control is
 						gripped: the fingers close around it whatever the
-						controller's trigger finger is doing */
+						controller's trigger finger is doing. Test56: closing
+						and opening over about a tenth of a second (back to the
+						tracked fingers on release), and gripped even without
+						finger tracking. */
+						static float grip_blend[2];
+						static double grip_time[2];
 						int owner = vr_interaction_owner(controller);
-						if (owner == VR_INTERACTION_RELOAD || owner == VR_INTERACTION_VEHICLE)
+						int gripping = owner == VR_INTERACTION_RELOAD || owner == VR_INTERACTION_VEHICLE;
+						int tracked_fingers = vr_finger_pose(controller, curls);
+						double now = vr_pose_time();
+						real step = (real)(now - grip_time[controller]);
+						if (!(step > 0.0f && step < 0.1f))
+							step = 0.0f;
+						grip_time[controller] = now;
+						grip_blend[controller] = PIN(grip_blend[controller] + (gripping ? step : -step) / 0.12f, 0.0f, 1.0f);
+						if (gripping && grip_blend[controller] <= 0.0f)
+							grip_blend[controller] = 0.01f;
+						if (!tracked_fingers && grip_blend[controller] > 0.0f)
+							curls[0] = curls[1] = curls[2] = curls[3] = 0.0f;
+						if (tracked_fingers || grip_blend[controller] > 0.0f)
 						{
-							curls[0] = curls[0] > 0.7f ? curls[0] : 0.7f;
+							real b = grip_blend[controller];
+							curls[0] += (MAX(curls[0], 0.7f) - curls[0]) * b;
 							for (int finger = 1; finger < 4; finger++)
-								curls[finger] = curls[finger] > 0.9f ? curls[finger] : 0.9f;
+								curls[finger] += (MAX(curls[finger], 0.9f) - curls[finger]) * b;
+							contacts = vr_touch_fingers(graph, matrices, controller, chain[_vr_arm_hand], joints, curls, &palm, &f, &u, pressed);
 						}
-						contacts = vr_touch_fingers(graph, matrices, controller, chain[_vr_arm_hand], joints, curls, &palm, &f, &u, pressed);
 					}
 					/* Keep surface haptics on the same collision/animation gate as
 					 * v1.0.18. The separate head-to-hand collision probe could report

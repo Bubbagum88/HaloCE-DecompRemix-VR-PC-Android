@@ -267,6 +267,9 @@ symbols in this file:
 #include "render/render_debug.h"
 #include "players.h"
 #include "player_queues_new.h"
+#ifdef HALO_VR
+#include "halo_vr.h" /* port: vr_vehicle_handles_facing */
+#endif
 #include "objects/objects.h"
 #include "saved games/game_state.h"
 #include "scenario/scenario.h"
@@ -5100,6 +5103,12 @@ void players_update_before_game(
 						&action->desired_facing);
 					control_data.facing_vector =
 						control_data.looking_vector = control_data.aiming_vector;
+#ifdef HALO_VR
+					/* Test56: IMMERSIVE VEHICLE controls steer (the driver's
+					facing) while the guns aim where the head looks
+					(port/linux/game/vr_vehicle_handles.h) */
+					vr_vehicle_handles_facing(player->unit_index, control_data.facing_vector.n);
+#endif
 					control_data.throttle.i = action->throttle.i;
 					control_data.throttle.j = action->throttle.j;
 					control_data.throttle.k = 0.f;

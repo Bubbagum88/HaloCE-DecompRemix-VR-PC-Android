@@ -96,8 +96,8 @@ assert "vr_calibration_note_shown(1);" in menu and "vr_calibration_note_shown(2)
 # One IMMERSION category with topic screens.
 assert '"IMMERSION+"' not in menu and "vr_menu_immersion_sections" in menu
 # Vehicles: controls own the steering; first-person hands; Warthog's own wheel.
-assert "return 1;\n}\n/* Test55: where a hand holding the controls is drawn" in handles
-assert "vr_wheel.angle*=0.92f;" in handles
+assert "vr_wheel.steer=*forward;vr_wheel.steer_valid=1;\n    return 1;\n}" in handles  # (Test56: steering apart from aiming)
+assert "vr_wheel.angle*=keep;" in handles  # (Test56: self-centring by time)
 assert "vr_render_vehicle_first_person_hands()" in render
 assert '"IMMERSIVE VEHICLE", "vr.vehicle_handles"' in menu
 # Zoom moves to the right stick's click with physical melee.

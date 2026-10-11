@@ -55,6 +55,37 @@ assert '"NPC RECOVERY", "vr.npc_recovery", _vr_setting_real, 4,' in menu and '{ 
 advanced = menu[menu.index("\t/* ADVANCED */"):menu.index("static struct vr_menu_section const vr_menu_immersion_sections")]
 assert "VR_IMMERSION_NPC_RECOVERY," in advanced and '{ "ADVANCED", 8 }' in menu
 
+# Immersive vehicles (only with IMMERSIVE VEHICLE on: every path goes through
+# vr_vehicle_handles_enabled, which reads vr.vehicle_handles).
+handles = read("port/linux/game/vr_vehicle_handles.h")
+render = read("port/linux/game/vr_render.c")
+players = read("source/game/players.c")
+assert 'config_boolean("vr.vehicle_handles")' in body(handles, "static int vr_vehicle_handles_enabled(")
+# right is right (Test55 added the turn to the heading: inverted everywhere)
+assert "real yaw=vr_yaw(&vr_wheel.simulated_forward)-steer;" in handles
+# the controls sit on the vehicle as drawn (the stutter and the hands off the
+# Warthog's wheel: the latest tick's pose ran a tick ahead of the drawn one)
+assert "render_interpolation_object_node_matrices(vr_wheel.vehicle)" in body(handles, "static void vr_wheel_drawn_refresh(")
+assert "vr_wheel_drawn_refresh();" in body(handles, "static int vr_vehicle_handles_hand(")
+assert "vr_wheel_drawn_refresh();" in body(handles, "boolean vr_render_vehicle_controls(")
+# the Warthog's wheel: its own node's centre and leaning plane
+prepare = body(handles, "static int vr_vehicle_handles_prepare(")
+assert "center=markers[0].node_matrix.position;normal=markers[0].node_matrix.up;" in prepare
+assert "if(vr_wheel.kind==0) contact_radius+=0.02f;" in handles
+# steering apart from aiming: the controls give the driver's facing, the
+# head the aiming (the Ghost's and Banshee's guns, the Scorpion's turret);
+# an online client keeps Test55's facing from the controls
+assert "vr_vehicle_handles_facing(player->unit_index, control_data.facing_vector.n);" in players
+assert players.index("control_data.looking_vector = control_data.aiming_vector;") < players.index("vr_vehicle_handles_facing(player->unit_index")
+facing = body(render, "void vr_player_control_facing(")
+assert "int hand_may_aim = handles ? 0 : vr_vehicle_aim_source();" in facing
+assert "if (!vr_vehicle_steering_split()) forward = steering;" in facing
+assert "return game_connection()!=_game_connection_network_client;" in handles
+# hands grip the controls (and magazines) over a tenth of a second, even
+# without finger tracking, and ease back to the tracked fingers
+assert "grip_blend[controller] = PIN(grip_blend[controller] + (gripping ? step : -step) / 0.12f, 0.0f, 1.0f);" in render
+assert "if (tracked_fingers || grip_blend[controller] > 0.0f)" in render
+
 code = r'''
 #include <assert.h>
 #include <math.h>
@@ -103,4 +134,4 @@ with tempfile.TemporaryDirectory(prefix="test56-") as temp:
                     "-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-I", str(ROOT),
                     str(path / "check.c"), "-o", str(path / "check"), "-lm"], check=True)
     subprocess.run([str(path / "check")], check=True)
-print("PASS: Test56 wiring (shot-reactive death kicks from the damage effect; NPC recovery within 1 s)")
+print("PASS: Test56 wiring (shot-reactive death kicks; NPC recovery within 1 s; immersive vehicles steer the right way from the drawn pose, Warthog wheel node, steering apart from head aiming, grip pose)")

@@ -140,6 +140,11 @@ real vr_render_units_per_metre(void);
 "full"), and the bones it is drawn with (posed to the headset; the game's
 own are left as they are) */
 boolean vr_render_vehicle_controls(void);
+/* Test56 (vr_vehicle_handles.h): with IMMERSIVE VEHICLE controls held, the
+driver's facing (the steering) comes from them while the aiming stays with
+the head (players.c); split: whether this machine runs the player's unit */
+int vr_vehicle_steering_split(void);
+void vr_vehicle_handles_facing(long unit_index, float facing[3]);
 boolean vr_render_full_body(long object_index);
 boolean vr_render_hands_only(void);
 struct real_matrix4x3 *vr_render_body_matrices(long object_index);
