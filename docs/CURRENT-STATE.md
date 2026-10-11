@@ -1,6 +1,21 @@
 # Current development state
 
-## Active private candidate: Test55 (2026-10-11)
+## Active private candidate: Test56 (2026-10-11)
+
+**1.0.23-test56 / Android code68**, branch `test39-interaction-completion`,
+for the owner's Quest and phone tests (not a release). A polish pass on Test55
+from the owner's two Test55 sessions: a parent-relative ragdoll solver for
+every species (Hunters and Flood included), shot-reactive death ragdolls,
+NPCs up within 1 s (NPC RECOVERY), immersive vehicles that steer the right
+way without stutter and steer apart from head aiming, the Warthog wheel rim,
+grip poses, throws at the release peak with THROW 2X, impact shoves, LIFT for
+everything held, CHARGE GRAB and heavy-hold haptics; OpenCE Build190's lobby
+countdown fix (Build189 is network 27 and not taken). Item outcomes:
+[TEST56-CHECKLIST.md](TEST56-CHECKLIST.md); APKs and hashes:
+[TEST56-DELIVERY-STATUS.md](TEST56-DELIVERY-STATUS.md). Device acceptance
+pending.
+
+## Previous private candidate: Test55 (2026-10-11)
 
 **1.0.22-test55 / Android code67**, branch `test39-interaction-completion`,
 for the owner's Quest and phone tests (not a release). A polish pass on

@@ -1,6 +1,24 @@
 # Agent and contributor continuation
 
-## Active private Test55 candidate (2026-10-11)
+## Active private Test56 candidate (2026-10-11)
+
+Continue on `test39-interaction-completion`; private `1.0.23-test56`, Android
+code68 (docs/TEST56-DELIVERY-STATUS.md). Read docs/TEST56-CHECKLIST.md
+(evidence, each request with implemented / automated / device outcome) and
+docs/TEST56-DEVICE-CHECKLIST.md. Key findings: ragdolls never rested because
+joint limits authored relative to the parent bone (limp-noodle flags 0x1
+ball, 0x2 hinge, 0x4 rigid) were compared in world space; the parent-relative
+solver is tested offline on the 12 stock skeletons
+(tools/test_test56_ragdoll.py, fixture tools/fixtures/ragdoll-skeletons.h).
+Immersive vehicles steered inverted and stuttered (controls on the newest
+tick while the vehicle is drawn a tick behind). NPC recovery never exceeds
+1 s (owner rule). Immersive-vehicle behaviour applies only with IMMERSIVE
+VEHICLE on. OpenCE Build189 (map sharing) moves to network 27 and is not
+taken; Build190's host-only lobby countdown fix is. Settings that only serve
+another feature turn on with it (`vr_menu_dependencies`), never as extra
+toggles.
+
+## Previous private Test55 candidate (2026-10-11)
 
 Continue on `test39-interaction-completion`; private `1.0.22-test55`, Android
 code67 (docs/TEST55-DELIVERY-STATUS.md). Read docs/TEST55-CHECKLIST.md
