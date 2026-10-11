@@ -49,7 +49,7 @@ static float dot_product3d(real_vector3d const*a,real_vector3d const*b){return a
 static float magnitude3d(real_vector3d const*a){return sqrtf(dot_product3d(a,a));}
 static void vector_from_points3d(real_point3d const*a,real_point3d const*b,real_vector3d*v){for(int i=0;i<3;i++)v->n[i]=b->n[i]-a->n[i];}
 static int collision_model_instance_new(struct collision_model_instance*m,long object){if(object!=1&&object!=2)return 0;m->object=object;return 1;}
-static int collision_model_test_pill(struct collision_model_instance const*m,real_point3d const*p,real_vector3d const*v,float radius,struct collision_model_test_pill_result*r){real_vector3d d;(void)v;vector_from_points3d(p,&items[m->object].object.bounding_sphere_center,&d);if(magnitude3d(&d)>items[m->object].object.bounding_sphere_radius+radius)return 0;r->node_index=0;return 1;}
+static int collision_model_touch_sphere(struct collision_model_instance const*m,real_point3d const*p,float radius,short*node){real_vector3d d;vector_from_points3d(p,&items[m->object].object.bounding_sphere_center,&d);if(magnitude3d(&d)>items[m->object].object.bounding_sphere_radius+radius)return 0;if(node)*node=0;return 1;}
 static void scale_vector3d(real_vector3d const*a,float s,real_vector3d*b){for(int i=0;i<3;i++)b->n[i]=a->n[i]*s;}
 static void add_vectors3d(real_vector3d const*a,real_vector3d const*b,real_vector3d*c){for(int i=0;i<3;i++)c->n[i]=a->n[i]+b->n[i];}
 static void unit_get_camera_position(long i,real_point3d*p){(void)i;memset(p,0,sizeof(*p));}
@@ -101,7 +101,7 @@ c=out/'remote.c';c.write_text(stub+code+tests);binary=out/'remote'
 subprocess.run(['clang','-std=c11','-Wall','-Wextra','-Werror','-fsanitize=address,undefined',
  '-I'+str(ROOT/'port/linux/game'),str(c),'-lm','-o',str(binary)],check=True)
 subprocess.run([str(binary)],check=True)
-assert 'collision_model_test_pill(&model,&request->position,&stationary,contact_radius,&model_hit)' in code
+assert 'collision_model_touch_sphere(&model,&request->position,contact_radius,NULL)' in code
 finder=code[code.index('static long find_candidate('):code.index('boolean vr_world_interaction_remote(')]
-assert 'collision_model_test_pill(' in finder and 'collision_test_vector(' not in finder
+assert 'collision_model_touch_sphere(' in finder and 'collision_test_vector(' not in finder
 assert '.12f*units()' not in code and '.12f*u' not in code

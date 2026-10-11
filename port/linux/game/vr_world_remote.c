@@ -63,12 +63,10 @@ static long find_candidate(struct network_interaction_hand const *request)
     struct object_iterator it; struct object_datum *item;
     real contact_radius=(real)vr_world_hand_contact_radius((float)config_real("vr.interaction_reach"),(float)units());
     real best=FLT_MAX; long result=NONE; int count=0;
-    real_vector3d stationary={0};
     object_iterator_new(&it,_object_mask_weapon|_object_mask_equipment|_object_mask_scenery,0);
     while((item=object_iterator_next(&it))!=NULL) {
         real_vector3d delta; real distance;
         struct collision_model_instance model;
-        struct collision_model_test_pill_result model_hit;
         if(!vr_world_object_get(it.index)) continue;
         vector_from_points3d(&request->position,&item->object.bounding_sphere_center,&delta);
         distance=magnitude3d(&delta);
@@ -77,7 +75,7 @@ static long find_candidate(struct network_interaction_hand const *request)
         /* The sphere is broad phase only. Host acquisition requires overlap
          * between the client's tracked palm volume and this native model. */
         if(!collision_model_instance_new(&model,it.index) ||
-            !collision_model_test_pill(&model,&request->position,&stationary,contact_radius,&model_hit)) continue;
+            !collision_model_touch_sphere(&model,&request->position,contact_radius,NULL)) continue;
         best=distance;result=it.index;
     }
     return result;
@@ -138,8 +136,6 @@ boolean vr_world_interaction_remote(struct network_interaction_hand const *reque
 		}
     } else {
         struct collision_model_instance model;
-        struct collision_model_test_pill_result model_hit;
-        real_vector3d stationary={0};
         if(!request->pressed) return FALSE;
         if(!(item=vr_world_object_get(request->object))) return FALSE;
         for(i=0;i<256;++i) if(remote[i].active && remote[i].object==request->object && remote[i].player!=request->player) return FALSE;
@@ -147,7 +143,7 @@ boolean vr_world_interaction_remote(struct network_interaction_hand const *reque
         vector_from_points3d(&request->position,&item->object.bounding_sphere_center,&vector);
         if(magnitude3d(&vector)>item->object.bounding_sphere_radius+contact_radius ||
             !collision_model_instance_new(&model,request->object) ||
-            !collision_model_test_pill(&model,&request->position,&stationary,contact_radius,&model_hit)) return FALSE;
+            !collision_model_touch_sphere(&model,&request->position,contact_radius,NULL)) return FALSE;
         /* The palm is the contact anchor. LOS below only prevents gripping
          * through an intervening wall; a ray never selects the object. */
         contact=request->position;

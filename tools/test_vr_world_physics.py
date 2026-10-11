@@ -161,8 +161,8 @@ for marker in ['case _game_connection_local: return "local";',
 campaign=(ROOT/'source/main/main.c').read_text()
 assert 'main_globals.connection = _game_connection_local;' in campaign
 world_candidate=world[world.index('static long candidate('):world.index('void vr_world_interaction_tick(void)')]
-assert 'collision_model_test_pill(&model, point, &stationary, contact_radius' in world_candidate
-assert world_candidate.index('collision_model_test_pill(') < world_candidate.index('collision_test_vector(')
+assert 'collision_model_touch_sphere(&model, point, contact_radius, NULL)' in world_candidate
+assert world_candidate.index('collision_model_touch_sphere(') < world_candidate.index('collision_test_vector(')
 assert 'Keep LOS solely as a through-wall guard' in world_candidate
 world_tick=world[world.index('void vr_world_interaction_tick(void)'):]
 assert 'if (!held->active && grip && pressed && vr_interaction_owner(hand)==VR_INTERACTION_NONE)' in world_tick
@@ -172,7 +172,7 @@ assert 'action=keep-contact' in world_tick
 npc_source=(ROOT/'port/linux/game/vr_npc_interaction.c').read_text()
 npc_tick=npc_source[npc_source.index('static void tick_player('):npc_source.index('void vr_npc_interaction_tick(void)')]
 assert 'if(!pressed || npc.held[h] || npc.recovery' in npc_tick
-assert npc_tick.index('if(!pressed || npc.held[h]') < npc_tick.index('collision_model_test_pill(')
+assert npc_tick.index('if(!pressed || npc.held[h]') < npc_tick.index('collision_model_touch_sphere(')
 parkour=(ROOT/'port/linux/game/vr_parkour.c').read_text()
 parkour_tick=parkour[parkour.index('void vr_parkour_velocity('):]
 assert 'collision_features_test_point(&parkour_contact_features,hand,&contact)' in parkour
@@ -182,7 +182,7 @@ assert 'else if(r->pressed||!r->held)' in network # host only attempts new press
 assert 'vr_npc_interaction_remote(r->player,hand,r->held,r->position.n)' in network
 npc=(ROOT/'port/linux/game/vr_npc_interaction.c').read_text()
 assert 'vr_world_hand_contact_radius((float)config_real("vr.interaction_reach")' in npc
-assert 'collision_model_test_pill(&model,&point,&stationary,contact_radius,&model_hit)' in npc
+assert 'collision_model_touch_sphere(&model,&point,contact_radius,&model_node)' in npc
 assert '!vr_aiming()' not in npc
 assert '.12f*units' not in npc and '.12f*.32808399f' not in npc
 assert 'contact grab miss' in npc

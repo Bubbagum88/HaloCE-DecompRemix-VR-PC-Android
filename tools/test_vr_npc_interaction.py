@@ -364,11 +364,11 @@ assert '!npc.is_remote && npc.started && !npc.recovery' in palette
 assert 'vr_world_interaction_weight_feedback(h,npc.mobility' in palette
 assert 'node->position[k]-node->previous[k]' in palette
 assert 'magnitude3d(&strain)/units' in palette
-assert 'collision_model_test_pill(&model,&point,&stationary,contact_radius,&model_hit)' in source
+assert 'collision_model_touch_sphere(&model,&point,contact_radius,&model_node)' in source
 assert 'collision_test_vector(_collision_test_for_line_of_sight_flags' in source # occlusion only, after overlap
 local_tick=function('static void tick_player(')
 assert 'if(!pressed || npc.held[h] || npc.recovery' in local_tick
-assert local_tick.index('if(!pressed || npc.held[h]') < local_tick.index('collision_model_test_pill(')
+assert local_tick.index('if(!pressed || npc.held[h]') < local_tick.index('collision_model_touch_sphere(')
 assert 'vr_interaction_hold_target_step(npc.target[h].n,point.n,.45f*units,&limited)' in local_tick
 assert 'if(magnitude3d(&delta)>0.45f*units) {release' not in local_tick
 assert 'if(magnitude3d(&delta)>.65f*units) {release' not in local_tick
@@ -429,8 +429,8 @@ for marker in ['_biped_flying_bit','collision_height_standing','collision_radius
 for marker in ['runtime_head_node_index','runtime_pelvis_node_index','head_reaches_pelvis']:
     assert marker not in graph_source,marker
 remote_probe=source[source.index('static long probe_remote(real_point3d const *point,real_point3d const *camera,long player_unit,long required,int hand)\n{'):source.index('static void reset_one(')]
-assert 'collision_model_test_pill(&model,point,&stationary,contact_radius,&model_hit)' in remote_probe
-assert remote_probe.index('collision_model_test_pill(') < remote_probe.index('collision_test_vector(')
+assert 'collision_model_touch_sphere(&model,point,contact_radius,&model_node)' in remote_probe
+assert remote_probe.index('collision_model_touch_sphere(') < remote_probe.index('collision_test_vector(')
 remote_submit=source[source.index('int vr_npc_interaction_remote(long player_index'):source.index('void vr_npc_interaction_remote_cancel(')]
 assert 'probe_remote(&point,&camera,player->unit_index,required,hand)' in remote_submit
 assert 'remote.candidate[hand]=selected' in remote_submit

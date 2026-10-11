@@ -84,43 +84,87 @@ boolean collision_model_instance_new(
 	return result;
 }
 
+/* port: completed (the decompiled body transformed the center and tested
+nothing, so it always answered FALSE). Whether a sphere touches the
+instance's collision geometry: one of its nodes' surfaces lies within the
+radius, or the center is inside a node's solid (a hand pushed into a body).
+This is an overlap test; collision_model_test_pill sweeps a pill along a
+vector and finds nothing when the vector is zero. node_index (optional): of
+the nodes touched, the one whose origin is nearest the center. */
+boolean collision_model_touch_sphere(
+	struct collision_model_instance const *instance,
+	real_point3d const *center,
+	real radius,
+	short *node_index)
+{
+	struct collision_bsp_test_sphere_result sphere_result;
+	short i;
+	short best_node = NONE;
+	real best_distance_squared = 0.f;
+
+	if (!instance || !instance->model || !center || !(radius >= 0.f) || !valid_real_point3d(center))
+	{
+		return FALSE;
+	}
+
+	/* port: (instance->node_count, collision_node_region_valid) */
+	for (i = 0; i < instance->node_count; i++)
+	{
+		struct collision_node const *collision_node = TAG_BLOCK_GET_ELEMENT(&instance->model->nodes, i, struct collision_node);
+		struct collision_bsp *collision_bsp;
+		real_matrix4x3 inverted_matrix;
+		real_point3d transformed_center;
+		short perm;
+
+		if (!collision_node_region_valid(collision_node))
+		{
+			continue;
+		}
+		perm = instance->region_permutation_indices[collision_node->region_index];
+		if (perm == NONE || collision_node->bsps.count <= 0)
+		{
+			continue;
+		}
+		perm = PIN(perm, 0, collision_node->bsps.count - 1);
+		collision_bsp = TAG_BLOCK_GET_ELEMENT(&collision_node->bsps, perm, struct collision_bsp);
+		if (collision_bsp->bsp3d.nodes.count <= 0)
+		{
+			continue;
+		}
+
+		matrix4x3_inverse(&instance->matrices[i], &inverted_matrix);
+		matrix4x3_transform_point(&inverted_matrix, center, &transformed_center);
+		if (bsp3d_test_point(&collision_bsp->bsp3d, 0, &transformed_center) == NONE ||
+			collision_bsp_test_sphere(collision_bsp, 0, NULL, &transformed_center,
+				inverted_matrix.scale * radius, &sphere_result))
+		{
+			real distance_squared = distance_squared3d(&instance->matrices[i].position, center);
+
+			if (best_node == NONE || distance_squared < best_distance_squared)
+			{
+				best_node = i;
+				best_distance_squared = distance_squared;
+			}
+			if (!node_index)
+			{
+				break;
+			}
+		}
+	}
+
+	if (node_index)
+	{
+		*node_index = best_node;
+	}
+	return best_node != NONE;
+}
+
 boolean collision_model_test_sphere(
 	struct collision_model_instance const *instance,
 	real_point3d const *center,
 	real radius)
 {
-	const struct collision_node *collision_node;
-	struct collision_bsp *collision_bsp;
-	short node_index;
-	short perm;
-	real_point3d transformed_center;
-	real_matrix4x3 inverted_matrix;
-
-	/* port: (instance->node_count, collision_node_region_valid) */
-	for (node_index = 0; node_index < instance->node_count; ++node_index)
-	{
-		collision_node = TAG_BLOCK_GET_ELEMENT(&instance->model->nodes, node_index, struct collision_node);
-
-		if (collision_node_region_valid(collision_node))
-		{
-			perm = instance->region_permutation_indices[collision_node->region_index];
-
-			if (perm != NONE && collision_node->bsps.count > 0)
-			{
-				perm = PIN(perm, 0, collision_node->bsps.count - 1);
-
-				collision_bsp = TAG_BLOCK_GET_ELEMENT(&collision_node->bsps, perm, struct collision_bsp);
-
-				if (collision_bsp->bsp3d.nodes.count > 0)
-				{
-					matrix4x3_inverse(&instance->matrices[node_index], &inverted_matrix);
-					matrix4x3_transform_point(&inverted_matrix, center, &transformed_center);
-				}
-			}
-		}
-	}
-
-	return FALSE;
+	return collision_model_touch_sphere(instance, center, radius, NULL);
 }
 
 boolean collision_model_test_point(

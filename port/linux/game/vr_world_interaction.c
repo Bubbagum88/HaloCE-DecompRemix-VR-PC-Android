@@ -471,7 +471,6 @@ static long candidate(real_point3d const *point, real_point3d const *camera, lon
     int narrow_tests=0;
     real_vector3d ray;
     struct collision_result hit;
-    real_vector3d stationary = { 0.0f, 0.0f, 0.0f };
     unsigned long mask = 0;
     if (world_grab_enabled())
         mask |= _object_mask_weapon | _object_mask_equipment | _object_mask_scenery;
@@ -482,7 +481,6 @@ static long candidate(real_point3d const *point, real_point3d const *camera, lon
         boolean is_vehicle = item->object.type == _object_type_vehicle;
         real distance;
         struct collision_model_instance model;
-        struct collision_model_test_pill_result model_hit;
         if (is_vehicle && !vehicle_lift_enabled()) continue;
         if (!grabbable(iterator.index) || vr_world_interaction_remote_owned(iterator.index)) continue;
         vector_from_points3d(point, &item->object.bounding_sphere_center, &ray);
@@ -493,7 +491,7 @@ static long candidate(real_point3d const *point, real_point3d const *camera, lon
          * requires the tracked hand's finite collision sphere to overlap the
          * object's authored collision model; no hand-to-target ray selects it. */
         if (!collision_model_instance_new(&model, iterator.index) ||
-            !collision_model_test_pill(&model, point, &stationary, contact_radius, &model_hit)) continue;
+            !collision_model_touch_sphere(&model, point, contact_radius, NULL)) continue;
         vector_from_points3d(point, &item->object.bounding_sphere_center, &ray);
         distance = magnitude3d(&ray);
         /* Keep LOS solely as a through-wall guard for a hand pose that has

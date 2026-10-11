@@ -1957,9 +1957,21 @@ static void config_load(void)
 	}
 }
 
+/* Names already looked up, by the address of the name: the game asks for the
+same literals every tick (parkour, NPC handling and the other VR hooks ask
+for several per biped), and a lookup otherwise compares the name against
+every setting. An entry is used only when its name still matches. */
+#define CONFIG_LOOKUP_CACHE_SIZE 512
+static struct
+{
+	const char *name;
+	long index;
+} config_lookup_cache[CONFIG_LOOKUP_CACHE_SIZE];
+
 static const struct config_value *config_value(const char *name, enum config_type type)
 {
 	static const struct config_value none = { 0, 0, 0.0, "" };
+	unsigned long slot = ((unsigned long)(size_t)name >> 2) % CONFIG_LOOKUP_CACHE_SIZE;
 	long index;
 
 	pthread_mutex_lock(&config_lock);
@@ -1968,11 +1980,26 @@ static const struct config_value *config_value(const char *name, enum config_typ
 		config_load();
 		config_loaded = 1;
 	}
+	/* (a name built in a buffer may later hold another name: the entry's
+	setting is compared with it again, and unknown names are never kept) */
+	if (name && config_lookup_cache[slot].name == name &&
+		!strcmp(config_settings[config_lookup_cache[slot].index].name, name))
+	{
+		index = config_lookup_cache[slot].index;
+	}
+	else
+	{
+		index = name ? config_setting_index(name) : -1;
+		if (index >= 0)
+		{
+			config_lookup_cache[slot].name = name;
+			config_lookup_cache[slot].index = index;
+		}
+	}
 	pthread_mutex_unlock(&config_lock);
-	index = config_setting_index(name);
 	if (index < 0 || config_settings[index].type != type)
 	{
-		platform_log("settings: no %s setting %s", type == _config_string ? "string" : "such", name);
+		platform_log("settings: no %s setting %s", type == _config_string ? "string" : "such", name ? name : "(null)");
 		return &none;
 	}
 	return &config_values[index];
