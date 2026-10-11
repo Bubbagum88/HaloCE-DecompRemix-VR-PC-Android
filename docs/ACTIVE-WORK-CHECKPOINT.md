@@ -1,7 +1,30 @@
+## Current work checkpoint: private candidate: Test53 (2026-10-11)
+
+**1.0.20-test53 / Android code65**, branch `test39-interaction-completion`,
+built for the owner's Quest and phone tests (not a release). Test52 (code64)
+was committed but never built; Test53 supersedes it. Every change since
+v1.0.18 and every requested item is in [TEST53-CHECKLIST.md](TEST53-CHECKLIST.md)
+with implemented / automated / device outcomes; the delivered APKs and hashes
+are in [TEST53-DELIVERY-STATUS.md](TEST53-DELIVERY-STATUS.md).
+
+- **Voice is not confirmed working.** v1.0.19 crashes when a player speaks
+  (the assembly converter corrupted Opus's `cache_bits50`; see
+  [TEST52-CRASH-ANALYSIS.md](TEST52-CRASH-ANALYSIS.md)). Fixed and hardened in
+  source; awaiting a device test.
+- Interaction features had two blocking defects, now fixed: grabs used a
+  zero-length pill sweep that cannot report a touch, and parkour/manual
+  reload could not read the head pose from game ticks. Also: bounded NPC
+  handoff, body retention through campaign script collections, co-op host
+  parkour, the IMMERSION settings page.
+- OpenCE Build184 / network 26: hosting 26, clients 11–26, All compatible
+  networks by default, selected Build177–184 fixes. Not a full Build184
+  rebase; browser (WebRTC) players cannot join this app's hosts.
+
 ## Current release checkpoint ? v1.0.19 (2026-10-10)
 
-The owner tested the Test51 runtime on Quest and confirmed both the server-join
-crash is gone and voice chat works. It is now the v1.0.19 / Android code63
+The owner tested the Test51 runtime on Quest and confirmed the server-join
+crash is gone. (The voice-chat confirmation first recorded here was wrong:
+v1.0.19 closes as soon as a player speaks; see Test53.) It is the v1.0.19 / Android code63
 public baseline. Release notes and provenance are in
 [RELEASE-1.0.19.md](RELEASE-1.0.19.md) and
 [RELEASE-PROVENANCE-1.0.19.md](RELEASE-PROVENANCE-1.0.19.md). The new release
@@ -11,7 +34,7 @@ At the top of the release, disclose unfinished VR settings: parkour, ragdolls
 and wall/NPC/enemy/ally grabbing are not working reliably; enemy grabbing may
 activate but is broken and not recommended. Manual physical reload is not
 confirmed end-to-end. Do not imply a menu toggle works just because it exists.
-Preserve the confirmed join/voice fix, mounted reticle alignment, toggle sprint,
+Preserve the confirmed join fix, mounted reticle alignment, toggle sprint,
 weapon release/drop/holsters, contact haptics and existing Android/mobile
 behavior. The engine remains Build157/network24 with selected compatible
 updates, not a complete Build177 rebase. PC/Steam Frame is still deferred.

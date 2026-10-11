@@ -39,7 +39,7 @@ The app does not contain Halo game data. On first launch, open **Game files & ve
 - **Android:** editable touch HUD, multitouch, swipe/fire-drag controls, optional gyro aiming, and USB/Bluetooth gamepad support with controller-aware touch visibility.
 - **OpenCE multiplayer and co-op:** native in-game server browser, PvP hosting and campaign co-op, with network 24 hosting and a launcher selector for compatible client targets 11–24.
 - **Game and launcher tools:** multiple game-data sets and revisions, updates, settings, saved invites, help and per-launch logs.
-- **New confirmed fixes:** Quest server joins no longer crash in the voice-config diagnostic; voice chat was confirmed working by the owner. Mounted vehicle/turret shots follow the selected reticle ray, toggle sprint is available, signed weapon release/drop/holster handling is fixed, and v1.0.18 contact haptics are retained.
+- **New confirmed fixes:** Quest server joins no longer crash in the voice-config diagnostic. (Voice chat is **not** confirmed: v1.0.19 closes on Quest when a player speaks; the cause is fixed in the next private test build and awaits device testing.) Mounted vehicle/turret shots follow the selected reticle ray, toggle sprint is available, signed weapon release/drop/holster handling is fixed, and v1.0.18 contact haptics are retained.
 
 ### Network compatibility
 

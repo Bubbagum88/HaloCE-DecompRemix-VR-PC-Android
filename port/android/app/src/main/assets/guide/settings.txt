@@ -418,15 +418,15 @@ Hosting: proximity voice range in world units (5 to 100).
 network.legacy_coop [boolean]
 Default: false
 Opt in to legacy network12-14 campaign clients. Old hosts omit scripted team allegiance; marine reticles/team behavior may be wrong.
-Uses old native presentation behavior without invented allegiance. Prefer network15-24. Hosting stays24.
+Uses old native presentation behavior without invented allegiance. Prefer network15-26. Hosting stays26.
 
 network.protocol_version [integer]
-Default: 24
-Client protocol target: 0 lists/joins all compatible PvP versions 11-24;
-11-24 selects one exact server version. This build always hosts as 24.
-Campaign needs15+, or consented legacy12-14; Custom Edition needs23+. This
-is read once when the game starts; restart after changing it. Invalid
-values fall back to the default, 24.
+Default: 0
+Client protocol target: 0 (the default) lists/joins all compatible PvP
+versions 11-26; 11-26 selects one exact server version. This build always
+hosts as 26. Campaign needs15+, or consented legacy12-14; Custom Edition
+needs23+. This is read once when the game starts; restart after changing
+it. Invalid values fall back to the build's own version, 26.
 
 network.join_from_clipboard [boolean]
 Default: true

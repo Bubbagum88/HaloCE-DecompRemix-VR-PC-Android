@@ -97,3 +97,38 @@ is built with the v1.0.18 setup and the same debug signing key
 Host checks, the qemu reproduction and the build gates cannot prove headset
 voice end-to-end. A Quest test must confirm: speaking in a lobby and a match no
 longer closes the game; another player hears you; you hear them.
+
+## Test53: independent reproduction and hardening
+
+Test52 was committed but never built. Test53 (which supersedes it) re-proved
+the cause without the earlier session's qemu loader:
+
+- The shipped Test51 guest images (Quest `3257aadb…`, Android `f86d1193…`)
+  both hold a `cache_bits50` whose byte 338 (95) is missing and whose tail is
+  shifted by one (54 mismatching bytes); `cache_index50` and `cache_caps50`
+  match the source. v1.0.18 shipped no Opus at all: voice is entirely
+  post-1.0.18 work.
+- The vendored Opus built for the PC host with only that byte dropped, driven
+  as `voice_audio.c` drives it (48 kHz mono VOIP, complexity 5, in-band FEC,
+  10% loss, SIGNAL_VOICE, 20 ms frames) on synthetic speech: AddressSanitizer
+  reports a global-buffer-overflow past `cache_bits50` in `quant_partition`,
+  from `quant_band` / `quant_all_bands` / `celt_encode_with_ec` /
+  `opus_encode_float`, the device crash's own chain. Without sanitizers the
+  encoder runs at 8–24 kbps and fails at 28 kbps (on the device the same read
+  became the SIGSEGV). With the correct table every bitrate from 8 to 64 kbps
+  encodes 1,500 frames cleanly.
+
+Hardening added in Test53: `voice_audio_encode` replaces non-finite samples,
+clamps to full scale, clamps the bitrate to 8–64 kbps and the packet limit,
+and logs an encoder failure once (`tools/test_voice_encode_hardening.py`
+runs it against the vendored Opus with assertions under ASan/UBSan, including
+Test51's misread kbps=995719466). Every guest unit, libtiff, musl and Opus
+included, now rejects implicit declarations; libtiff's K&R `long lseek()`
+(a 32-bit offset into a 64-bit `off_t` on the guest) uses the C library's
+prototype; `tools/android_guest_abi_lint.py` links all guest units as LLVM
+bitcode after each build and fails on any call whose argument count, types,
+return type or integer extension differ from the definition (it found and
+fixed mismatched rasterizer, keyboard and libtiff declarations). The
+post-build image check requires the built guest's Opus tables to match the
+source. The "VR manual reload gate: weapon=-303103938" line was not garbage:
+it is a valid weapon datum handle printed as signed decimal (now hex).

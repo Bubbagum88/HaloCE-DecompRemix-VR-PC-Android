@@ -20,7 +20,7 @@ The APKs do not include Halo game data. On first launch, open **Game files & ver
 ### Confirmed in this release
 
 - **Quest multiplayer join crash fixed.** The game was being admitted to a server and loading the match, then crashing inside the voice-configuration logging path. The diagnostic used incompatible mixed string/floating-point formatting in the Android guest logger. It now uses integer-only formats and records host voice settings before logging. The owner confirmed the game no longer crashes while joining.
-- **Voice chat works.** OpenCE Build167 host-relayed Opus voice is retained, and the owner confirmed voice chat is audible in testing. No voice protocol or routing change was made for the crash fix.
+- **Voice chat (correction, 2026-10-11): not working.** After publication the owner reported that v1.0.19 closes on Quest as soon as a player speaks in voice chat; the earlier "voice chat works" statement here was wrong. The cause (a corrupted Opus table in the Quest build) is fixed in private Test53 and awaits device testing; see TEST52-CRASH-ANALYSIS.md. Original text: OpenCE Build167 host-relayed Opus voice is retained, and the owner confirmed voice chat is audible in testing. No voice protocol or routing change was made for the crash fix.
 - **Mounted vehicle and turret reticles align with shots.** Driver/gunner firing follows the selected aim ray without camera aim-assist snapping. The shared path covers the tested Ghost, Scorpion/tank and turret cases. Random projectile spread still applies.
 - **Sprint can be toggled.** In VR Settings → Locomotion, enable **Button Sprint** and set **Sprint Toggle** to **Toggle** to click the left stick once to sprint and again to stop. **Hold** remains available.
 

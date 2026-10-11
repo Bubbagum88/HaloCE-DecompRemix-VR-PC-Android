@@ -95,7 +95,9 @@ expected_upstream = ('OpenCE build 144 (network 21)' if network == 21 else
                      'OpenCE build 145 (network 22)' if network == 22 else
                      'OpenCE build 148 (network 23)' if network == 23 else
                      ('Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177 are included; Build175\'s old-kernel mapping guard is retained. This is not a full Build177 rebase, and network24 is unchanged.'
-                      if 'Build177' in updater else
+                      if 'Build177' in updater and 'Build184' not in updater else
+                      "Engine base: OpenCE Build 157 / network 26. Selected fixes through Build 184 are included, with OpenCE's network 25 (units' integrated lights) and network 26 (internet signalling), so current OpenCE servers can be joined and can join this app's hosts; OpenCE's browser players cannot join this app's hosts. This is not a full Build184 rebase. Build174's high-resolution button rendering and Build184's new display options are not integrated because they build on OpenCE renderer and menu code this port has customized."
+                      if 'Build184' in updater else
                       'Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167'))
 assert expected_upstream in updater
 if network < 23:

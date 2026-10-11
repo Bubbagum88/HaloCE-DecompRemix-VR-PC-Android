@@ -1,4 +1,77 @@
-# Test52 private candidate: 1.0.20-test52
+# Test53 private candidate: 1.0.20-test53
+
+## Test53: voice crash fixed and immersion features repaired
+
+This private test build follows public v1.0.19. It is for the owner's Quest
+and phone testing; it is not a release. It installs over v1.0.19 (same
+package names and signing key, Android version code 65) and keeps your
+settings, profiles, saves and imported game data.
+
+### Voice chat: the crash when you speak
+
+v1.0.19 closed as soon as you spoke in a voice-enabled game. The cause was
+in the build, not the voice code: the step that converts the Quest guest's
+assembly for Android deleted one byte from an Opus voice-codec table, so the
+encoder read past the end of a table once real speech arrived. The build no
+longer alters data, a check compares the built tables with the Opus source
+after every build, and the encoder now also cleans its microphone input and
+keeps its bitrate between 8 and 64 kbps. Calls the build could compile wrongly
+on the Quest (undeclared or mismatched functions) are now refused at build
+time. Please retest: talk in a lobby and in a match, and check that others hear
+you and you hear them.
+
+### Network: current OpenCE servers (network 26)
+
+OpenCE moved to network 26 (Build184). This build hosts on network 26 and
+joins hosts on networks 11 to 26, so current OpenCE servers appear and can be
+joined again, and current OpenCE players can join your games. **All
+compatible networks** is now the launcher's default target (the most
+servers); a specific network you chose before is kept. OpenCE's new browser
+players cannot join this app's hosts (that needs WebRTC, which this app does
+not have). Selected Build184 fixes are included: co-op elevators no longer drop
+riders, a co-op crash on stale player handles, vehicle respawns, Custom
+Edition HUD digits, and a race that could delete Custom Edition maps while
+the menus started.
+
+### VR Settings: IMMERSION
+
+A new **IMMERSION** page (first in VR Settings) gathers every immersion
+option in one place: physical weapons, holsters and melee, manual reload and
+pouches, wall-run / wall-jump / grip climb and their tuning, world, NPC and
+vehicle grabbing, NPC rig slots, body retention, NPC rescue, impact damage,
+close contact, physical vehicle handles, fingers and room-scale. Each is the
+same setting as on its usual page; change it in either place.
+
+### Why grabbing, climbing and manual reload did not work
+
+- **Grabbing NPCs, objects and vehicles (and co-op grabs):** the touch test
+  asked the engine whether a *moving* hand sphere would hit a model, with no
+  movement, and the engine answers "no" for that. Your logs show hundreds of
+  misses at the largest contact size. Grabs now test whether the hand
+  actually touches (or is inside) the model.
+- **Parkour (wall-run, wall-jump/leap, grip climb / wall grabs) and manual
+  reload:** both asked for the head's position from the game's simulation
+  step, which the VR code only answered while drawing a frame. Every
+  simulation step was refused, so parkour reset itself constantly and manual
+  reload cancelled before it read your hands. Both now run.
+- **Released NPCs** could stay limp with their AI switched off for a long
+  time. They now get up (or a body settles) within five seconds.
+- **Body retention:** campaign scripts clear bodies at many encounters,
+  which ignored the setting. In single player with retention on, those
+  clean-ups now keep the newest bodies (45 at "75", 60 at "100").
+
+Parkour works in single player and for a **co-op host's own player**. It stays
+off as a co-op client and in PvP: hosts check client movement and would pull a
+wall-running or climbing player back (and it would be an unfair advantage).
+A wall run may start on a wall you reach within a second of jumping.
+
+These fixes are confirmed by automated checks on a PC, not yet in the
+headset. Please test each option with **CONTACT LOG** on and keep the log
+from Download/HaloCE: [Test53 device checks](TEST53-DEVICE-CHECKLIST.md).
+
+---
+
+# Test52 (committed, not delivered): 1.0.20-test52
 
 ## Test52: voice crash root cause fixed
 
@@ -29,6 +102,8 @@ unchanged from v1.0.19. Voice still needs a voice-enabled host and a nonzero
 receive volume; please retest talking in a lobby and in a match, on more than
 one server if possible. See [Test52 crash analysis](TEST52-CRASH-ANALYSIS.md)
 and [Test52 device checks](TEST52-DEVICE-CHECKLIST.md).
+
+---
 
 ---
 

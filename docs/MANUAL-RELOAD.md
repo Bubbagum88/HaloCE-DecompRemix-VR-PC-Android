@@ -1,5 +1,14 @@
 # Optional physical reloads
 
+> **Test53 (2026-10-11):** manual reload never reached its input stage on a
+> device: `vr_manual_reload_update` runs in the weapon tick and cancelled
+> silently when `vr_head_view` (stereo-pass only) refused it, which is why
+> Test47's log shows only "first-person-profile-not-ready" and
+> "stale-first-person-pose" gates. Fixed in Test53 (`vr_head_view` answers
+> from the tick). The gate log now prints the weapon datum in hex. Headset
+> acceptance is pending.
+
+
 Implementation status: source implemented and host/guest checks in progress;
 headset acceptance is pending. This feature is off by default. Classic reload
 and the existing native action-animation handoff remain available.

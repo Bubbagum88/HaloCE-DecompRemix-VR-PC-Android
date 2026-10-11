@@ -1,37 +1,51 @@
 # Agent and contributor continuation
 
-## Active private Test52 candidate (2026-10-10)
+## Active private Test53 candidate (2026-10-11)
 
-Continue on `test39-interaction-completion`; target private `1.0.20-test52`,
-Android code64. The owner reported v1.0.19 still closes on Quest when speaking
-in voice chat. Root cause (see docs/TEST52-CRASH-ANALYSIS.md): the arm64_32 to
-ELF assembly converter rewrote `.ascii` data and corrupted Opus's
-`cache_bits50`, so CELT indexed past `CELT_PVQ_U_ROW`. The converter now passes
-string data through; `tools/test_android_asm_convert.py` compares tables. A
-second defect class (calls without prototypes miscompile on the guest ABI:
-variadic, float arguments, narrow returns) is fixed and enforced by the guest
-build (`-Wno-everything -Werror=implicit-function-declaration`; guarded by
-`tools/test_android_guest_prototypes.py`). The v1.0.19 "integer-only logging"
-diagnosis was wrong; the real Test50 crash was the missing `platform_log`
-prototype. Build with WSL clang 18 like public v1.0.18 (LLVM 22 cannot execute
-under WSL1); same debug key 53d416f7…2aa4. Device acceptance pending.
+Continue on `test39-interaction-completion`; private `1.0.20-test53`, Android
+code65 (Test52/code64 was committed but never built or delivered; Test53
+supersedes it). Read docs/TEST53-CHECKLIST.md (every change and requested
+item with implemented / automated / device outcome), docs/TEST53-DELIVERY-STATUS.md,
+docs/TEST52-CRASH-ANALYSIS.md and docs/TEST53-DEVICE-CHECKLIST.md.
+
+**Voice chat is NOT confirmed working.** v1.0.19/Test51 closes on Quest as
+soon as a player speaks. Cause (re-proved in Test53): the arm64_32→ELF
+assembly converter corrupted Opus's `cache_bits50`. Fixed in Test52/53 and
+hardened, but no device has confirmed voice since; never claim it works
+until the owner reports it.
+
+Test53 also fixes why the interaction features never worked: hand-contact
+grabs used a zero-length pill sweep that cannot report a touch
+(`collision_model_touch_sphere` now), and parkour/manual reload asked for the
+head pose from game ticks, which `vr_head_view` refused outside the stereo
+pass. It adds the IMMERSION settings page, hosts on OpenCE network 26
+(Build184; clients 11–26, All compatible by default; dual-version internet
+signalling, no WebRTC) and selected Build177–184 fixes.
+
+Guest-build rules: every guest unit rejects implicit declarations;
+`tools/android_guest_abi_lint.py` (run by build-quest.sh after each flavor)
+fails on any cross-unit signature mismatch; the post-build image check needs
+exact Opus tables. Build in WSL with clang 18 like v1.0.18 (LLVM 22 cannot
+run under WSL1); same debug key 53d416f7…2aa4. Run Python that writes repo
+files inside WSL (Windows Python rewrites LF as CRLF). Device acceptance of
+everything above is pending.
 
 ## Current public release: v1.0.19 (2026-10-10)
 
-Start future work from the published v1.0.19 source/tag. It is based on the
-Test51 runtime, merged with the current main landing-page/logo commit. The
-owner confirmed Quest server joins no longer crash; the owner later reported that speaking in voice chat still crashes (fixed in Test52).
+The published v1.0.19 source/tag is based on the Test51 runtime, merged with
+the current main landing-page/logo commit. The owner confirmed Quest server
+joins no longer crash; the owner then reported that **speaking in voice chat
+crashes v1.0.19** (fixed in source in Test52/Test53, unconfirmed on device).
 Read docs/RELEASE-1.0.19.md, docs/RELEASE-PROVENANCE-1.0.19.md, and
 docs/CURRENT-STATE.md before changing code.
 
-Keep these status limits explicit: Parkour (wall-run, wall-jump and climbing),
-ragdolls/body-retention behavior, wall grabs, and NPC/enemy/ally grabs are not
-working reliably; enemy grabbing may activate but is broken and not
-recommended. Manual physical reload is not confirmed end-to-end. Settings that
-appear in the menu are not proof of a working feature. Preserve the working
-voice, join, reticle, sprint, weapon release/drop/holster, haptics, Android,
-co-op, network, launcher, Safe Geometry and calibration behavior. PC/Steam
-Frame remains deferred.
+Keep these status limits explicit until the owner reports device results:
+parkour, wall grabs, ragdolls/body retention, NPC/enemy/ally grabs and manual
+reload had real defects fixed in Test53 but are unconfirmed in the headset.
+Settings that appear in the menu are not proof of a working feature.
+Preserve the owner-confirmed join, reticle, sprint, weapon
+release/drop/holster, haptics, Android, co-op, network, launcher, Safe
+Geometry and calibration behavior. PC/Steam Frame remains deferred.
 
 ## Superseded private Test47 candidate (2026-10-09)
 

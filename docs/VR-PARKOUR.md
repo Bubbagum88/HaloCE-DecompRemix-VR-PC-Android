@@ -1,5 +1,16 @@
 # Optional VR parkour
 
+> **Test53 (2026-10-11):** parkour never ran on a device before Test53.
+> `vr_parkour_velocity` runs in the game tick and asked for the head pose
+> through `vr_head_view`, which answered only during the frame's stereo pass
+> (after the ticks), so it reset itself every tick. `vr_head_view` now answers
+> from the tick once the frame has begun (`tools/test_vr_tick_head_view.py`).
+> Parkour is also allowed for a **co-op host's own player**; network clients
+> and PvP keep stock movement (host movement checks would refuse it). A wall
+> run may start on a wall reached within a second of pressing Jump (was a
+> third). Grip climbing is the "wall grab". Headset acceptance is pending.
+
+
 Source implementation and automated checks are available; headset acceptance is
 pending. Wallrunning, walljumping and grip climbing are independent **off by
 default** options in VR Controls. They currently operate in local games only.

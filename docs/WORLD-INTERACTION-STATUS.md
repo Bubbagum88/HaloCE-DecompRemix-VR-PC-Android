@@ -1,4 +1,19 @@
-﻿# World interaction implementation and acceptance status
+# World interaction implementation and acceptance status
+
+> **Test53 (2026-10-11):** Quest logs (Test40–Test51) show hundreds of NPC and
+> world grab misses with `collision_overlaps=0` at the 8 cm maximum radius.
+> Acquisition asked `collision_model_test_pill` with a zero vector, and the
+> engine's swept-pill test reports nothing for a stationary sphere touching an
+> edge or curve. NPC, loose-object, vehicle-lift and remote co-op grabs now use
+> `collision_model_touch_sphere` (surfaces within the radius, or the hand
+> inside the solid; `tools/test_contact_acquisition.py`). A released body is
+> handed back within 5 s (live NPCs recover, corpses return to native limp
+> physics; a blocked pose handoff falls back after 1.5 s): Test46 showed a
+> released Jackal still owned 85 s later with its AI suppressed. BODY
+> RETENTION now also limits campaign scripts' `garbage_collect_now` (newest
+> 45/60 kept in solo). The rows below describe design scope; device acceptance
+> of every row remains pending.
+
 
 The Test38 interaction foundation carries into active private Test46. Optional loose-object interaction, articulated NPC handling and the Test40 additions are OFF by default. Source implementation and automated checks cover only the bounded paths below; headset, campaign and real multiplayer acceptance are still required. This document does not claim universal NPC support or that every original acceptance scenario has passed.
 

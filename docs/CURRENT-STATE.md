@@ -1,10 +1,34 @@
 # Current development state
 
+## Active private candidate: Test53 (2026-10-11)
+
+**1.0.20-test53 / Android code65**, branch `test39-interaction-completion`,
+built for the owner's Quest and phone tests (not a release). Test52 (code64)
+was committed but never built; Test53 supersedes it. Every change since
+v1.0.18 and every requested item is in [TEST53-CHECKLIST.md](TEST53-CHECKLIST.md)
+with implemented / automated / device outcomes; the delivered APKs and hashes
+are in [TEST53-DELIVERY-STATUS.md](TEST53-DELIVERY-STATUS.md).
+
+- **Voice is not confirmed working.** v1.0.19 crashes when a player speaks
+  (the assembly converter corrupted Opus's `cache_bits50`; see
+  [TEST52-CRASH-ANALYSIS.md](TEST52-CRASH-ANALYSIS.md)). Fixed and hardened in
+  source; awaiting a device test.
+- Interaction features had two blocking defects, now fixed: grabs used a
+  zero-length pill sweep that cannot report a touch, and parkour/manual
+  reload could not read the head pose from game ticks. Also: bounded NPC
+  handoff, body retention through campaign script collections, co-op host
+  parkour, the IMMERSION settings page.
+- OpenCE Build184 / network 26: hosting 26, clients 11–26, All compatible
+  networks by default, selected Build177–184 fixes. Not a full Build184
+  rebase; browser (WebRTC) players cannot join this app's hosts.
+
 ## Current public release: v1.0.19 (2026-10-10)
 
 Release source is based on test39-interaction-completion, merged with the
 latest main landing-page/logo update. The owner confirmed on Quest that the
-Test51 build no longer crashes when joining and that voice chat works. The
+Test51 build no longer crashes when joining. (A voice-chat confirmation
+recorded here earlier was wrong: the owner then reported that v1.0.19 closes
+as soon as a player speaks; see Test53 above.) The
 stable release uses version 1.0.19 / Android code63. Build157/network24 remains
 the engine baseline with selected compatible changes through Build177, not a
 full Build177 rebase. See [RELEASE-1.0.19.md](RELEASE-1.0.19.md) and
