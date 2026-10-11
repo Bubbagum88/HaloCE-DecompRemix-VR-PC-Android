@@ -202,6 +202,46 @@ struct vr_menu_setting
 #define VR_MENU_EFFECT(label, key) \
 	{ label, key, _vr_setting_string, 3, { { "AUTO", "auto" }, { "ON", "on" }, { "OFF", "off" } } }
 
+/* Test53: the immersion features' rows, each defined once and shown both
+on its own page and on IMMERSION, which gathers them so they can be set in
+one place (the same setting either way: changing one shows on the other) */
+#define VR_IMMERSION_WEAPONS { "WEAPONS", "vr.weapons", _vr_setting_multi, 3, { { "LOCKED", "vr.weapons=locked" }, { "PHYSICAL", "vr.weapons=physical;vr.physical_multiplayer=false" }, { "PHYSICAL + MP", "vr.weapons=physical;vr.physical_multiplayer=true" } } }
+#define VR_IMMERSION_HOLSTERS { "HOLSTERS", "vr.holsters", _vr_setting_multi, 7, { { "OFF", "vr.holsters=false" }, { "10 CM", "vr.holsters=true;vr.holster_size=0.1" }, { "15 CM", "vr.holsters=true;vr.holster_size=0.15" }, { "20 CM", "vr.holsters=true;vr.holster_size=0.2" }, { "25 CM", "vr.holsters=true;vr.holster_size=0.25" }, { "30 CM", "vr.holsters=true;vr.holster_size=0.3" }, { "40 CM", "vr.holsters=true;vr.holster_size=0.4" } } }
+#define VR_IMMERSION_HOLSTER_HAPTICS { "HOLSTER HAPTICS", "vr.holster_haptics", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_MELEE { "MELEE", "vr.melee", _vr_setting_multi, 4, { { "IMPACT", "vr.melee=impact;vr.melee_multiplayer=false" }, { "SWING", "vr.melee=swing;vr.melee_multiplayer=false" }, { "IMPACT + ONLINE", "vr.melee=impact;vr.melee_multiplayer=true" }, { "SWING + ONLINE", "vr.melee=swing;vr.melee_multiplayer=true" } } }
+#define VR_IMMERSION_MELEE_SPEED { "MELEE SPEED", "vr.melee_speed", _vr_setting_real, 12, { { "OFF", "0" }, { "1.0", "1.0" }, { "1.2", "1.2" }, { "1.4", "1.4" }, { "1.6", "1.6" }, { "1.8", "1.8" }, { "2.0", "2.0" }, { "2.3", "2.3" }, { "2.6", "2.6" }, { "2.9", "2.9" }, { "3.2", "3.2" }, { "3.6", "3.6" } } }
+#define VR_IMMERSION_FIST_REQUIRED { "FIST REQUIRED", "vr.melee_requires_fist", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_ARM_RUN { "ARM RUN", "vr.arm_run", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_MANUAL_RELOAD { "MANUAL RELOAD", "vr.manual_reload", _vr_setting_multi, 2, { { "OFF", "vr.manual_reload=false;vr.dropped_magazines=false" }, { "ON", "vr.manual_reload=true" } } }
+#define VR_IMMERSION_RELOAD_INPUT { "RELOAD INPUT", "vr.reload_input", _vr_setting_string, 2, { { "GRIP", "grip" }, { "TRIGGER", "trigger" } } }
+#define VR_IMMERSION_SHOULDER_POUCH { "SHOULDER POUCH", "vr.reload_shoulder", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_HIP_POUCH { "HIP POUCH", "vr.reload_hip", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_MAG_DEBRIS { "MAG DEBRIS", "vr.dropped_magazines", _vr_setting_multi, 2, { { "OFF", "vr.dropped_magazines=false" }, { "ON", "vr.dropped_magazines=true;vr.manual_reload=true" } } }
+#define VR_IMMERSION_WALLRUN { "WALLRUN", "vr.parkour_wallrun", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_WALLJUMP { "WALLJUMP", "vr.parkour_walljump", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_GRIP_CLIMB { "GRIP CLIMB", "vr.parkour_climb", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_WALL_SPEED { "WALL SPEED", "vr.wallrun_speed", _vr_setting_real, 5, { { "1X", "1" }, { "1.25X", "1.25" }, { "1.5X", "1.5" }, { "1.75X", "1.75" }, { "2X", "2" } } }
+#define VR_IMMERSION_WALL_TIME { "WALL TIME", "vr.wallrun_duration", _vr_setting_real, 6, { { "0.5 S", "0.5" }, { "1 S", "1" }, { "1.5 S", "1.5" }, { "2 S", "2" }, { "2.5 S", "2.5" }, { "3 S", "3" } } }
+#define VR_IMMERSION_WALL_LEAP { "WALL LEAP", "vr.walljump_scale", _vr_setting_real, 5, { { "0.5X", "0.5" }, { "0.75X", "0.75" }, { "1X", "1" }, { "1.25X", "1.25" }, { "1.5X", "1.5" } } }
+#define VR_IMMERSION_CLIMB_LAUNCH { "CLIMB LAUNCH", "vr.climb_launch_scale", _vr_setting_real, 5, { { "OFF", "0" }, { "0.5X", "0.5" }, { "0.75X", "0.75" }, { "1X", "1" }, { "1.5X", "1.5" } } }
+#define VR_IMMERSION_WORLD_GRAB { "WORLD GRAB", "vr.world_interaction", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_HAND_CONTACT { "HAND CONTACT", "vr.interaction_reach", _vr_setting_real, 4, { { "2 CM", "0.02" }, { "4 CM", "0.04" }, { "6 CM", "0.06" }, { "8 CM", "0.08" } } }
+#define VR_IMMERSION_LIFT_VEHICLES { "LIFT VEHICLES", "vr.vehicle_lift", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_CUSTOM_SCENERY { "CUSTOM SCENERY", "vr.custom_scenery_grab", _vr_setting_multi, 2, { { "OFF", "vr.custom_scenery_grab=false" }, { "ON", "vr.custom_scenery_grab=true;vr.world_interaction=true" } } }
+#define VR_IMMERSION_NPC_GRAB { "NPC GRAB", "vr.npc_interaction", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_NPC_RIG_SLOTS { "NPC RIG SLOTS", "vr.npc_max_ragdolls", _vr_setting_multi, 6, { { "1", "vr.npc_max_ragdolls=1" }, { "2", "vr.npc_max_ragdolls=2" }, { "4", "vr.npc_max_ragdolls=4" }, { "8", "vr.npc_max_ragdolls=8" }, { "12", "vr.npc_max_ragdolls=12" }, { "16", "vr.npc_max_ragdolls=16" } } }
+#define VR_IMMERSION_CUSTOM_NPC_RIGS { "CUSTOM NPC RIGS", "vr.custom_npc_rigs", _vr_setting_multi, 2, { { "OFF", "vr.custom_npc_rigs=false" }, { "ON", "vr.custom_npc_rigs=true;vr.npc_interaction=true" } } }
+#define VR_IMMERSION_NPC_RESCUE { "NPC RESCUE", "vr.npc_rescue", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_BODY_RETENTION { "BODY RETENTION", "vr.ragdoll_retention", _vr_setting_multi, 3, { { "STOCK", "vr.ragdoll_retention=0" }, { "75", "vr.ragdoll_retention=75" }, { "100", "vr.ragdoll_retention=100" } } }
+#define VR_IMMERSION_IMPACT_DAMAGE { "IMPACT DAMAGE", "vr.interaction_damage", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_IMPACT_SPEED { "IMPACT SPEED", "vr.impact_threshold", _vr_setting_real, 4, { { "1 M/S", "1" }, { "2 M/S", "2" }, { "3 M/S", "3" }, { "4 M/S", "4" } } }
+#define VR_IMMERSION_IMPACT_CAP { "IMPACT CAP", "vr.impact_damage_cap", _vr_setting_real, 4, { { "25%", "0.25" }, { "50%", "0.5" }, { "100%", "1" }, { "150%", "1.5" } } }
+#define VR_IMMERSION_SHAKE_COOLING { "SHAKE COOLING", "vr.cooldown_shake", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_CLOSE_CONTACT { "CLOSE CONTACT", "vr.close_contact", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_PHYSICAL_HANDLES { "PHYSICAL HANDLES", "vr.vehicle_handles", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_FINGERS { "FINGERS", "vr.fingers", _vr_setting_boolean, 2, { { "OFF", "false" }, { "TRACKED", "true" } } }
+#define VR_IMMERSION_ROOM_SCALE { "ROOM-SCALE", "vr.roomscale", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+
 /* test20d: one row per decision. Rows that only mattered with another
 (turn speed with smooth turning, holster size with holsters, multiplayer
 with physical weapons, run effort with arm run, the arms with the hand
@@ -216,23 +256,23 @@ static struct vr_menu_setting const vr_menu_controls[] =
 	/* test21: AUTO LOCK (default) locks the off hand at the support grip
 	without squeezing; SQUEEZE needs the grip held there */
 	{ "TWO HANDS", "vr.two_handed", _vr_setting_string, 3, { { "AUTO LOCK", "auto" }, { "SQUEEZE", "grip" }, { "OFF", "off" } } },
-	{ "WEAPONS", "vr.weapons", _vr_setting_multi, 3, { { "LOCKED", "vr.weapons=locked" }, { "PHYSICAL", "vr.weapons=physical;vr.physical_multiplayer=false" }, { "PHYSICAL + MP", "vr.weapons=physical;vr.physical_multiplayer=true" } } },
-	{ "HOLSTERS", "vr.holsters", _vr_setting_multi, 7, { { "OFF", "vr.holsters=false" }, { "10 CM", "vr.holsters=true;vr.holster_size=0.1" }, { "15 CM", "vr.holsters=true;vr.holster_size=0.15" }, { "20 CM", "vr.holsters=true;vr.holster_size=0.2" }, { "25 CM", "vr.holsters=true;vr.holster_size=0.25" }, { "30 CM", "vr.holsters=true;vr.holster_size=0.3" }, { "40 CM", "vr.holsters=true;vr.holster_size=0.4" } } },
-	{ "HOLSTER HAPTICS", "vr.holster_haptics", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-    { "NPC RIG SLOTS", "vr.npc_max_ragdolls", _vr_setting_multi, 6, { { "1", "vr.npc_max_ragdolls=1" }, { "2", "vr.npc_max_ragdolls=2" }, { "4", "vr.npc_max_ragdolls=4" }, { "8", "vr.npc_max_ragdolls=8" }, { "12", "vr.npc_max_ragdolls=12" }, { "16", "vr.npc_max_ragdolls=16" } } },
-    { "BODY RETENTION", "vr.ragdoll_retention", _vr_setting_multi, 3, { { "STOCK", "vr.ragdoll_retention=0" }, { "75", "vr.ragdoll_retention=75" }, { "100", "vr.ragdoll_retention=100" } } },
-    { "NPC GRAB", "vr.npc_interaction", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-    { "NPC RESCUE", "vr.npc_rescue", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-    { "IMPACT SPEED", "vr.impact_threshold", _vr_setting_real, 4, { { "1 M/S", "1" }, { "2 M/S", "2" }, { "3 M/S", "3" }, { "4 M/S", "4" } } },
-    { "IMPACT CAP", "vr.impact_damage_cap", _vr_setting_real, 4, { { "25%", "0.25" }, { "50%", "0.5" }, { "100%", "1" }, { "150%", "1.5" } } },
-    { "IMPACT DAMAGE", "vr.interaction_damage", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-	{ "WORLD GRAB", "vr.world_interaction", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-	{ "HAND CONTACT", "vr.interaction_reach", _vr_setting_real, 4, { { "2 CM", "0.02" }, { "4 CM", "0.04" }, { "6 CM", "0.06" }, { "8 CM", "0.08" } } },
-	{ "LIFT VEHICLES", "vr.vehicle_lift", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-	{ "SHAKE COOLING", "vr.cooldown_shake", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-	{ "CUSTOM SCENERY", "vr.custom_scenery_grab", _vr_setting_multi, 2, { { "OFF", "vr.custom_scenery_grab=false" }, { "ON", "vr.custom_scenery_grab=true;vr.world_interaction=true" } } },
-	{ "CUSTOM NPC RIGS", "vr.custom_npc_rigs", _vr_setting_multi, 2, { { "OFF", "vr.custom_npc_rigs=false" }, { "ON", "vr.custom_npc_rigs=true;vr.npc_interaction=true" } } },
-	{ "MAG DEBRIS", "vr.dropped_magazines", _vr_setting_multi, 2, { { "OFF", "vr.dropped_magazines=false" }, { "ON", "vr.dropped_magazines=true;vr.manual_reload=true" } } },
+	VR_IMMERSION_WEAPONS,
+	VR_IMMERSION_HOLSTERS,
+	VR_IMMERSION_HOLSTER_HAPTICS,
+    VR_IMMERSION_NPC_RIG_SLOTS,
+    VR_IMMERSION_BODY_RETENTION,
+    VR_IMMERSION_NPC_GRAB,
+    VR_IMMERSION_NPC_RESCUE,
+    VR_IMMERSION_IMPACT_SPEED,
+    VR_IMMERSION_IMPACT_CAP,
+    VR_IMMERSION_IMPACT_DAMAGE,
+	VR_IMMERSION_WORLD_GRAB,
+	VR_IMMERSION_HAND_CONTACT,
+	VR_IMMERSION_LIFT_VEHICLES,
+	VR_IMMERSION_SHAKE_COOLING,
+	VR_IMMERSION_CUSTOM_SCENERY,
+	VR_IMMERSION_CUSTOM_NPC_RIGS,
+	VR_IMMERSION_MAG_DEBRIS,
 	{ "AIM", "vr.aim", _vr_setting_string, 2, { { "HAND", "hand" }, { "HEAD", "head" } } },
 	{ "CONTROLS", "vr.controls", _vr_setting_string, 2, { { "VR", "vr" }, { "XBOX", "pad" } } },
 	/* test26: the left stick's click: the reticle's toggle or crouch, as before */
@@ -249,21 +289,21 @@ static struct vr_menu_setting const vr_menu_body[] =
 	{ "HANDS", "vr.hand_tracking", _vr_setting_multi, 5, { { "BODY IK", "vr.arms=ik;vr.hand_tracking=ik" }, { "FLOATING", "vr.arms=ik;vr.hand_tracking=floating" }, { "FLOAT + ARMS", "vr.arms=ik;vr.hand_tracking=floating_arms" }, { "ANIMATED", "vr.arms=animated;vr.hand_tracking=ik" }, { "GUN ONLY", "vr.arms=hidden;vr.hand_tracking=ik" } } },
     { "CONTACT VOLUMES", "vr.contact_volumes", _vr_setting_boolean, 2, { { "RAYS", "false" }, { "VOLUMES", "true" } } },
     { "CONTACT LOG", "vr.contact_debug", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-	{ "FINGERS", "vr.fingers", _vr_setting_boolean, 2, { { "OFF", "false" }, { "TRACKED", "true" } } },
-	{ "ROOM-SCALE", "vr.roomscale", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	VR_IMMERSION_FINGERS,
+	VR_IMMERSION_ROOM_SCALE,
 	{ "CROUCH DEPTH", "vr.crouch_height", _vr_setting_real, 9, { { "OFF", "0" }, { "5 CM", "0.05" }, { "10 CM", "0.1" }, { "15 CM", "0.15" }, { "20 CM", "0.2" }, { "25 CM", "0.25" }, { "30 CM", "0.3" }, { "35 CM", "0.35" }, { "40 CM", "0.4" } } },
 	/* test21: physical melee in network games only with "+ ONLINE"
 	(vr.melee_multiplayer, off by default); the melee button always works */
-	{ "MELEE", "vr.melee", _vr_setting_multi, 4, { { "IMPACT", "vr.melee=impact;vr.melee_multiplayer=false" }, { "SWING", "vr.melee=swing;vr.melee_multiplayer=false" }, { "IMPACT + ONLINE", "vr.melee=impact;vr.melee_multiplayer=true" }, { "SWING + ONLINE", "vr.melee=swing;vr.melee_multiplayer=true" } } },
-	{ "MELEE SPEED", "vr.melee_speed", _vr_setting_real, 12, { { "OFF", "0" }, { "1.0", "1.0" }, { "1.2", "1.2" }, { "1.4", "1.4" }, { "1.6", "1.6" }, { "1.8", "1.8" }, { "2.0", "2.0" }, { "2.3", "2.3" }, { "2.6", "2.6" }, { "2.9", "2.9" }, { "3.2", "3.2" }, { "3.6", "3.6" } } },
-	{ "FIST REQUIRED", "vr.melee_requires_fist", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	VR_IMMERSION_MELEE,
+	VR_IMMERSION_MELEE_SPEED,
+	VR_IMMERSION_FIST_REQUIRED,
 };
 
 static struct vr_menu_setting const vr_menu_locomotion[] =
 {
 	{ "BUTTON SPRINT", "vr.button_sprint", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "SPRINT TOGGLE", "vr.button_sprint_toggle", _vr_setting_boolean, 2, { { "HOLD", "false" }, { "TOGGLE", "true" } } },
-	{ "ARM RUN", "vr.arm_run", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	VR_IMMERSION_ARM_RUN,
 	{ "ARM EFFORT", "vr.arm_run_speed", _vr_setting_real, 6, { { "0.3 M/S", "0.3" }, { "0.45", "0.45" }, { "0.6", "0.6" }, { "0.8", "0.8" }, { "1.0", "1.0" }, { "1.2", "1.2" } } },
 	{ "SPRINT SPEED", "vr.sprint_speed", _vr_setting_real, 6, { { "1.0X", "1.0" }, { "1.1X", "1.1" }, { "1.2X", "1.2" }, { "1.3X", "1.3" }, { "1.4X", "1.4" }, { "1.5X", "1.5" } } },
 };
@@ -276,14 +316,14 @@ static struct vr_menu_setting const vr_menu_vr[] =
 	{ "CUTSCENES", "vr.cutscenes", _vr_setting_string, 3, { { "IMMERSIVE", "immersive" }, { "3D SCREEN", "screen" }, { "FLAT", "flat" } } },
     { "GRAB CONTACT", "vr.grab_contact", _vr_setting_string, 3, { { "AUTO", "auto" }, { "OFF", "off" }, { "ON", "on" } } },
     { "BODY RADIUS", "vr.grab_radius", _vr_setting_real, 9, { { "18 CM", "0.18" }, { "20 CM", "0.20" }, { "22 CM", "0.22" }, { "25 CM", "0.25" }, { "30 CM", "0.30" }, { "35 CM", "0.35" }, { "40 CM", "0.40" }, { "50 CM", "0.50" }, { "60 CM", "0.60" } } },
-    { "WALLRUN", "vr.parkour_wallrun", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-    { "WALLJUMP", "vr.parkour_walljump", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-    { "GRIP CLIMB", "vr.parkour_climb", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-    { "WALL SPEED", "vr.wallrun_speed", _vr_setting_real, 5, { { "1X", "1" }, { "1.25X", "1.25" }, { "1.5X", "1.5" }, { "1.75X", "1.75" }, { "2X", "2" } } },
-    { "WALL TIME", "vr.wallrun_duration", _vr_setting_real, 6, { { "0.5 S", "0.5" }, { "1 S", "1" }, { "1.5 S", "1.5" }, { "2 S", "2" }, { "2.5 S", "2.5" }, { "3 S", "3" } } },
-    { "WALL LEAP", "vr.walljump_scale", _vr_setting_real, 5, { { "0.5X", "0.5" }, { "0.75X", "0.75" }, { "1X", "1" }, { "1.25X", "1.25" }, { "1.5X", "1.5" } } },
-    { "CLIMB LAUNCH", "vr.climb_launch_scale", _vr_setting_real, 5, { { "OFF", "0" }, { "0.5X", "0.5" }, { "0.75X", "0.75" }, { "1X", "1" }, { "1.5X", "1.5" } } },
-	{ "CLOSE CONTACT", "vr.close_contact", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    VR_IMMERSION_WALLRUN,
+    VR_IMMERSION_WALLJUMP,
+    VR_IMMERSION_GRIP_CLIMB,
+    VR_IMMERSION_WALL_SPEED,
+    VR_IMMERSION_WALL_TIME,
+    VR_IMMERSION_WALL_LEAP,
+    VR_IMMERSION_CLIMB_LAUNCH,
+	VR_IMMERSION_CLOSE_CONTACT,
 };
 
 /* test26: what the HUD shows and where: the crosshair (formerly on
@@ -327,7 +367,7 @@ static struct vr_menu_setting const vr_menu_vehicles[] =
 	{ "ALL FWD", "vr.vehicle_all_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
 	{ "ALL RIGHT", "vr.vehicle_all_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
 	{ "RESET OFFSETS", "vehicle offsets", _vr_setting_reset_vehicle_offsets, 0, { { NULL, NULL } } },
-    { "PHYSICAL HANDLES", "vr.vehicle_handles", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    VR_IMMERSION_PHYSICAL_HANDLES,
     { "VIRTUAL WHEEL", "vr.vehicle_wheel_visible", _vr_setting_boolean, 2, { { "HIDDEN", "false" }, { "VISIBLE", "true" } } },
     { "HOG REACH", "vr.handle_warthog_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
     { "HOG LEFT", "vr.handle_warthog_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
@@ -448,10 +488,10 @@ Mirror Controls); the grip is the gun hand's, with locked weapons only */
 static struct vr_menu_setting const vr_menu_buttons[] =
 {
     { "JUMP", "vr.button_jump", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
-    { "SHOULDER POUCH", "vr.reload_shoulder", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-    { "HIP POUCH", "vr.reload_hip", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-    { "MANUAL RELOAD", "vr.manual_reload", _vr_setting_multi, 2, { { "OFF", "vr.manual_reload=false;vr.dropped_magazines=false" }, { "ON", "vr.manual_reload=true" } } },
-    { "RELOAD INPUT", "vr.reload_input", _vr_setting_string, 2, { { "GRIP", "grip" }, { "TRIGGER", "trigger" } } },
+    VR_IMMERSION_SHOULDER_POUCH,
+    VR_IMMERSION_HIP_POUCH,
+    VR_IMMERSION_MANUAL_RELOAD,
+    VR_IMMERSION_RELOAD_INPUT,
     { "USE / RELOAD", "vr.button_action", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
     { "MELEE", "vr.button_melee", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
     { "CROUCH", "vr.button_crouch", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
@@ -501,6 +541,49 @@ static struct vr_menu_setting const vr_menu_align_right[] =
     { "RESET RIGHT", "right", _vr_setting_reset_alignment, 0, { { NULL,NULL } } },
 };
 
+/* Test53: every VR immersion feature on one page (physical weapons and
+melee, manual reload, parkour, world/NPC/vehicle grabbing, bodies, impact
+damage, contact and tracking). The rows stay on their usual pages too. */
+static struct vr_menu_setting const vr_menu_immersion[] =
+{
+	VR_IMMERSION_WEAPONS,
+	VR_IMMERSION_HOLSTERS,
+	VR_IMMERSION_HOLSTER_HAPTICS,
+	VR_IMMERSION_MELEE,
+	VR_IMMERSION_MELEE_SPEED,
+	VR_IMMERSION_FIST_REQUIRED,
+	VR_IMMERSION_ARM_RUN,
+	VR_IMMERSION_MANUAL_RELOAD,
+	VR_IMMERSION_RELOAD_INPUT,
+	VR_IMMERSION_SHOULDER_POUCH,
+	VR_IMMERSION_HIP_POUCH,
+	VR_IMMERSION_MAG_DEBRIS,
+	VR_IMMERSION_WALLRUN,
+	VR_IMMERSION_WALLJUMP,
+	VR_IMMERSION_GRIP_CLIMB,
+	VR_IMMERSION_WALL_SPEED,
+	VR_IMMERSION_WALL_TIME,
+	VR_IMMERSION_WALL_LEAP,
+	VR_IMMERSION_CLIMB_LAUNCH,
+	VR_IMMERSION_WORLD_GRAB,
+	VR_IMMERSION_HAND_CONTACT,
+	VR_IMMERSION_LIFT_VEHICLES,
+	VR_IMMERSION_CUSTOM_SCENERY,
+	VR_IMMERSION_NPC_GRAB,
+	VR_IMMERSION_NPC_RIG_SLOTS,
+	VR_IMMERSION_CUSTOM_NPC_RIGS,
+	VR_IMMERSION_NPC_RESCUE,
+	VR_IMMERSION_BODY_RETENTION,
+	VR_IMMERSION_IMPACT_DAMAGE,
+	VR_IMMERSION_IMPACT_SPEED,
+	VR_IMMERSION_IMPACT_CAP,
+	VR_IMMERSION_SHAKE_COOLING,
+	VR_IMMERSION_CLOSE_CONTACT,
+	VR_IMMERSION_PHYSICAL_HANDLES,
+	VR_IMMERSION_FINGERS,
+	VR_IMMERSION_ROOM_SCALE,
+};
+
 /* a page of settings, opened from the categories: its first `left_count`
 settings in the left column, the rest in the right */
 static struct vr_menu_page
@@ -510,6 +593,7 @@ static struct vr_menu_page
 	long count;
 } const vr_menu_pages[] =
 {
+	{ "IMMERSION", vr_menu_immersion, NUMBEROF(vr_menu_immersion) },
 	{ "CONTROLS", vr_menu_controls, NUMBEROF(vr_menu_controls) },
 	{ "BUTTONS", vr_menu_buttons, NUMBEROF(vr_menu_buttons) },
 	{ "VOICE CHAT", vr_menu_voice, NUMBEROF(vr_menu_voice) },
