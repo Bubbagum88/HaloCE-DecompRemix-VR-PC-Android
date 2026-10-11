@@ -1,5 +1,6 @@
-/* Optional local-player parkour feeds native biped capsule collision. It never
- * teleports, changes a tag's physics flags, or sends custom movement packets. */
+/* Optional local-player parkour feeds native biped capsule collision (solo,
+ * and a co-op host's own player). It never teleports, changes a tag's physics
+ * flags, or sends custom movement packets. */
 #ifdef HALO_VR
 #include "cseries.h"
 #include "math/real_math.h"
@@ -16,8 +17,13 @@
 #include "vr_parkour.h"
 #include "vr_parkour_math.h"
 #include "vr_world_math.h"
+#include "network_coop.h"
 void platform_log(char const *format,...);
 
+/* A wall run starts on a wall reached within a second of pressing Jump (it
+ * was a third of a second: a jump from more than about a metre away landed
+ * on the wall too late to run along it). */
+#define PARKOUR_WALLRUN_ENTRY_TICKS (TICKS_PER_SECOND)
 #define PARKOUR_WALL_FLAGS (FLAG(_collision_test_structure_bit)|FLAG(_collision_test_objects_bit)|FLAG(_collision_test_objects_scenery_bit))
 /* Filled only on a Grip edge; a palm-sized overlap is cheap and never uses
  * an aim ray to search for a wall. */
@@ -54,6 +60,17 @@ static boolean parkour_enabled(void)
 {
     return config_boolean("vr.parkour_wallrun")||config_boolean("vr.parkour_walljump")||config_boolean("vr.parkour_climb");
 }
+/* Local play, and a co-op host's own player: the host simulates its player
+ * authoritatively and its clients take that state. A client's prediction of a
+ * wall run or climb would be refused by the host's movement checks (no
+ * hovering, slow falls or rises past a jump: port/linux/NETCODE.md), and in
+ * PvP it would be an advantage, so clients and PvP keep stock movement. */
+static boolean parkour_session_allowed(void)
+{
+    short connection=game_connection();
+    return connection==_game_connection_local ||
+        (connection==_game_connection_network_server&&network_coop_active());
+}
 static char const *parkour_gate_reason(long unit,int *is_local)
 {
     short local=local_player_get_next(NONE);
@@ -67,7 +84,7 @@ static char const *parkour_gate_reason(long unit,int *is_local)
     if(unit==NONE)return "invalid-unit";
     if(!vr_active())return "vr-inactive";
     if(!vr_controller(&buttons,triggers,thumbs))return "controller-unfocused-or-invalid";
-    if(game_connection()!=_game_connection_local)return "network-session";
+    if(!parkour_session_allowed())return "network-session";
     if(game_time_get_paused())return "paused";
     if(cinematic_in_progress())return "cinematic";
     if(director_inhibited_input(local))return "director-inhibited";
@@ -306,7 +323,7 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
         platform_log("VR parkour: climb release unit=%ld scale=%.2f",unit,scale);return;
     }
     if(config_boolean("vr.parkour_wallrun")&&airborne&&wall_found&&throttle>0.6f&&
-        (parkour.running||parkour.jump_age<=TICKS_PER_SECOND/3)&&
+        (parkour.running||parkour.jump_age<=PARKOUR_WALLRUN_ENTRY_TICKS)&&
         parkour.run_ticks<vr_pk_bound(config_real("vr.wallrun_duration"),1.5f,0.5f,3)*TICKS_PER_SECOND){
         real speed=sqrtf(velocity->i*velocity->i+velocity->j*velocity->j);
         real into;

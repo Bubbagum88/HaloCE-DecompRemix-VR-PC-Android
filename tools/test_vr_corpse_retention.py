@@ -14,6 +14,8 @@ assert 'config_integer("vr.ragdoll_retention")' in objects
 assert "game_connection() == _game_connection_local && !game_engine_running()" in objects
 assert '"vr.ragdoll_retention", _config_integer, "75"' in config
 assert '"BODY RETENTION", "vr.ragdoll_retention"' in menu
+assert "should_collect = garbage_object_count <= forced_keep;" in objects
+assert "forced_keep = objects_vr_forced_garbage_keep(config_integer(\"vr.ragdoll_retention\")," in objects
 
 code = r'''
 #include <assert.h>
@@ -32,6 +34,13 @@ int main(void) {
     assert(objects_vr_active_garbage_limit(30, 100, 1, 0) == 30);
     /* Invalid hand-edited values fail closed to upstream behavior. */
     assert(objects_vr_active_garbage_limit(50, 125, 0, 1) == 50);
+    /* A script's forced collection keeps the newest bodies only in solo with
+       retention on; otherwise it collects everything out of view as before. */
+    assert(objects_vr_forced_garbage_keep(0, 1) == 0);
+    assert(objects_vr_forced_garbage_keep(75, 1) == 45);
+    assert(objects_vr_forced_garbage_keep(100, 1) == 60);
+    assert(objects_vr_forced_garbage_keep(100, 0) == 0);
+    assert(objects_vr_forced_garbage_keep(125, 1) == 0);
     return 0;
 }
 '''
@@ -43,4 +52,4 @@ with tempfile.TemporaryDirectory() as temp:
                     "-fsanitize=address,undefined", "-I", str(ROOT),
                     str(c), "-o", str(exe)], check=True)
     subprocess.run([str(exe)], check=True)
-print("VR corpse retention: 75/45 default and 100/60 option are solo-only; stock 50/30 retained online/MP")
+print("VR corpse retention: 75/45 default and 100/60 option are solo-only (forced script collections keep the newest 45/60); stock 50/30 retained online/MP")

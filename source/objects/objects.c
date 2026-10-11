@@ -4186,6 +4186,14 @@ void objects_garbage_collection(
 		short garbage_object_count = 0;
 		short collected_count = 0;
 		boolean should_collect = FALSE;
+		long forced_keep = 0;
+
+#ifdef HALO_VR
+		/* (BODY RETENTION, solo: a script's forced collection keeps the
+		newest bodies: active_garbage_limit_math.h) */
+		forced_keep = objects_vr_forced_garbage_keep(config_integer("vr.ragdoll_retention"),
+			game_connection() == _game_connection_local && !game_engine_running());
+#endif
 
 		{
 			long garbage_object_indices[MAXIMUM_OBJECTS_PER_MAP];
@@ -4228,7 +4236,9 @@ void objects_garbage_collection(
 				switch (garbage_collect_mode_wide)
 				{
 				case _garbage_collect_everything:
-					should_collect = FALSE;
+					/* (garbage_object_count: those not yet considered, the
+					oldest considered first) */
+					should_collect = garbage_object_count <= forced_keep;
 					break;
 				case _garbage_collect_active_objects:
 					should_collect = object_globals->active_garbage_object_count<=

@@ -31,6 +31,7 @@ enum{_collision_result_structure=1,_collision_result_object=2};
 enum{_object_dead_bit,_biped_no_collision_bit,_unit_suspended_bit,_unit_control_jump_bit,_biped_airborne_bit};
 enum{VR_INTERACTION_NONE,VR_INTERACTION_RELOAD,VR_INTERACTION_VEHICLE,VR_INTERACTION_WORLD,VR_INTERACTION_PARKOUR};
 enum{_game_connection_local,_object_mask_scenery=8};
+enum{_game_connection_network_client=1,_game_connection_network_server=2};
 struct collision_result{int type;float t;real_point3d point;real_plane3d plane;long object_index,surface_index;unsigned char flags,breakable_surface_index;short material_index;};
 struct object_fields{long parent_object_index;unsigned damage_flags;real_point3d position;real_vector3d forward;};
 struct object_datum{struct object_fields object;};
@@ -55,6 +56,7 @@ static struct biped_datum *biped_get(long x){assert(x==42);return &body;}
 static struct biped_definition *biped_definition_get(long x){(void)x;return &definition;}
 static int vr_active(void){return 1;}
 static int vr_controller(unsigned*b,float*t,float*s){(void)b;(void)t;(void)s;return focused;}
+static int coop;static int network_coop_active(void){return coop;}
 static int game_connection(void){return network;}static int game_time_get_paused(void){return paused;}
 static long game_time_get(void){return now;}static int cinematic_in_progress(void){return cinematic;}
 static int director_inhibited_input(short x){(void)x;return inhibited;}
@@ -133,6 +135,12 @@ int main(void){
  grip[0]=0;tick(0,0,0);vr_parkour_reset();enabled[2]=0;
  real_vector3d v=tick(.1f,.2f,.3f);assert(v.i==.1f&&v.j==.2f&&v.k==.3f&&queries==0);
  enabled[2]=1;network=1;v=tick(.1f,.2f,.3f);assert(v.k==.3f&&queries==0);network=0;
+ /* A network client and a PvP host keep stock movement; a co-op host's own
+    player (simulated authoritatively by the host) may use parkour. */
+ network=2;coop=0;v=tick(.1f,.2f,.3f);assert(v.k==.3f&&queries==0);
+ network=1;coop=1;v=tick(.1f,.2f,.3f);assert(v.k==.3f&&queries==0);
+ network=2;coop=1;vr_parkour_reset();tick(0,0,0);grip[0]=1;tick(0,0,0);assert(parkour.hand[0].active);
+ grip[0]=0;tick(0,0,0);vr_parkour_reset();network=0;coop=0;queries=0;
  tick(0,0,0);grip[0]=1;v=tick(0,0,0);
  assert(parkour.hand[0].active&&owner[0]==VR_INTERACTION_PARKOUR&&lookups==0);
  assert(v.i<0&&magnitude3d(&v)<=4.0f/30.0f+.0001f);
