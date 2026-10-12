@@ -27,13 +27,37 @@ static struct {
      * controls give: the driver's facing (players.c, vr_vehicle_handles_facing)
      * while aiming stays with the head */
     real_vector3d simulated_forward, steer; int steer_valid;
+    /* Test57: where each hand took hold across the controls (the Scorpion's
+     * stick tilts and the Banshee's bar slides with it), a hand within reach
+     * (the controls light up), the side of centre each hand last felt */
+    real side_start[2]; int near[2], side[2];
+    /* Test57: the Warthog's wheel drawn (in front of the model's), or hidden
+     * (on the model's own wheel exactly) */
+    int wheel_front;
+    /* Test57: CONTROL GLOW, STEER HAPTICS, BANSH SLIDE */
+    int glow, steer_haptics, slide;
 } vr_wheel;
 static char const *const vr_wheel_keys[]={"warthog","ghost","scorpion","banshee"};
+/* Test57: each vehicle's own controls. The stock Warthog gets a drawn wheel
+ * over its own (Test56's grab of the model's rim never caught in the owner's
+ * drive), the Ghost keeps its handlebar, the Scorpion (and a Wraith, where a
+ * map lets a player drive one) a single drive stick tilted the way to go, the
+ * Banshee a flight bar: rolled or slid sideways to turn, pushed or pulled to
+ * dive or climb. extra: reach past HAND CONTACT, metres */
+static struct {char const *name;int kind;} const vr_wheel_names[]=
+    {{"warthog",0},{"ghost",1},{"scorpion",2},{"wraith",2},{"banshee",3}};
+static struct {char const *control;real extra;} const vr_wheel_profiles[]=
+    {{"steering wheel",0.08f},{"handlebar",0.04f},{"drive stick",0.05f},{"flight bar",0.04f}};
+/* Test57: the drive stick's length and the sideways travel that is full lock
+ * for the stick and the flight bar */
+#define VR_STICK_LENGTH 0.16f
+#define VR_BAR_SLIDE 0.12f
 static void vr_vehicle_handles_clear(void)
 {
     for(int h=0;h<2;h++) { vr_interaction_release(h,VR_INTERACTION_VEHICLE); vr_wheel.grip[h].held=0; vr_wheel.down[h]=1; }
     vr_wheel.valid=0; vr_wheel.unit=vr_wheel.vehicle=NONE; vr_wheel.pitch=0; vr_wheel.steering_logged=0;
     vr_wheel.drawn_valid=0; vr_wheel.steered=0; vr_wheel.steer_valid=0;
+    for(int side_hand=0;side_hand<2;side_hand++) { vr_wheel.near[side_hand]=0; vr_wheel.side[side_hand]=0; }
 }
 static int vr_vehicle_handles_enabled(long unit)
 {
@@ -75,9 +99,21 @@ static void vr_wheel_place(real_matrix4x3 const *root)
         if(!(normalize3d(&vr_wheel.plane_left)>0.0f)) vr_wheel.plane_left=root->left;
         cross_product3d(&vr_wheel.plane_left,&vr_wheel.normal,&vr_wheel.plane_up);
     }
+    /* Test57: the Warthog's drawn wheel sits 2.5 cm in front of the model's
+     * own (toward the driver), so it is seen and taken whole; hidden
+     * (VIRTUAL WHEEL), it is taken on the model's own wheel */
+    if(vr_wheel.kind==0 && vr_wheel.wheel_front)
+        for(int front=0;front<3;front++)vr_wheel.center.n[front]+=vr_wheel.normal.n[front]*0.025f*vr_units_per_metre();
     for(int h=0;h<2;h++) {
         real sign=h?-1:1,angle=vr_wheel.angle;
         vr_wheel.target[h]=vr_wheel_point(0,sign*vr_wheel.radius*vr_wheel.scale*cosf(angle),sign*vr_wheel.radius*vr_wheel.scale*sinf(angle));
+    }
+    /* Test57: the drive stick's knob, between the driver's hands, tilted
+     * about its pivot below it (a turn right leans it right) */
+    if(vr_wheel.kind==2) {
+        real length=VR_STICK_LENGTH*vr_units_per_metre()*vr_wheel.scale;
+        vr_wheel.target[0]=vr_wheel_point(0,-length*sinf(vr_wheel.angle),length*(cosf(vr_wheel.angle)-1.0f));
+        vr_wheel.target[1]=vr_wheel.target[0];
     }
 }
 /* while a frame is drawn: the vehicle as drawn, kept for the input after it */
@@ -101,7 +137,8 @@ static int vr_vehicle_handles_prepare(long unit_index)
         vehicle->object.node_matrices.size < (long)sizeof(real_matrix4x3) ||
         !(nodes=object_get_node_matrices(vr_render.seat.vehicle_index))) { vr_vehicle_handles_clear(); return 0; }
     name=tag_get_name(vehicle->definition_index);
-    for(int k=0;k<4;k++)if(name && strstr(name,vr_wheel_keys[k]))kind=k;
+    for(int k=0;k<(int)(sizeof(vr_wheel_names)/sizeof(vr_wheel_names[0]));k++)
+        if(name && strstr(name,vr_wheel_names[k].name))kind=vr_wheel_names[k].kind;
     if(kind<0) { vr_vehicle_handles_clear(); return 0; }
     if(vr_wheel.unit!=unit_index || vr_wheel.vehicle!=vr_render.seat.vehicle_index ||
         vr_wheel.seat!=vr_render.seat.seat_index || vr_wheel.generation!=vr_settings_generation()) {
@@ -158,6 +195,10 @@ static int vr_vehicle_handles_prepare(long unit_index)
         }
         snprintf(key,sizeof(key),"vr.handle_%s_size",vr_wheel_keys[kind]);
         double scale=config_real(key);vr_wheel.scale=isfinite(scale)?PIN(scale,0.5,2.0):1.0;
+        vr_wheel.wheel_front=config_boolean("vr.vehicle_wheel_visible");
+        vr_wheel.glow=config_boolean("vr.vehicle_control_glow");
+        vr_wheel.steer_haptics=config_boolean("vr.vehicle_steer_haptics");
+        vr_wheel.slide=config_boolean("vr.vehicle_banshee_slide");
     }
     {
         /* the vehicle as drawn this frame (or by the last frame drawn) */
@@ -178,8 +219,22 @@ static real vr_wheel_grip_distance(int h,real_point3d const *hand)
     if(vr_wheel.kind==0) {
         vector_from_points3d(&vr_wheel.center,hand,&d);
         real along=dot_product3d(&d,&vr_wheel.normal);
-        real l=dot_product3d(&d,&vr_wheel.plane_left),u=dot_product3d(&d,&vr_wheel.plane_up);
-        return sqrtf((sqrtf(l*l+u*u)-radius)*(sqrtf(l*l+u*u)-radius)+along*along);
+        real l=dot_product3d(&d,&vr_wheel.plane_left),u=dot_product3d(&d,&vr_wheel.plane_up),out=sqrtf(l*l+u*u);
+        /* Test57: anywhere on the drawn wheel's face (its spokes and rim,
+         * not the hub's middle, where the turn cannot be read) */
+        if(out>=0.4f*radius && out<=radius) return fabsf(along);
+        return sqrtf((out-radius)*(out-radius)+along*along);
+    }
+    /* Test57: the drive stick, along its upper half and just over the knob */
+    if(vr_wheel.kind==2) {
+        real length=VR_STICK_LENGTH*vr_units_per_metre()*vr_wheel.scale,l2,t;
+        real_point3d pivot=vr_wheel_point(0,0,-length);
+        real_vector3d axis,ap;
+        vector_from_points3d(&pivot,&vr_wheel.target[h],&axis);vector_from_points3d(&pivot,hand,&ap);
+        l2=dot_product3d(&axis,&axis);
+        t=l2>1e-12f?PIN(dot_product3d(&ap,&axis)/l2,0.5f,1.15f):1.0f;
+        for(int k=0;k<3;k++)d.n[k]=ap.n[k]-axis.n[k]*t;
+        return magnitude3d(&d);
     }
     {
         real_point3d a;real_vector3d ab,ap;real t,length2;
@@ -202,10 +257,12 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
     if(!vr_controller(&buttons,triggers,thumbs)) { vr_vehicle_handles_clear(); return 0; }
     if(!vr_vehicle_handles_prepare(unit))return 0;
     /* Test56: the Warthog's rim 2 cm more forgiving (a palm closing round a
-     * tilted rim lands off its plane) */
-    if(vr_wheel.kind==0) contact_radius+=0.02f;
+     * tilted rim lands off its plane). Test57: each control's own reach past
+     * the palm (the Warthog's drawn wheel 4 cm more, the drive stick 1 cm
+     * more; the Ghost's and Banshee's as before) */
+    contact_radius+=vr_wheel_profiles[vr_wheel.kind].extra-0.04f;
     if(vr_wheel.log_pending) {
-        platform_log("vr: immersive %s controls anchored to native %s contacts; grip to steer, stick throttle retained, controller steering off",vr_wheel_keys[vr_wheel.kind],vr_wheel.kind==0?"wheel":"driver hand");
+        platform_log("vr: immersive %s %s anchored to native %s contacts; grip to steer, stick throttle retained, controller steering off",vr_wheel_keys[vr_wheel.kind],vr_wheel_profiles[vr_wheel.kind].control,vr_wheel.kind==0?"wheel":"driver hand");
         vr_wheel.log_pending=0;
     }
     for(int h=0;h<2;h++) {
@@ -224,11 +281,24 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
         if(vr_wheel.grip[h].held && vr_interaction_owner(h)!=VR_INTERACTION_VEHICLE)vr_wheel.grip[h].held=0;
         if(!vr_wheel.grip[h].held && press && isfinite(distance) &&
             distance<=contact_radius && vr_interaction_claim(h,VR_INTERACTION_VEHICLE)) {
-            vr_wheel_grip_start(&vr_wheel.grip[h],local,vr_wheel.angle);
+            /* (the drive stick's knob is the controls' centre: its turn is
+             * measured from where the hand moves, not about the centre) */
+            float start[2]={local[0],local[1]};
+            if(vr_wheel.kind==2) {start[0]=1.0f;start[1]=0.0f;}
+            vr_wheel_grip_start(&vr_wheel.grip[h],start,vr_wheel.angle);
             vr_wheel.grip_phase[h]=atan2f(local[1],local[0])-vr_wheel.angle;
             vr_wheel.push_start[h]=ahead;
+            vr_wheel.side_start[h]=local[0];
             vr_haptic(h,0.35f,0.035f);
+        } else if(!vr_wheel.grip[h].held && press) {
+            /* Test57: a squeeze that took nothing says how far the hand was */
+            platform_log("vr: immersive %s %s not taken by hand %d: %.1f cm away (reach %.1f cm)%s",
+                vr_wheel_keys[vr_wheel.kind],vr_wheel_profiles[vr_wheel.kind].control,h,
+                isfinite(distance)?(double)(distance*100.0f):-1.0,(double)(contact_radius*100.0f),
+                isfinite(distance)&&distance<=contact_radius?"; the hand holds something else":"");
         }
+        /* Test57: a free hand within reach lights the controls up */
+        vr_wheel.near[h]=!vr_wheel.grip[h].held&&isfinite(distance)&&distance<=contact_radius;
         if(vr_wheel.grip[h].held) {
             if(!held || distance>0.65f || release) {
                 vr_wheel.grip[h].held=0;vr_interaction_release(h,VR_INTERACTION_VEHICLE);
@@ -238,11 +308,15 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
                  * the Warthog's wheel and the Banshee's yoke turn in the
                  * driver's view (the left hand rising turns right); the
                  * Ghost's handlebar also twists (the left hand pushed
-                 * forward turns right); the Scorpion's sticks steer as a
-                 * tank's (left stick forward, right back turns right). */
+                 * forward turns right). Test57: the drive stick tilts the
+                 * way the hand moves across (right turns right); the flight
+                 * bar also turns by sliding it across (12 cm is full lock). */
                 real twist=(ahead-vr_wheel.push_start[h])/fmaxf(vr_wheel.radius*vr_wheel.scale,0.05f*vr_units_per_metre())*(h?-1.0f:1.0f);
-                real turn=vr_wheel.kind==2?vr_wheel.grip[h].base+twist:vr_wheel_grip_angle(&vr_wheel.grip[h],local);
+                real across=local[0]-vr_wheel.side_start[h];
+                real turn=vr_wheel.kind==2?vr_wheel.grip[h].base+atan2f(-across,VR_STICK_LENGTH*vr_units_per_metre()*vr_wheel.scale):
+                    vr_wheel_grip_angle(&vr_wheel.grip[h],local);
                 if(vr_wheel.kind==1)turn+=twist;
+                if(vr_wheel.kind==3 && vr_wheel.slide)turn+=-across/(VR_BAR_SLIDE*vr_units_per_metre())*VR_WHEEL_LOCK;
                 total+=PIN(turn,-VR_WHEEL_LOCK,VR_WHEEL_LOCK);push+=ahead-vr_wheel.push_start[h];count++;
             }
         }
@@ -273,8 +347,11 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
     /* Test56: the hands feel the steering: a light tick as the controls turn
      * (stronger toward full lock) and a firm one at the stop */
     for(int hand=0;hand<2;hand++) {
-        int limit;
-        if(!vr_wheel.grip[hand].held) {vr_wheel.at_limit[hand]=0;vr_wheel.felt[hand]=vr_wheel.angle;continue;}
+        int limit,side=vr_wheel.angle>VR_WHEEL_DEAD_ZONE?1:vr_wheel.angle<-VR_WHEEL_DEAD_ZONE?-1:0;
+        if(!vr_wheel.grip[hand].held || !vr_wheel.steer_haptics) {vr_wheel.at_limit[hand]=0;vr_wheel.felt[hand]=vr_wheel.angle;vr_wheel.side[hand]=side;continue;}
+        /* Test57: a soft tick crossing the centre */
+        if(side && vr_wheel.side[hand] && side!=vr_wheel.side[hand]) vr_haptic(hand,0.10f,0.012f);
+        if(side) vr_wheel.side[hand]=side;
         limit=fabsf(vr_wheel.angle)>=VR_WHEEL_LOCK-0.01f;
         if(limit && !vr_wheel.at_limit[hand]) vr_haptic(hand,0.45f,0.04f);
         else if(fabsf(vr_wheel.angle-vr_wheel.felt[hand])>=0.12f) {
@@ -371,9 +448,11 @@ boolean vr_render_vehicle_controls(void)
     float marker_points[8][3],marker_radii[8];
     int markers=VR_RENDER_EYE()?vr_calibration_markers(vr_render.game_camera_position.n,marker_points,marker_radii,8):0;
     vr_wheel_drawn_refresh(); /* Test56: the controls on the vehicle as drawn */
-    /* Test55: the Warthog's own steering wheel is in its model: no copy */
+    /* Test57: every vehicle's controls are drawn, the Warthog's wheel too (in
+     * front of its own, which never took a hand in the owner's Test56 drive);
+     * VIRTUAL WHEEL hides them */
     int controls=VR_RENDER_EYE() && vr_wheel.valid && vr_vehicle_handles_enabled(vr_wheel.unit) &&
-        config_boolean("vr.vehicle_wheel_visible") && vr_wheel.kind!=0;
+        config_boolean("vr.vehicle_wheel_visible");
     if(!markers && !controls)return FALSE;
     boolean saved_debug=rasterizer_debug_options.draw_debug_geometry;
     rasterizer_debug_options.draw_debug_geometry=TRUE;
@@ -404,11 +483,47 @@ boolean vr_render_vehicle_controls(void)
     }
     real units=vr_units_per_metre();
     real_argb_color metal={1,0.30f,0.32f,0.34f},dark={1,0.07f,0.07f,0.08f},trim={1,0.42f,0.30f,0.62f};
-    if(vr_wheel.kind==2) {trim.red=.30f;trim.green=.36f;trim.blue=.24f;}
+    if(vr_wheel.kind==0||vr_wheel.kind==2) {trim.red=.30f;trim.green=.36f;trim.blue=.24f;}
     if(vr_wheel.kind==3) {trim.red=.26f;trim.green=.24f;trim.blue=.58f;}
+    /* Test57: a free hand within reach lights the controls up */
+    if((vr_wheel.near[0]||vr_wheel.near[1]) && vr_wheel.glow) {
+        trim.red=fminf(1,trim.red*1.8f);trim.green=fminf(1,trim.green*1.8f);trim.blue=fminf(1,trim.blue*1.8f);
+        dark.red=dark.green=dark.blue=0.20f;
+    }
     real w=0.010f*units;
     real_point3d left=vr_wheel.target[0],right=vr_wheel.target[1];
-    if(vr_wheel.kind==1) {
+    if(vr_wheel.kind==0) {
+        /* Warthog: a rubber rim, three metal spokes to the hub, an olive
+         * mark at twelve o'clock that shows the turn */
+        real r=vr_wheel.radius*vr_wheel.scale;
+        real_point3d hub_front=vr_wheel.center,hub_back=vr_wheel.center;
+        for(int segment=0;segment<20;segment++) {
+            real a0=2.0f*_pi*(real)segment/20.0f,a1=2.0f*_pi*(real)(segment+1)/20.0f;
+            vr_wheel_bar(vr_wheel_point(0,r*cosf(a0),r*sinf(a0)),vr_wheel_point(0,r*cosf(a1),r*sinf(a1)),w*1.4f,dark);
+        }
+        for(int spoke=0;spoke<3;spoke++) {
+            real phase=vr_wheel.angle+(spoke==0?0.0f:spoke==1?_pi:1.5f*_pi);
+            vr_wheel_bar(vr_wheel.center,vr_wheel_point(0,r*0.94f*cosf(phase),r*0.94f*sinf(phase)),w*0.8f,metal);
+        }
+        {
+            real top=vr_wheel.angle+0.5f*_pi;
+            vr_wheel_bar(vr_wheel_point(0,r*cosf(top-0.12f),r*sinf(top-0.12f)),vr_wheel_point(0,r*cosf(top+0.12f),r*sinf(top+0.12f)),w*1.8f,trim);
+        }
+        for(int axis=0;axis<3;axis++) {
+            hub_front.n[axis]+=vr_wheel.normal.n[axis]*0.012f*units;
+            hub_back.n[axis]-=vr_wheel.normal.n[axis]*0.03f*units;
+        }
+        vr_wheel_bar(hub_back,hub_front,w*2.6f,metal);
+    } else if(vr_wheel.kind==2) {
+        /* Scorpion (a Wraith too): one drive stick on a base plate, its
+         * shaft from the pivot to a rubber knob ringed in olive */
+        real length=VR_STICK_LENGTH*units*vr_wheel.scale;
+        real_point3d pivot=vr_wheel_point(0,0,-length),knob=vr_wheel.target[0];
+        vr_wheel_bar(vr_wheel_point(0,0.05f*units,-length),vr_wheel_point(0,-0.05f*units,-length),w*3.0f,dark);
+        vr_wheel_bar(pivot,knob,w*1.1f,metal);
+        vr_wheel_bar(vr_wheel_lerp(pivot,knob,0.80f),vr_wheel_lerp(pivot,knob,1.10f),w*2.4f,dark);
+        vr_wheel_bar(vr_wheel_lerp(pivot,knob,0.76f),vr_wheel_lerp(pivot,knob,0.80f),w*2.8f,trim);
+    } else if(vr_wheel.kind==1) {
         /* Ghost: handlebar, rubber grip sleeves, end caps and a stem */
         vr_wheel_bar(vr_wheel_lerp(left,right,0.30f),vr_wheel_lerp(left,right,0.70f),w,metal);
         vr_wheel_bar(left,vr_wheel_lerp(left,right,0.30f),w*1.6f,dark);
@@ -416,16 +531,9 @@ boolean vr_render_vehicle_controls(void)
         vr_wheel_bar(vr_wheel_lerp(left,right,-0.04f),left,w*2.0f,trim);
         vr_wheel_bar(right,vr_wheel_lerp(left,right,1.04f),w*2.0f,trim);
         vr_wheel_bar(vr_wheel.center,vr_wheel_offset(vr_wheel.center,0.05f*units,-0.12f*units),w*1.4f,metal);
-    } else if(vr_wheel.kind==2) {
-        /* Scorpion: two control sticks on bases, with knobs */
-        for(int h=0;h<2;h++) {
-            real_point3d top=vr_wheel.target[h],base=vr_wheel_offset(top,0.02f*units,-0.14f*units);
-            vr_wheel_bar(vr_wheel_offset(base,-0.03f*units,0),vr_wheel_offset(base,0.03f*units,0),w*2.6f,dark);
-            vr_wheel_bar(base,top,w*0.9f,metal);
-            vr_wheel_bar(vr_wheel_offset(top,0,-0.03f*units),vr_wheel_offset(top,0,0.025f*units),w*1.9f,trim);
-        }
     } else {
-        /* Banshee: a yoke (crossbar, two horns) on a column toward the dash */
+        /* Banshee: a flight bar (crossbar, two horns) on a column toward the
+         * dash */
         real_point3d column=vr_wheel_offset(vr_wheel.center,0.16f*units,-0.04f*units);
         vr_wheel_bar(left,right,w*1.2f,metal);
         for(int h=0;h<2;h++) {

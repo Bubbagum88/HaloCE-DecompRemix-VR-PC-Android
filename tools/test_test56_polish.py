@@ -98,7 +98,7 @@ assert "vr_wheel_drawn_refresh();" in body(handles, "boolean vr_render_vehicle_c
 # the Warthog's wheel: its own node's centre and leaning plane
 prepare = body(handles, "static int vr_vehicle_handles_prepare(")
 assert "center=markers[0].node_matrix.position;normal=markers[0].node_matrix.up;" in prepare
-assert "if(vr_wheel.kind==0) contact_radius+=0.02f;" in handles
+assert "contact_radius+=vr_wheel_profiles[vr_wheel.kind].extra-0.04f;" in handles  # Test57: per vehicle
 # steering apart from aiming: the controls give the driver's facing, the
 # head the aiming (the Ghost's and Banshee's guns, the Scorpion's turret);
 # an online client keeps Test55's facing from the controls

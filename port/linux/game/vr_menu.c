@@ -430,6 +430,11 @@ static struct vr_menu_setting const vr_menu_vehicles[] =
 	{ "RESET OFFSETS", "vehicle offsets", _vr_setting_reset_vehicle_offsets, 0, { { NULL, NULL } } },
     VR_IMMERSION_PHYSICAL_HANDLES,
     { "VIRTUAL WHEEL", "vr.vehicle_wheel_visible", _vr_setting_boolean, 2, { { "HIDDEN", "false" }, { "VISIBLE", "true" } } },
+    /* Test57: the immersive controls' highlight within reach, their steering
+     * haptics, and the Banshee's bar turning when slid across */
+    { "CONTROL GLOW", "vr.vehicle_control_glow", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    { "STEER HAPTICS", "vr.vehicle_steer_haptics", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    { "BANSH SLIDE", "vr.vehicle_banshee_slide", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     { "HOG REACH", "vr.handle_warthog_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
     { "HOG LEFT", "vr.handle_warthog_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
     { "HOG HEIGHT", "vr.handle_warthog_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
