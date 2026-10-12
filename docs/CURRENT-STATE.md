@@ -32,6 +32,10 @@ has 17 categories (fails without the fix under AddressSanitizer). Read
 pending (`TEST63-DEVICE-CHECKLIST.md`). No protocol or voice change. Local
 commits only; no push/publish/install/launch.
 
+Built and packaged: APK source `d1a61e06d08b5ed044a941c447e8872661aea0fa`,
+delivery `D:\HaloQuest\builds\test64-20261012-v1.0.31-test64`; full suite,
+both native builds and package verification passed.
+
 ## Previous private Test63 candidate (2026-10-12)
 
 Private **1.0.30-test63 / Android code75**, branch `test39-interaction-completion`,
