@@ -1,5 +1,7 @@
 /* Optional virtual cockpit controls (IMMERSIVE VEHICLES). Included by vr_render.c after arm solvers. */
 #include "render/render_debug.h"
+#include "models/models.h"
+#include "models/model_definitions.h"
 #include "rasterizer/rasterizer.h"
 #include "rasterizer/rasterizer_console_vars.h"
 #include "vr_vehicle_controls_math.h"
@@ -18,6 +20,9 @@ static struct {
      * (vr_wheel_place); steering haptics state */
     real anchor[3], scale;
     real_matrix4x3 drawn; int drawn_valid;
+    /* Test63: the Warthog model's own "frame steering wheel" bone, drawn as
+     * the virtual wheel (vr_vehicle_controls_matrices); NONE: drawn here */
+    short model_wheel_node;
     double steered; int at_limit[2]; float felt[2];
     /* Test56: the plane the controls turn in: its normal toward the driver
      * (axis, in the vehicle's frame: the Warthog's wheel leans back 10
@@ -199,11 +204,37 @@ static void vr_wheel_place(real_matrix4x3 const *root)
         vr_wheel.target[1]=vr_wheel.target[0];
     }
 }
+/* the player's offsets, size and switches for this vehicle's controls */
+static void vr_wheel_read_user(int kind)
+{
+    static char const *parts[]={"forward","left","up"};char key[80];
+    if(kind<0||kind>=(int)(sizeof(vr_wheel_keys)/sizeof(vr_wheel_keys[0])))return;
+    for(int i=0;i<3;i++) {
+        double value;snprintf(key,sizeof(key),"vr.handle_%s_%s",vr_wheel_keys[kind],parts[i]);value=config_real(key);
+        double all;
+        snprintf(key,sizeof(key),"vr.handle_all_%s",parts[i]);all=config_real(key);
+        value=(isfinite(value)?value:0)+(isfinite(all)?all:0);
+        vr_wheel.user[i]=PIN(value,-0.5,0.5)*vr_units_per_metre();
+        vr_wheel.anchor[i]=vr_wheel.local[i]+vr_wheel.user[i];
+    }
+    vr_wheel.comfort=config_boolean("vr.vehicle_comfort_reach");
+    vr_wheel.drive=config_boolean("vr.vehicle_tank_drive");
+    snprintf(key,sizeof(key),"vr.handle_%s_size",vr_wheel_keys[kind]);
+    double scale=config_real(key);vr_wheel.scale=isfinite(scale)?PIN(scale,0.5,2.0):1.0;
+    vr_wheel.wheel_front=config_boolean("vr.vehicle_wheel_visible");
+    vr_wheel.glow=config_boolean("vr.vehicle_control_glow");
+    vr_wheel.steer_haptics=config_boolean("vr.vehicle_steer_haptics");
+    vr_wheel.slide=config_boolean("vr.vehicle_banshee_slide");
+}
 /* while a frame is drawn: the vehicle as drawn, kept for the input after it */
 static void vr_wheel_drawn_refresh(void)
 {
     real_matrix4x3 *drawn;
     if(!vr_wheel.valid) return;
+    /* Test63: while a vehicle-offset row is on screen (the game paused under
+     * the menu), the offsets apply as they change: the preview shows the
+     * controls exactly where the hands will take them */
+    if(vr_calibration_shown(4))vr_wheel_read_user(vr_wheel.kind);
     drawn=render_interpolation_object_node_matrices(vr_wheel.vehicle);
     vr_wheel.drawn_valid=drawn && vr_wheel_valid_frame(&drawn[0]);
     if(vr_wheel.drawn_valid) {vr_wheel.drawn=drawn[0];vr_wheel_place(&vr_wheel.drawn);}
@@ -223,12 +254,23 @@ static int vr_vehicle_handles_prepare(long unit_index)
     for(int k=0;k<(int)(sizeof(vr_wheel_names)/sizeof(vr_wheel_names[0]));k++)
         if(name && strstr(name,vr_wheel_names[k].name))kind=vr_wheel_names[k].kind;
     if(kind<0) { vr_vehicle_handles_clear(); return 0; }
+    /* Test63: an offset changed from the calibration rows moves the controls
+     * (vr_wheel_read_user); it does not clear and re-measure them */
+    if(vr_wheel.valid && vr_wheel.unit==unit_index && vr_wheel.vehicle==vr_render.seat.vehicle_index &&
+        vr_wheel.seat==vr_render.seat.seat_index && vr_wheel.generation!=vr_settings_generation() && vr_calibration_shown(4))
+        vr_wheel.generation=vr_settings_generation();
     if(vr_wheel.unit!=unit_index || vr_wheel.vehicle!=vr_render.seat.vehicle_index ||
         vr_wheel.seat!=vr_render.seat.seat_index || vr_wheel.generation!=vr_settings_generation()) {
         vr_vehicle_handles_clear();vr_wheel.unit=unit_index;vr_wheel.vehicle=vr_render.seat.vehicle_index;
         vr_wheel.seat=vr_render.seat.seat_index;vr_wheel.kind=kind;vr_wheel.generation=vr_settings_generation();
         vr_wheel.since=now;vr_wheel.settled_since=now;vr_wheel.settle_sampled=0;
         vr_wheel.angle=0;vr_wheel.pitch=0;
+        {
+            /* Test63: the Warthog's own wheel bone, if its model has one */
+            struct object_definition *definition=object_definition_get(vehicle->definition_index);
+            vr_wheel.model_wheel_node=kind==0&&definition->object.model.index!=NONE?
+                model_find_node(definition->object.model.index,"frame steering wheel"):NONE;
+        }
     }
     vr_wheel.root=nodes[0];
     if(!vr_wheel_valid_frame(&nodes[0])) {vr_vehicle_handles_clear();return 0;}
@@ -338,25 +380,7 @@ static int vr_vehicle_handles_prepare(long unit_index)
         vr_wheel.valid=1;
         vr_wheel.log_pending=1;
     }
-    {
-        static char const *parts[]={"forward","left","up"};char key[80];
-        for(int i=0;i<3;i++) {
-            double value;snprintf(key,sizeof(key),"vr.handle_%s_%s",vr_wheel_keys[kind],parts[i]);value=config_real(key);
-            double all;
-            snprintf(key,sizeof(key),"vr.handle_all_%s",parts[i]);all=config_real(key);
-            value=(isfinite(value)?value:0)+(isfinite(all)?all:0);
-            vr_wheel.user[i]=PIN(value,-0.5,0.5)*vr_units_per_metre();
-            vr_wheel.anchor[i]=vr_wheel.local[i]+vr_wheel.user[i];
-        }
-        vr_wheel.comfort=config_boolean("vr.vehicle_comfort_reach");
-        vr_wheel.drive=config_boolean("vr.vehicle_tank_drive");
-        snprintf(key,sizeof(key),"vr.handle_%s_size",vr_wheel_keys[kind]);
-        double scale=config_real(key);vr_wheel.scale=isfinite(scale)?PIN(scale,0.5,2.0):1.0;
-        vr_wheel.wheel_front=config_boolean("vr.vehicle_wheel_visible");
-        vr_wheel.glow=config_boolean("vr.vehicle_control_glow");
-        vr_wheel.steer_haptics=config_boolean("vr.vehicle_steer_haptics");
-        vr_wheel.slide=config_boolean("vr.vehicle_banshee_slide");
-    }
+    vr_wheel_read_user(kind);
     {
         /* the vehicle as drawn this frame (or by the last frame drawn) */
         real_matrix4x3 *drawn=render_interpolation_object_node_matrices(vr_wheel.vehicle);
@@ -622,6 +646,45 @@ static void vr_wheel_bar(real_point3d a,real_point3d b,real width,real_argb_colo
         render_debug_polygon(q,4,&color);
     }
 }
+/* Test63: a rounded part: an eight-sided tube from a to b, each face shaded
+ * by a light from above and behind the viewer, so the controls read as solid
+ * shapes, not flat debug boxes */
+static void vr_wheel_tube(real_point3d a,real_point3d b,real radius,real_argb_color color)
+{
+    real_vector3d d,u,v,ref={0,0,1},light;
+    vector_from_points3d(&a,&b,&d);
+    if(!(normalize3d(&d)>0.0f)||!(radius>0.0f))return;
+    if(fabsf(d.k)>.9f){ref.i=1;ref.k=0;}
+    cross_product3d(&d,&ref,&u);if(!(normalize3d(&u)>0.0f))return;
+    cross_product3d(&d,&u,&v);
+    vector_from_points3d(&a,&vr_render.game_camera_position,&light);
+    if(!(normalize3d(&light)>0.0f))light=*global_up3d;
+    for(int axis=0;axis<3;axis++)light.n[axis]=light.n[axis]*.55f+global_up3d->n[axis]*.8f;
+    normalize3d(&light);
+    for(int side=0;side<8;side++) {
+        real a0=_pi*.25f*(real)side,a1=_pi*.25f*(real)(side+1),am=(a0+a1)*.5f,shade;
+        real_vector3d normal;real_point3d q[4];real_argb_color c=color;
+        for(int axis=0;axis<3;axis++)normal.n[axis]=u.n[axis]*cosf(am)+v.n[axis]*sinf(am);
+        shade=.42f+.58f*fmaxf(0.0f,dot_product3d(&normal,&light));
+        c.red*=shade;c.green*=shade;c.blue*=shade;
+        for(int corner=0;corner<4;corner++) {
+            real angle=(corner==1||corner==2)?a1:a0;
+            real_point3d base=corner<2?a:b;
+            for(int axis=0;axis<3;axis++)
+                q[corner].n[axis]=base.n[axis]+(u.n[axis]*cosf(angle)+v.n[axis]*sinf(angle))*radius;
+        }
+        render_debug_polygon(q,4,&c);
+    }
+    /* end caps */
+    for(int end=0;end<2;end++) {
+        real_point3d cap[8];real_argb_color c=color;real shade=.42f+.58f*fmaxf(0.0f,dot_product3d(&d,&light)*(end?1:-1));
+        c.red*=shade;c.green*=shade;c.blue*=shade;
+        for(int side=0;side<8;side++)
+            for(int axis=0;axis<3;axis++)
+                cap[side].n[axis]=(end?b:a).n[axis]+(u.n[axis]*cosf(_pi*.25f*side)+v.n[axis]*sinf(_pi*.25f*side))*radius;
+        render_debug_polygon(cap,8,&c);
+    }
+}
 static real_point3d vr_wheel_lerp(real_point3d a,real_point3d b,real t)
 {
     real_point3d p;for(int i=0;i<3;i++)p.n[i]=a.n[i]+(b.n[i]-a.n[i])*t;return p;
@@ -672,69 +735,178 @@ boolean vr_render_vehicle_controls(void)
         return TRUE;
     }
     real units=vr_units_per_metre();
-    real_argb_color metal={1,0.30f,0.32f,0.34f},dark={1,0.07f,0.07f,0.08f},trim={1,0.42f,0.30f,0.62f};
-    if(vr_wheel.kind==0||vr_wheel.kind==2) {trim.red=.30f;trim.green=.36f;trim.blue=.24f;}
-    if(vr_wheel.kind==3) {trim.red=.26f;trim.green=.24f;trim.blue=.58f;}
-    /* Test57: a free hand within reach lights the controls up */
-    if((vr_wheel.near[0]||vr_wheel.near[1]) && vr_wheel.glow) {
-        trim.red=fminf(1,trim.red*1.8f);trim.green=fminf(1,trim.green*1.8f);trim.blue=fminf(1,trim.blue*1.8f);
-        dark.red=dark.green=dark.blue=0.20f;
+    /* Test63: the controls redesigned after the vehicles' own (the owner:
+     * "make them look intentional, game accurate"): shaded, rounded parts in
+     * each vehicle's own materials (UNSC gunmetal, rubber and olive; Covenant
+     * violet alloy, silver and blue lights). The Warthog's is the model's own
+     * wheel (vr_vehicle_controls_matrices); drawn here only for a model
+     * without a wheel bone. A preview (calibration rows on screen) is blue. */
+    int preview=vr_calibration_shown(4);
+    int lit=(vr_wheel.near[0]||vr_wheel.near[1]) && vr_wheel.glow;
+    real_argb_color gunmetal={1,.30f,.32f,.34f},rubber={1,.09f,.09f,.10f},olive={1,.33f,.38f,.24f},
+        violet={1,.34f,.17f,.52f},silver={1,.62f,.64f,.70f},cov_light={1,.35f,.62f,1.0f},
+        red={1,.75f,.12f,.10f};
+    if(lit) {
+        olive.red=fminf(1,olive.red*1.8f);olive.green=fminf(1,olive.green*1.8f);olive.blue=fminf(1,olive.blue*1.8f);
+        violet.red=fminf(1,violet.red*1.6f);violet.green=fminf(1,violet.green*1.6f);violet.blue=fminf(1,violet.blue*1.6f);
+        cov_light.red=.6f;cov_light.green=.85f;cov_light.blue=1;rubber.red=rubber.green=rubber.blue=.20f;
     }
-    real w=0.010f*units;
+    if(preview) {
+        real_argb_color blue={.45f,.25f,.55f,1};
+        gunmetal=rubber=olive=violet=silver=cov_light=red=blue;
+    }
+    real m=0.001f*units*vr_wheel.scale; /* a millimetre, scaled with the controls */
     real_point3d left=vr_wheel.target[0],right=vr_wheel.target[1];
-    if(vr_wheel.kind==0) {
-        /* Warthog: a rubber rim, three metal spokes to the hub, an olive
-         * mark at twelve o'clock that shows the turn */
+    if(vr_wheel.kind==0 && (vr_wheel.model_wheel_node==NONE || preview || !vr_wheel.wheel_front)) {
+        /* Warthog, drawn (no wheel bone, or the preview): a padded rubber rim
+         * with the hand grips at nine and three, three gunmetal spokes in a Y
+         * to a hub with an olive cap, an olive mark at twelve */
         real r=vr_wheel.radius*vr_wheel.scale;
-        real_point3d hub_front=vr_wheel.center,hub_back=vr_wheel.center;
-        for(int segment=0;segment<20;segment++) {
-            real a0=2.0f*_pi*(real)segment/20.0f,a1=2.0f*_pi*(real)(segment+1)/20.0f;
-            vr_wheel_bar(vr_wheel_point(0,r*cosf(a0),r*sinf(a0)),vr_wheel_point(0,r*cosf(a1),r*sinf(a1)),w*1.4f,dark);
-        }
-        for(int spoke=0;spoke<3;spoke++) {
-            real phase=vr_wheel.angle+(spoke==0?0.0f:spoke==1?_pi:1.5f*_pi);
-            vr_wheel_bar(vr_wheel.center,vr_wheel_point(0,r*0.94f*cosf(phase),r*0.94f*sinf(phase)),w*0.8f,metal);
+        if(!preview && !vr_wheel.wheel_front) goto controls_done;
+        for(int segment=0;segment<28;segment++) {
+            real a0=2.0f*_pi*(real)segment/28.0f,a1=2.0f*_pi*(real)(segment+1)/28.0f;
+            real mid=atan2f(sinf((a0+a1)*.5f-vr_wheel.angle),cosf((a0+a1)*.5f-vr_wheel.angle));
+            int grip=fabsf(fabsf(mid)-.5f*_pi)>1.15f; /* within ~25 degrees of nine and three */
+            vr_wheel_tube(vr_wheel_point(0,r*cosf(a0),r*sinf(a0)),vr_wheel_point(0,r*cosf(a1),r*sinf(a1)),
+                (grip?15.0f:12.0f)*m,grip?rubber:gunmetal);
         }
         {
             real top=vr_wheel.angle+0.5f*_pi;
-            vr_wheel_bar(vr_wheel_point(0,r*cosf(top-0.12f),r*sinf(top-0.12f)),vr_wheel_point(0,r*cosf(top+0.12f),r*sinf(top+0.12f)),w*1.8f,trim);
+            vr_wheel_tube(vr_wheel_point(0,r*cosf(top-0.09f),r*sinf(top-0.09f)),vr_wheel_point(0,r*cosf(top+0.09f),r*sinf(top+0.09f)),16.0f*m,olive);
         }
-        for(int axis=0;axis<3;axis++) {
-            hub_front.n[axis]+=vr_wheel.normal.n[axis]*0.012f*units;
-            hub_back.n[axis]-=vr_wheel.normal.n[axis]*0.03f*units;
+        for(int spoke=0;spoke<3;spoke++) {
+            real phase=vr_wheel.angle+(spoke==0?-0.5f*_pi:spoke==1?0.25f*_pi:0.75f*_pi);
+            vr_wheel_tube(vr_wheel_point(0,r*0.18f*cosf(phase),r*0.18f*sinf(phase)),
+                vr_wheel_point(0,r*0.93f*cosf(phase),r*0.93f*sinf(phase)),7.0f*m,gunmetal);
         }
-        vr_wheel_bar(hub_back,hub_front,w*2.6f,metal);
+        {
+            real_point3d hub_front=vr_wheel.center,hub_back=vr_wheel.center;
+            for(int axis=0;axis<3;axis++) {
+                hub_front.n[axis]+=vr_wheel.normal.n[axis]*14.0f*m;
+                hub_back.n[axis]-=vr_wheel.normal.n[axis]*40.0f*m;
+            }
+            vr_wheel_tube(hub_back,vr_wheel.center,22.0f*m,gunmetal);
+            vr_wheel_tube(vr_wheel.center,hub_front,30.0f*m,olive);
+        }
     } else if(vr_wheel.kind==2) {
-        /* Scorpion (a Wraith too): one drive stick on a base plate, its
-         * shaft from the pivot to a rubber knob ringed in olive */
+        /* Scorpion (a Wraith too): a UNSC drive stick: a gunmetal base with a
+         * rubber gaiter, a shaft to a contoured grip with finger ridges, a
+         * red thumb button and an olive collar */
         real length=VR_STICK_LENGTH*units*vr_wheel.scale;
         real_point3d pivot=vr_wheel_point(0,0,-length),knob=vr_wheel.target[0];
-        vr_wheel_bar(vr_wheel_point(0,0.05f*units,-length),vr_wheel_point(0,-0.05f*units,-length),w*3.0f,dark);
-        vr_wheel_bar(pivot,knob,w*1.1f,metal);
-        vr_wheel_bar(vr_wheel_lerp(pivot,knob,0.80f),vr_wheel_lerp(pivot,knob,1.10f),w*2.4f,dark);
-        vr_wheel_bar(vr_wheel_lerp(pivot,knob,0.76f),vr_wheel_lerp(pivot,knob,0.80f),w*2.8f,trim);
+        real_point3d base_a=vr_wheel_point(0,0,-length-12.0f*m),base_b=vr_wheel_point(0,0,-length+6.0f*m);
+        vr_wheel_tube(base_a,base_b,45.0f*m,gunmetal);
+        for(int ring=0;ring<3;ring++)
+            vr_wheel_tube(vr_wheel_lerp(pivot,knob,.04f+.07f*ring),vr_wheel_lerp(pivot,knob,.08f+.07f*ring),(28.0f-6.0f*ring)*m,rubber);
+        vr_wheel_tube(pivot,vr_wheel_lerp(pivot,knob,.62f),9.0f*m,gunmetal);
+        vr_wheel_tube(vr_wheel_lerp(pivot,knob,.58f),vr_wheel_lerp(pivot,knob,.64f),15.0f*m,olive);
+        for(int ridge=0;ridge<4;ridge++)
+            vr_wheel_tube(vr_wheel_lerp(pivot,knob,.64f+.09f*ridge),vr_wheel_lerp(pivot,knob,.69f+.09f*ridge),(ridge&1?19.0f:21.0f)*m,rubber);
+        vr_wheel_tube(vr_wheel_lerp(pivot,knob,.99f),vr_wheel_lerp(pivot,knob,1.06f),16.0f*m,gunmetal);
+        vr_wheel_tube(vr_wheel_lerp(pivot,knob,1.05f),vr_wheel_lerp(pivot,knob,1.09f),7.0f*m,red);
     } else if(vr_wheel.kind==1) {
-        /* Ghost: handlebar, rubber grip sleeves, end caps and a stem */
-        vr_wheel_bar(vr_wheel_lerp(left,right,0.30f),vr_wheel_lerp(left,right,0.70f),w,metal);
-        vr_wheel_bar(left,vr_wheel_lerp(left,right,0.30f),w*1.6f,dark);
-        vr_wheel_bar(vr_wheel_lerp(left,right,0.70f),right,w*1.6f,dark);
-        vr_wheel_bar(vr_wheel_lerp(left,right,-0.04f),left,w*2.0f,trim);
-        vr_wheel_bar(right,vr_wheel_lerp(left,right,1.04f),w*2.0f,trim);
-        vr_wheel_bar(vr_wheel.center,vr_wheel_offset(vr_wheel.center,0.05f*units,-0.12f*units),w*1.4f,metal);
+        /* Ghost: a Covenant handlebar: a violet alloy bar arched toward the
+         * rider, silver collars, dark grips, rounded end pods with blue
+         * lights, and a violet stem to the hull */
+        real_point3d centre=vr_wheel_lerp(left,right,.5f),raised=centre;
+        for(int axis=0;axis<3;axis++)raised.n[axis]+=vr_wheel.normal.n[axis]*25.0f*m+vr_wheel.plane_up.n[axis]*12.0f*m;
+        vr_wheel_tube(vr_wheel_lerp(left,right,.28f),raised,13.0f*m,violet);
+        vr_wheel_tube(raised,vr_wheel_lerp(left,right,.72f),13.0f*m,violet);
+        vr_wheel_tube(vr_wheel_lerp(left,right,.24f),vr_wheel_lerp(left,right,.30f),17.0f*m,silver);
+        vr_wheel_tube(vr_wheel_lerp(left,right,.70f),vr_wheel_lerp(left,right,.76f),17.0f*m,silver);
+        vr_wheel_tube(vr_wheel_lerp(left,right,.02f),vr_wheel_lerp(left,right,.25f),16.0f*m,rubber);
+        vr_wheel_tube(vr_wheel_lerp(left,right,.75f),vr_wheel_lerp(left,right,.98f),16.0f*m,rubber);
+        vr_wheel_tube(vr_wheel_lerp(left,right,-.06f),vr_wheel_lerp(left,right,.03f),23.0f*m,violet);
+        vr_wheel_tube(vr_wheel_lerp(left,right,.97f),vr_wheel_lerp(left,right,1.06f),23.0f*m,violet);
+        vr_wheel_tube(vr_wheel_lerp(left,right,-.075f),vr_wheel_lerp(left,right,-.06f),12.0f*m,cov_light);
+        vr_wheel_tube(vr_wheel_lerp(left,right,1.06f),vr_wheel_lerp(left,right,1.075f),12.0f*m,cov_light);
+        vr_wheel_tube(raised,vr_wheel_offset(vr_wheel.center,0.06f*units,-0.12f*units),15.0f*m,violet);
     } else {
-        /* Banshee: a flight bar (crossbar, two horns) on a column toward the
-         * dash */
+        /* Banshee: a Covenant flight yoke: a curved violet crossbar, two
+         * upright grips in silver cuffs with blue lights at their tips, and
+         * a violet column toward the dash */
         real_point3d column=vr_wheel_offset(vr_wheel.center,0.16f*units,-0.04f*units);
-        vr_wheel_bar(left,right,w*1.2f,metal);
+        real_point3d centre=vr_wheel_lerp(left,right,.5f),bowed=centre;
+        for(int axis=0;axis<3;axis++)bowed.n[axis]-=vr_wheel.root.forward.n[axis]*20.0f*m;
+        vr_wheel_tube(left,bowed,12.0f*m,violet);
+        vr_wheel_tube(bowed,right,12.0f*m,violet);
         for(int h=0;h<2;h++) {
             real_point3d horn=vr_wheel.target[h];
-            vr_wheel_bar(vr_wheel_offset(horn,0,-0.05f*units),vr_wheel_offset(horn,0,0.05f*units),w*1.7f,dark);
+            vr_wheel_tube(vr_wheel_offset(horn,0,-0.06f*units),vr_wheel_offset(horn,0,0.05f*units),15.0f*m,rubber);
+            vr_wheel_tube(vr_wheel_offset(horn,0,-0.07f*units),vr_wheel_offset(horn,0,-0.05f*units),19.0f*m,silver);
+            vr_wheel_tube(vr_wheel_offset(horn,0,0.05f*units),vr_wheel_offset(horn,0,0.065f*units),12.0f*m,cov_light);
         }
-        vr_wheel_bar(vr_wheel.center,column,w*1.5f,trim);
+        vr_wheel_tube(bowed,column,16.0f*m,violet);
+    }
+controls_done:
+    /* Test63: the calibration preview: where each hand takes hold (the
+     * reach the grab uses) and which way the controls face */
+    if(preview) {
+        real_argb_color ring={.35f,.4f,.7f,1},axis_color={.9f,.9f,.95f,1};
+        real reach=(vr_wheel_profiles[vr_wheel.kind].extra+0.04f)*units;
+        for(int h=0;h<(vr_wheel.kind==2?1:2);h++)render_debug_sphere(TRUE,&vr_wheel.target[h],reach,&ring);
+        {
+            real_point3d tip=vr_wheel.center,top=vr_wheel.center;
+            for(int axis=0;axis<3;axis++) {
+                tip.n[axis]+=vr_wheel.normal.n[axis]*0.10f*units;
+                top.n[axis]+=vr_wheel.plane_up.n[axis]*0.10f*units;
+            }
+            vr_wheel_tube(vr_wheel.center,tip,3.0f*m,axis_color);
+            vr_wheel_tube(vr_wheel.center,top,3.0f*m,axis_color);
+        }
     }
     rasterizer_debug_draw();
     rasterizer_debug_options.draw_debug_geometry=saved_debug;
     return TRUE;
+}
+/* Test63: the Warthog's virtual wheel is its own: the model's "frame steering
+ * wheel" bone, drawn where the virtual wheel is (COMFORT REACH, offsets,
+ * size) and turned by the hands, instead of a drawn copy beside it. Its rest
+ * pose on the hull (the model's default) is turned about the wheel's axis by
+ * the hands' angle; the native steering animation is replaced, not added.
+ * Only the seated driver's Warthog, with VIRTUAL WHEEL visible: hidden, the
+ * hands take the model's wheel where it is, as before. */
+real_matrix4x3 *vr_vehicle_controls_matrices(long object_index,real_matrix4x3 *stock)
+{
+    static real_matrix4x3 pose[MAXIMUM_NODES_PER_MODEL],defaults[MAXIMUM_NODES_PER_MODEL];
+    struct object_datum *object;struct object_definition *definition;struct model *model;
+    real_matrix4x3 inverse,relative,rest,target,delta;
+    real_vector3d k,*axes[3];short wheel=vr_wheel.model_wheel_node,count;
+    real_point3d origin={0,0,0};real_vector3d forward={1,0,0},up={0,0,1};
+    if(!stock||!vr_render.stereo||!vr_wheel.valid||vr_wheel.kind!=0||object_index!=vr_wheel.vehicle||
+        !vr_wheel.wheel_front||wheel==NONE||vr_calibration_shown(4)||!vr_vehicle_handles_enabled(vr_wheel.unit)||
+        !(object=object_try_and_get(object_index)))return stock;
+    definition=object_definition_get(object->definition_index);
+    if(definition->object.model.index==NONE)return stock;
+    model=model_definition_get(definition->object.model.index);
+    count=(short)(object->object.node_matrices.size/sizeof(*stock));
+    if(count<=0||count>MAXIMUM_NODES_PER_MODEL||model->nodes.count!=count||wheel<=0||wheel>=count)return stock;
+    model_get_node_matrices(model,defaults,&origin,&forward,&up);
+    matrix4x3_inverse(&defaults[0],&inverse);matrix4x3_multiply(&inverse,&defaults[wheel],&relative);
+    matrix4x3_multiply(&stock[0],&relative,&rest);
+    target=rest;
+    cross_product3d(&vr_wheel.plane_left,&vr_wheel.plane_up,&k);
+    if(!(normalize3d(&k)>0.0f))return stock;
+    axes[0]=&target.forward;axes[1]=&target.left;axes[2]=&target.up;
+    {
+        real c=cosf(vr_wheel.angle),s=sinf(vr_wheel.angle);
+        for(int v=0;v<3;v++) {
+            real_vector3d original=*axes[v],cross;real dot=dot_product3d(&k,&original);
+            cross_product3d(&k,&original,&cross);
+            for(int axis=0;axis<3;axis++)axes[v]->n[axis]=original.n[axis]*c+cross.n[axis]*s+k.n[axis]*dot*(1-c);
+        }
+    }
+    target.position=vr_wheel.center;target.scale=rest.scale*vr_wheel.scale;
+    if(!vr_wheel_valid_frame(&target))return stock;
+    matrix4x3_inverse(&stock[wheel],&inverse);matrix4x3_multiply(&target,&inverse,&delta);
+    memcpy(pose,stock,count*sizeof(*pose));
+    for(short n=0;n<count;n++) {
+        short parent=n,steps=0;
+        while(parent!=wheel&&parent>=0&&steps++<count)
+            parent=TAG_BLOCK_GET_ELEMENT(&model->nodes,parent,struct model_node)->parent_node_index;
+        if(parent==wheel)matrix4x3_multiply(&delta,&stock[n],&pose[n]);
+    }
+    return pose;
 }
 /* Test55: drivers holding immersive controls see the first-person arms and
  * hands (with finger poses) instead of the third-person body's arms, which

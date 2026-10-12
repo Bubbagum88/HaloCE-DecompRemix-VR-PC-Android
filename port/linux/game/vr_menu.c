@@ -215,7 +215,7 @@ on its own page and on IMMERSION, which gathers them so they can be set in
 one place (the same setting either way: changing one shows on the other) */
 #define VR_IMMERSION_COMBAT { "FIST COMBAT", "vr.assisted_combat", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_COMBAT_LIGHTS { "HIT HIGHLIGHTS", "vr.combat_highlights", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
-#define VR_IMMERSION_COMBAT_REACH { "FIST REACH", "vr.combat_reach", _vr_setting_real, 4, { { "0.75 M", "0.75" }, { "1 M", "1" }, { "1.5 M", "1.5" }, { "2 M", "2" } } }
+#define VR_IMMERSION_COMBAT_REACH { "FIST REACH", "vr.combat_reach", _vr_setting_real, 5, { { "1 M", "1" }, { "1.5 M", "1.5" }, { "2 M", "2" }, { "2.5 M", "2.5" }, { "3 M", "3" } } }
 #define VR_IMMERSION_AIM_STEADY { "AIM STEADY", "vr.aim_steadying", _vr_setting_real, 5, { { "OFF", "0" }, { "LIGHT", "0.2" }, { "MEDIUM", "0.4" }, { "STRONG", "0.6" }, { "MAX", "0.8" } } }
 #define VR_IMMERSION_GRENADES { "PHYS GRENADES", "vr.physical_grenades", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_GRENADE_FWD { "CHEST FWD", "vr.grenade_chest_forward", _vr_setting_real, 7, { { "8 CM", "0.08" }, { "12 CM", "0.12" }, { "16 CM", "0.16" }, { "20 CM", "0.20" }, { "25 CM", "0.25" }, { "30 CM", "0.30" }, { "40 CM", "0.40" } } }
@@ -267,6 +267,8 @@ one place (the same setting either way: changing one shows on the other) */
 /* Test56: NPC HOLD became LIFT (strength): the same setting (and saved key),
 now for everything a hand lifts (NPCs, props, turrets, vehicles) */
 #define VR_IMMERSION_NPC_HOLD { "LIFT", "vr.npc_hold_strength", _vr_setting_real, 4, { { "LIGHT", "0.75" }, { "NORMAL", "1.0" }, { "SPARTAN", "1.5" }, { "IRON", "2.5" } } }
+/* Test63: ONE-HAND HEAVIES, off by default */
+#define VR_IMMERSION_ONE_HAND_HEAVY { "ONE-HAND HEAVIES", "vr.npc_one_hand_heavy", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_THROW_STRENGTH { "THROW", "vr.throw_strength", _vr_setting_real, 5, { { "0.75X", "0.75" }, { "1X", "1.0" }, { "1.25X", "1.25" }, { "1.5X", "1.5" }, { "2X", "2.0" } } }
 #define VR_IMMERSION_DEATH_RAGDOLLS { "DEATH RAGDOLLS", "vr.death_ragdolls", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 /* Test59: how hard a killing burst or blast throws a death ragdoll
@@ -318,6 +320,7 @@ static struct vr_menu_setting const vr_menu_controls[] =
     VR_IMMERSION_NPC_GRAB_ASSIST,
     VR_IMMERSION_NPC_HOLD,
     VR_IMMERSION_THROW_STRENGTH,
+    VR_IMMERSION_ONE_HAND_HEAVY,
     VR_IMMERSION_DEATH_RAGDOLLS,
     VR_IMMERSION_DEATH_FORCE,
     VR_IMMERSION_RAGDOLL_RANGE,
@@ -717,6 +720,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_NPC_GRAB_ASSIST,
 	VR_IMMERSION_NPC_HOLD,
 	VR_IMMERSION_THROW_STRENGTH,
+	VR_IMMERSION_ONE_HAND_HEAVY,
 	/* RAGDOLLS */
 	VR_IMMERSION_DEATH_RAGDOLLS,
 	VR_IMMERSION_DEATH_FORCE,
@@ -736,7 +740,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
 	{ "WEAPONS", 8 }, { "FIST COMBAT", 4 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
-	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 6 }, { "RAGDOLLS", 4 }, { "ADVANCED", 8 },
+	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 7 }, { "RAGDOLLS", 4 }, { "ADVANCED", 8 },
 };
 
 
@@ -758,6 +762,8 @@ static struct vr_menu_dependency
 	{ "vr.assisted_combat", "vr.melee", FALSE },
 	{ "vr.assisted_combat", "vr.melee_speed", FALSE },
 	{ "vr.assisted_combat", "vr.npc_interaction", TRUE },
+	/* Test63: ONE-HAND HEAVIES is a way of grabbing: it brings NPC GRAB */
+	{ "vr.npc_one_hand_heavy", "vr.npc_interaction", FALSE },
 	{ "vr.assisted_combat", "vr.close_contact", TRUE },
 	{ "vr.dropped_magazines", "vr.manual_reload", FALSE },
 	{ "vr.custom_scenery_grab", "vr.world_interaction", FALSE },
@@ -1992,6 +1998,10 @@ boolean vr_menu_setting_text(
 			vr_calibration_note_shown(1);
 		else if (!strncmp(setting->key, "vr.holster_hip_", 15) || !strncmp(setting->key, "vr.holster_shoulder_", 20))
 			vr_calibration_note_shown(2);
+		/* Test63: a vehicle-control offset or size row: the seated driver
+		sees the controls' blue preview, moving as the value changes */
+		else if (!strncmp(setting->key, "vr.handle_", 10))
+			vr_calibration_note_shown(4);
 
         if(setting->type == _vr_setting_gun_aim) {
             int kind=vr_gun_class(); char key[64];
@@ -2123,6 +2133,11 @@ boolean vr_menu_setting_change(
         if(action==NONE) return TRUE;
         value_index=vr_menu_value_index(setting);
         value_index=value_index==NONE?0:(value_index+step+setting->value_count)%setting->value_count;
+        /* Test63: BUTTON SPRINT owns the left stick's click: no action is
+        put on it while sprint is on (the choice skips it) */
+        if(config_boolean("vr.button_sprint")&&
+            vr_button_source_of(setting->values[value_index].value,VR_BUTTON_SOURCE_NONE)==VR_BUTTON_SOURCE_LEFT_STICK)
+            value_index=(value_index+step+setting->value_count)%setting->value_count;
         written=vr_menu_button_set(action,vr_button_source_of(setting->values[value_index].value,VR_BUTTON_SOURCE_NONE));
         vr_reload_settings(); platform_log("vr: %s set to %s%s",setting->key,setting->values[value_index].value,written?"":" (save failed)");
         return TRUE;

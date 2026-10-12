@@ -839,6 +839,30 @@ void vr_reload_settings(void)
 	vr.arm_run = config_boolean("vr.arm_run");
 	vr.button_sprint_enabled = config_boolean("vr.button_sprint");
 	vr.button_sprint_toggle = config_boolean("vr.button_sprint_toggle");
+	/* Test63: BUTTON SPRINT owns the left stick's click. The menu moves the
+	actions it had aside and gives them back when sprint is turned off
+	(vr_menu_button_sprint_set); an action still on the click (a config edited
+	by hand) waits until then, so one click never both sprints and toggles the
+	reticle. A reticle its toggle had hidden is shown again whenever the toggle
+	has no button: the owner's Test62 log hid it (12:10:53) just before sprint
+	took the click (12:11:04), and nothing could show it again. */
+	{
+		int owned;
+
+		for (owned = 0; vr.button_sprint_enabled && owned < VR_BUTTON_ACTIONS; owned++)
+			if (vr.button_source[owned] == VR_BUTTON_SOURCE_LEFT_STICK)
+			{
+				vr.button_source[owned] = VR_BUTTON_SOURCE_NONE;
+				platform_log("vr: %s waits while BUTTON SPRINT has the left stick's click", vr_button_action_key(owned));
+			}
+		if (vr.button_source[VR_BUTTON_ACTION_RETICLE] == VR_BUTTON_SOURCE_NONE && vr.reticle_hidden)
+		{
+			vr.reticle_hidden = 0;
+			platform_log("vr: reticle shown (its toggle has no button now)");
+		}
+		if (vr.button_source[VR_BUTTON_ACTION_RETICLE] == VR_BUTTON_SOURCE_NONE)
+			vr.reticle_press = vr.reticle_cancelled = 0;
+	}
 	vr.arm_run_speed = (float)config_real("vr.arm_run_speed");
 	if (vr.arm_run_speed < 0.1f)
 		vr.arm_run_speed = 0.1f;
@@ -1943,6 +1967,86 @@ void vr_calibration_note_shown(int mask)
 		calibration_mask = 0;
 	calibration_mask |= mask;
 	calibration_until = now + 0.2;
+}
+
+/* Test63: whether a calibration row of `mask` is on screen (4: the vehicle
+controls' offsets, vr_vehicle_handles.h's preview) */
+int vr_calibration_shown(int mask)
+{
+	return vr.active && now_ms() * 1e-3 <= calibration_until && (calibration_mask & mask) != 0;
+}
+
+/* Test63: a chest frame for what the body carries in front of it (the
+physical grenades). The pouches and holsters keep the head's heading
+(heading_point). The owner's Test62 grenades turned with every glance: this
+heading is the torso's, in tracking space (so smooth or snap turning carries
+it), and follows the head only past a 35 degree comfort cone, a little at a
+time; looking down at the chest (more than ~40 degrees) holds it, so the hand
+finds the same place it learned. */
+static struct { int valid; float yaw; double time; } torso;
+
+static float tracked_head_yaw(int *steady)
+{
+	static const float xr_forward[3] = { 0.0f, 0.0f, -1.0f }, xr_up[3] = { 0.0f, 1.0f, 0.0f };
+	float f[3], u[3], x, z;
+
+	rotate(vr.frame.head.orientation, xr_forward, f);
+	rotate(vr.frame.head.orientation, xr_up, u);
+	/* looking straight down the forward vector has no level part: the top
+	of the head points forward then */
+	x = f[0] - f[1] * u[0];
+	z = f[2] - f[1] * u[2];
+	*steady = f[1] > -0.64f;
+	return atan2f(-x, -z);
+}
+
+static float torso_yaw_now(void)
+{
+	double now = vr_pose_time();
+	int steady;
+	float head = tracked_head_yaw(&steady);
+
+	if ((vr.frame.flags & HALO_XR_FRAME_RECENTRED) || !torso.valid || !isfinite(torso.yaw) ||
+		!(now >= torso.time) || now - torso.time > 0.5)
+	{
+		torso.yaw = head;
+		torso.valid = 1;
+	}
+	else if (now > torso.time)
+	{
+		float difference = atan2f(sinf(head - torso.yaw), cosf(head - torso.yaw));
+
+		if (steady && fabsf(difference) > 0.61f)
+		{
+			float turn = difference - copysignf(0.61f, difference);
+
+			torso.yaw += turn * (1.0f - expf(-6.0f * (float)fmin(now - torso.time, 0.05)));
+			torso.yaw = atan2f(sinf(torso.yaw), cosf(torso.yaw));
+		}
+	}
+	torso.time = now;
+	return torso.yaw;
+}
+
+/* a point in that chest frame (metres from the eyes: x right, y up, z back,
+level) in the world, from the camera the frame is drawn from */
+int vr_torso_place(const float offset[3], const float camera[3], float out[3])
+{
+	struct halo_xr_pose pose;
+	float yaw, c, s, forward[3], up[3];
+
+	if (!vr.active || !offset || !camera || !out)
+		return 0;
+	yaw = torso_yaw_now();
+	c = cosf(yaw);
+	s = sinf(yaw);
+	pose.position[0] = vr.frame.head.position[0] + offset[0] * c + offset[2] * s;
+	pose.position[1] = vr.frame.head.position[1] + offset[1];
+	pose.position[2] = vr.frame.head.position[2] - offset[0] * s + offset[2] * c;
+	pose.orientation[0] = pose.orientation[1] = pose.orientation[2] = 0.0f;
+	pose.orientation[3] = 1.0f;
+	return hand_view(&pose, NULL, camera, out, forward, up) &&
+		isfinite(out[0]) && isfinite(out[1]) && isfinite(out[2]);
 }
 
 static int calibration_marker(const float offset[3], float radius, const float camera[3], float point[3], float *world_radius)

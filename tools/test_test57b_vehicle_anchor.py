@@ -77,6 +77,12 @@ static float config_real(char const*k){if(strstr(k,"vr.handle_")&&!strstr(k,"_si
 static int cfg_comfort=1,cfg_visible=1;
 static int config_boolean(char const*k){if(!strcmp(k,"vr.vehicle_comfort_reach"))return cfg_comfort;if(!strcmp(k,"vr.vehicle_wheel_visible"))return cfg_visible;return 1;}
 static real_matrix4x3 *render_interpolation_object_node_matrices(long o){(void)o;return NULL;}
+/* Test63: no calibration rows on screen; the fixture's vehicle has no wheel bone */
+static int vr_calibration_shown(int m){(void)m;return 0;}
+struct object_definition {struct {struct {long index;} model;} object;};
+static struct object_definition vehicle_definition={{{NONE}}};
+static struct object_definition *object_definition_get(long i){(void)i;return &vehicle_definition;}
+static short model_find_node(long m,char const*n){(void)m;(void)n;return NONE;}
 /* Test61: the hands' heading in a seat is the seat's (the vehicle's yaw) */
 static const real_matrix4x3 *heading_source;
 static int vr_heading_forward(float f[3]){float h=atan2f(heading_source->forward.j,heading_source->forward.i);f[0]=cosf(h);f[1]=sinf(h);f[2]=0;return 1;}
@@ -101,7 +107,7 @@ static short object_get_marker_by_name(long object,char const*name,struct object
   if(object==2)out->matrix.forward=nodes[out->node_index].forward,out->matrix.left=nodes[out->node_index].left,out->matrix.up=nodes[out->node_index].up;
   return 1;}
  return 0;}
-'''+state+tables+fn('vr_vehicle_handles_clear')+fn('vr_wheel_point')+fn('vr_wheel_valid_frame')+fn('vr_wheel_hand_frame')+fn('vr_wheel_place')+fn('vr_vehicle_handles_prepare')+fn('vr_wheel_grip_distance')+r'''
+'''+state+tables+fn('vr_vehicle_handles_clear')+fn('vr_wheel_point')+fn('vr_wheel_valid_frame')+fn('vr_wheel_hand_frame')+fn('vr_wheel_place')+fn('vr_wheel_read_user')+fn('vr_vehicle_handles_prepare')+fn('vr_wheel_grip_distance')+r'''
 /* a vehicle frame: yaw, then pitch (nose up), then roll, at a place */
 static real_matrix4x3 frame(float x,float y,float z,float yaw,float pitch,float roll){
  real_matrix4x3 m;float cy=cosf(yaw),sy=sinf(yaw),cp=cosf(pitch),sp=sinf(pitch),cr=cosf(roll),sr=sinf(roll);

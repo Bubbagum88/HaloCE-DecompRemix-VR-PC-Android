@@ -287,6 +287,10 @@ static int interaction_profile(short type,struct unit_datum *unit,long index,int
     /* Test61: two hands are for a living Elite or Hunter fighting back; its
      * body lifts with one (the owner's Test60 request) */
     if(unit && TEST_FLAG(unit->object.damage_flags,_object_dead_bit)) *hands=1;
+    /* Test63: ONE-HAND HEAVIES (off by default, the owner's "just for the
+     * fun of it"): a living Elite or Hunter lifts with one hand too; its
+     * weight still resists as LIFT says */
+    if(unit && config_boolean("vr.npc_one_hand_heavy")) *hands=1;
     return TRUE;
 }
 /* Collision models may report their root node (0) or NONE for broad body

@@ -33,7 +33,7 @@ assert "#define VR_FAR_REACH 1.5f" in handles
 
 struct = handles[handles.index("static struct {\n    long unit, vehicle;"):handles.index("} vr_wheel;") + len("} vr_wheel;")]
 point = handles[handles.index("static real_point3d vr_wheel_point("):handles.index("/* Test56: the controls placed on the vehicle where it is drawn.")]
-place = handles[handles.index("/* Test59: in front of the chest"):handles.index("/* while a frame is drawn: the vehicle as drawn")]
+place = handles[handles.index("/* Test59: in front of the chest"):handles.index("/* the player's offsets, size and switches")]
 
 code = r'''
 #include <assert.h>

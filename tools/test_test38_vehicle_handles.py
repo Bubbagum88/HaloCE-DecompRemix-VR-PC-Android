@@ -203,7 +203,7 @@ controls=fn('vr_render_vehicle_controls')
 assert 'VR_RENDER_EYE()' in controls and 'vr.vehicle_wheel_visible' in controls
 assert 'saved_debug' in controls and 'rasterizer_debug_draw();' in controls
 assert 'config_boolean("vr.vehicle_wheel_visible");' in controls and 'vr_wheel.kind!=0;' not in controls, 'Test57: the Warthog draws its wheel'
-assert 'Warthog: a rubber rim, three metal spokes' in controls and 'one drive stick on a base plate' in controls
+assert 'Warthog, drawn (no wheel bone, or the preview): a padded rubber rim' in controls and 'a UNSC drive stick' in controls  # Test63: redesigned
 assert 'Scorpion: two control sticks' not in controls
 assert '&& vr_wheel.glow' in controls
 assert '{"wraith",2}' in s and '{"steering wheel",0.08f},{"handlebar",0.06f}' in s

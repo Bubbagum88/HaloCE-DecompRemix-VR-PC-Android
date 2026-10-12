@@ -5,6 +5,8 @@
 void vr_extra_reset(void);
 void vr_extra_tick(long unit);
 int vr_extra_render(float const camera[3]);
+/* Test63: the grenades' own models, in the world model pass (render_objects.c) */
+void vr_extra_models_render(void);
 int vr_physical_grenade_busy(void);
 int vr_extra_feedback_active(int hand);
 real_matrix4x3 *vr_combat_render(long unit,real_matrix4x3 *stock);

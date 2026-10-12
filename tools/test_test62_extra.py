@@ -51,9 +51,10 @@ static int rendered_hand;static real_point3d rendered_palm;static float collisio
 static int vr_render_palm_point(int h,long u,float p[3]){(void)h;(void)u;if(rendered_hand)memcpy(p,rendered_palm.n,12);return rendered_hand;}
 static real_vector3d zero,*global_zero_vector3d=&zero,gaze={.n={1,0,0}},last_throw;
 static real_point3d hands[2];
+static float combat_reach=2.5f;
 static char const *melee_mode="impact";static char const*config_string(char const*k){return !strcmp(k,"vr.melee")?melee_mode:"";}
 static float melee_speed=2;static float vr_melee_speed(void){return melee_speed;}
-static float config_real(char const*k){if(!strcmp(k,"vr.grenade_chest_forward"))return .16f;if(!strcmp(k,"vr.grenade_chest_down"))return .30f;if(!strcmp(k,"vr.grenade_chest_spread"))return .14f;if(!strcmp(k,"vr.combat_reach"))return 1.5f;return 1;}
+static float config_real(char const*k){if(!strcmp(k,"vr.grenade_chest_forward"))return .16f;if(!strcmp(k,"vr.grenade_chest_down"))return .30f;if(!strcmp(k,"vr.grenade_chest_spread"))return .14f;if(!strcmp(k,"vr.combat_reach"))return combat_reach;return 1;}
 static int config_boolean(char const*k){return !strcmp(k,"vr.physical_grenades")?enabled:!strcmp(k,"vr.assisted_combat")?combat:!strcmp(k,"vr.combat_highlights")?highlights:!strcmp(k,"net.host_vr_actions")?host_allowed:0;}
 static short local_player_get_next(short p){(void)p;return 0;}
 static long local_player_get_player_index(short p){(void)p;return 0;}
@@ -101,6 +102,28 @@ static void render_debug_polygon(real_point3d const*p,int n,real_argb_color cons
 static void render_debug_sphere(int b,real_point3d const*p,float r,real_argb_color const*c){(void)b;(void)p;(void)r;(void)c;draws++;}
 static struct object_definition*object_definition_get(long i){(void)i;return &definition;}
 static struct model*model_definition_get(long i){(void)i;return &model;}
+"""
+extra_stubs=r"""
+/* Test63: the chest frame (vr_frame.c's vr_torso_place): from the eyes along
+ * the level gaze; x right, y up, z back. The drawn camera: none, so the tick
+ * uses the unit's camera. Grenade models: none in this fixture (shells). */
+static int vr_torso_place(const float o[3],const float c[3],float out[3]){
+ real_vector3d f=gaze;f.k=0;if(normalize3d(&f)<.0001f)return 0;
+ real_vector3d right={.n={f.j,-f.i,0}};
+ for(int k=0;k<3;k++)out[k]=c[k]+right.n[k]*o[0]+(k==2?o[1]:0)-f.n[k]*o[2];
+ return focused;}
+static int vr_render_drawn_camera(float p[3]){(void)p;return 0;}
+struct game_globals_grenade{struct{long index;}projectile;};
+struct game_globals{struct{int count;struct game_globals_grenade*address;}grenades;};
+static struct game_globals no_grenade_globals={.grenades={0,NULL}};
+static struct game_globals*scenario_get_game_globals(void){return &no_grenade_globals;}
+struct render_lighting{int unused;};
+static struct{int frustum;}render;
+#define VR_RENDER_EYE() 1
+static void model_get_node_matrices(struct model const*m,real_matrix4x3*out,real_point3d const*o,real_vector3d const*f,real_vector3d const*u){(void)m;(void)out;(void)o;(void)f;(void)u;}
+static struct render_lighting*object_get_cached_render_lighting(long u,float d){(void)u;(void)d;return NULL;}
+static float render_frustum_sphere_diameter_in_pixels(int const*f,real_point3d const*p,float r){(void)f;(void)p;return r;}
+static void render_model(long m,float px,real_matrix4x3 const*n,char const*r,void const*c,float const*fv,struct render_lighting const*l,real_point3d const*ce,float ra,void const*e,long id,short perm,unsigned fl){(void)m;(void)px;(void)n;(void)r;(void)c;(void)fv;(void)l;(void)ce;(void)ra;(void)e;(void)id;(void)perm;(void)fl;draws++;}
 """
 checks=r"""
 static void setup(void){
@@ -154,9 +177,9 @@ int main(void){
  actors[1].meta.team_index=actors[2].meta.team_index=1;vr_combat_punch(0,0,&p,&punch);assert(extra.target==1);
  bodies[2].object.bounding_sphere_center.x=.7f;vr_combat_punch(0,0,&p,&punch);assert(extra.target==1);
  real_vector3d velocity={.n={0,0,-.03f}};bodies[1].object.bounding_sphere_radius=3; // visual bounds must not keep a tall actor out of reach
- vr_combat_velocity(0,&bodies[0].object.position,&velocity);assert(velocity.i>0&&velocity.i<=2.5f/30&&velocity.k==-.03f);
+ vr_combat_velocity(0,&bodies[0].object.position,&velocity);assert(velocity.i>0&&velocity.i<=5.0f/30+1e-6f&&velocity.k==-.03f);
  widths[1]=1.1f;velocity.i=0;vr_combat_velocity(0,&bodies[0].object.position,&velocity);assert(velocity.i==0&&extra.approach_until==0); // native collision width still keeps clearance
- widths[1]=.3f;vr_combat_punch(0,0,&p,&punch);widths[1]=NAN;vr_combat_velocity(0,&bodies[0].object.position,&velocity);assert(extra.approach_until==0);widths[1]=.3f;
+ widths[1]=.3f;extra.approach_until=0;vr_combat_punch(0,0,&p,&punch);widths[1]=NAN;vr_combat_velocity(0,&bodies[0].object.position,&velocity);assert(extra.approach_until==0);widths[1]=.3f;
  real_point3d hit;unit_get_camera_position(1,&hit);assert(vr_combat_hit(0,1,&hit,0)==1&&extra.stun_until==now+27);
  /* The real predicate gates both control and native animation callbacks. */
  assert(vr_combat_stunned(1)&&!vr_combat_stunned(0)&&!vr_combat_stunned(2));
@@ -191,12 +214,45 @@ int main(void){
   assert(!vr_combat_enabled());tick();assert(!extra.hand[0].held&&ammo[0]==2&&!throw_count&&extra.target==NONE);
   player.unit_index=0;
  }
+ /* Test63: the grenade is taken at the palm drawn on screen, within 12 cm of
+  * the slot (the owner's hand closed on the slot and never took it); a
+  * squeeze 15 cm off does not take it */
+ setup();rendered_hand=1;rendered_palm=(real_point3d){.n={.16f,.14f+.10f,1.3f}};hands[0]=(real_point3d){.n={5,5,5}};
+ grip[0]=1;tick();assert(extra.hand[0].held&&extra.hand[0].type==0);
+ setup();rendered_hand=1;rendered_palm=(real_point3d){.n={.16f,.14f+.15f,1.3f}};hands[0]=(real_point3d){.n={5,5,5}};
+ grip[0]=1;tick();assert(!extra.hand[0].held&&!owners[0]);rendered_hand=0;
+ /* the slots follow the chest frame: turning the gaze moves them with it
+  * (the frame itself only turns past 35 degrees: vr_frame.c, test_test63) */
+ setup();gaze=(real_vector3d){.n={0,1,0}};hands[0]=(real_point3d){.n={-.14f,.16f,1.3f}};grip[0]=1;tick();assert(extra.hand[0].held);
+ /* Test63: a punch picks an enemy up to FIST REACH (2.5 m) away within ~45
+  * degrees of the gaze and starts the step; 3 m away nothing (and the
+  * reason is logged); a hook (the punch's line across the target) counts */
+ setup();combat=1;enabled=0;grip[0]=1;tick();
+ bodies[1].object.position.x=2.0f;bodies[1].object.bounding_sphere_center=(real_point3d){.n={2.0f,0,1.2f}};
+ bodies[2].object.position.x=3.4f;bodies[2].object.bounding_sphere_center=(real_point3d){.n={3.4f,0,1.2f}};
+ {real_point3d fist={.n={.3f,0,1.2f}};real_vector3d hook={.n={0,.2f,0}};
+  vr_combat_punch(0,0,&fist,&hook);assert(extra.target==1&&extra.approach_until>now&&extra.hold_until>extra.approach_until);
+  /* a hand that grabs ends the step and the hold */
+  owners[0]=VR_INTERACTION_NPC;tick();assert(extra.approach_until==0&&extra.hold_until==0);owners[0]=0;
+  extra.target=NONE;bodies[1].object.position.x=3.2f;bodies[1].object.bounding_sphere_center.x=3.2f;
+  vr_combat_punch(0,0,&fist,&hook);assert(extra.target==NONE);
+  /* a punch back, away from the target, takes nothing */
+  bodies[1].object.position.x=1.2f;bodies[1].object.bounding_sphere_center.x=1.2f;
+  real_vector3d back={.n={-.2f,0,0}};vr_combat_punch(0,0,&fist,&back);assert(extra.target==NONE);}
+ /* the target is slowed, not frozen, while the step closes */
+ setup();combat=1;enabled=0;grip[0]=1;tick();
+ {real_point3d fist={.n={.3f,0,1.2f}};real_vector3d jab={.n={.2f,0,0}};
+  bodies[1].object.position.x=2.0f;bodies[1].object.bounding_sphere_center=(real_point3d){.n={2.0f,0,1.2f}};
+  vr_combat_punch(0,0,&fist,&jab);assert(extra.target==2); /* the nearer, more central one */
+  real_vector3d walk={.n={.1f,.1f,0}};vr_combat_velocity(2,&bodies[2].object.position,&walk);
+  assert(fabsf(walk.i-.035f)<1e-6f&&fabsf(walk.j-.035f)<1e-6f);}
  setup();real_point3d camera;unit_get_camera_position(0,&camera);assert(vr_extra_render(camera.n)&&draws>0);enabled=0;assert(!vr_extra_render(camera.n));
  puts("PASS: production Test62 grenade ownership/ammo/release/tracking/network gates; enemy acquisition, lock, collision velocity, stun, rear takedown and pose invariants");
+ puts("PASS: Test63 grenades taken at the drawn palm within 12 cm, slots in the chest frame; punches acquire within 2.5 m and 45 degrees (hooks too, not punches away), a 5 m/s step, the target slowed not frozen, a grab ends the assist");
 }
 """
 with tempfile.TemporaryDirectory(prefix='test62-extra-') as d:
- p=Path(d);(p/'check.c').write_text(stubs+source+checks)
+ p=Path(d);(p/'check.c').write_text(stubs+extra_stubs+source+checks)
  subprocess.run(['clang','-std=gnu11','-Wall','-Wextra','-Werror','-Wno-unused-function','-fsanitize=address,undefined','-fno-sanitize-recover=all',str(p/'check.c'),'-lm','-o',str(p/'check')],check=True)
  subprocess.run([str(p/'check')],check=True)
 

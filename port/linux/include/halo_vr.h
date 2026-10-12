@@ -124,6 +124,9 @@ int vr_render_vehicle_first_person_hands(void);
 /* Test59: the stowed weapon whose first-person rig gives a driver holding
 immersive vehicle controls tracked arms and fingers (NONE otherwise) */
 long vr_render_vehicle_hands_weapon(long unit_index);
+/* Test63: the seated driver's Warthog drawn with its own wheel where the
+virtual wheel is (vr_vehicle_handles.h); the stock matrices otherwise */
+struct real_matrix4x3 *vr_vehicle_controls_matrices(long object_index, struct real_matrix4x3 *stock);
 int vr_render_immersive_cutscene(void);
 int vr_render_grab_point(long unit_index, union real_point3d *point);
 /* handle_one_player_input: what the headset's gestures ask of the first

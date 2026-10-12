@@ -125,6 +125,12 @@ int vr_weapon_view(const float position[3], float out_position[3], float out_for
 /* a hand's grip (0 left, 1 right) in the world, seen from where the game's
 camera is (`position`); 0 when it is not tracked */
 int vr_hand_world(int hand, const float position[3], float out_position[3], float out_forward[3], float out_up[3]);
+/* Test63: a point in the torso's chest frame (metres from the eyes: x right,
+y up, z back, level; the torso turns with the head only past 35 degrees) in
+the world (vr_frame.c) */
+int vr_torso_place(const float offset[3], const float camera[3], float out[3]);
+/* Test63: whether a calibration row (vr_calibration_note_shown's mask) is on screen */
+int vr_calibration_shown(int mask);
 /* as vr_hand_world, turned by the visible hand's own orientation (vr.hand_*) */
 int vr_hand_pose(int hand, const float position[3], float out_position[3], float out_forward[3], float out_up[3]);
 

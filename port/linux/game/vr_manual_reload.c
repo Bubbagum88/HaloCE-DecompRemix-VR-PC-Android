@@ -567,6 +567,19 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     /* Test54: with manual reload on, Reload is the magazine release: it drops
      * the magazine wherever the free hand is and never reloads by itself. */
     input.eject_pressed = reload_pressed;
+    /* Test63: X is the action button too. With an action on offer (enter a
+     * vehicle, swap or pick up a weapon, touch a device) the press is that
+     * action, never a magazine release: the owner's Test62 log, X pressed to
+     * drive the Warthog dropped the pistol's magazine (12:09:37) */
+    {
+        short local = local_player_get_next(NONE);
+        long player_index = local != NONE ? local_player_get_player_index(local) : NONE;
+        struct player_datum *player = player_index != NONE ? player_try_and_get(player_index) : NULL;
+        if (reload_pressed && player && player->action_result != _player_action_result_reload) {
+            input.eject_pressed = FALSE;
+            platform_log("VR manual reload: X kept for the action on offer (%d), no magazine release", player->action_result);
+        }
+    }
     /* A round left in the chamber (a tactical reload) needs no charging. */
     input.chambered = magazine->rounds_loaded > 0;
     input.loose_round = reload.kind == RELOAD_SHELL || reload.kind == RELOAD_CRYSTALS;

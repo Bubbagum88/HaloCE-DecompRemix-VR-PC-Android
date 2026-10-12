@@ -36,7 +36,9 @@ for row in ('{ "vr.death_ragdolls", "vr.npc_interaction", TRUE }',
             '{ "vr.reload_hip", "vr.manual_reload", TRUE }',
             '{ "vr.button_sprint_toggle", "vr.button_sprint", TRUE }',
             '{ "vr.npc_interaction", "vr.custom_npc_rigs", TRUE }',
-            '{ "vr.world_interaction", "vr.custom_scenery_grab", TRUE }'):
+            '{ "vr.world_interaction", "vr.custom_scenery_grab", TRUE }',
+            # Test63: ONE-HAND HEAVIES is a way of grabbing: it brings NPC GRAB
+            '{ "vr.npc_one_hand_heavy", "vr.npc_interaction", FALSE }'):
     assert row in resolver, row
 
 # Impacts: a sphere contact is probed into the face it met; bodies and
@@ -68,7 +70,8 @@ static struct { char const *key; int on; } store[] = {
     {"vr.vehicle_control_glow",1},{"vr.vehicle_steer_haptics",1},{"vr.vehicle_comfort_reach",1},
     {"vr.vehicle_tank_drive",1},{"vr.vehicle_banshee_slide",1},{"vr.vehicle_tank_hatch",0},
     {"vr.vehicle_warthog_hide_glass",0},{"vr.reload_shoulder",0},{"vr.reload_hip",0},
-    {"vr.button_sprint_toggle",0},{"vr.button_sprint",0},{"vr.assisted_combat",0},{"vr.close_contact",0}};
+    {"vr.button_sprint_toggle",0},{"vr.button_sprint",0},{"vr.assisted_combat",0},{"vr.close_contact",0},
+    {"vr.npc_one_hand_heavy",0}}; /* Test63: ONE-HAND HEAVIES */
 static char automatic_store[256], view_store[32] = "chase", melee_store[32] = "swing";
 static real speed_store;
 static real config_real(char const *key){assert(!strcmp(key,"vr.melee_speed"));return speed_store;}

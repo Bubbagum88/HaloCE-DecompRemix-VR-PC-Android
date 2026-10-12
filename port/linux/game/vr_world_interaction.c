@@ -478,6 +478,9 @@ void vr_world_interaction_reset(void)
     weight_haptic_at[0]=weight_haptic_at[1]=0;
     last_tick = last_unit = NONE;
 }
+/* Test63: the nearest object to the hand on a miss, for the log */
+static long candidate_nearest;
+static real candidate_nearest_gap;
 static long candidate(real_point3d const *point, real_point3d const *camera, long unit, real units,
     real_point3d *contact)
 {
@@ -490,6 +493,15 @@ static long candidate(real_point3d const *point, real_point3d const *camera, lon
     real_vector3d ray;
     struct collision_result hit;
     unsigned long mask = 0;
+    /* Test63: the narrow (collision model) tests go to the objects whose
+     * bounding spheres reach nearest the hand first. The owner's Test62 hand
+     * on a Covenant crate on b30's beach never took it: the beach's trees and
+     * crashed Pelican (bounding spheres ~17 m across) used up the 32 tests in
+     * iteration order. Nothing over 4 world units across lifts anyway
+     * (prop_bounds), so those are skipped before the budget. */
+    enum { CANDIDATES = 32 };
+    long order[CANDIDATES]; real gaps[CANDIDATES]; int count = 0;
+    candidate_nearest = NONE; candidate_nearest_gap = FLT_MAX;
     if (world_grab_enabled())
         mask |= _object_mask_weapon | _object_mask_equipment | _object_mask_scenery;
     if (vehicle_lift_enabled()) mask |= _object_mask_vehicle;
@@ -497,14 +509,29 @@ static long candidate(real_point3d const *point, real_point3d const *camera, lon
     object_iterator_new(&iterator, mask, 0);
     while ((item = object_iterator_next(&iterator)) != NULL) {
         boolean is_vehicle = item->object.type == _object_type_vehicle;
-        real distance;
-        struct collision_model_instance model;
+        real distance, gap;
+        int slot;
         if (is_vehicle && !vehicle_lift_enabled()) continue;
-        if (!grabbable(iterator.index) || vr_world_interaction_remote_owned(iterator.index)) continue;
+        if (!is_vehicle && item->object.bounding_sphere_radius > 4.0f) continue;
         vector_from_points3d(point, &item->object.bounding_sphere_center, &ray);
         distance = magnitude3d(&ray);
         if (distance > item->object.bounding_sphere_radius + contact_radius) continue;
-        if (++narrow_tests>32) break;
+        gap = distance - item->object.bounding_sphere_radius;
+        if (gap < candidate_nearest_gap) { candidate_nearest_gap = gap; candidate_nearest = iterator.index; }
+        if (!grabbable(iterator.index) || vr_world_interaction_remote_owned(iterator.index)) continue;
+        /* keep the CANDIDATES smallest gaps, in order */
+        if (count == CANDIDATES && gap >= gaps[count - 1]) continue;
+        slot = count < CANDIDATES ? count++ : CANDIDATES - 1;
+        while (slot > 0 && gaps[slot - 1] > gap) { gaps[slot] = gaps[slot - 1]; order[slot] = order[slot - 1]; slot--; }
+        gaps[slot] = gap; order[slot] = iterator.index;
+    }
+    for (int index_in_order = 0; index_in_order < count; index_in_order++) {
+        long candidate_index = order[index_in_order];
+        real distance;
+        struct collision_model_instance model;
+        item = object_get(candidate_index);
+        iterator.index = candidate_index;
+        if (++narrow_tests>CANDIDATES) break;
         /* The bounding sphere only rejects distant objects. Acquisition
          * requires the tracked hand's finite collision sphere to overlap the
          * object's authored collision model; no hand-to-target ray selects it. */
@@ -608,9 +635,12 @@ void vr_world_interaction_tick(void)
                 vr_haptic(hand,0.25f,0.035f);
 				platform_log("VR world: grab hand=%d object=%08lx second=%d acquisition=authored-contact-plus-fresh-grip",
 					hand,index,hands[1-hand].active&&hands[1-hand].index==index);
-            } else platform_log("VR world: contact grab miss hand=%d radius=%.2f cm world=%d vehicle_lift=%d (hand sphere did not overlap an eligible collision model)",
+            } else platform_log("VR world: contact grab miss hand=%d radius=%.2f cm world=%d vehicle_lift=%d (hand sphere did not overlap an eligible collision model; nearest %s, %s, %.0f cm from its bounds)",
                 hand,(float)vr_world_hand_contact_radius((float)config_real("vr.interaction_reach"),(float)units)*100.0f/(float)units,
-                world_grab_enabled(),vehicle_lift_enabled());
+                world_grab_enabled(),vehicle_lift_enabled(),
+                candidate_nearest!=NONE?tag_get_name(object_get(candidate_nearest)->definition_index):"none",
+                candidate_nearest!=NONE&&grabbable(candidate_nearest)?"grabbable":"not grabbable",
+                candidate_nearest!=NONE?(float)(candidate_nearest_gap*100.0f/units):0.0f);
         }
     }
     for (hand=0;hand<2;++hand) {
