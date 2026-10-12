@@ -82,7 +82,8 @@ struct actor_datum {struct{short type;int active,swarm;long definition_index;sho
 static struct actor_datum *actor_try_and_get(long index){return index==7?&actor:0;}
 static int custom_rigs,swarm_types[32],actor_races[32];
 static void platform_log(char const *format,...){(void)format;}
-static int config_boolean(char const *name){assert(!strcmp(name,"vr.custom_npc_rigs"));return custom_rigs;}
+static int one_hand_heavy;
+static int config_boolean(char const *name){if(!strcmp(name,"vr.npc_one_hand_heavy"))return one_hand_heavy;assert(!strcmp(name,"vr.custom_npc_rigs"));return custom_rigs;}
 static short actor_type_get_race(short type){return type>=0&&type<32?actor_races[type]:0;}
 static int actor_type_get_swarm(short type){return type>=0&&type<32?swarm_types[type]:1;}
 struct actor_definition {unsigned long flags;short type;};static struct actor_definition actors[8];
@@ -178,6 +179,9 @@ int main(void){
  assert(!interaction_profile(_actor_none,&unit,1,&hands,&mobility)); /* default OFF */
  custom_rigs=1;
  assert(interaction_profile(_actor_none,&unit,1,&hands,&mobility)&&hands==2&&mobility==.25f);
+ /* Test63 ONE-HAND HEAVIES: one hand lifts a living heavy; its weight (mobility) is kept */
+ one_hand_heavy=1;assert(interaction_profile(_actor_none,&unit,1,&hands,&mobility)&&hands==1&&mobility==.25f);one_hand_heavy=0;
+ assert(interaction_profile(_actor_none,&unit,1,&hands,&mobility)&&hands==2);
  connection=1;assert(!interaction_profile(_actor_none,&unit,1,&hands,&mobility));connection=0;
  int captures=graph_capture_count;
  assert(interaction_profile(_actor_none,&unit,1,&hands,&mobility)&&graph_capture_count==captures); /* definition cache */
