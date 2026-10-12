@@ -26,6 +26,7 @@ For a new installation, open **Game files & versions** and import your own compl
 This release collects the work across many private tests, not just Test64's final fix:
 
 - **Physical interaction systems:** manual reloading, shoulder/hip ammo pouches, optional discarded magazines, NPC/ally/enemy and object grabbing, two-handed heavy handling, throwing/slam damage, ragdolls and body-retention controls. These remain WIP.
+- **Button sprint and movement options:** optional left-stick-click sprint, Hold or Toggle operation, adjustable 1.0?1.5? offline speed, and physical arm-running with adjustable effort. See the dedicated sprint guide below for setup and binding changes.
 - **Movement and combat:** optional climbing, wall running/jumping, arm-powered launches, sprint toggle, shake-to-cool, enemy-focused fist assistance and physically thrown chest grenades. Session permissions restrict gameplay-changing features online.
 - **Immersive vehicles:** optional grab-based steering with vehicle-specific wheel/bar/stick models, adjustable placement and reach, highlights, feedback and a live blue calibration preview. Ordinary controller vehicle controls remain available.
 - **Aiming, hands and feedback:** shared aim steadying, per-weapon scope positioning, updated scope attachment, mounted vehicle/turret shot-reticle alignment, reload grip/charging feedback, and fixes to weapon release, holsters, contact haptics and unwanted animation interactions.
@@ -63,6 +64,22 @@ Right-handed defaults are below. Handedness and button settings can change suppo
 Point at menu items and press the trigger; thumbstick/D-pad navigation is also available. VR settings group controls by topic; long categories open a section list, and Back returns to that list.
 
 **Binding changes to know:** BUTTON SPRINT owns left-stick click while enabled. **SPRINT TOGGLE** changes it from hold-to-run to click-on/click-off. A hidden reticle is restored if its toggle loses its binding. To put crouch on left-stick click, disable BUTTON SPRINT and use **Controls → Buttons / L STICK → Crouch** (older menus call this Controls, page 2). With MANUAL RELOAD on, the configured USE/RELOAD action ejects the magazine instead of performing a stock reload; an available use/vehicle/weapon interaction takes priority. With the feature off, normal reload returns. Right-stick melee is not repurposed for magazine ejection.
+
+### Sprint button and physical running (Quest VR)
+
+Open **VR Settings ? Locomotion**:
+
+| Option | What it does |
+| --- | --- |
+| **BUTTON SPRINT** | Enable to use **left-stick click** for sprint while moving. Off by default on a fresh configuration. |
+| **SPRINT TOGGLE ? HOLD** | Hold left-stick click to sprint; release it to stop. This is the default mode. |
+| **SPRINT TOGGLE ? TOGGLE** | Click once to enable sprint, then click again to stop?no need to keep the stick pressed. Selecting Toggle also enables Button Sprint. Movement still uses the movement stick; this is not auto-walk. |
+| **SPRINT SPEED** | Choose **1.0X?1.5X**, in 0.1 steps; fresh default **1.5X**. At 1.0X there is no speed increase. |
+| **ARM RUN / ARM EFFORT** | Optional physical running from arm pumping, with adjustable motion sensitivity. Arm Run starts off. Sprint Speed sets the maximum speed boost separately from arm effort. Deliberate stick movement takes priority. |
+
+**Binding conflicts:** Button Sprint temporarily owns left-stick click, so its previous action (such as reticle toggle or crouch) cannot fire at the same time. Disabling Button Sprint restores the saved assignment unless you changed that action in the meantime. The Buttons menu excludes that click while sprint owns it; a reticle hidden by the displaced reticle binding is restored. Both-stick recentering remains available and cancels toggled sprint. Entering a vehicle, losing app focus or losing the active VR input state also cancels it.
+
+**Multiplayer/co-op:** the extra movement speed applies only in local/offline play. Network sessions retain stock movement speed, including when this client hosts. These are VR locomotion options, not a new flat Android sprint binding. Existing saved settings are preserved when updating.
 
 ### Experimental interaction quick guide
 
