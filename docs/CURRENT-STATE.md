@@ -1,6 +1,18 @@
 # Current development state
 
-## Active private candidate: Test58 (2026-10-11)
+## Active private candidate: Test59 (2026-10-12)
+
+**1.0.26-test59 / Android code71**, branch `test39-interaction-completion`,
+for the owner's Quest and phone tests (not a release). Real first-person
+hands in vehicles, controls placed from the eyes, COMFORT REACH and TANK
+DRIVE; OpenCE Build 201 with network 28 hosting and 11-28 joining (All
+compatible by default, 27 selectable); the gun's own magazine goes back in
+and reload is steady while walking; DEATH FORCE ragdoll throws. Item
+outcomes: [TEST59-CHECKLIST.md](TEST59-CHECKLIST.md); APKs and hashes:
+[TEST59-DELIVERY-STATUS.md](TEST59-DELIVERY-STATUS.md). Device acceptance
+pending.
+
+## Previous private candidate: Test58 (2026-10-11)
 
 **1.0.25-test58 / Android code70**, branch `test39-interaction-completion`,
 for the owner's Quest and phone tests (not a release). Fixes Test57's

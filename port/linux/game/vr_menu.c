@@ -683,6 +683,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_NPC_GRAB_ASSIST,
 	VR_IMMERSION_NPC_HOLD,
 	VR_IMMERSION_THROW_STRENGTH,
+	/* RAGDOLLS */
 	VR_IMMERSION_DEATH_RAGDOLLS,
 	VR_IMMERSION_DEATH_FORCE,
 	VR_IMMERSION_BODY_RETENTION,
@@ -700,7 +701,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
 	{ "WEAPONS", 8 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
-	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 8 }, { "ADVANCED", 8 },
+	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 6 }, { "RAGDOLLS", 3 }, { "ADVANCED", 8 },
 };
 
 

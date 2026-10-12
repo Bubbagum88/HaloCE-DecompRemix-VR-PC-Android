@@ -1,6 +1,24 @@
 # Agent and contributor continuation
 
-## Active private Test58 candidate (2026-10-11)
+## Active private Test59 candidate (2026-10-12)
+
+Continue on `test39-interaction-completion`; private `1.0.26-test59`, Android
+code71 (docs/TEST59-DELIVERY-STATUS.md; docs/TEST59-CHECKLIST.md,
+TEST59-DEVICE-CHECKLIST.md). Hosts OpenCE network 28 (Build 201), joins
+11..28; the launcher selector lists every network (27 too) and defaults to
+All compatible (`network.protocol_version` 0). Network 27's map-sharing
+requests are answered "not shared" (`map_share_handle_message`,
+network_distributed.c); 28's rules (hs.c BSP, game_engine.c lights,
+units.c / network_objects.c second weapon) are ported. In vehicles a
+driver's weapon is stowed, so the stowed weapon lends its first-person rig
+(real hands) while the immersive controls steer; COMFORT REACH and TANK
+DRIVE are VEHICLES rows. Manual reload: the gun's own magazine reseats
+(`VR_MR_RESEAT`/`VR_MR_RECOVER`, ammo unchanged); the free hand uses the
+drawn camera (`vr_render_drawn_camera`). DEATH FORCE (IMMERSION > RAGDOLLS, STRONG)
+throws death ragdolls along the burst / away from blasts. NPC recovery stays
+within 1 s. Owner: toggles for optional behaviour; regress nothing.
+
+## Previous private Test58 candidate (2026-10-11)
 
 Continue on `test39-interaction-completion`; private `1.0.25-test58`, Android
 code70 (docs/TEST58-DELIVERY-STATUS.md; docs/TEST58-CHECKLIST.md,
