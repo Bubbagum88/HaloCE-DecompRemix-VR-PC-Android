@@ -878,6 +878,8 @@ static const struct config_setting config_settings[] =
         "CONTROL GLOW: the immersive vehicle controls light up while a free hand is close enough to take them." },
     { "vr.vehicle_steer_haptics", _config_boolean, "true", "HALO_VR_VEHICLE_STEER_HAPTICS", _environment_value, _platform_vr,
         "STEER HAPTICS: light ticks as the immersive vehicle controls turn, a tick crossing the centre and a firmer buzz at full lock (the grab and let-go pulses stay; HAPTICS scales all)." },
+    { "vr.vehicle_tank_hatch", _config_boolean, "false", "HALO_VR_VEHICLE_TANK_HATCH", _environment_value, _platform_vr,
+        "TANK HATCH (off by default): in a tank's first-person driver seat (Scorpion, Wraith) the eyes rise over the hull above the driver's head, as from an open hatch (measured on the vehicle itself; 12 cm over it); off, the view stays at the driver's head inside the hull. TANK UP/FWD/RIGHT still adjust it." },
     { "vr.vehicle_banshee_slide", _config_boolean, "true", "HALO_VR_VEHICLE_BANSHEE_SLIDE", _environment_value, _platform_vr,
         "BANSH SLIDE: the Banshee's immersive flight bar also turns when slid sideways (12 cm is full lock), as well as when rolled; off, rolling alone turns it." },
     { "vr.handle_warthog_forward", _config_real, "0.0", "HALO_VR_HANDLE_WARTHOG_FORWARD", _environment_value, _platform_vr,

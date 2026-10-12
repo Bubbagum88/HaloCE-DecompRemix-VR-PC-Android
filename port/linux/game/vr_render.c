@@ -74,6 +74,7 @@ static void vr_contact_diagnostics(void)
 }
 static int vr_vehicle_handles_update(long unit, real_vector3d *forward);
 static void vr_vehicle_handles_clear(void);
+static int vr_vehicle_handles_head_aims(void);
 
 int vr_render_pass = _vr_render_pass_none;
 
@@ -762,6 +763,83 @@ static void vr_vehicle_adjust_anchor(real_point3d *anchor)
 	anchor->x += offset.i; anchor->y += offset.j; anchor->z += offset.k;
 }
 
+/* Test57b: TANK HATCH. A tank's driver seat is made for the chase camera:
+its driver's head is inside the hull, and the first-person view looked up
+through the inside of the Scorpion (the owner's Test57 video). The eyes rise
+over the hull above the head, as from an open hatch: a ray down onto the
+vehicle itself from 1.5 m over the head finds its top there, and the eyes
+sit 12 cm over it (measured each frame on the head as placed, eased over a
+third of a second so a turret passing over does not jump the view; a new
+seat starts at once). Tanks only: the Ghost, Warthog and Banshee seats are
+open or a real cockpit. */
+static void vr_vehicle_hatch_lift(real_point3d *anchor) /* (off by default: the owner likes the tank view as it is) */
+{
+	static struct
+	{
+		long vehicle_index, unit_index;
+		short seat_index;
+		real lift;
+		double time;
+		boolean valid, logged;
+	} hatch;
+	struct object_datum *vehicle;
+	real_matrix4x3 *nodes;
+	char const *name;
+	real units = vr_units_per_metre(), target = 0.0f;
+	double now = vr_pose_time();
+	real_point3d from;
+	real_vector3d down;
+	struct collision_result hit;
+	int axis;
+
+	if (!config_boolean("vr.vehicle_tank_hatch") || !vr_render.seat.driver ||
+		vr_render.seat.vehicle_index == NONE || !(vehicle = object_try_and_get(vr_render.seat.vehicle_index)) ||
+		!(name = tag_get_name(vehicle->definition_index)) || (!strstr(name, "scorpion") && !strstr(name, "wraith")) ||
+		vehicle->object.node_matrices.size < (long)sizeof(real_matrix4x3) ||
+		!(nodes = object_get_node_matrices(vr_render.seat.vehicle_index)) || !(units > 0.0f))
+	{
+		hatch.valid = FALSE;
+		return;
+	}
+	for (axis = 0; axis < 3; axis++)
+	{
+		from.n[axis] = anchor->n[axis] + nodes[0].up.n[axis] * 1.5f * units;
+		down.n[axis] = -nodes[0].up.n[axis] * 1.5f * units;
+	}
+	if (collision_test_vector(FLAG(_collision_test_front_facing_surfaces_bit) | FLAG(_collision_test_objects_bit) |
+			FLAG(_collision_test_objects_vehicles_bit), &from, &down, vr_render.seat.unit_index, &hit) &&
+		hit.object_index == vr_render.seat.vehicle_index && hit.t < 1.0f)
+	{
+		target = (1.0f - hit.t) * 1.5f * units + 0.12f * units;
+	}
+	if (!hatch.valid || hatch.vehicle_index != vr_render.seat.vehicle_index ||
+		hatch.unit_index != vr_render.seat.unit_index || hatch.seat_index != vr_render.seat.seat_index ||
+		now < hatch.time || now - hatch.time > 0.5)
+	{
+		hatch.vehicle_index = vr_render.seat.vehicle_index;
+		hatch.unit_index = vr_render.seat.unit_index;
+		hatch.seat_index = vr_render.seat.seat_index;
+		hatch.lift = target;
+		hatch.valid = TRUE;
+		hatch.logged = FALSE;
+	}
+	else if (now > hatch.time)
+	{
+		hatch.lift += (target - hatch.lift) * (real)(1.0 - exp(-(now - hatch.time) / 0.33));
+	}
+	hatch.time = now;
+	if (!isfinite(hatch.lift))
+		hatch.lift = 0.0f;
+	if (!hatch.logged && target > 0.0f)
+	{
+		platform_log("vr: tank hatch: the eyes rise %.0f cm, over the hull above the driver's head (TANK HATCH)",
+			(double)(target / units * 100.0f));
+		hatch.logged = TRUE;
+	}
+	for (axis = 0; axis < 3; axis++)
+		anchor->n[axis] += nodes[0].up.n[axis] * hatch.lift;
+}
+
 /* where the eyes are placed from: in a vehicle seen from its seat, the
 player's head there (the game's camera for a seat is the chase camera's
 place); otherwise the game's camera */
@@ -784,6 +862,7 @@ static void view_anchor(
 		else
 			unit_get_camera_position(vr_render.seat.unit_index, anchor);
 		vr_seat_steady_anchor(anchor);
+		vr_vehicle_hatch_lift(anchor);
 		vr_vehicle_adjust_anchor(anchor);
 	}
 }
@@ -1231,6 +1310,42 @@ short vr_render_windows(
 		if (unit && aiming != unit_index && weapon != NONE &&
 			weapon_vr_preview_primary_ray(weapon, player_index, &origin, &direction))
 		{
+			/* Test57b: with IMMERSIVE VEHICLE controls the head aims, and the
+			reticle sits where the head looks; the gun's ray moves only on the
+			game's 30 Hz ticks and from the vehicle's ticked place, while the
+			eyes move at the headset's rate over the vehicle as drawn: the
+			reticle stepped (the owner's "jittery reticles"). As the hand's
+			reticle (Test20e): this frame's head turn since the tick turns the
+			ray (the game's own ray wins past a tick's turn), and the ray
+			starts on the vehicle as drawn. */
+			if (vr_vehicle_handles_head_aims() && vr_render.hud_from_head)
+			{
+				real_vector3d tick_aim, head = vr_render.head_camera.forward, axis;
+				real_matrix4x3 *drawn = render_interpolation_object_node_matrices(vr_render.seat.vehicle_index);
+				struct object_datum *vehicle = object_try_and_get(vr_render.seat.vehicle_index);
+				real_matrix4x3 *simulated = vehicle && vehicle->object.node_matrices.size >= (long)sizeof(real_matrix4x3) ?
+					(real_matrix4x3 *)object_header_block_get(vr_render.seat.vehicle_index, &vehicle->object.node_matrices) : NULL;
+
+				unit_get_aiming_vector(aiming, &tick_aim);
+				if (normalize3d(&tick_aim) > 0.0f && normalize3d(&head) > 0.0f)
+				{
+					real cosine = dot_product3d(&tick_aim, &head), sine;
+
+					cross_product3d(&tick_aim, &head, &axis);
+					sine = normalize3d(&axis);
+					if (cosine > 0.98f && sine > 0.00001f)
+					{
+						rotate_vector_about_axis(&direction, &axis, sine, cosine);
+						normalize3d(&direction);
+					}
+				}
+				if (drawn && simulated && valid_real_point3d(&drawn[0].position) && valid_real_point3d(&simulated[0].position))
+				{
+					origin.x += drawn[0].position.x - simulated[0].position.x;
+					origin.y += drawn[0].position.y - simulated[0].position.y;
+					origin.z += drawn[0].position.z - simulated[0].position.z;
+				}
+			}
 			scale_vector3d(&direction, distance, &vector);
 			if (collision_test_vector(_collision_test_for_projectiles_flags, &origin, &vector, aiming, &collision))
 				distance *= collision.t;

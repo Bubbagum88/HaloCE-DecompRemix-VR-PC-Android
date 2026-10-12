@@ -41,6 +41,30 @@ for key, label in (("vr.vehicle_control_glow", "CONTROL GLOW"), ("vr.vehicle_ste
     assert '{ "%s", "%s", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },' % (label, key) in menu, label
 assert "&& vr_wheel.glow" in handles and "|| !vr_wheel.steer_haptics" in handles and "vr_wheel.kind==3 && vr_wheel.slide" in handles
 
+# Test57b: the Warthog's wheel from its node in the world (never the marker's
+# local node_matrix, which put it at the map's origin), the stick and bar in
+# front of the chest, anything over a metre away or without markers too
+assert "center=markers[0].node_matrix.position" not in handles
+assert "center=nodes[markers[0].node_index].position;normal=nodes[markers[0].node_index].up;" in handles
+assert "if(kind==2 || kind==3 || !contacts || !(head_gap<=1.0f)) {" in handles
+assert 'anchored at %s, %.0f cm from the eyes' in handles
+# Test57b: the mounted guns' reticle follows the head between ticks and starts
+# on the vehicle as drawn while the immersive controls steer
+render = read("port/linux/game/vr_render.c")
+reticle = render[render.index("Test57b: with IMMERSIVE VEHICLE controls the head aims"):]
+reticle = reticle[:reticle.index("scale_vector3d(&direction, distance, &vector);")]
+assert "if (vr_vehicle_handles_head_aims() && vr_render.hud_from_head)" in reticle
+assert "if (cosine > 0.98f && sine > 0.00001f)" in reticle and "rotate_vector_about_axis(&direction, &axis, sine, cosine);" in reticle
+assert "origin.x += drawn[0].position.x - simulated[0].position.x;" in reticle
+assert "static int vr_vehicle_handles_head_aims(void)" in handles and "vr_vehicle_steering_split()" in handles
+
+# Test57b: TANK HATCH, off by default (the owner likes the tank view as it is)
+assert '{ "vr.vehicle_tank_hatch", _config_boolean, "false",' in config
+assert '{ "TANK HATCH", "vr.vehicle_tank_hatch", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },' in menu
+assert "vr_seat_steady_anchor(anchor);\n\t\tvr_vehicle_hatch_lift(anchor);\n\t\tvr_vehicle_adjust_anchor(anchor);" in render
+hatch = render[render.index("static void vr_vehicle_hatch_lift("):]
+assert 'config_boolean("vr.vehicle_tank_hatch")' in hatch and 'strstr(name, "scorpion")' in hatch
+
 # ordinary vehicle controls: nothing runs without IMMERSIVE VEHICLE
 enabled = handles[handles.index("static int vr_vehicle_handles_enabled"):]
 enabled = enabled[:enabled.index("}") + 1]

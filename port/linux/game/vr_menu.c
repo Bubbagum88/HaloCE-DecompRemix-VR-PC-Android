@@ -435,6 +435,8 @@ static struct vr_menu_setting const vr_menu_vehicles[] =
     { "CONTROL GLOW", "vr.vehicle_control_glow", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     { "STEER HAPTICS", "vr.vehicle_steer_haptics", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     { "BANSH SLIDE", "vr.vehicle_banshee_slide", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    /* Test57b: a tank's first-person eyes over its hull, as from an open hatch */
+    { "TANK HATCH", "vr.vehicle_tank_hatch", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     { "HOG REACH", "vr.handle_warthog_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
     { "HOG LEFT", "vr.handle_warthog_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
     { "HOG HEIGHT", "vr.handle_warthog_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },

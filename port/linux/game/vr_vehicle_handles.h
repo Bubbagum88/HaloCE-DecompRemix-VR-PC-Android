@@ -36,6 +36,8 @@ static struct {
     int wheel_front;
     /* Test57: CONTROL GLOW, STEER HAPTICS, BANSH SLIDE */
     int glow, steer_haptics, slide;
+    /* Test57b: where the controls were placed and how far from the eyes */
+    real head_gap; char const *anchored;
 } vr_wheel;
 static char const *const vr_wheel_keys[]={"warthog","ghost","scorpion","banshee"};
 /* Test57: each vehicle's own controls. The stock Warthog gets a drawn wheel
@@ -153,28 +155,68 @@ static int vr_vehicle_handles_prepare(long unit_index)
         real_point3d center; real_vector3d delta;
         /* Wait for entry animation before reading authored driver contacts. */
         if(now-vr_wheel.since<0.5)return 0;
-        if(kind==0) {
-            if(!object_get_marker_by_name(vr_wheel.vehicle,"left hand wheel grip",&markers[0],1) ||
-               !object_get_marker_by_name(vr_wheel.vehicle,"right hand wheel grip",&markers[1],1))return 0;
-        } else if(!object_get_marker_by_name(unit_index,"left hand",&markers[0],1) ||
-                  !object_get_marker_by_name(unit_index,"right hand",&markers[1],1))return 0;
+        /* Test57b: a vehicle (or driver) without these markers still gets
+         * its controls, in front of the chest (below) */
+        int contacts=kind==0?
+            object_get_marker_by_name(vr_wheel.vehicle,"left hand wheel grip",&markers[0],1) &&
+            object_get_marker_by_name(vr_wheel.vehicle,"right hand wheel grip",&markers[1],1):
+            object_get_marker_by_name(unit_index,"left hand",&markers[0],1) &&
+            object_get_marker_by_name(unit_index,"right hand",&markers[1],1);
+        if(!contacts) {
+            markers[0].node_index=markers[1].node_index=-1;
+            markers[0].matrix.position=markers[1].matrix.position=vr_render.game_camera_position;
+        }
         real_vector3d normal={{-nodes[0].forward.i,-nodes[0].forward.j,-nodes[0].forward.k}};
+        real units=vr_units_per_metre(),head_gap;
+        long node_count=vehicle->object.node_matrices.size/(long)sizeof(real_matrix4x3);
+        real_point3d head=vr_render.game_camera_position;
+        char const *anchored="native contacts";
         for(int i=0;i<3;i++)center.n[i]=(markers[0].matrix.position.n[i]+markers[1].matrix.position.n[i])*0.5f;
         vector_from_points3d(&markers[0].matrix.position,&markers[1].matrix.position,&delta);
         vr_wheel.radius=magnitude3d(&delta)*0.5f;
         /* Test56: the Warthog's wheel turns about its own node (the grips'
          * parent, "frame steering wheel"): its centre sits ~4 cm above the
          * grips' middle (the right hand holds lower on the rim) and its up
-         * axis points back at the driver, leaning 10 degrees */
+         * axis points back at the driver, leaning 10 degrees. Test57b: that
+         * node as it is in the world (nodes[]). Test56 and Test57 took the
+         * marker's node_matrix, which is the marker's few-centimetre offset
+         * from its node, not the node: the wheel sat at the map's origin,
+         * 540 m from the driver in the owner's log, and never took a hand. */
         if(kind==0 && markers[0].node_index>=0 && markers[0].node_index==markers[1].node_index &&
-           vr_wheel_valid_frame(&markers[0].node_matrix)) {
+           markers[0].node_index<node_count && vr_wheel_valid_frame(&nodes[markers[0].node_index])) {
             real_vector3d a,b;
-            center=markers[0].node_matrix.position;normal=markers[0].node_matrix.up;
+            center=nodes[markers[0].node_index].position;normal=nodes[markers[0].node_index].up;
             vector_from_points3d(&center,&markers[0].matrix.position,&a);vector_from_points3d(&center,&markers[1].matrix.position,&b);
             vr_wheel.radius=(magnitude3d(&a)+magnitude3d(&b))*0.5f;
         }
-        vr_wheel.radius=PIN(vr_wheel.radius,0.10f*vr_units_per_metre(),0.30f*vr_units_per_metre());
+        /* Test57b: the head (the seat's eye, where the hands are placed from)
+         * must be in this vehicle: until a frame has placed it there, wait */
+        vector_from_points3d(&nodes[0].position,&head,&delta);
+        if(!valid_real_point3d(&head) || !(magnitude3d(&delta)<=5.0f*units)) return 0;
+        /* Test57b: the Scorpion's stick and the Banshee's bar sit in front of
+         * the driver's chest, 35 cm ahead of and 40 cm below the eyes (their
+         * drivers' hands are inside the hull, 2 m off in the owner's log);
+         * and any control farther than a metre from the eyes is put there too,
+         * so no control can ever be out of reach */
+        vector_from_points3d(&head,&center,&delta);
+        head_gap=magnitude3d(&delta)/units;
+        if(kind==2 || kind==3 || !contacts || !(head_gap<=1.0f)) {
+            if(kind!=2 && kind!=3 && !contacts)
+                platform_log("vr: immersive %s %s: no authored contacts; placed in front of the chest",
+                    vr_wheel_keys[kind],vr_wheel_profiles[kind].control);
+            else if(kind!=2 && kind!=3)
+                platform_log("vr: immersive %s %s: its authored place was %.0f cm from the eyes; placed in front of the chest",
+                    vr_wheel_keys[kind],vr_wheel_profiles[kind].control,(double)(head_gap*100.0f));
+            for(int i=0;i<3;i++)
+                center.n[i]=head.n[i]+nodes[0].forward.n[i]*0.35f*units-nodes[0].up.n[i]*0.40f*units;
+            normal.i=-nodes[0].forward.i;normal.j=-nodes[0].forward.j;normal.k=-nodes[0].forward.k;
+            if(kind!=0 || !contacts) vr_wheel.radius=(kind==0?0.17f:0.20f)*units;
+            anchored="in front of the chest";
+        }
+        vr_wheel.radius=PIN(vr_wheel.radius,0.10f*units,0.30f*units);
         if(!(normalize3d(&normal)>0.0f)) return 0;
+        vector_from_points3d(&head,&center,&delta);
+        vr_wheel.head_gap=magnitude3d(&delta)/units;vr_wheel.anchored=anchored;
         vector_from_points3d(&nodes[0].position,&center,&delta);
         vr_wheel.local[0]=dot_product3d(&delta,&nodes[0].forward);
         vr_wheel.local[1]=dot_product3d(&delta,&nodes[0].left);
@@ -262,7 +304,7 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
      * more; the Ghost's and Banshee's as before) */
     contact_radius+=vr_wheel_profiles[vr_wheel.kind].extra-0.04f;
     if(vr_wheel.log_pending) {
-        platform_log("vr: immersive %s %s anchored to native %s contacts; grip to steer, stick throttle retained, controller steering off",vr_wheel_keys[vr_wheel.kind],vr_wheel_profiles[vr_wheel.kind].control,vr_wheel.kind==0?"wheel":"driver hand");
+        platform_log("vr: immersive %s %s anchored at %s, %.0f cm from the eyes; grip to steer, stick throttle retained, controller steering off",vr_wheel_keys[vr_wheel.kind],vr_wheel_profiles[vr_wheel.kind].control,vr_wheel.anchored?vr_wheel.anchored:"native contacts",(double)(vr_wheel.head_gap*100.0f));
         vr_wheel.log_pending=0;
     }
     for(int h=0;h<2;h++) {
@@ -387,6 +429,13 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
 int vr_vehicle_steering_split(void)
 {
     return game_connection()!=_game_connection_network_client;
+}
+/* Test57b: the immersive controls are steering and the head is aiming (the
+ * mounted guns' reticle then follows the head between ticks: vr_render.c) */
+static int vr_vehicle_handles_head_aims(void)
+{
+    return vr_wheel.valid && vr_wheel.unit!=NONE && vr_vehicle_steering_split() &&
+        vr_vehicle_handles_enabled(vr_wheel.unit);
 }
 void vr_vehicle_handles_facing(long unit_index,float facing[3])
 {
