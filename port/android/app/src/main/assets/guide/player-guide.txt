@@ -1,3 +1,59 @@
+# Test58 private candidate: 1.0.25-test58
+
+## Test58: vehicle controls where your hands are
+
+This private test build fixes what your Test57 session found: the Warthog's
+wheel and the Scorpion's stick never showed up or took your hands, and the
+reticle jittered with immersive vehicles. It installs over Test57 and earlier
+(same package names and signing key, Android version code 70) and keeps your
+settings, profiles, saves and imported game data. Nothing else changes.
+
+### Why the Warthog wheel and the Scorpion stick didn't work
+
+Test57's new log line says how far each missed squeeze was from the
+controls. Your log showed every Warthog squeeze missing by about **540 m**
+and every Scorpion squeeze by about 2 m.
+
+- **Warthog:** the wheel's position was read from the wrong number. The game
+  stores a marker's few-centimetre offset from its bone next to the bone's
+  real position, and Test56 and Test57 used the offset as if it were a place
+  in the world. So the wheel sat at the map's centre point, about 540 m from
+  your Warthog on Blood Gulch, and you never saw it. It now uses the
+  wheel's real position in the Warthog, on every map, wherever the Warthog
+  is, whichever way it faces or tilts. It moves with the Warthog as you
+  drive.
+- **Scorpion (and Banshee):** the stick (and the Banshee's bar) sat between
+  the driver's own hands, which are inside the hull. Both now sit in front of
+  your chest, measured from your eyes when you get in. The drive stick is the
+  same on every tank.
+- **Safety net for every vehicle:** if a control would ever end up more than
+  a metre from your eyes, or a vehicle has no hand markers, it's put in front
+  of your chest instead, and the log says so.
+- A new automated test puts every vehicle at five different places on and
+  off the map, facing different ways and tilted, and checks the controls are
+  under your hands, take a squeeze and move with the vehicle. With the old
+  mistake put back, the test fails with the wheel 566 m away.
+
+### The reticle with immersive vehicles
+
+With the immersive controls in your hands, your head aims the guns. The
+reticle followed the gun, which only moves 30 times a second, while your head
+moves 72 times a second, so it stepped. It now turns with your head between
+the game's updates and sits on the vehicle as you see it, like the hand
+reticle on foot has since Test20e.
+
+### Tank view
+
+You like the tank's view as it is, so it hasn't changed. **TANK HATCH** (VR
+Settings → VEHICLES, off by default) is an option that raises your eyes over
+the tank's hull, as if you were standing in an open hatch.
+
+These changes are checked on a PC (automated checks and builds), not yet in
+the headset. Please test with **CONTACT LOG** on and keep the log from
+Download/HaloCE: [Test58 device checks](TEST58-DEVICE-CHECKLIST.md).
+
+---
+
 # Test57 private candidate: 1.0.24-test57
 
 ## Test57: final polish: every vehicle its own controls

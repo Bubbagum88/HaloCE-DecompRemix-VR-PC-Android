@@ -1204,6 +1204,10 @@ vr.vehicle_steer_haptics [boolean]
 Default: true
 STEER HAPTICS: light ticks as the immersive vehicle controls turn, a tick crossing the centre and a firmer buzz at full lock (the grab and let-go pulses stay; HAPTICS scales all).
 
+vr.vehicle_tank_hatch [boolean]
+Default: false
+TANK HATCH (off by default): in a tank's first-person driver seat (Scorpion, Wraith) the eyes rise over the hull above the driver's head, as from an open hatch (measured on the vehicle itself; 12 cm over it); off, the view stays at the driver's head inside the hull. TANK UP/FWD/RIGHT still adjust it.
+
 vr.vehicle_banshee_slide [boolean]
 Default: true
 BANSH SLIDE: the Banshee's immersive flight bar also turns when slid sideways (12 cm is full lock), as well as when rolled; off, rolling alone turns it.
