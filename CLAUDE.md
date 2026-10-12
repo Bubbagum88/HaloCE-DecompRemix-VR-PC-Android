@@ -1,6 +1,21 @@
 # Agent and contributor continuation
 
-## Active private Test57 candidate (2026-10-11)
+## Active private Test58 candidate (2026-10-11)
+
+Continue on `test39-interaction-completion`; private `1.0.25-test58`, Android
+code70 (docs/TEST58-DELIVERY-STATUS.md; docs/TEST58-CHECKLIST.md,
+TEST58-DEVICE-CHECKLIST.md). Test57's immersive Warthog wheel and Scorpion
+stick were out of reach (owner's log: misses of ~540 m and ~2 m):
+`object_marker.node_matrix` is a marker's offset from its node, never a world
+place; use `nodes[marker.node_index]` or `marker.matrix`. Controls are kept in
+the vehicle's frame, placed on the drawn vehicle each frame, the stick/bar in
+front of the chest, anything out of reach falls back there;
+tools/test_test57b_vehicle_anchor.py proves it at many places and fails on the
+old line. The mounted reticle follows the head between ticks with the
+immersive controls. TANK HATCH is an off-by-default option (the owner likes
+the tank view). Owner: toggles for optional behaviour; regress nothing.
+
+## Previous private Test57 candidate (2026-10-11)
 
 Continue on `test39-interaction-completion`; private `1.0.24-test57`, Android
 code69 (docs/TEST57-DELIVERY-STATUS.md). A final polish pass the owner calls

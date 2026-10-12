@@ -1,6 +1,18 @@
 # Current development state
 
-## Active private candidate: Test57 (2026-10-11)
+## Active private candidate: Test58 (2026-10-11)
+
+**1.0.25-test58 / Android code70**, branch `test39-interaction-completion`,
+for the owner's Quest and phone tests (not a release). Fixes Test57's
+immersive vehicle controls, which were placed out of reach (the Warthog's
+wheel at the map's origin from a marker's local offset; the Scorpion's stick
+inside the hull), steadies the mounted reticle with the immersive controls,
+and adds the off-by-default TANK HATCH view. Item outcomes:
+[TEST58-CHECKLIST.md](TEST58-CHECKLIST.md); APKs and hashes:
+[TEST58-DELIVERY-STATUS.md](TEST58-DELIVERY-STATUS.md). Device acceptance
+pending.
+
+## Previous private candidate: Test57 (2026-10-11)
 
 **1.0.24-test57 / Android code69**, branch `test39-interaction-completion`,
 for the owner's Quest and phone tests (not a release). A final polish pass on
