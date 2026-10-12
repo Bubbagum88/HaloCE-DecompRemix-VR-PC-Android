@@ -1021,6 +1021,9 @@ static struct vr_menu_page
  * from the definitions, so new settings/categories create further screens. */
 #define VR_MENU_SETTINGS_PER_SCREEN 8
 #define VR_MENU_PAGES(n) (((n) + VR_MENU_SETTINGS_PER_SCREEN - 1) / VR_MENU_SETTINGS_PER_SCREEN)
+/* Test63: a category of this many screens or more opens an index of them */
+#define VR_MENU_INDEX_FROM 3
+#define VR_MENU_MAXIMUM_SCREENS 64
 
 
 /* a combined row's value, "key=value;key=value": whether every setting
@@ -1254,7 +1257,9 @@ static long vr_menu_value_index(
 
 /* ---------- the tags */
 
-struct vr_menu_navigation { long tag, next, total; char const *label; };
+/* Test63: jump: 0 a NEXT row; 1 an index row opening a topic; 2 an index
+row opening a page (its first setting named); 3 the index's MORE row */
+struct vr_menu_navigation { long tag, next, total; char const *label; int jump; };
 
 static struct
 {
@@ -1535,6 +1540,8 @@ static long vr_menu_paged(long pause, long list, long resume, long group,
         }
         if (total != count) return NONE;
     }
+    long screens[VR_MENU_MAXIMUM_SCREENS];
+    if (pages > VR_MENU_MAXIMUM_SCREENS) return NONE;
     for (sub = pages - 1; sub >= 0; --sub) {
         long visible[VR_MENU_SETTINGS_PER_SCREEN + 1];
         long first = sub * VR_MENU_SETTINGS_PER_SCREEN, length;
@@ -1557,6 +1564,7 @@ static long vr_menu_paged(long pause, long list, long resume, long group,
             vr_menu.navigation[slot].next = sub + 2;
             vr_menu.navigation[slot].total = pages;
             vr_menu.navigation[slot].label = sections && section_count > 0 ? sections[sub + 1].label : NULL;
+            vr_menu.navigation[slot].jump = 0;
             vr_menu.navigation_count++;
         }
         next = vr_menu_screen(pause, list,
@@ -1564,6 +1572,61 @@ static long vr_menu_paged(long pause, long list, long resume, long group,
             vr_menu_name("ui\\shell\\solo_game\\pause_game\\vr_list_%ld_%ld", group, sub),
             "vr_settings_page", visible, length, 4, column_x, hints_x);
         if (next == NONE) return NONE;
+        screens[sub] = next;
+    }
+    /* Test63: a category of three screens or more opens an index of them
+     * first (the owner: "jump right to a section without clicking back eight
+     * times"): its topics by name, or each page by its first setting; a row
+     * opens that screen, B comes back to the index in one press, NEXT still
+     * pages on. Eight rows an index screen, MORE to the rest. */
+    if (pages >= VR_MENU_INDEX_FROM) {
+        long index_screens = VR_MENU_PAGES(pages), following = NONE, chunk;
+        for (chunk = index_screens - 1; chunk >= 0; --chunk) {
+            long visible[VR_MENU_SETTINGS_PER_SCREEN + 1], length = 0, target;
+            struct vr_menu_event_handler handler;
+            for (target = chunk * VR_MENU_SETTINGS_PER_SCREEN;
+                target < MIN(pages, (chunk + 1) * VR_MENU_SETTINGS_PER_SCREEN); target++) {
+                long slot = vr_menu.navigation_count, first = 0, before;
+                if (slot >= vr_menu.navigation_capacity) return NONE;
+                vr_menu_open_handler(&handler, screens[target]);
+                visible[length] = vr_menu_button(resume,
+                    vr_menu_name("ui\\shell\\solo_game\\pause_game\\vr_jump_%ld_%ld", group, target),
+                    "vr_next_page", &handler, 1);
+                if (visible[length] == NONE) return NONE;
+                if (sections && section_count > 0)
+                    for (before = 0; before < target; before++) first += sections[before].count;
+                else first = target * VR_MENU_SETTINGS_PER_SCREEN;
+                vr_menu.navigation[slot].tag = visible[length++];
+                vr_menu.navigation[slot].next = target + 1;
+                vr_menu.navigation[slot].total = pages;
+                vr_menu.navigation[slot].label = sections && section_count > 0 ? sections[target].label :
+                    vr_menu_pages[group].settings[first].label;
+                vr_menu.navigation[slot].jump = sections && section_count > 0 ? 1 : 2;
+                vr_menu.navigation_count++;
+            }
+            if (following != NONE) {
+                long slot = vr_menu.navigation_count;
+                if (slot >= vr_menu.navigation_capacity) return NONE;
+                vr_menu_open_handler(&handler, following);
+                visible[length] = vr_menu_button(resume,
+                    vr_menu_name("ui\\shell\\solo_game\\pause_game\\vr_more_%ld_%ld", group, chunk),
+                    "vr_next_page", &handler, 1);
+                if (visible[length] == NONE) return NONE;
+                vr_menu.navigation[slot].tag = visible[length++];
+                vr_menu.navigation[slot].next = chunk + 2;
+                vr_menu.navigation[slot].total = index_screens;
+                vr_menu.navigation[slot].label = NULL;
+                vr_menu.navigation[slot].jump = 3;
+                vr_menu.navigation_count++;
+            }
+            /* (an index screen of exactly eight rows and MORE fills the nine) */
+            following = vr_menu_screen(pause, list,
+                vr_menu_name("ui\\shell\\solo_game\\pause_game\\vr_index_%ld_%ld", group, chunk),
+                vr_menu_name("ui\\shell\\solo_game\\pause_game\\vr_index_list_%ld_%ld", group, chunk),
+                "vr_settings_page", visible, length, 4, column_x, hints_x);
+            if (following == NONE) return NONE;
+        }
+        next = following;
     }
     return next;
 }
@@ -1776,9 +1839,14 @@ void vr_menu_tags_loaded(void)
     if (vr_menu.title_tag_index == NONE || vr_menu.hints_tag_index == NONE) return;
     vr_menu_widget_get(vr_menu.hints_tag_index)->bounds.x1 = 512;
     vr_menu.navigation_capacity = VR_MENU_PAGES(VR_MENU_PAGE_COUNT);
-    for (page = 0; page < VR_MENU_PAGE_COUNT; page++)
-        vr_menu.navigation_capacity += vr_menu_screen_count(vr_menu_pages[page].sections,
+    for (page = 0; page < VR_MENU_PAGE_COUNT; page++) {
+        long screens = vr_menu_screen_count(vr_menu_pages[page].sections,
             vr_menu_pages[page].section_count, vr_menu_pages[page].count);
+        vr_menu.navigation_capacity += screens;
+        /* Test63: the index's rows and MORE rows */
+        if (screens >= VR_MENU_INDEX_FROM)
+            vr_menu.navigation_capacity += screens + VR_MENU_PAGES(screens);
+    }
     vr_menu.navigation = vr_menu_allocate(vr_menu.navigation_capacity * sizeof(*vr_menu.navigation));
     if (!vr_menu.navigation) return;
     for (page = 0; page < VR_MENU_PAGE_COUNT; page++) {
@@ -1975,6 +2043,14 @@ boolean vr_menu_setting_text(
     {
         snprintf(line, sizeof(line), "A/RIGHT: NEXT   LEFT: PREVIOUS   B: BACK");
     }
+	else if (kind == _vr_menu_navigation && vr_menu.navigation[setting_index].jump == 1)
+        snprintf(line, sizeof(line), "%s", vr_menu.navigation[setting_index].label);
+	else if (kind == _vr_menu_navigation && vr_menu.navigation[setting_index].jump == 2)
+        snprintf(line, sizeof(line), "PAGE %ld: %s...", vr_menu.navigation[setting_index].next,
+            vr_menu.navigation[setting_index].label);
+	else if (kind == _vr_menu_navigation && vr_menu.navigation[setting_index].jump == 3)
+        snprintf(line, sizeof(line), "MORE (%ld/%ld)", vr_menu.navigation[setting_index].next,
+            vr_menu.navigation[setting_index].total);
 	else if (kind == _vr_menu_navigation)
     {
         if (vr_menu.navigation[setting_index].label)

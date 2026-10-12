@@ -108,6 +108,8 @@ struct tag_block {long count;void *address,*definition;};
 #define VR_MENU_BUTTON_WIDTH 250
 #define VR_MENU_SETTINGS_PER_SCREEN 8
 #define VR_MENU_PAGES(n) (((n)+7)/8)
+#define VR_MENU_INDEX_FROM 3
+#define VR_MENU_MAXIMUM_SCREENS 64
 #define VR_MENU_PAGE_COUNT NUMBEROF(vr_menu_pages)
 static int fail_after=-1,allocation_attempts;
 static void *system_malloc(size_t n){allocation_attempts++;if(fail_after==0)return NULL;if(fail_after>0)--fail_after;return malloc(n);}
@@ -311,9 +313,34 @@ static void verify(void){
   struct vr_menu_event_handler *e=w->event_handlers.address;
   assert(e->flags==VR_MENU_OPEN_WIDGET&&e->widget_tag.index!=NONE);bounds(e->widget_tag.index,0,0);
   assert(vr_menu_setting_text(vr_menu.navigation[i].tag,text,128));
-  /* Test55: a sectioned page names the next topic; others say NEXT PAGE */
-  if(vr_menu.navigation[i].label)assert(wcsstr(text,L"NEXT: ")&&(wcsstr(text,L"SECOND (2/3)")||wcsstr(text,L"THIRD (3/3)")));
+  /* Test55: a sectioned page names the next topic; others say NEXT PAGE.
+   * Test63: an index row names its topic (or PAGE n: its first setting),
+   * MORE leads to the rest of the index */
+  if(vr_menu.navigation[i].jump==1)assert(!wcscmp(text,L"FIRST")||!wcscmp(text,L"SECOND")||!wcscmp(text,L"THIRD"));
+  else if(vr_menu.navigation[i].jump==2)assert(wcsstr(text,L"PAGE "));
+  else if(vr_menu.navigation[i].jump==3)assert(wcsstr(text,L"MORE ("));
+  else if(vr_menu.navigation[i].label)assert(wcsstr(text,L"NEXT: ")&&(wcsstr(text,L"SECOND (2/3)")||wcsstr(text,L"THIRD (3/3)")));
   else assert(wcsstr(text,L"NEXT PAGE"));
+ }
+ /* Test63: the sectioned page (three topics) opens an index: three rows,
+  * each opening its topic's screen (the topics' own NEXT rows remain) */
+ {
+  struct vr_menu_widget *root=vr_menu_widget_get(vr_menu.page_tag_indices[0]);
+  struct vr_menu_child *parts=root->child_widgets.address;
+  struct vr_menu_widget *list=vr_menu_widget_get(parts[1].widget_tag.index);
+  struct vr_menu_child *rows=list->child_widgets.address;
+  int jumps=0,nexts=0;
+  assert(list->child_widgets.count==3);
+  for(long r=0;r<3;r++)for(long i=0;i<vr_menu.navigation_count;i++)
+   if(vr_menu.navigation[i].tag==rows[r].widget_tag.index&&vr_menu.navigation[i].jump==1){
+    struct vr_menu_event_handler *e=vr_menu_widget_get(rows[r].widget_tag.index)->event_handlers.address;
+    assert(vr_menu_is_screen(e->widget_tag.index)&&vr_menu.navigation[i].next==r+1);jumps++;}
+  for(long i=0;i<vr_menu.navigation_count;i++)nexts+=vr_menu.navigation[i].jump==0&&vr_menu.navigation[i].label!=NULL;
+  assert(jumps==3&&nexts==2);
+  /* a page of two screens or one keeps no index */
+  struct vr_menu_widget *two=vr_menu_widget_get(vr_menu.page_tag_indices[1]);
+  struct vr_menu_widget *two_list=vr_menu_widget_get(((struct vr_menu_child*)two->child_widgets.address)[1].widget_tag.index);
+  assert(two_list->child_widgets.count==9);
  }
  if(main_tag!=NONE){
   struct vr_menu_widget *w=vr_menu_widget_get(main_tag);assert(w->child_widgets.count==6);
