@@ -15,10 +15,24 @@ The older v1.0.19 "current public" claim below is superseded: that release
 attempt was withdrawn/cancelled in the conversation and is not the current
 latest release. No local v1.0.19 tag exists. Preserve its notes as history,
 but do not use them as a live release pointer or instruction to check it out.
-Continue private Test63 on its stated branch. Public v1.0.18 and all earlier
+Continue private Test64 on its stated branch. Public v1.0.18 and all earlier
 release assets remain unchanged; no publication is authorized.
 
-## Active private Test63 candidate (2026-10-12)
+## Active private Test64 candidate (2026-10-12)
+
+Private **1.0.31-test64 / Android code76**, branch `test39-interaction-completion`,
+Test63 (APK source `e2849e9b`) plus one fix: opening VR SETTINGS crashed
+(owner's 14:09 Test63 log, signal 11 in `vr_menu_setting_text`) because
+Test63's settings index was also built for the category list (17 categories,
+three screens) and read `vr_menu_pages[VR_MENU_PAGE_COUNT]`; `vr_menu_paged`
+now builds the index for a category's own pages only. test_test31_vr_menu
+has 17 categories (fails without the fix under AddressSanitizer). Read
+`docs/TEST64-CHECKLIST.md`, `TEST64-DELIVERY-STATUS.md`,
+`TEST64-DEVICE-CHECKLIST.md`; all of Test63's device checks are still
+pending (`TEST63-DEVICE-CHECKLIST.md`). No protocol or voice change. Local
+commits only; no push/publish/install/launch.
+
+## Previous private Test63 candidate (2026-10-12)
 
 Private **1.0.30-test63 / Android code75**, branch `test39-interaction-completion`,
 continuing Test62 (APK source `ed60571f`, kept whole). From the owner's

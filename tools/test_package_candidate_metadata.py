@@ -20,9 +20,16 @@ class CandidateMetadataTests(unittest.TestCase):
         # Test63: its own handoff first, then Test62's
         current = ["TEST63-DELIVERY-STATUS.md", "TEST63-CHECKLIST.md",
                    "TEST63-FIELD-GUIDE.md", "TEST63-DEVICE-CHECKLIST.md"]
-        for label in ("test63", "test64"):
+        for label in ("test63", "test63b"):
             self.assertEqual(package.candidate_document_prefix(label), current + expected)
         for name in current:
+            self.assertTrue((ROOT / "docs" / name).is_file())
+        # Test64: its own handoff first, then Test63's and Test62's
+        latest = ["TEST64-DELIVERY-STATUS.md", "TEST64-CHECKLIST.md",
+                  "TEST64-FIELD-GUIDE.md", "TEST64-DEVICE-CHECKLIST.md"]
+        for label in ("test64", "test65"):
+            self.assertEqual(package.candidate_document_prefix(label), latest + current + expected)
+        for name in latest:
             self.assertTrue((ROOT / "docs" / name).is_file())
         for name in expected:
             self.assertTrue((ROOT / "docs" / name).is_file())
