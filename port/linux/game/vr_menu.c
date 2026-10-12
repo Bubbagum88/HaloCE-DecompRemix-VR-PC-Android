@@ -260,6 +260,9 @@ now for everything a hand lifts (NPCs, props, turrets, vehicles) */
 #define VR_IMMERSION_NPC_HOLD { "LIFT", "vr.npc_hold_strength", _vr_setting_real, 4, { { "LIGHT", "0.75" }, { "NORMAL", "1.0" }, { "SPARTAN", "1.5" }, { "IRON", "2.5" } } }
 #define VR_IMMERSION_THROW_STRENGTH { "THROW", "vr.throw_strength", _vr_setting_real, 5, { { "0.75X", "0.75" }, { "1X", "1.0" }, { "1.25X", "1.25" }, { "1.5X", "1.5" }, { "2X", "2.0" } } }
 #define VR_IMMERSION_DEATH_RAGDOLLS { "DEATH RAGDOLLS", "vr.death_ragdolls", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+/* Test59: how hard a killing burst or blast throws a death ragdoll
+(vr_npc_impulse.h): CLASSIC is Test56's */
+#define VR_IMMERSION_DEATH_FORCE { "DEATH FORCE", "vr.death_force", _vr_setting_string, 3, { { "CLASSIC", "classic" }, { "STRONG", "strong" }, { "HUGE", "huge" } } }
 #define VR_IMMERSION_HAPTICS { "HAPTICS", "vr.haptics", _vr_setting_real, 11, { { "0%", "0.0" }, { "10%", "0.1" }, { "20%", "0.2" }, { "30%", "0.3" }, { "40%", "0.4" }, { "50%", "0.5" }, { "60%", "0.6" }, { "70%", "0.7" }, { "80%", "0.8" }, { "90%", "0.9" }, { "100%", "1.0" } } }
 #define VR_IMMERSION_SPRINT_SPEED { "SPRINT SPEED", "vr.sprint_speed", _vr_setting_real, 6, { { "1.0X", "1.0" }, { "1.1X", "1.1" }, { "1.2X", "1.2" }, { "1.3X", "1.3" }, { "1.4X", "1.4" }, { "1.5X", "1.5" } } }
 /* Test55: calibration: where the pouches and holsters sit (1 cm steps,
@@ -306,6 +309,7 @@ static struct vr_menu_setting const vr_menu_controls[] =
     VR_IMMERSION_NPC_HOLD,
     VR_IMMERSION_THROW_STRENGTH,
     VR_IMMERSION_DEATH_RAGDOLLS,
+    VR_IMMERSION_DEATH_FORCE,
     VR_IMMERSION_NPC_RESCUE,
     VR_IMMERSION_NPC_RECOVERY,
     VR_IMMERSION_IMPACT_SPEED,
@@ -680,6 +684,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_NPC_HOLD,
 	VR_IMMERSION_THROW_STRENGTH,
 	VR_IMMERSION_DEATH_RAGDOLLS,
+	VR_IMMERSION_DEATH_FORCE,
 	VR_IMMERSION_BODY_RETENTION,
 	/* ADVANCED */
 	VR_IMMERSION_IMPACT_DAMAGE,

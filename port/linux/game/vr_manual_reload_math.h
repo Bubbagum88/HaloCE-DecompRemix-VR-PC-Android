@@ -12,8 +12,13 @@ enum { VR_MR_IDLE, VR_MR_OLD_HELD, VR_MR_NEED_MAG, VR_MR_NEW_HELD,
  * events: they carry no ammo and exist so each step has its own haptic. */
 enum { VR_MR_NONE, VR_MR_BEGIN, VR_MR_DISCARD, VR_MR_PICKUP,
     VR_MR_INSERT, VR_MR_CHARGE, VR_MR_COMMIT, VR_MR_CANCEL, VR_MR_EJECT,
-    VR_MR_SEATED, VR_MR_RACKED, VR_MR_PULLED };
-struct vr_mr_state { int phase, down, pulled, chambered; };
+    VR_MR_SEATED, VR_MR_RACKED, VR_MR_PULLED, VR_MR_RESEAT, VR_MR_RECOVER };
+/* Test59: VR_MR_RESEAT: the gun's own magazine, taken out (pulled or
+ * dropped), locked back in: nothing committed, the ammo the gun had all along
+ * (ammo moves only at VR_MR_COMMIT), and it fires again. VR_MR_RECOVER: the
+ * free hand took the dropped magazine back up. own: the magazine held is the
+ * one that came out of this gun. */
+struct vr_mr_state { int phase, down, pulled, chambered, own; };
 /* eject_pressed: the Reload button's rising edge. With manual reload on it
  * physically drops the magazine from IDLE and is otherwise ignored: it never
  * cancels an open transaction and never starts the native automatic reload.
@@ -22,8 +27,11 @@ struct vr_mr_state { int phase, down, pulled, chambered; };
 struct vr_mr_input {
     int valid, held, near_mag, near_pouch, near_chamber, magazine_out,
         chamber_pulled, can_load, explicit_reload, eject_pressed, loose_round, seated, no_chamber,
-        chambered, grace_press;
+        chambered, grace_press, returned, near_dropped;
 };
+/* Test59: returned: the magazine pulled out, once clear of the well, is back
+ * at it and lined up (as a replacement is seated). near_dropped: the free
+ * hand is at the magazine this transaction dropped. */
 /* Test55: grace_press: Grip was squeezed within the last 0.35 s and is still
  * held, so a hand that closed just before reaching the slide or charging
  * handle still takes it. */
@@ -87,7 +95,7 @@ static int vr_mr_step(struct vr_mr_state *s, struct vr_mr_input const *i)
     s->down = i->held;
     if (!i->valid) {
         int active = s->phase != VR_MR_IDLE;
-        s->phase = VR_MR_IDLE; s->pulled = 0; s->chambered = 0;
+        s->phase = VR_MR_IDLE; s->pulled = 0; s->chambered = 0; s->own = 0;
         return active ? VR_MR_CANCEL : VR_MR_NONE;
     }
     switch (s->phase) {
@@ -96,27 +104,37 @@ static int vr_mr_step(struct vr_mr_state *s, struct vr_mr_input const *i)
          * is; the replacement comes from a body pouch. It is a magazine
          * release only: a gun with no reserve keeps its magazine. */
         if (i->eject_pressed && i->can_load && !i->loose_round) {
-            s->phase = VR_MR_NEED_MAG; s->pulled = 0; s->chambered = i->chambered;
+            s->phase = VR_MR_NEED_MAG; s->pulled = 0; s->chambered = i->chambered; s->own = 0;
             return VR_MR_EJECT;
         }
         if (press && i->near_pouch && i->can_load && i->loose_round) {
-            s->phase = VR_MR_NEW_HELD; s->chambered = i->chambered; return VR_MR_PICKUP;
+            s->phase = VR_MR_NEW_HELD; s->chambered = i->chambered; s->own = 0; return VR_MR_PICKUP;
         }
         if (press && i->near_mag && i->can_load && !i->loose_round) {
-            s->phase = VR_MR_OLD_HELD; s->pulled = 0; s->chambered = i->chambered;
+            s->phase = VR_MR_OLD_HELD; s->pulled = 0; s->chambered = i->chambered; s->own = 0;
             return VR_MR_BEGIN;
         }
         break;
     case VR_MR_OLD_HELD:
         if (i->magazine_out && !s->pulled) { s->pulled = 1; if (i->held) return VR_MR_PULLED; }
+        /* Test59: pulled out and pushed back in (gripped, or let go at the
+         * well): it locks home as a replacement would, and keeps its rounds */
+        if (s->pulled && i->returned && (i->held || release)) {
+            s->phase = VR_MR_SEATING; s->own = 1; return VR_MR_INSERT;
+        }
         if (release) {
             s->phase = s->pulled ? VR_MR_NEED_MAG : VR_MR_IDLE;
             return s->pulled ? VR_MR_DISCARD : VR_MR_CANCEL;
         }
         break;
     case VR_MR_NEED_MAG:
+        /* Test59: the dropped magazine, taken back up where the hand finds
+         * it, before a pouch's (no reserve needed: it is the gun's own) */
+        if (press && i->near_dropped) {
+            s->phase = VR_MR_NEW_HELD; s->own = 1; return VR_MR_RECOVER;
+        }
         if (press && i->near_pouch && i->can_load) {
-            s->phase = VR_MR_NEW_HELD; return VR_MR_PICKUP;
+            s->phase = VR_MR_NEW_HELD; s->own = 0; return VR_MR_PICKUP;
         }
         break;
     case VR_MR_NEW_HELD:
@@ -130,6 +148,10 @@ static int vr_mr_step(struct vr_mr_state *s, struct vr_mr_input const *i)
         break;
     case VR_MR_SEATING:
         if (i->seated) {
+            /* Test59: the gun's own magazine back: as it was, nothing to charge */
+            if (s->own) {
+                s->phase = VR_MR_IDLE; s->own = 0; s->chambered = 0; return VR_MR_RESEAT;
+            }
             if (i->no_chamber || s->chambered) {
                 s->phase = VR_MR_IDLE; s->chambered = 0; return VR_MR_COMMIT;
             }

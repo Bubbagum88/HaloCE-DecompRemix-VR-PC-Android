@@ -116,6 +116,8 @@ static struct
 	/* the game's camera this frame, the head posed from it */
 	struct render_camera head_camera;
 	real_point3d game_camera_position;
+	/* Test59: when it was set (vr_render_drawn_camera) */
+	double game_camera_time;
 	/* the camera the first-person weapon was posed from this frame */
 	struct render_camera weapon_camera;
 	boolean weapon_camera_valid;
@@ -1184,6 +1186,7 @@ short vr_render_windows(
 		windows[eye].render_camera = windows[eye].rasterizer_camera;
 	}
 	view_anchor(&player.render_camera, &vr_render.game_camera_position);
+	vr_render.game_camera_time = vr_pose_time();
 	vr_render.head_camera = player.render_camera;
 	vr_render.hud_from_head = FALSE;
 	{
@@ -1969,6 +1972,25 @@ int vr_render_first_person_gun_hidden(void)
 int vr_render_immersive_cutscene(void)
 {
 	return vr_render.stereo && vr_render.cinematic_view;
+}
+
+/* Test59: the camera the latest frame's gun and hands were drawn from (the
+drawn one, between game ticks), for what follows a hand with the drawn gun.
+A manual reload's magazine placed from the game tick's camera stepped
+against the gun and the hand while the player walked. */
+int vr_render_drawn_camera(float position[3])
+{
+	double age = vr_pose_time() - vr_render.game_camera_time;
+
+	if (!position || !vr_render.stereo || vr_render.cinematic_view || !(age >= 0.0 && age <= 0.25) ||
+		!valid_real_point3d(&vr_render.game_camera_position))
+	{
+		return 0;
+	}
+	position[0] = vr_render.game_camera_position.x;
+	position[1] = vr_render.game_camera_position.y;
+	position[2] = vr_render.game_camera_position.z;
+	return 1;
 }
 
 int vr_render_grab_point(long unit_index, real_point3d *point)

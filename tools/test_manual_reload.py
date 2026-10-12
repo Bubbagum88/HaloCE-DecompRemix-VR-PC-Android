@@ -277,7 +277,63 @@ int main(void){
   assert(vr_mr_step(&t,&i)==VR_MR_NONE);
   i.held=0;assert(vr_mr_step(&t,&i)==VR_MR_DISCARD&&t.phase==VR_MR_NEED_MAG);
  }
+ /* Test59 (owner's 2026-10-12 05:36 session: a pulled magazine held at the
+    well for 3 s never went back in): the gun's own magazine goes back in,
+    gripped or let go at the well, or taken back up after it dropped; it
+    reseats with nothing committed (the ammo never moved) and the gun is idle
+    (fires) again; a replacement from the pouch still commits */
+ {
+  struct vr_mr_state t={0};
+  struct vr_mr_input i={.valid=1,.can_load=1,.held=1,.near_mag=1};
+  assert(vr_mr_step(&t,&i)==VR_MR_BEGIN&&!t.own);
+  i.magazine_out=1;assert(vr_mr_step(&t,&i)==VR_MR_PULLED);
+  i.returned=1;assert(vr_mr_step(&t,&i)==VR_MR_INSERT&&t.phase==VR_MR_SEATING&&t.own); /* still gripped */
+  i=(struct vr_mr_input){.valid=1,.can_load=1,.held=1,.seated=1};
+  assert(vr_mr_step(&t,&i)==VR_MR_RESEAT&&t.phase==VR_MR_IDLE&&!t.own&&!t.chambered);
+  assert(vr_mr_output_flags(1,1,t.phase,VR_MR_RESEAT,1u,2u,4u)==1u); /* fires again, no commit */
+  /* let go at the well */
+  t=(struct vr_mr_state){0};
+  i=(struct vr_mr_input){.valid=1,.can_load=1,.held=1,.near_mag=1};
+  assert(vr_mr_step(&t,&i)==VR_MR_BEGIN);
+  i.magazine_out=1;assert(vr_mr_step(&t,&i)==VR_MR_PULLED);
+  i.held=0;i.returned=1;assert(vr_mr_step(&t,&i)==VR_MR_INSERT&&t.own);
+  i.returned=0;i.seated=1;assert(vr_mr_step(&t,&i)==VR_MR_RESEAT&&t.phase==VR_MR_IDLE);
+  /* not back at the well: let go, it drops as before */
+  t=(struct vr_mr_state){0};
+  i=(struct vr_mr_input){.valid=1,.can_load=1,.held=1,.near_mag=1};
+  assert(vr_mr_step(&t,&i)==VR_MR_BEGIN);
+  i.magazine_out=1;assert(vr_mr_step(&t,&i)==VR_MR_PULLED);
+  i.held=0;assert(vr_mr_step(&t,&i)==VR_MR_DISCARD&&t.phase==VR_MR_NEED_MAG);
+  /* the dropped one taken back up (no reserve needed), dropped again, taken up, seated */
+  i=(struct vr_mr_input){.valid=1,.can_load=0,.held=1,.near_dropped=1};
+  assert(vr_mr_step(&t,&i)==VR_MR_RECOVER&&t.phase==VR_MR_NEW_HELD&&t.own);
+  i.held=0;i.near_dropped=0;assert(vr_mr_step(&t,&i)==VR_MR_DISCARD&&t.phase==VR_MR_NEED_MAG);
+  i.held=1;i.near_dropped=1;assert(vr_mr_step(&t,&i)==VR_MR_RECOVER&&t.own);
+  i.near_dropped=0;i.near_mag=1;assert(vr_mr_step(&t,&i)==VR_MR_INSERT&&t.phase==VR_MR_SEATING);
+  i.near_mag=0;i.seated=1;assert(vr_mr_step(&t,&i)==VR_MR_RESEAT&&t.phase==VR_MR_IDLE);
+  /* an ejected magazine (Reload button) taken back up too, ahead of a pouch at the same place */
+  t=(struct vr_mr_state){0};
+  i=(struct vr_mr_input){.valid=1,.can_load=1,.eject_pressed=1,.chambered=0};
+  assert(vr_mr_step(&t,&i)==VR_MR_EJECT&&!t.own);
+  i=(struct vr_mr_input){.valid=1,.can_load=1,.held=1,.near_dropped=1,.near_pouch=1};
+  assert(vr_mr_step(&t,&i)==VR_MR_RECOVER&&t.own);
+  i=(struct vr_mr_input){.valid=1,.can_load=1,.held=1,.near_mag=1};
+  assert(vr_mr_step(&t,&i)==VR_MR_INSERT);
+  i.near_mag=0;i.seated=1;assert(vr_mr_step(&t,&i)==VR_MR_RESEAT); /* empty gun: no charging asked */
+  /* a pouch's replacement still commits (and an empty gun still charges) */
+  t=(struct vr_mr_state){0};
+  i=(struct vr_mr_input){.valid=1,.can_load=1,.eject_pressed=1,.chambered=0};
+  assert(vr_mr_step(&t,&i)==VR_MR_EJECT);
+  i=(struct vr_mr_input){.valid=1,.can_load=1,.held=1,.near_pouch=1};
+  assert(vr_mr_step(&t,&i)==VR_MR_PICKUP&&!t.own);
+  i.near_pouch=0;i.near_mag=1;assert(vr_mr_step(&t,&i)==VR_MR_INSERT);
+  i.near_mag=0;i.seated=1;assert(vr_mr_step(&t,&i)==VR_MR_SEATED&&t.phase==VR_MR_NEED_CHAMBER);
+  /* lost tracking clears it */
+  t=(struct vr_mr_state){.phase=VR_MR_SEATING,.own=1};
+  i=(struct vr_mr_input){0};assert(vr_mr_step(&t,&i)==VR_MR_CANCEL&&!t.own&&t.phase==VR_MR_IDLE);
+ }
  puts("PASS: physical reload sequence, fresh grip edges, cancellation and exact native tactical/empty ammo conservation");
+ puts("PASS: Test59 the gun's own magazine back in (gripped, let go at the well, taken back up after a drop or an eject): reseated with ammo unchanged; a pouch's still commits");
 }
 '''
 with tempfile.TemporaryDirectory(prefix="manual-reload-") as temp:

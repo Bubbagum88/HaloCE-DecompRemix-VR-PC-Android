@@ -1126,6 +1126,36 @@ void vr_npc_interaction_palette(long index)
  * read only within a couple of ticks of the hit. */
 static struct {long object,tick;int area;real_point3d point;real_vector3d direction;struct vr_npc_hit hit;} npc_damage_notes[16];
 static int npc_damage_cursor;
+/* Test59: the shots each body took over the last half second (DEATH FORCE's
+ * burst push, vr_npc_impulse.h); fixed storage, the oldest taken */
+static struct {long object,tick;real damage;} npc_bursts[32];
+static int npc_burst_cursor;
+static int npc_death_force(void)
+{
+    return vr_npc_force_from_name(config_string("vr.death_force"));
+}
+static void npc_note_burst(long object,real damage)
+{
+    long now=game_time_get();
+    int n;
+    for(n=0;n<(int)NUMBEROF(npc_bursts);++n) if(npc_bursts[n].object==object) {
+        npc_bursts[n].damage=vr_npc_burst_add(npc_bursts[n].damage,now-npc_bursts[n].tick,damage);
+        npc_bursts[n].tick=now;
+        return;
+    }
+    npc_bursts[npc_burst_cursor].object=object;
+    npc_bursts[npc_burst_cursor].tick=now;
+    npc_bursts[npc_burst_cursor].damage=vr_npc_burst_add(0.0f,0,damage);
+    npc_burst_cursor=(npc_burst_cursor+1)%(int)NUMBEROF(npc_bursts);
+}
+static real npc_burst_damage(long object)
+{
+    long now=game_time_get();
+    for(int n=0;n<(int)NUMBEROF(npc_bursts);++n)
+        if(npc_bursts[n].object==object && now>=npc_bursts[n].tick && now-npc_bursts[n].tick<=VR_NPC_BURST_TICKS)
+            return vr_npc_burst_add(npc_bursts[n].damage,now-npc_bursts[n].tick,0.0f);
+    return 0.0f;
+}
 void vr_npc_interaction_note_damage(long object,real_point3d const *point,real_vector3d const *direction,
     real damage,real acceleration,short category,int area)
 {
@@ -1136,7 +1166,8 @@ void vr_npc_interaction_note_damage(long object,real_point3d const *point,real_v
     int last=(npc_damage_cursor+(int)NUMBEROF(npc_damage_notes)-1)%(int)NUMBEROF(npc_damage_notes);
     if(object==NONE || !point || !direction || !valid_real_point3d(point) ||
        !config_boolean("vr.death_ragdolls") ||
-       !vr_npc_hit_kick(damage,acceleration,category,area,vr_units_per_metre(),&hit)) return;
+       !vr_npc_hit_kick_force(damage,acceleration,category,area,vr_units_per_metre(),npc_death_force(),&hit)) return;
+    if(!area && category!=VR_NPC_HIT_CATEGORY_MELEE && !(acceleration>0.0f)) npc_note_burst(object,damage);
     unit_direction=*direction;
     if(!valid_real_vector3d(&unit_direction) || normalize3d(&unit_direction)<0.0001f) return;
     now=game_time_get();
@@ -1244,8 +1275,16 @@ void vr_npc_interaction_death(long index)
             struct vr_npc_hit blow={0,0,0};
             int hit_node=NONE,area=FALSE;
             if(npc_recent_damage(index,&hit,&direction,&blow,&area)) {
-                real kick=blow.local*units/(real)TICKS_PER_SECOND,falloff=.35f*units,nearest=INFINITY;
+                real kick,falloff=.35f*units,nearest=INFINITY;
                 real_vector3d push;
+                /* Test59: DEATH FORCE: a shot body goes back along the shots,
+                 * as hard as the burst that killed it */
+                if(!area) {
+                    real burst=vr_npc_burst_body(npc_burst_damage(index),npc_death_force());
+                    if(burst>blow.body) blow.body=burst;
+                    if(vr_npc_burst_lift(burst)>blow.lift) blow.lift=vr_npc_burst_lift(burst);
+                }
+                kick=blow.local*units/(real)TICKS_PER_SECOND;
                 if(area) {
                     /* away from the blast, through the body's middle */
                     real_vector3d away;
@@ -1278,9 +1317,9 @@ void vr_npc_interaction_death(long index)
             npc.was_garbage=TEST_FLAG(u->object.flags,_object_garbage_bit);
             object_activate(index);object_set_garbage(index,FALSE);
             npc_begin_root_follow();
-            platform_log("VR NPC: death ragdoll actor=%08lx species=%d nodes=%d speed_mps=%.2f hit_node=%d kick_mps=%.1f push_mps=%.1f explosion=%d",
+            platform_log("VR NPC: death ragdoll actor=%08lx species=%d nodes=%d speed_mps=%.2f hit_node=%d kick_mps=%.1f push_mps=%.1f lift_mps=%.1f explosion=%d force=%d",
                 index,npc.species_type,npc.rig.body.count,(float)(magnitude3d(&velocity)*TICKS_PER_SECOND/units),hit_node,
-                (float)blow.local,(float)blow.body,area);
+                (float)blow.local,(float)blow.body,(float)blow.lift,area,npc_death_force());
         }
     }
     npc_current=saved;

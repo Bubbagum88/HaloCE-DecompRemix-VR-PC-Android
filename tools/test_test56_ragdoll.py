@@ -180,10 +180,14 @@ static real worst_limit(struct vr_articulated_native const *rig)
 }
 int main(void)
 {
-    static char const *names[] = { "topple", "head shot", "side shot", "explosion", "wall" };
+    /* Test59: DEATH FORCE's throws too (vr_npc_impulse.h): a rifle burst's
+     * 3.7 m/s back with 0.55 lift, a rocket's 11 m/s with 5.5 lift at its
+     * centre, HUGE's 16 m/s rocket and 7.6 m/s sniper round */
+    static char const *names[] = { "topple", "head shot", "side shot", "explosion", "wall",
+        "rifle burst", "rocket", "huge rocket", "huge sniper" };
     static struct vr_articulated_native rig, copy;
     int i, scenario, tick, n, a, hinges = 0, rigid = 0, balls = 0;
-    for (i = 0; i < SKEL_COUNT; ++i) for (scenario = 0; scenario < 5; ++scenario) {
+    for (i = 0; i < SKEL_COUNT; ++i) for (scenario = 0; scenario < 9; ++scenario) {
         struct skel const *s = &skeletons[i];
         real v[3] = {0, 0, 0}, kick[3] = {0, 0, 0}, stretch = 0, limit;
         int at = -1, settle = -1;
@@ -195,6 +199,10 @@ int main(void)
         case 2: at = find(s, "spine1"); kick[1] = 3.0f; break;
         case 3: at = 0; v[2] = 3.0f; kick[0] = 6.0f; kick[2] = 4.0f; break;
         case 4: v[0] = 1.5f; world_has_wall = 1; world_wall_x = 0.25f; break;
+        case 5: at = find(s, "spine1"); v[0] = 3.7f; v[2] = 0.55f; kick[0] = 1.4f; break;
+        case 6: at = 0; v[0] = 11.0f; v[2] = 5.5f; kick[0] = 2.0f; break;
+        case 7: at = 0; v[0] = 16.0f; v[2] = 8.0f; kick[0] = 2.0f; break;
+        case 8: at = find(s, "head"); v[0] = 7.6f; v[2] = 1.1f; kick[0] = 4.7f; break;
         }
         push(&rig, v, at >= 0 ? s->nodes[at].pos : NULL, kick);
         /* the NPC code hands a body back to the engine once it is at rest, or
@@ -266,7 +274,7 @@ int main(void)
     }
     /* prepare refuses a broken graph */
     copy = rig; copy.body.nodes[3].parent = 7; assert(!vr_articulated_native_prepare(&copy));
-    printf("PASS: Test56 ragdolls (%d stock skeletons x 5 falls settle, keep bones and joint limits)\n", SKEL_COUNT);
+    printf("PASS: Test56 ragdolls (%d stock skeletons x 9 falls, Test59 DEATH FORCE throws included, settle, keep bones and joint limits)\n", SKEL_COUNT);
     return 0;
 }
 '''

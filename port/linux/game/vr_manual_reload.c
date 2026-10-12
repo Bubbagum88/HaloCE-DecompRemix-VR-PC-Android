@@ -54,6 +54,9 @@ static struct {
     unsigned long long component_nodes;
     int bounds_tried, bounds_valid[2];
     int hand_sample_valid, debris_pending, pouch_zone;
+    /* Test59: the pulled magazine has been clear of the well (4 cm), so
+     * coming back to it seats it again */
+    int pulled_clear;
     double grip_press_time;
     struct vr_magazine_debris_transaction debris_transaction;
     real_point3d bounds_min[2], bounds_max[2];
@@ -356,6 +359,22 @@ void vr_manual_reload_debris_render(void)
     }
 }
 
+/* Test59: this transaction's dropped magazine (provisional: the gun still
+ * has its rounds) where it lies, or -1 */
+static int reload_dropped_slot(void)
+{
+    int slot_index = reload.debris_transaction.slot;
+    struct dropped_magazine const *slot;
+    if (!reload.debris_transaction.slot_valid || slot_index < 0 || slot_index >= VR_MAGAZINE_DEBRIS_CAPACITY)
+        return -1;
+    slot = &dropped_magazines[slot_index];
+    if (!slot->active || !slot->provisional || slot->model != reload.model ||
+        reload.magazine < 0 || reload.magazine >= slot->node_count ||
+        !reload_matrix_valid(&slot->matrices[reload.magazine]) || !valid_real_point3d(&slot->center))
+        return -1;
+    return slot_index;
+}
+
 static boolean reload_hand_touches_part(int part, real_matrix4x3 const *transform, real_point3d const *hand,
     real extra_metres)
 {
@@ -414,6 +433,9 @@ static void reload_event_haptic(int event, int free_hand)
     case VR_MR_RACKED: vr_haptic(free_hand, 0.60f, 0.045f); vr_haptic(gun_hand, 0.35f, 0.035f); break;
     case VR_MR_COMMIT: vr_haptic(free_hand, 0.50f, 0.040f); vr_haptic(gun_hand, 0.80f, 0.060f); break;
     case VR_MR_CANCEL: vr_haptic(free_hand, 0.10f, 0.020f); break;
+    /* Test59: the gun's own magazine taken back up, and locked back in */
+    case VR_MR_RECOVER: vr_haptic(free_hand, 0.40f, 0.040f); break;
+    case VR_MR_RESEAT: vr_haptic(free_hand, 0.45f, 0.040f); vr_haptic(gun_hand, 0.75f, 0.055f); break;
     default: break;
     }
 }
@@ -499,7 +521,11 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         reload_log_gate(weapon_index, "magazine-busy-or-unsupported-policy");
         vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
     }
-    unit_get_camera_position(unit_index, &camera);
+    /* Test59: the hands from the camera the gun was drawn from, as the
+     * magazine well (reload.socket) was taken from the drawn gun: from the
+     * game tick's camera the held magazine and the hand on it stepped
+     * against the gun by up to a tick of the player's walk */
+    if (!vr_render_drawn_camera(camera.n)) unit_get_camera_position(unit_index, &camera);
     reload.camera=camera;
     if (!vr_hand_world(vr_weapon_hand(), camera.n, weapon_hand.n, gun_forward.n, gun_up.n) ||
         !vr_hand_world(hand_index, camera.n, hand.n, forward.n, up.n)) {
@@ -602,6 +628,28 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         reload.aligned = input.near_mag;
     } else reload.aligned = FALSE;
     input.magazine_out = reload.have_attachment && !reload_component_bounds_touch(&reload.socket,&reload.held,0.005f*units);
+    /* Test59: the gun's own magazine goes back in. Pulled out and brought
+     * back (once 4 cm clear) to within 3 cm of the well, lined up as a
+     * replacement must be, it seats again, gripped or let go; let go at the
+     * well it seats even if it never came clear. Dropped, the free hand
+     * takes it back up where it lies (DROPPED MAGS draws it). */
+    if (reload.state.phase == VR_MR_OLD_HELD && reload.have_attachment) {
+        real alignment = dot_product3d(&reload.held.forward, &reload.socket.forward);
+        real up_alignment = dot_product3d(&reload.held.up, &reload.socket.up);
+        if (!reload_component_bounds_touch(&reload.socket,&reload.held,0.04f*units)) reload.pulled_clear = TRUE;
+        input.returned = reload.state.pulled && alignment > 0.45f && up_alignment > 0.45f &&
+            reload_component_bounds_touch(&reload.socket,&reload.held,0.03f*units) &&
+            (reload.pulled_clear || !input.held);
+    } else reload.pulled_clear = FALSE;
+    if (reload.state.phase == VR_MR_NEED_MAG) {
+        int slot_index = reload_dropped_slot();
+        if (slot_index >= 0) {
+            double configured_contact = config_real("vr.interaction_reach");
+            real reach = dropped_magazines[slot_index].radius +
+                ((real)(isfinite(configured_contact) ? PIN(configured_contact, 0.02, 0.08) : 0.04) + 0.02f) * units;
+            input.near_dropped = distance_squared3d(&hand, &dropped_magazines[slot_index].center) <= reach * reach;
+        }
+    }
     if (reload.state.phase == VR_MR_CHAMBER_HELD) {
         real_point3d local_hand;
         matrix4x3_inverse_transform_point(&reload.gun, &hand, &local_hand);
@@ -632,10 +680,17 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         reload.hand_sample_valid = TRUE;
     }
     {
-        int previous_phase = reload.state.phase;
+        int previous_phase = reload.state.phase, previous_own = reload.state.own;
         event = vr_mr_step(&reload.state, &input);
         if (event == VR_MR_DISCARD && previous_phase == VR_MR_OLD_HELD)
             reload.debris_pending = TRUE;
+        /* Test59: the gun's own magazine, taken back up, dropped again */
+        else if (event == VR_MR_DISCARD && previous_phase == VR_MR_NEW_HELD && previous_own) {
+            reload.debris_pending = TRUE;
+            vr_magazine_debris_transaction_new_reload(&reload.debris_transaction);
+        }
+        else if (event == VR_MR_RESEAT)
+            debris_cancel_transaction();
         else if (event == VR_MR_EJECT) {
             reload.debris_pending = TRUE;
             reload.held = reload.socket;
@@ -653,7 +708,7 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         matrix4x3_multiply(&inverse, &reload.held, &reload.insertion_local);
         reload.insertion_time = vr_pose_time();
     }
-    if (event == VR_MR_BEGIN || event == VR_MR_PICKUP || event == VR_MR_CHARGE) {
+    if (event == VR_MR_BEGIN || event == VR_MR_PICKUP || event == VR_MR_CHARGE || event == VR_MR_RECOVER) {
         if (!vr_interaction_claim_input(hand_index, VR_INTERACTION_RELOAD, input.held)) {
             platform_log("VR manual reload: grip ownership refused weapon=%ld hand=%d event=%d owner=%d; transaction cancelled without ammo change",
 				weapon_index, hand_index, event, vr_interaction_owner(hand_index));
@@ -701,6 +756,25 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
                 vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
             }
         }
+        if (event == VR_MR_RECOVER) {
+            /* Test59: the dropped magazine, as it lies, into the hand; the
+             * floor copy goes (it is the one in the hand now) */
+            int slot_index = reload_dropped_slot();
+            real_matrix4x3 lying;
+            if (slot_index < 0) {
+                reload_log_gate(weapon_index, "dropped-magazine-gone");
+                vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
+            }
+            lying = dropped_magazines[slot_index].matrices[reload.magazine];
+            if (!reload_attach_to_hand(&hand_matrix, &lying)) {
+                reload_log_gate(weapon_index, "dropped-magazine-attachment-invalid");
+                vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
+            }
+            memset(&dropped_magazines[slot_index], 0, sizeof(dropped_magazines[slot_index]));
+            vr_magazine_debris_transaction_init(&reload.debris_transaction);
+            reload.debris_pending = FALSE;
+            platform_log("VR reload debris: magazine slot=%d taken back up", slot_index);
+        }
         if (event == VR_MR_CHARGE) {
             matrix4x3_inverse_transform_point(&reload.gun, &hand, &reload.charge_start);
             reload.chamber_travel = 0;
@@ -712,10 +786,13 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
             trigger_input ? "trigger" : "grip", weapon_index, event, reload.state.phase,
             magazine->rounds_loaded, magazine->rounds_total, reload.state.chambered);
         reload_event_haptic(event, hand_index);
+        if (event == VR_MR_RESEAT)
+            platform_log("VR manual reload: the gun's own magazine went back in weapon=%ld rounds=%d; ammo unchanged",
+                weapon_index, magazine->rounds_loaded);
     }
     if (reload_pressed && event == VR_MR_NONE && reload.state.phase == VR_MR_IDLE && !input.can_load)
         vr_haptic(vr_weapon_hand(), 0.12f, 0.02f); /* no reserve: the release clicks, nothing drops */
-    if (!input.held || event == VR_MR_CANCEL || event == VR_MR_COMMIT)
+    if (!input.held || event == VR_MR_CANCEL || event == VR_MR_COMMIT || event == VR_MR_RESEAT)
         vr_interaction_release(hand_index, VR_INTERACTION_RELOAD);
     /* The edge is consumed by vr_mr_step() to eject/cancel. Do not return on
      * the raw held button here: the active transaction must keep blocking fire. */
@@ -914,6 +991,11 @@ void vr_manual_reload_model(long weapon_index, long model_index, real_matrix4x3 
         vr_manual_reload_reset(); return;
     }
     reload.sample_time = vr_pose_time(); reload.ready = TRUE;
+    {
+        /* Test59: the held magazine from this frame's camera, with the gun */
+        real_point3d drawn;
+        if (vr_render_drawn_camera(drawn.n)) reload.camera = drawn;
+    }
     reload_refresh_held_pose();
     if (reload.state.phase == VR_MR_SEATING) {
         real_matrix4x3 from;

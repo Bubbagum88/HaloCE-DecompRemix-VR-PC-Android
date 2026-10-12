@@ -35,9 +35,9 @@ assert "damage_definition->instantaneous_acceleration * damage->scale" in hook
 assert "TEST_FLAG(damage->flags, _damage_area_of_effect_bit)" in hook
 death = body(npc, "void vr_npc_interaction_death(long index)")
 assert "2.2f*units" not in death
-assert "real kick=blow.local*units/(real)TICKS_PER_SECOND" in death
+assert "kick=blow.local*units/(real)TICKS_PER_SECOND;" in death  # Test59: after DEATH FORCE's burst
 assert "MAX(want-along,0.0f)" in death, "the blow adds to the engine's own push, never doubles it"
-assert "kick_mps=%.1f push_mps=%.1f explosion=%d" in death
+assert "kick_mps=%.1f push_mps=%.1f lift_mps=%.1f explosion=%d force=%d" in death  # Test59: lift and DEATH FORCE logged
 note = body(npc, "void vr_npc_interaction_note_damage(")
 assert "vr_npc_hit_add(&npc_damage_notes[last].hit,&hit);" in note, "pellets in one tick add up"
 
