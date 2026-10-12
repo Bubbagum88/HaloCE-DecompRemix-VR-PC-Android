@@ -1,3 +1,77 @@
+# Test57 private candidate: 1.0.24-test57
+
+## Test57: final polish: every vehicle its own controls
+
+This private test build follows Test56 and was shaped by your Test56 session
+(the 19:56 log, the Blood Gulch drive and the assault rifle close-up) and your
+messages. It installs over Test56, Test55, Test54, Test53 and v1.0.19 (same
+package names and signing key, Android version code 69) and keeps your
+settings, profiles, saves and imported game data. Ragdolls, grabbing, NPC
+lifting, throwing, climbing, wall running, manual reload, holsters, voice
+chat, multiplayer and co-op, OpenCE compatibility (network 26), aiming,
+scopes, left-handed play and the launcher are unchanged.
+
+### Vehicles: every vehicle its own controls
+
+All of this applies only with **IMMERSIVE VEHICLE** on. Ordinary vehicle
+controls are exactly as before, and nothing below is drawn or used with it
+off.
+
+- **Warthog: a virtual wheel.** Your log showed 50 seconds of Warthog driving
+  in which the Warthog's own wheel never took your hand, while the Ghost's
+  handlebar took it every time. The Warthog now has its own drawn steering
+  wheel: a rubber rim, three spokes, a hub, and an olive mark at twelve
+  o'clock that shows how far it's turned. It sits just in front of the
+  Warthog's wheel. Grip anywhere on it, rim or spokes, with one hand or both.
+  Either hand can let go and the other keeps steering. It reaches 4 cm
+  further than before.
+- **Prefer the Warthog's own wheel?** Set **VIRTUAL WHEEL** to HIDDEN (VR
+  Settings → VEHICLES). The grab then sits exactly on the Warthog's own wheel,
+  and HOG REACH, HOG LEFT, HOG HEIGHT and HOG SIZE line it up.
+- **Scorpion: a drive stick.** One stick between your hands. Grip the knob
+  and lean it the way you want to go. The tank's turret follows your head.
+  A Wraith gets the same stick, on maps where a player can drive one.
+- **Banshee: a flight bar.** Roll it, or slide it sideways (12 cm is a full
+  turn), to turn. Push to dive and pull to climb.
+- **Ghost:** the handlebar you liked, unchanged in reach and steering. It
+  now also gets the two touches below.
+- **Feel and look:** a soft tick when the steering crosses straight ahead,
+  and the controls light up when a free hand is close enough to take them.
+  Your fingers close around whatever you hold, and let go smoothly.
+- **New VEHICLES rows (all on):** **CONTROL GLOW** (the highlight),
+  **STEER HAPTICS** (the turning ticks, the centre tick and the full-lock
+  buzz; the grab and let-go pulses stay) and **BANSH SLIDE** (turning the
+  Banshee by sliding its bar).
+- If a squeeze doesn't take the controls, the log now says how far away your
+  hand was (`immersive ... not taken by hand`).
+
+Getting in and out resets everything: each vehicle starts with its own
+controls centred, and no grip carries over from one vehicle to another.
+
+### The assault rifle's safety button
+
+The small round part with a red ring on the side of the assault rifle is the
+gun's **safety button** ("frame safety button" in the model). It was checked
+against the stock animations on your disc. In the idle, walking and firing
+animations it sits exactly where you see it. The draw animation pushes it in
+and lets it pop out to that spot. In the flat game the camera never shows that
+side of the gun. Nothing is wrong, so it was left as it is.
+
+### Checked and left alone
+
+- **Ragdolls:** they already carry the shot and the throw into the fall.
+  Anything stronger would risk the settling that now works, so they're
+  unchanged.
+- **Holster and pouch calibration:** the triggers, the blue markers, the
+  sizes, the left/right mirroring and the saved settings all agree. No
+  change.
+
+These changes are checked on a PC (automated checks and builds), not yet in
+the headset. Please test with **CONTACT LOG** on and keep the log from
+Download/HaloCE: [Test57 device checks](TEST57-DEVICE-CHECKLIST.md).
+
+---
+
 # Test56 private candidate: 1.0.23-test56
 
 ## Test56: polish: ragdolls, immersive vehicles, throwing and lifting

@@ -1194,7 +1194,19 @@ IMMERSIVE VEHICLE: first-person cockpit controls. Grip the Warthog's own wheel, 
 
 vr.vehicle_wheel_visible [boolean]
 Default: true
-Show virtual cockpit control geometry. Hiding it retains physical grip controls.
+Show virtual cockpit control geometry. Hiding it retains physical grip controls; the Warthog's wheel is then taken on the vehicle's own wheel (HOG REACH, LEFT, HEIGHT and SIZE line it up), drawn it sits 2.5 cm in front of it.
+
+vr.vehicle_control_glow [boolean]
+Default: true
+CONTROL GLOW: the immersive vehicle controls light up while a free hand is close enough to take them.
+
+vr.vehicle_steer_haptics [boolean]
+Default: true
+STEER HAPTICS: light ticks as the immersive vehicle controls turn, a tick crossing the centre and a firmer buzz at full lock (the grab and let-go pulses stay; HAPTICS scales all).
+
+vr.vehicle_banshee_slide [boolean]
+Default: true
+BANSH SLIDE: the Banshee's immersive flight bar also turns when slid sideways (12 cm is full lock), as well as when rolled; off, rolling alone turns it.
 
 vr.handle_warthog_forward [real]
 Default: 0.0
