@@ -1,29 +1,29 @@
 {
-    "schema":  1,
-    "project":  "moistman42069/HaloCE-Quest-VR",
-    "tag":  "v1.0.12",
-    "source_commit":  "688a63e3635efc97b93caeb62b5a07a0db1f6325",
-    "minimum_app_code":  15,
-    "save_policy":  "preserve",
-    "config_policy":  "preserve",
-    "vr_and_coop_integrated":  true,
-    "native_minimum":  21,
-    "native_maximum":  21,
-    "coop":  "opence-native",
-    "editions":  {
-                     "com.halo.decomp.vr":  {
-                                                "apk":  "HaloCE-Quest-1.0.12.apk",
-                                                "sha256":  "dcbce7fed5d02161a22441b7d18cdfc9ded59250b181e83b21ffc1c9e9b27f22",
-                                                "bytes":  28347011,
-                                                "version_code":  38,
-                                                "min_sdk":  28
-                                            },
-                     "com.halo.decomp":  {
-                                             "apk":  "HaloCE-Android-1.0.12.apk",
-                                             "sha256":  "63af9c7ac012c3d68d4036af9c432ef7134e274f11a0c69b5f56b9c09151fcf1",
-                                             "bytes":  26270260,
-                                             "version_code":  38,
-                                             "min_sdk":  28
-                                         }
-                 }
+  "schema": 1,
+  "project": "moistman42069/HaloCE-Quest-VR",
+  "tag": "v1.0.31",
+  "source_commit": "d1a61e06d08b5ed044a941c447e8872661aea0fa",
+  "minimum_app_code": 15,
+  "save_policy": "preserve",
+  "config_policy": "preserve",
+  "vr_and_coop_integrated": true,
+  "native_minimum": 11,
+  "native_maximum": 28,
+  "coop": "opence-native",
+  "editions": {
+    "com.halo.decomp.vr": {
+      "apk": "HaloCE-Quest-1.0.31.apk",
+      "sha256": "45119f2e246e68d9818e82c6874274945c69801a1a263540d501c4fadd19de90",
+      "bytes": 36158654,
+      "version_code": 76,
+      "min_sdk": 28
+    },
+    "com.halo.decomp": {
+      "apk": "HaloCE-Android-1.0.31.apk",
+      "sha256": "debcca425b2e467729ebeca991f5c0607bb986e42b93ec2c5c2dcfeef21de4a9",
+      "bytes": 33895155,
+      "version_code": 76,
+      "min_sdk": 28
+    }
+  }
 }

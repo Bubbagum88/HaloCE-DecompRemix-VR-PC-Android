@@ -1,3 +1,10 @@
+> **Public promotion authorized 2026-10-12:** the owner requested Test64 as
+> public **v1.0.31**, retaining the exact `1.0.31-test64`/code76 APKs.
+> This supersedes the historical local-only publication holds below for this release.
+> Read `docs/RELEASE-1.0.31.md` and `docs/RELEASE-PROVENANCE-1.0.31.md`.
+> Publication is for user testing/log collection; it does not certify the device checklist.
+> Runtime source remains `d1a61e06`; experimental systems remain WIP.
+
 > Historical development record. Current release/defaults/continuation instructions are in `docs/CURRENT-STATE.md` (or `CURRENT-STATE.md` from this directory). Dated branch/private-work references below describe earlier work.
 
 # Quest VR port: handoff
