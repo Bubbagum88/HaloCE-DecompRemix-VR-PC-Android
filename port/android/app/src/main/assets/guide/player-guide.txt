@@ -1,3 +1,23 @@
+# Test64 private candidate: 1.0.31-test64
+
+## Test64: VR SETTINGS open again
+
+This private build fixes your Test63 crash and changes nothing else. It
+installs over Test63 and earlier (same package names and signing key, Android
+version code 76) and keeps your settings, profiles, saves and game data.
+
+- **Opening VR SETTINGS crashed the game in Test63.** Your 14:09 log ends in
+  a crash the moment the settings opened. Test63's new topic list (a
+  category with three or more screens opens a list of its sections first)
+  was also built for the list of categories itself, which is three screens
+  long, and it read past the end of the category table to name its rows.
+  The topic list is now made only for a category's own pages; the category
+  list pages with NEXT as before.
+- Everything else in Test63 is unchanged and still waits for your headset
+  test: see the Test63 section below and `TEST63-DEVICE-CHECKLIST.md`.
+
+---
+
 # Test63 private candidate: 1.0.30-test63
 
 ## Test63: your Test62 session, fixed
