@@ -1,3 +1,47 @@
+# Test60 private candidate: 1.0.27-test60
+
+## Test60: impacts for every NPC, settings that come on together
+
+This private test build answers your Test59 session (the 07:04 log and the
+07:12 video). It installs over Test59 and earlier (same package names and
+signing key, Android version code 72) and keeps your settings, profiles,
+saves and imported game data.
+
+### Impact damage
+
+- **Slamming and throwing bodies hurts them, friendly or not.** Your Test59
+  log has no impact at all, even for marines thrown at 24 m/s with IMPACT
+  DAMAGE on. Three things were wrong:
+  - A body slammed flat onto the floor or glancing off a wall touched it
+    with the edge of a joint, never its centre, and only a centre hit
+    counted. Now a touch is checked straight into the surface it met, so a
+    hard slam counts (how hard still depends on the speed into the surface,
+    so a body sliding along the ground isn't hurt).
+  - A thrown or slammed body passed straight through other NPCs and
+    vehicles, so it could never hit them. Now it strikes them: the body
+    stops against them, both take the blow and the one hit is knocked back.
+    Your own body (the hands holding it) is never hit.
+  - The blow counted as friendly fire, and allies such as marines shrug off
+    most friendly fire, so a slammed marine barely felt it. A physical blow
+    now hurts every NPC fully (it is still yours, for kills).
+- IMPACT SPEED and IMPACT CAP work as before.
+
+### Settings that come on together
+
+- Turning on **DEATH RAGDOLLS** now also turns on **NPC GRAB**, **NPC
+  RESCUE** and **IMPACT DAMAGE** (and FIST REQUIRED, as NPC GRAB always
+  did). Turning on **NPC GRAB** turns on NPC RESCUE and IMPACT DAMAGE;
+  **WORLD GRAB** and **LIFT VEHICLES** turn on IMPACT DAMAGE.
+- Turning on a vehicle option that only works with the immersive controls
+  (STEER HAPTICS, COMFORT REACH, TANK DRIVE, BANSH SLIDE, CONTROL GLOW,
+  VIRTUAL WHEEL) turns on **IMMERSIVE VEHICLE**; **HOLSTER HAPTICS** turns
+  on **HOLSTERS**.
+- You can still turn any of them off yourself afterwards and it stays off.
+  What a feature turned on goes off again when you turn that feature off,
+  unless you chose it yourself.
+
+---
+
 # Test59 private candidate: 1.0.26-test59
 
 ## Test59: real hands in vehicles, the latest network, magazines back in
