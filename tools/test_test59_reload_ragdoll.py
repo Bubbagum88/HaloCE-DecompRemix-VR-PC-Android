@@ -129,3 +129,8 @@ with tempfile.TemporaryDirectory() as directory:
                     str(path / "t.c"), "-o", str(path / "t"), "-lm"], check=True)
     subprocess.run([str(path / "t")], check=True)
 print("PASS: Test59 reload (the gun's own magazine back in, hands from the drawn camera) and DEATH FORCE wiring")
+# Test59: a blast's own throw kept up to 12 m/s with DEATH FORCE (the 05:37
+# log's explosion deaths were all clipped to speed_mps=9.00)
+assert "capture_limit=.40f;" in death and "if(!vr_world_limit(velocity.n,capture_limit*units))velocity=*global_zero_vector3d;" in death
+assert death.index("capture_limit=.40f;") > death.index("npc_death_force()>VR_NPC_FORCE_CLASSIC")
+print("PASS: Test59 explosion deaths keep up to 12 m/s of the engine's own throw with DEATH FORCE")

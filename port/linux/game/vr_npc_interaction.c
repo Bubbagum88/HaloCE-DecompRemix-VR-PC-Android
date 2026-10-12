@@ -1251,7 +1251,19 @@ void vr_npc_interaction_death(long index)
     {
         real_vector3d velocity=u->object.translational_velocity;
         int torso=biped_definition_get(u->definition_index)->biped.runtime_pelvis_node_index;
-        if(!vr_world_limit(velocity.n,.30f*units))velocity=*global_zero_vector3d;
+        real capture_limit=.30f;
+        /* Test59: DEATH FORCE keeps more of a blast's own throw: the engine
+         * gave a body near the blast more than 9 m/s, which was clipped to it
+         * (owner's 05:37 log: speed_mps=9.00 for every explosion death) */
+        {
+            real_point3d peek_point;real_vector3d peek_direction;
+            struct vr_npc_hit peek={0,0,0};
+            int peek_area=FALSE;
+            if(npc_death_force()>VR_NPC_FORCE_CLASSIC &&
+               npc_recent_damage(index,&peek_point,&peek_direction,&peek,&peek_area) && peek_area)
+                capture_limit=.40f;
+        }
+        if(!vr_world_limit(velocity.n,capture_limit*units))velocity=*global_zero_vector3d;
         npc.active=1;npc.started=1;npc.death=1;npc.index=index;npc.player=NONE;npc.tick=game_time_get();
         npc.species_type=species;npc.minimum_hands=hands;npc.mobility=mobility;
         npc.root=u->object.position;npc.settling=1;
