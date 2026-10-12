@@ -35,8 +35,9 @@ def function(name):
     raise AssertionError(name)
 
 
-assert "#define HALO_PORT_NETWORK_VERSION 26" in limits
-assert "#define HALO_PORT_NETWORK_VERSION_MAXIMUM 26" in limits
+# Test59: hosting moves to OpenCE network 28 (27: map sharing, 28: its rules); 26's signalling is unchanged
+assert "#define HALO_PORT_NETWORK_VERSION 28" in limits
+assert "#define HALO_PORT_NETWORK_VERSION_MAXIMUM 28" in limits
 assert "MESSAGE_VERSION_LEGACY = 3," in source and "MESSAGE_VERSION = 4," in source
 send = function("static void send_join(void)")
 assert "send_join_version(MESSAGE_VERSION);" in send and "send_join_version(MESSAGE_VERSION_LEGACY);" in send
@@ -163,4 +164,4 @@ assert "TEST_FLAG(state->flags, _distributed_object_light_sent_bit) &&" in objec
 assert "!distributed_unit_driven_here(state->object_index)" in objects
 print("PASS: network 25 integrated-light state bits sent by this host and applied from 25/26 hosts")
 print("PASS: joins ask in versions 4 and 3 until answered, then keep the host's; hosts answer in the request's version "
-      "and turn browsers away; hosting is network 26 with clients 11-26")
+      "and turn browsers away; hosting is network 28 with clients 11-28")

@@ -23,7 +23,7 @@ def function(source, name):
 
 # Preserve the released Build 148 fixes while the candidate moves to Build 157.
 limits = read("port/linux/include/halo_port_limits.h")
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 26$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 28$", limits, re.M)
 gradle = read("port/android/app/build.gradle")
 assert ("versionCode Math.max(70, buildNumber)" in gradle or
         "versionCode Math.max(69, buildNumber)" in gradle or
@@ -48,15 +48,18 @@ assert ("HaloCE Quest test58 candidate 1.0.25-test58 code70" in frame or
         "HaloCE Quest test51 candidate 1.0.32-test51 code62" in frame or
         "HaloCE Quest test50 candidate 1.0.31-test50 code61" in frame or
         "HaloCE Quest test49 candidate 1.0.30-test49 code60" in frame)
-assert ("OpenCE Build157 base / network26; selected fixes through Build184" in frame or
+assert ("OpenCE Build157 base / network28; selected fixes through Build201" in frame or
+        "OpenCE Build157 base / network26; selected fixes through Build184" in frame or
         "OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176" in frame or
         "OpenCE Build 157 base / network 24; selected Build167 compatibility fixes" in frame)
 updater = read('port/android/app/src/main/java/com/halo/decomp/Updater.java')
-assert ('Engine base: OpenCE Build 157 / network 26. Selected fixes through Build 184' in updater or
+assert ('Engine base: OpenCE Build 157 / network 28. Selected fixes through Build 201' in updater or
+        'Engine base: OpenCE Build 157 / network 26. Selected fixes through Build 184' in updater or
         'Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177' in updater or
         'Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167' in updater)
 package_script = read("tools/package-quest.py")
-assert ('b"Engine base: OpenCE Build 157 / network 26. Selected fixes through Build 184' in package_script or
+assert ('b"Engine base: OpenCE Build 157 / network 28. Selected fixes through Build 201' in package_script or
+        'b"Engine base: OpenCE Build 157 / network 26. Selected fixes through Build 184' in package_script or
         'b"Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177' in package_script or
         'b"Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167"' in package_script)
 assert 'if candidate_at_least(args.label, 42) else' in package_script

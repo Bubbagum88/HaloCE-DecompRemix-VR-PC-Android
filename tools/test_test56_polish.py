@@ -117,13 +117,14 @@ assert "grip_blend[controller] = PIN(grip_blend[controller] + (gripping ? step :
 assert "if (tracked_fingers || grip_blend[controller] > 0.0f)" in render
 
 # OpenCE Builds 189-190: 189 (Custom Edition map sharing) raises the network
-# to 27 and is not taken (this app stays network 26). Build 190's lobby fix
+# to 27; Test59 hosts OpenCE network 28 (Build 201), answering map sharing's
+# requests as a host that shares none (network_distributed.c). Build 190's lobby fix
 # (2059b6ce) is the host's alone: a machine joining or leaving (no player yet)
 # no longer stops and restarts the countdown or holds the start; it joins the
 # game in progress (network_game_server_start_late_joiner).
 server = read("source/networking/network_server_manager.c")
 limits = read("port/linux/include/halo_port_limits.h")
-assert "#define HALO_PORT_NETWORK_VERSION 26" in limits
+assert "#define HALO_PORT_NETWORK_VERSION 28" in limits
 assert "map_share" not in server
 countdown = body(server, "boolean server_ok_to_countdown(")
 assert "server_has_a_player_on_each_machine" not in countdown and "server_has_enough_machines(server) &&" in countdown

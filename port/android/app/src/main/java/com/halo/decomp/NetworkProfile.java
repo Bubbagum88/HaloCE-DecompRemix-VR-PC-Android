@@ -5,12 +5,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 
-/** Compatible host targets, selected between game processes. Hosting stays on current protocol 26.
+/** Compatible host targets, selected between game processes. Hosting stays on current protocol 28.
  * All compatible networks is the default (most servers); a selection the player made is kept. */
 final class NetworkProfile {
     static final int DEFAULT = 0;
-    static final int CURRENT = 26;
-    static final int[] SUPPORTED = {26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11};
+    static final int CURRENT = 28;
+    static final int[] SUPPORTED = {28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11};
     private static volatile int runningVersion;
     private static volatile boolean gameRunning;
 
@@ -49,8 +49,8 @@ final class NetworkProfile {
     static final String LEGACY_WARNING = "Legacy network 12-14 co-op is optional and OFF by default. "
         + "These old hosts do not send scripted team allegiance: Marines may show hostile/red reticles and other team behavior can differ. "
         + "The client preserves the old native behavior rather than inventing host allegiance. Other old-host bugs remain. "
-        + "Prefer network 15-26 for campaign. Network 11 has no campaign co-op. Custom Edition still requires 23 or newer. "
-        + "Enhanced physical interactions stay disabled unless the host and all peers negotiate support. Hosting remains network 26.";
+        + "Prefer network 15-28 for campaign. Network 11 has no campaign co-op. Custom Edition still requires 23 or newer. "
+        + "Enhanced physical interactions stay disabled unless the host and all peers negotiate support. Hosting remains network 28.";
 
     static boolean legacyCoop(File root) {
         return "true".equalsIgnoreCase(ConfigSettings.read(root, "network", "legacy_coop", "false"));

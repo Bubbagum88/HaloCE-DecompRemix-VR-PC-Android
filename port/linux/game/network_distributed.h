@@ -129,6 +129,16 @@ enum
 	_distributed_message_voice_up = 80,
 	_distributed_message_voice_down = 81,
 	_distributed_message_voice_config = 82,
+	/* OpenCE's map sharing (network 27, its map_share.c), in the lobby too,
+	reliably: a client's request for the game's Custom Edition map, the
+	host's offer of its files, the machines that may have them, and the
+	client's progress. This build shares no maps: its host answers a request
+	as an OpenCE host with network.map_share off does (network_distributed.c),
+	and its client never asks */
+	_distributed_message_map_share_request = 83,
+	_distributed_message_map_share_offer = 84,
+	_distributed_message_map_share_sources = 85,
+	_distributed_message_map_share_progress = 86,
 
 	NUMBER_OF_DISTRIBUTED_MESSAGES
 };
@@ -213,6 +223,11 @@ void distributed_client_send_identity(void);
 void distributed_send_to_machine(long machine_index, void *message, byte type, short count, word size);
 /* ... reliably to one client (the host) */
 void distributed_send_to_machine_reliably(long machine_index, void *message, byte type, short count, word size);
+/* OpenCE's map sharing (network 27): whether a message is one of its, and
+its handling (the host answers a request: it shares no maps); from_stream
+says it came over the sender's connection, not as a datagram */
+boolean map_share_handles_message(word const *message, word size);
+void map_share_handle_message(long machine_index, word const *message, word size, boolean from_stream);
 /* the player at an absolute index, or NULL */
 struct player_datum *distributed_player(short player_index);
 /* a player's absolute index for a message, NO_PLAYER for none; and back */
