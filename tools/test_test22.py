@@ -93,6 +93,7 @@ assert 'render_interpolation_object_node_matrices(vr_render.seat.vehicle_index)'
 assert 'real seat_heading = vr_seat_frame_heading();' in fn(render, 'view_heading')
 assert 'real seat_heading = vr_seat_frame_heading();' in fn(render, 'vr_vehicle_adjust_anchor')
 assert re.search(r'unit_get_camera_position\(vr_render\.seat\.unit_index, anchor\);\n\t\tvr_seat_steady_anchor\(anchor\);\n'
+                 r'\t\tvr_vehicle_hatch_lift\(anchor\);\n'  # Test58: TANK HATCH (off by default)
                  r'\t\tvr_vehicle_adjust_anchor\(anchor\);', fn(render, 'view_anchor'))
 assert 'heading = vr_render.seat.heading;' in fn(render, 'vr_player_control_facing') or \
     'real heading = vr_render.seat.heading;' in fn(render, 'vr_player_control_facing'), 'the aim keeps the tick heading'
@@ -122,6 +123,8 @@ static void *object_header_block_get(long i, struct object_header_block_referenc
 static double vr_pose_time(void){return now_time;}
 static real vr_units_per_metre(void){return 3.2808f;}
 static real vr_yaw(real_vector3d const *v){return atan2f(v->j, v->i);}
+/* Test61: the immersive vehicle controls hold the seat's eyes still */
+static int steady_lock; static int vr_vehicle_handles_steady(void){return steady_lock;}
 ''' + fn(render, 'vr_seat_frame_heading') + fn(render, 'vr_seat_steady_anchor') + r'''
 static void pose(real_matrix4x3 *m, real yaw, real pitch, real x, real y, real z){
  real cy=cosf(yaw), sy=sinf(yaw), cp=cosf(pitch), sp=sinf(pitch);
@@ -150,6 +153,17 @@ int main(void){
   vr_seat_steady_anchor(&a);
   if(n>144){ real_point3d rest=place(&drawn[0],0.2f,0.1f,0.6f); real d=fabsf(a.z-rest.z); if(d>bob_out)bob_out=d; if(fabsf(b)>bob_in)bob_in=fabsf(b);} }
  assert(bob_out<0.15f*bob_in);
+ /* Test61: the immersive vehicle controls up: the head marker leaning with
+  * the steering animation moves the eyes not at all (the vehicle still
+  * carries them whole) */
+ { real_point3d held; int first=1; real drift=0; steady_lock=1;
+  for(int n=0;n<360;n++){
+   now_time=200+n/72.0; pose(&drawn[0], 0.3f, 0, 10, 20, 1);
+   real b=0.08f*3.2808f*sinf(2*_pi*1.5f*n/72.0f); real_point3d head=place(&drawn[0],0.2f,0.1f+b,0.6f), a=head;
+   vr_seat_steady_anchor(&a);
+   if(first){held=a;first=0;} for(int k=0;k<3;k++){real d=fabsf(a.n[k]-held.n[k]); if(d>drift)drift=d;} }
+  assert(drift<1e-4f);
+  steady_lock=0; }
  /* another seat: its head at once */
  vr_render.seat.seat_index=1; now_time+=1.0/72; { real_point3d head=place(&drawn[0],-0.5f,0.4f,0.7f), a=head;
   vr_seat_steady_anchor(&a); for(int k=0;k<3;k++)assert(fabsf(a.n[k]-head.n[k])<1e-4f); }
@@ -200,6 +214,13 @@ run('scope', r'''
 #include <stdio.h>
 #include <string.h>
 #include "port/linux/src/vr_alignment.h"
+#include "port/linux/src/vr_scope_profiles.h"
+#define SCOPE_ENUM(key,label,gun) scope_profile_##key,
+enum { VR_SCOPE_PROFILES(SCOPE_ENUM) };
+#undef SCOPE_ENUM
+#define GUN_ENUM(key,label,gun) gun,
+enum { VR_SCOPE_PROFILES(GUN_ENUM) };
+#undef GUN_ENUM
 #define VR_SCOPE_ROUND 1
 #define VR_SCOPE_SNIPER 2
 #define VR_SCOPE_ROCKET 3
@@ -208,9 +229,12 @@ run('scope', r'''
 struct halo_xr_pose { float position[3], orientation[4]; };
 struct halo_xr_layers { unsigned flags; struct halo_xr_pose scope_pose; float scope_size[2]; };
 static struct { int weapon_hand, scope_shape, zoom_level, two_handed, gun_class, settings_generation;
- float scope_size, scope_adjust[2][4]; struct halo_xr_pose aim_pose, shot_pose;
+ float scope_size, scope_adjust[VR_SCOPE_PROFILE_COUNT][4]; struct halo_xr_pose aim_pose, shot_pose;
  struct { struct halo_xr_pose head; unsigned hand_valid[2]; } frame; } vr;
 static void platform_log(const char *format,...){ (void)format; }
+static float scope_wrist_origin[3];static double scope_wrist_time=-1;static int scope_anchor_enabled;
+static int config_boolean(char const*k){(void)k;return scope_anchor_enabled;}
+static double vr_pose_time(void){return 5;}
 ''' + fn(frame, 'rotate') + fn(frame, 'tracked_hand_origin') + fn(frame, 'place_scope') + r'''
 static const float usual[3][3]={{-0.10f,0.00f,0.15f},{-0.15f,0.00f,0.15f},{0.10f,0.20f,0.10f}};
 int main(void){
@@ -219,20 +243,30 @@ int main(void){
  memcpy(vr.frame.head.position, vr.aim_pose.position, sizeof(vr.aim_pose.position));
  memcpy(vr.shot_pose.position, vr.aim_pose.position, sizeof(vr.aim_pose.position));
  memcpy(vr.shot_pose.orientation, vr.aim_pose.orientation, sizeof(vr.aim_pose.orientation));
- for(int s=0;s<2;s++) vr.scope_adjust[s][3]=1;
+ for(int s=0;s<VR_SCOPE_PROFILE_COUNT;s++) vr.scope_adjust[s][3]=1;
  for(int hand=0;hand<2;hand++) for(int shape=VR_SCOPE_ROUND;shape<=VR_SCOPE_ROCKET;shape++){
   struct halo_xr_layers l={0}; float local[3], t[3]; const float *o=usual[shape-1];
-  vr.weapon_hand=hand; vr.scope_shape=shape; place_scope(&l);
+  vr.weapon_hand=hand; vr.scope_shape=shape; vr.gun_class=shape==VR_SCOPE_ROUND?VR_GUN_PISTOL:shape==VR_SCOPE_SNIPER?VR_GUN_SNIPER_RIFLE:VR_GUN_ROCKET_LAUNCHER; place_scope(&l);
   /* nothing set: exactly the usual place, size and turn */
   local[0]=hand ? -o[1] : o[1]; local[1]=o[2]; local[2]=-o[0]; rotate(vr.aim_pose.orientation, local, t);
   for(int a=0;a<3;a++) assert(fabsf(l.scope_pose.position[a]-(vr.aim_pose.position[a]+t[a]))<1e-6f);
   assert(l.scope_size[0]==0.06f && !memcmp(l.scope_pose.orientation, vr.shot_pose.orientation, sizeof(float[4])));
  }
+ /* A fresh actual wrist anchor replaces ONLY the origin; per-gun offsets stay rigid. */
+ {struct halo_xr_layers original={0},anchored={0},stale={0};
+  place_scope(&original);scope_anchor_enabled=1;scope_wrist_time=5;
+  for(int k=0;k<3;k++)scope_wrist_origin[k]=vr.aim_pose.position[k]+.1f*(k+1);
+  place_scope(&anchored);
+  for(int k=0;k<3;k++)assert(fabsf(anchored.scope_pose.position[k]-original.scope_pose.position[k]-.1f*(k+1))<1e-5f);
+  assert(!memcmp(anchored.scope_pose.orientation,original.scope_pose.orientation,sizeof(float[4])));
+  scope_wrist_time=4;place_scope(&stale);assert(!memcmp(stale.scope_pose.position,original.scope_pose.position,sizeof(float[3])));
+  scope_anchor_enabled=0;
+ }
  /* the sniper rifle's 5 cm right, 2 cm up, 3 cm forward, 150%: right is the player's right in either hand */
  vr.scope_adjust[1][0]=0.03f; vr.scope_adjust[1][1]=0.02f; vr.scope_adjust[1][2]=0.05f; vr.scope_adjust[1][3]=1.5f;
  for(int hand=0;hand<2;hand++){
   struct halo_xr_layers a={0}, b={0}; float moved[3], right[3]={1,0,0}, up[3]={0,1,0}, back[3]={0,0,1}, r[3], u[3], k[3];
-  vr.weapon_hand=hand; vr.scope_shape=VR_SCOPE_SNIPER; place_scope(&b);
+  vr.weapon_hand=hand; vr.scope_shape=VR_SCOPE_SNIPER; vr.gun_class=VR_GUN_SNIPER_RIFLE; place_scope(&b);
   float keep[4]; memcpy(keep, vr.scope_adjust[1], sizeof(keep)); memset(vr.scope_adjust[1],0,sizeof(keep)); vr.scope_adjust[1][3]=1;
   place_scope(&a); memcpy(vr.scope_adjust[1], keep, sizeof(keep));
   for(int i=0;i<3;i++) moved[i]=b.scope_pose.position[i]-a.scope_pose.position[i];
@@ -246,7 +280,7 @@ int main(void){
   * center and physical sight offset stay on the gun, in either hand. */
  for(int hand=0;hand<2;hand++) for(int shape=VR_SCOPE_ROUND;shape<=VR_SCOPE_ROCKET;shape++){
   struct halo_xr_layers base={0}, calibrated={0}; float corrected[3]={-10,25,0}, correction[4];
-  vr.weapon_hand=hand; vr.scope_shape=shape;
+  vr.weapon_hand=hand; vr.scope_shape=shape; vr.gun_class=shape==VR_SCOPE_ROUND?VR_GUN_PISTOL:shape==VR_SCOPE_SNIPER?VR_GUN_SNIPER_RIFLE:VR_GUN_ROCKET_LAUNCHER;
   memcpy(vr.shot_pose.orientation,vr.aim_pose.orientation,sizeof(vr.aim_pose.orientation));
   place_scope(&base);
   vr_alignment_rotation(corrected,correction);
@@ -264,7 +298,7 @@ int main(void){
   memcpy(vr.shot_pose.position,vr.aim_pose.position,sizeof(vr.aim_pose.position));
   vr_alignment_rotation(zero,vr.aim_pose.orientation);
   memcpy(vr.shot_pose.orientation,vr.aim_pose.orientation,sizeof(vr.aim_pose.orientation));
-  vr.scope_shape=VR_SCOPE_SNIPER; vr.weapon_hand=0;
+  vr.scope_shape=VR_SCOPE_SNIPER; vr.gun_class=VR_GUN_SNIPER_RIFLE; vr.weapon_hand=0;
   vr.scope_adjust[1][0]=vr.scope_adjust[1][1]=vr.scope_adjust[1][2]=0;
   tracked_hand_origin(&vr.aim_pose,origin); place_scope(&l);
   assert(fabsf(origin[0]-1.1f)<1e-6f && fabsf(origin[1]-1.1f)<1e-6f && fabsf(origin[2]-0.3f)<1e-6f);
@@ -273,9 +307,75 @@ int main(void){
   assert(fabsf(l.scope_pose.position[2]-(origin[2]+0.15f))<1e-6f);
  }
  /* the pistol's own settings leave the sniper's and the rocket's alone */
- vr.scope_adjust[0][1]=0.1f; vr.weapon_hand=1; vr.scope_shape=VR_SCOPE_ROCKET;
+ vr.scope_adjust[0][1]=0.1f; vr.weapon_hand=1; vr.scope_shape=VR_SCOPE_ROCKET; vr.gun_class=VR_GUN_ROCKET_LAUNCHER;
  { struct halo_xr_layers l={0}; place_scope(&l); assert(l.scope_size[0]==0.06f); }
+ /* Every gun profile changes its own scope, including shared-mask/custom guns. */
+#define GUN_VALUE(key,label,gun) gun,
+ { int guns[]={VR_SCOPE_PROFILES(GUN_VALUE)};
+  for(int g=0;g<VR_SCOPE_PROFILE_COUNT;g++) for(int hand=0;hand<2;hand++) {
+   struct halo_xr_layers a={0},b={0}; vr.gun_class=guns[g]; vr.weapon_hand=hand; vr.scope_shape=VR_SCOPE_ROUND;
+   memset(vr.scope_adjust,0,sizeof(vr.scope_adjust));
+   for(int q=0;q<VR_SCOPE_PROFILE_COUNT;q++)vr.scope_adjust[q][3]=1;
+   place_scope(&a); vr.scope_adjust[g][0]=.12f;vr.scope_adjust[g][1]=.03f;vr.scope_adjust[g][2]=-.04f;vr.scope_adjust[g][3]=2;
+   place_scope(&b); assert(fabsf(b.scope_size[0]-.12f)<1e-6f);
+   assert(fabsf(b.scope_pose.position[0]-a.scope_pose.position[0]+.04f)<1e-6f);
+   assert(fabsf(b.scope_pose.position[1]-a.scope_pose.position[1]-.03f)<1e-6f);
+   assert(fabsf(b.scope_pose.position[2]-a.scope_pose.position[2]+.12f)<1e-6f);
+  }
+ }
+#undef GUN_VALUE
  puts("PASS: baseline scope placement holds for both hands; calibrated scope plane matches the shot view while its center stays on the gun; "
       "extended hands use the 90 cm reach clamp; pistol and sniper adjustments and sizes stay independent");
+}
+''')
+
+# Test62: execute both sides of the guest-to-host final-wrist bridge. A zero
+# anchoring correction is still a drawn gun and must publish its scope anchor.
+run('scope_wrist_bridge', r'''
+#include <assert.h>
+#include <math.h>
+#include <string.h>
+#include <stdio.h>
+#include "port/linux/game/vr_gun_anchor.h"
+typedef float real;
+typedef union {float n[3];struct {float x,y,z;};struct {float i,j,k;};} real_point3d,real_vector3d;
+typedef struct {real_point3d position;real_vector3d forward,left,up;} real_matrix4x3;
+struct animation_graph {struct {int count;}nodes;};
+#define MAXIMUM_NODES_PER_ANIMATION 64
+static struct {int heading_valid;float heading,units_per_metre;struct {struct {float position[3];}head;}frame;}vr;
+static struct {int weapon_camera_valid;struct {real_vector3d forward,up;}weapon_camera;real_point3d game_camera_position;real_vector3d weapon_pullback;}vr_render;
+static float offset_now[3],scope_wrist_origin[3];static double scope_wrist_time=-1,time_now=10;
+static real_point3d palm;static real_vector3d palm_f;static int hand_now,hand_empty;
+static double vr_pose_time(void){return time_now;}
+static void head_offset(float out[3]){memcpy(out,offset_now,sizeof offset_now);}
+static float vr_units_per_metre(void){return vr.units_per_metre;}
+static int vr_weapon_hand(void){return hand_now;}
+static int vr_hand_empty(void){return hand_empty;}
+static int vr_hand_pose(int hand,float const camera[3],float p[3],float f[3],float u[3]){(void)hand;(void)camera;memcpy(p,palm.n,sizeof palm.n);memcpy(f,palm_f.n,sizeof palm_f.n);u[0]=u[1]=0;u[2]=1;return 1;}
+static int vr_unit_vector(real_vector3d*v){float length=sqrtf(v->i*v->i+v->j*v->j+v->k*v->k);if(!isfinite(length)||length<1e-6f)return 0;for(int k=0;k<3;k++)v->n[k]/=length;return 1;}
+static void cross_product3d(real_vector3d const*a,real_vector3d const*b,real_vector3d*out){*out=(real_vector3d){{a->j*b->k-a->k*b->j,a->k*b->i-a->i*b->k,a->i*b->j-a->j*b->i}};}
+''' + fn(frame,'vr_scope_wrist_anchor') + fn(render,'vr_anchor_gun') + r'''
+int main(void){
+ struct animation_graph graph={.nodes={.count=1}};real_matrix4x3 m={0};float adjustment[3]={0};
+ vr.heading_valid=vr_render.weapon_camera_valid=1;vr.units_per_metre=.32808399f;
+ vr_render.weapon_camera.forward=(real_vector3d){{1,0,0}};vr_render.weapon_camera.up=(real_vector3d){{0,0,1}};palm_f=vr_render.weapon_camera.forward;
+ vr_render.game_camera_position=(real_point3d){{100,-50,2}};palm=(real_point3d){{100.1f,-49.9f,2.1f}};
+ for(hand_now=0;hand_now<2;hand_now++)for(int trial=0;trial<12;trial++){
+  vr.heading=-3.0f+trial*.5f;vr.frame.head.position[0]=.3f;vr.frame.head.position[1]=1.6f;vr.frame.head.position[2]=-.2f;
+  offset_now[0]=.02f*trial;offset_now[1]=.15f;offset_now[2]=-.01f*trial;
+  /* The existing rendered wrist already exactly matches the requested wrist. */
+  for(int k=0;k<3;k++)m.position.n[k]=palm.n[k]-palm_f.n[k]*.075f*vr.units_per_metre;
+  time_now+=1;scope_wrist_time=-1;vr_anchor_gun(&m,&graph,0,0,adjustment);
+  assert(scope_wrist_time==time_now);
+  float local[3],world[3];for(int k=0;k<3;k++)local[k]=scope_wrist_origin[k]-vr.frame.head.position[k]+offset_now[k];
+  world[0]=vr_render.game_camera_position.x+(local[0]*sinf(vr.heading)-local[2]*cosf(vr.heading))*vr.units_per_metre;
+  world[1]=vr_render.game_camera_position.y+(-local[0]*cosf(vr.heading)-local[2]*sinf(vr.heading))*vr.units_per_metre;
+  world[2]=vr_render.game_camera_position.z+local[1]*vr.units_per_metre;
+  for(int k=0;k<3;k++)assert(fabsf(world[k]-(m.position.n[k]+.075f*vr.units_per_metre*vr_render.weapon_camera.forward.n[k]))<2e-5f);
+ }
+ /* Invalid camera and empty-hand paths cannot publish a fresh anchor. */
+ time_now++;vr_render.weapon_camera_valid=0;vr_anchor_gun(&m,&graph,0,0,adjustment);assert(scope_wrist_time!=time_now);
+ vr_render.weapon_camera_valid=1;hand_empty=1;vr_anchor_gun(&m,&graph,0,0,adjustment);assert(scope_wrist_time!=time_now);
+ puts("PASS: actual final-wrist bridge, zero translation publication, both hands, heading/roomscale inverse, invalid draw guards");
 }
 ''')

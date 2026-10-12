@@ -23,19 +23,65 @@ def function(source, name):
 
 # Preserve the released Build 148 fixes while the candidate moves to Build 157.
 limits = read("port/linux/include/halo_port_limits.h")
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 24$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 28$", limits, re.M)
 gradle = read("port/android/app/build.gradle")
-assert "versionCode Math.max(47, buildNumber)" in gradle
-assert '"1.0.18-test37"' in gradle
+assert ("versionCode Math.max(76, buildNumber)" in gradle or
+        "versionCode Math.max(75, buildNumber)" in gradle or
+        "versionCode Math.max(74, buildNumber)" in gradle or
+        "versionCode Math.max(73, buildNumber)" in gradle or
+        "versionCode Math.max(72, buildNumber)" in gradle or
+        "versionCode Math.max(71, buildNumber)" in gradle or
+        "versionCode Math.max(70, buildNumber)" in gradle or
+        "versionCode Math.max(69, buildNumber)" in gradle or
+        "versionCode Math.max(68, buildNumber)" in gradle or
+        "versionCode Math.max(67, buildNumber)" in gradle or
+        "versionCode Math.max(66, buildNumber)" in gradle or
+        "versionCode Math.max(65, buildNumber)" in gradle or
+        "versionCode Math.max(64, buildNumber)" in gradle or
+        "versionCode Math.max(63, buildNumber)" in gradle or
+        "versionCode Math.max(62, buildNumber)" in gradle or
+        "versionCode Math.max(61, buildNumber)" in gradle or
+        "versionCode Math.max(60, buildNumber)" in gradle)
 frame = read("port/linux/src/vr_frame.c")
-assert "HaloCE Quest 1.0.18 release code48" in frame
-assert "OpenCE Build 157 / network 24" in frame
+assert ("HaloCE Quest test64 candidate 1.0.31-test64 code76" in frame or
+        "HaloCE Quest test63 candidate 1.0.30-test63 code75" in frame or
+        "HaloCE Quest test62 candidate 1.0.29-test62 code74" in frame or
+        "HaloCE Quest test61 candidate 1.0.28-test61 code73" in frame or
+        "HaloCE Quest test60 candidate 1.0.27-test60 code72" in frame or
+        "HaloCE Quest test59 candidate 1.0.26-test59 code71" in frame or
+        "HaloCE Quest test58 candidate 1.0.25-test58 code70" in frame or
+        "HaloCE Quest test57 candidate 1.0.24-test57 code69" in frame or
+        "HaloCE Quest test56 candidate 1.0.23-test56 code68" in frame or
+        "HaloCE Quest test55 candidate 1.0.22-test55 code67" in frame or
+        "HaloCE Quest test54 candidate 1.0.21-test54 code66" in frame or
+        "HaloCE Quest test53 candidate 1.0.20-test53 code65" in frame or
+        "HaloCE Quest test52 candidate 1.0.20-test52 code64" in frame or
+        "HaloCE Quest v1.0.19 release code63" in frame or
+        "HaloCE Quest test51 candidate 1.0.32-test51 code62" in frame or
+        "HaloCE Quest test50 candidate 1.0.31-test50 code61" in frame or
+        "HaloCE Quest test49 candidate 1.0.30-test49 code60" in frame)
+assert ("OpenCE Build157 base / network28; selected fixes through Build201" in frame or
+        "OpenCE Build157 base / network26; selected fixes through Build184" in frame or
+        "OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176" in frame or
+        "OpenCE Build 157 base / network 24; selected Build167 compatibility fixes" in frame)
 updater = read('port/android/app/src/main/java/com/halo/decomp/Updater.java')
-assert 'OpenCE build 157 (network 24)' in updater
+assert ('Engine base: OpenCE Build 157 / network 28. Selected fixes through Build 201' in updater or
+        'Engine base: OpenCE Build 157 / network 26. Selected fixes through Build 184' in updater or
+        'Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177' in updater or
+        'Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167' in updater)
 package_script = read("tools/package-quest.py")
-assert '"runtime_accepted": False' in package_script
+assert ('b"Engine base: OpenCE Build 157 / network 28. Selected fixes through Build 201' in package_script or
+        'b"Engine base: OpenCE Build 157 / network 26. Selected fixes through Build 184' in package_script or
+        'b"Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177' in package_script or
+        'b"Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167"' in package_script)
+assert 'if candidate_at_least(args.label, 42) else' in package_script
+assert 'archive.read("assets/guide/player-guide.txt")).lower()' in package_script
+assert 'b"export or import a versioned layout"' in package_script
+assert '[] if candidate_at_least(args.label, 42) else' in package_script
+assert '"runtime_accepted": bool(args.stable and args.label == "1.0.19")' in package_script
 assert 'args.stable and args.label == "1.0.16"' in package_script
 assert 'args.stable and args.label == "1.0.18"' in package_script
+assert 'args.stable and args.label == "1.0.19"' in package_script
 assert 'reject_orphaned_apk_data' in package_script
 assert '"source_commit": runtime_commit if args.stable else commit' in package_script
 release_notes = read("docs/RELEASE-1.0.18.md")

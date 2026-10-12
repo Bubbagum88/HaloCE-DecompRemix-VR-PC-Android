@@ -109,6 +109,10 @@ symbols in this file:
 #include "rasterizer_xbox.h"
 #include "rasterizer_xbox_pixel_shader.h"
 
+/* port: declared here, not implicitly: an implicit declaration passes float
+arguments and reads narrow return values wrongly on the Android guest ABI */
+unsigned long system_milliseconds(void);
+
 /* ---------- constants */
 
 enum

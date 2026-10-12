@@ -22,10 +22,10 @@ def function(source, name):
 
 
 limits = read("port/linux/include/halo_port_limits.h")
-assert re.search(r"#define HALO_PORT_NETWORK_VERSION 24\b", limits)
+assert re.search(r"#define HALO_PORT_NETWORK_VERSION 28\b", limits)
 assert re.search(r"#define HALO_PORT_NETWORK_VERSION_MINIMUM 11\b", limits)
-assert re.search(r"#define HALO_PORT_NETWORK_VERSION_MAXIMUM 24\b", limits)
-assert re.search(r"#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 23\b", limits)
+assert re.search(r"#define HALO_PORT_NETWORK_VERSION_MAXIMUM 28\b", limits)
+assert re.search(r"#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15\b", limits)
 assert re.search(r"#define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23\b", limits)
 
 # The zoom scope plane follows the calibrated scope view while its center
@@ -68,7 +68,10 @@ assert "scope_path_log(5, zoom_level, shape)" in scope_window
 assert "state == previous_state" in scope_path_log
 assert "hold the off-hand index trigger" in scope_path_log
 package_gate = read("tools/package-quest.py")
-assert 'current_upstream_markers = ([b"OpenCE Build 157 / network 24"' in package_gate
+assert ('current_upstream_markers = ([b"OpenCE Build157 base / network28"' in package_gate or
+        'current_upstream_markers = ([b"OpenCE Build157 base / network26"' in package_gate or
+        'current_upstream_markers = ([b"OpenCE Build157 base / network24"' in package_gate or
+        'current_upstream_markers = ([b"OpenCE Build 157 base / network 24"' in package_gate)
 assert 'b"scope render path %s"' in package_gate
 assert 'b"left trigger for right-handed play"' in package_gate
 

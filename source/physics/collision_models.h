@@ -36,6 +36,15 @@ boolean collision_model_test_sphere(
 	real_point3d const *center,
 	real radius);
 
+/* port: whether a sphere touches the instance's geometry (surfaces within
+the radius, or the center inside its solid), and which node (the touched
+node whose origin is nearest the center; NONE when untouched) */
+boolean collision_model_touch_sphere(
+	struct collision_model_instance const *instance,
+	real_point3d const *center,
+	real radius,
+	short *node_index);
+
 boolean collision_model_test_point(
 	struct collision_model_instance const *instance,
 	real_point3d const *point);

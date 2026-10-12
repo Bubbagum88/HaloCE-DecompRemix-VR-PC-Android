@@ -22,15 +22,15 @@ def function(source, name):
 
 
 limits = read("port/linux/include/halo_port_limits.h")
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 24$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 28$", limits, re.M)
 assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MINIMUM 11$", limits, re.M)
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MAXIMUM 24$", limits, re.M)
-assert re.search(r"^#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 23$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MAXIMUM 28$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15$", limits, re.M)
 assert re.search(r"^#define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23$", limits, re.M)
 assert "int halo_port_active_network_version(void);" in limits
 
 config = read("port/linux/src/port_config.c")
-assert '{ "network.protocol_version", _config_integer, "24"' in config
+assert '{ "network.protocol_version", _config_integer, "0"' in config  # Test53: All compatible by default
 assert "pthread_mutex_lock(&active_network_version_lock)" in config
 assert "active_network_version_initialized" in config
 assert "configured == 0" in function(config, "network_protocol_version_resolve")
@@ -106,14 +106,16 @@ fixture = r'''#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define HALO_PORT_NETWORK_VERSION 24
+#define HALO_PORT_NETWORK_VERSION 28
 #define HALO_PORT_NETWORK_VERSION_MINIMUM 11
-#define HALO_PORT_NETWORK_VERSION_MAXIMUM 24
-#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 23
+#define HALO_PORT_NETWORK_VERSION_MAXIMUM 28
+#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15
 #define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23
 #define HALO_PORT_ADVERTISED_DISTRIBUTED_FLAG 0x01
 #define HALO_PORT_ADVERTISED_IN_PROGRESS_FLAG 0x02
 typedef int boolean;
+static int legacy_consent;
+static int config_boolean(char const *key) { return legacy_consent; }
 typedef unsigned char byte;
 typedef unsigned short word;
 #define NONE (-1)
@@ -163,7 +165,7 @@ int main(int argc, char **argv) {
     assert(halo_port_active_network_version() == expected_target);
     assert(logs == startup_logs); /* selected client target is immutable until restart */
 
-    for (long version = 0; version <= 26; version++) {
+    for (long version = 0; version <= 30; version++) {
         int expected = version >= HALO_PORT_NETWORK_VERSION_MINIMUM && version <= HALO_PORT_NETWORK_VERSION_MAXIMUM &&
             (expected_target == 0 || version == expected_target);
         assert(listing_version_matches_target((int)version) == expected);
@@ -172,13 +174,13 @@ int main(int argc, char **argv) {
     assert(!listing_version_matches_target(0xCE01));
     assert(!network_protocol_target_allows_version(0, 0));
     assert(!network_protocol_target_allows_version(25, 24));
-    for (long bad = -1; bad <= 26; bad++) {
+    for (long bad = -1; bad <= 30; bad++) {
         int supported = bad == 0 || (bad >= HALO_PORT_NETWORK_VERSION_MINIMUM && bad <= HALO_PORT_NETWORK_VERSION_MAXIMUM);
         assert(network_protocol_version_resolve(bad) == (supported ? bad : HALO_PORT_NETWORK_VERSION));
     }
 
     struct network_game_client client = {0};
-    for (int remote = 0; remote <= 28; remote++) for (int flags = 0; flags < 4; flags++)
+    for (int remote = 0; remote <= 30; remote++) for (int flags = 0; flags < 4; flags++)
         for (int engine = 0; engine < 3; engine++) for (int custom = 0; custom < 2; custom++) {
             client.available_games[0].engine_type = (short)engine;
             client.available_games[0].map.version = custom ? 1234 : 0;
@@ -214,8 +216,8 @@ int main(int argc, char **argv) {
         client.available_games[0].map.version = 0;
         client.available_games[0].engine_type = game_engine_none;
         before = messages;
-        assert(!network_game_client_advertised_game_compatible(&client, &client.available_games[0], TRUE));
-        assert(messages == before + 1 && strstr(last_message, "Campaign co-op requires network version 23"));
+        assert(network_game_client_advertised_game_compatible(&client, &client.available_games[0], TRUE));
+        assert(messages == before);
     }
     network_game_client_advertised_versions[0].version = 0;
     client.available_games[0].engine_type = 2;
@@ -261,7 +263,14 @@ int main(int argc, char **argv) {
         assert(network_game_client_settings_version_compatible((unsigned)remote, &update) == ce_allowed);
         update.map.version = 0;
     }
-    puts("PASS: config cache, host-24 advertising, PvP 11..24, campaign/CE 23+ admission and post-join transition guard with fresh host-version capture");
+    legacy_consent=1;update.variant.game_engine_index=game_engine_none;
+    update.map.version=0;snprintf(update.map.name,sizeof(update.map.name),"a10");
+    for(int remote=0;remote<=24;remote++)
+        assert(network_game_client_settings_version_compatible(remote,&update)==(remote>=12));
+    snprintf(update.map.name,sizeof(update.map.name),"custom_maps\\test");
+    for(int remote=12;remote<=24;remote++)assert(network_game_client_settings_version_compatible(remote,&update)==(remote>=23));
+    legacy_consent=0;
+    puts("PASS: config cache, host-28 advertising, PvP 11..28, campaign15+/CE23+ admission and post-join transition guard with fresh host-version capture");
 }
 '''
 
@@ -271,7 +280,8 @@ cfile, binary = out / "native_profiles.c", out / "native_profiles"
 cfile.write_text(fixture, encoding="utf-8")
 subprocess.run(["clang", "-std=gnu11", "-O1", "-Wall", "-Wextra", "-Wno-unused-function",
                 "-Wno-unused-parameter", "-fsanitize=address,undefined", str(cfile), "-pthread", "-o", str(binary)], check=True)
-for target in [0, *range(11, 25), -1, 10, 25, 65535]:
+# Test59: every target 11..28 (27 and 28 included), and 29 refused
+for target in [0, *range(11, 29), -1, 10, 29, 65535]:
     subprocess.run([str(binary), str(target)], check=True)
 
-print("PASS: native discovery and admission use client target selection while the host remains protocol 24")
+print("PASS: native discovery and admission use client target selection while the host remains protocol 28")

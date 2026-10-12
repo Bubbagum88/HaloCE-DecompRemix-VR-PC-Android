@@ -76,7 +76,7 @@ Detailed source mapping and limitations: [Test34 upstream integration](TEST34-UP
 ## Delivery and remaining device checks
 
 - APKs, matching source/build ZIPs, manifest, compatibility metadata and
-  checksums are in `D:\HaloQuest\builds\test34-20261007-v1.0.15-scope-diagnostics\package`.
+  checksums are in `<artifacts>\test34-20261007-v1.0.15-scope-diagnostics\package`.
 - Follow [Test34 delivery](TEST34-DELIVERY.md) for artifact hashes and the
   headset/phone checklist. Host checks do not establish runtime acceptance.
 

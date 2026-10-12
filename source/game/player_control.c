@@ -213,6 +213,9 @@ symbols in this file:
 
 #include "real_math.h"
 #include "halo_vr.h"
+#ifdef HALO_VR
+#include "vr_extra_interaction.h"
+#endif
 #include "network_coop.h" /* port: port/linux/game/network_coop.c */
 
 /* ---------- constants */
@@ -663,6 +666,8 @@ static void handle_one_player_input(
 			}
 		}
 		vr_render_impact_melee(local_player_index);
+        if(vr_physical_grenade_busy())
+            SET_FLAG(input.unit_control_flags,_unit_control_throw_grenade_bit,FALSE);
 	}
 #endif
 	if (local_player_get_player_index(local_player_index) != NONE)

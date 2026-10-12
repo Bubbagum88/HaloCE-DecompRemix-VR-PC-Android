@@ -153,6 +153,11 @@ extern	void TIFFUnmapFileContents();
 #ifdef applec
 #define	lseek	mpw_lseek
 extern long mpw_lseek(int, long, int);
+#elif defined(__STDC__) && !defined(_MSC_VER)
+/* the C library's prototypes (with the port's io.h names): "long lseek()"
+has none, and on the Android guest (arm64_32) a call through it passes a
+32-bit long where lseek takes a 64-bit off_t, and so seeks to garbage */
+#include <io.h>
 #else
 extern	long lseek();
 #endif
@@ -177,7 +182,7 @@ extern	void *realloc(void *ptr, size_t size);
 #if defined(MSDOS)
 #include <malloc.h>
 #else /* !MSDOS */
-#if defined(_IBMR2)
+#if defined(_IBMR2) || (defined(__STDC__) && !defined(_MSC_VER))
 #include <stdlib.h>
 #else /* !_IBMR2 */
 extern	char *malloc();

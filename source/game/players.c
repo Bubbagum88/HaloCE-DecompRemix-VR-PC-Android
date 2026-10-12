@@ -244,6 +244,7 @@ symbols in this file:
 #include "effects/player_effects.h"
 #include "game.h"
 #include "game/game_globals.h"
+#include "game/solo_multiplayer_spawn_math.h"
 #include "game_engine.h"
 #include "input.h"
 #include "interface/hud.h"
@@ -266,6 +267,9 @@ symbols in this file:
 #include "render/render_debug.h"
 #include "players.h"
 #include "player_queues_new.h"
+#ifdef HALO_VR
+#include "halo_vr.h" /* port: vr_vehicle_handles_facing */
+#endif
 #include "objects/objects.h"
 #include "saved games/game_state.h"
 #include "scenario/scenario.h"
@@ -280,6 +284,8 @@ symbols in this file:
 #include "units/units.h"
 #include "units/vehicle_definitions.h"
 #include "units/vehicles.h"
+
+void platform_log(char const *format, ...);
 
 /* network_game_globals.c's */
 boolean network_game_distributed_client(void);
@@ -1344,6 +1350,97 @@ static void players_coop_color_unit(
 	}
 }
 
+/* New Game can load a multiplayer scenario as a local free-roam session.
+ * Never carry the campaign continuation unit into that map. Keep the native
+ * game-type spawn where valid, then fall back to an authored in-BSP location. */
+static boolean players_solo_mp_spawn_point_valid(
+	struct scenario *scenario,
+	real_point3d const *position,
+	real facing)
+{
+	if (!scenario || !position || !isfinite(position->x) || !isfinite(position->y) ||
+		!isfinite(position->z) || !isfinite(facing) || fabs(position->x) > 100000.0 ||
+		fabs(position->y) > 100000.0 || fabs(position->z) > 100000.0)
+		return FALSE;
+	return scenario_leaf_index_from_point(position) != NONE;
+}
+
+static boolean players_solo_mp_spawn_location(
+	struct scenario *scenario,
+	struct player_starting_location *location,
+	char const **source_out,
+	long *source_index_out)
+{
+	int best_priority = 0;
+	long best_index = NONE;
+	boolean best_is_player_start = FALSE;
+	if (!scenario || !location)
+		return FALSE;
+	if (scenario->players.count > 0 && scenario->players.count <= 512)
+	{
+		for (long index = 0; index < scenario->players.count; ++index)
+		{
+			struct player_starting_location *candidate = TAG_BLOCK_GET_ELEMENT(
+				&scenario->players, index, struct player_starting_location);
+			if (candidate && players_solo_mp_spawn_point_valid(scenario,
+				&candidate->position, candidate->facing))
+			{
+				int priority = players_solo_mp_spawn_priority(TRUE, -1,
+					candidate->team_index);
+				if (priority > best_priority)
+				{
+					best_priority = priority;
+					best_index = index;
+					best_is_player_start = TRUE;
+				}
+			}
+		}
+	}
+	if (scenario->netgame_flags.count > 0 && scenario->netgame_flags.count <= 512)
+	{
+		for (long index = 0; index < scenario->netgame_flags.count; ++index)
+		{
+			struct scenario_netgame_flag *candidate = TAG_BLOCK_GET_ELEMENT(
+				&scenario->netgame_flags, index, struct scenario_netgame_flag);
+			int priority;
+			if (!candidate || !players_solo_mp_spawn_point_valid(scenario,
+				&candidate->position, candidate->facing))
+				continue;
+			priority = players_solo_mp_spawn_priority(FALSE, candidate->type,
+				candidate->team_index);
+			if (priority > best_priority)
+			{
+				best_priority = priority;
+				best_index = index;
+				best_is_player_start = FALSE;
+			}
+		}
+	}
+	if (best_index == NONE)
+		return FALSE;
+	if (best_is_player_start)
+	{
+		struct player_starting_location *candidate = TAG_BLOCK_GET_ELEMENT(
+			&scenario->players, best_index, struct player_starting_location);
+		*location = *candidate;
+	}
+	else
+	{
+		struct scenario_netgame_flag *candidate = TAG_BLOCK_GET_ELEMENT(
+			&scenario->netgame_flags, best_index, struct scenario_netgame_flag);
+		csmemset(location, 0, sizeof(*location));
+		location->position = candidate->position;
+		location->facing = candidate->facing;
+		location->team_index = 0;
+		location->structure_bsp_reference_index = NONE;
+	}
+	if (source_out)
+		*source_out = best_is_player_start ? "scenario player start" : "netgame flag";
+	if (source_index_out)
+		*source_index_out = best_index;
+	return TRUE;
+}
+
 static void player_spawn(
 	long player_index)
 {
@@ -1364,13 +1461,34 @@ static void player_spawn(
 	long unit_definition_index;
 	long unit_index;
 	long starting_equipment_count;
+	long spawn_source_index;
 	short starting_location_index;
 	short saved_unit_slot;
+	boolean local_mp_map, solo_mp_free_roam;
+	char const *spawn_source;
 
 	player = player_get(player_index);
+	scenario = global_scenario_get();
+	local_mp_map = players_solo_mp_spawn_enabled(
+		scenario && scenario->type == _scenario_type_multiplayer,
+		game_connection() == _game_connection_local,
+		network_campaign_playing());
+	solo_mp_free_roam = local_mp_map && !game_engine_running();
 	saved_unit_slot = player_saved_unit_slot(player_index, player);
 	saved_unit_index = NONE;
-	if (!game_engine_running() && saved_unit_slot != NONE)
+	if (solo_mp_free_roam && saved_unit_slot != NONE)
+	{
+		/* A local multiplayer map is a fresh spawn context. Never reattach the
+		 * campaign continuation object at its old world position. The object
+		 * itself is left to normal map/object teardown; only the stale slot is
+		 * cleared. */
+		saved_unit_index = players_globals->dead_units[saved_unit_slot];
+		players_globals->dead_units[saved_unit_slot] = NONE;
+		platform_log("local multiplayer map spawn: bypassing saved campaign unit player=%ld slot=%d stale_unit=%ld engine_running=%d",
+			player_index, saved_unit_slot, saved_unit_index, game_engine_running());
+		saved_unit_index = NONE;
+	}
+	else if (players_solo_mp_reuse_saved_unit(solo_mp_free_roam, game_engine_running()) && saved_unit_slot != NONE)
 	{
 		saved_unit_index =
 			players_globals->dead_units[saved_unit_slot];
@@ -1386,7 +1504,7 @@ static void player_spawn(
 		}
 	}
 
-	if (!game_engine_running() && saved_unit_index != NONE)
+	if (players_solo_mp_reuse_saved_unit(solo_mp_free_roam, game_engine_running()) && saved_unit_index != NONE)
 	{
 		unit = unit_get(saved_unit_index);
 		weapon_index = unit_inventory_get_weapon(
@@ -1407,7 +1525,6 @@ static void player_spawn(
 	}
 	else
 	{
-		scenario = global_scenario_get();
 		if (ai_debug.selected_squad_index != NONE)
 		{
 			TAG_BLOCK_GET_ELEMENT(
@@ -1416,35 +1533,110 @@ static void player_spawn(
 				struct encounter_definition);
 		}
 
-		starting_location_index =
-			(short)find_best_starting_location_index(player_index);
-		/* port: a network co-op respawn starts behind its teammate
-		(players_coop_spawn_location) */
-		starting_location = players_coop_spawn_location(&spawn_location);
-		if (!starting_location && starting_location_index != NONE)
-			starting_location = player_get_starting_location(starting_location_index);
+		spawn_source = NULL;
+		spawn_source_index = NONE;
+		if (local_mp_map)
+		{
+			starting_location = NULL;
+			starting_location_index = NONE;
+			spawn_source = NULL;
+			spawn_source_index = NONE;
+			platform_log("local multiplayer map spawn: player=%ld engine_running=%d campaign=0; selecting an in-map spawn and multiplayer biped",
+				player_index, game_engine_running());
+			/* When a local multiplayer engine is running, preserve its native
+			 * game-type/team spawn choice if it resolves into this map's BSP. */
+			if (game_engine_running())
+			{
+				starting_location_index = (short)find_best_starting_location_index(player_index);
+				if (starting_location_index != NONE)
+				{
+					struct player_starting_location *native_start =
+						player_get_starting_location(starting_location_index);
+					boolean native_start_valid = native_start &&
+						players_solo_mp_spawn_point_valid(scenario,
+							&native_start->position, native_start->facing);
+					if (players_solo_mp_accept_native_start(local_mp_map,
+						game_engine_running(), native_start_valid))
+					{
+						starting_location = native_start;
+						spawn_source = "native game-type start";
+						spawn_source_index = starting_location_index;
+					}
+					else
+						platform_log("local multiplayer map spawn: rejecting native candidate index=%d outside valid BSP start bounds",
+							starting_location_index);
+				}
+			}
+			if (!starting_location)
+			{
+				starting_location = players_solo_mp_spawn_location(scenario,
+					&spawn_location, &spawn_source, &spawn_source_index) ?
+					&spawn_location : NULL;
+			}
+			if (starting_location)
+				platform_log("local multiplayer map spawn: player=%ld source=%s index=%ld position=(%.3f,%.3f,%.3f) facing=%.3f",
+					player_index, spawn_source ? spawn_source : "native", spawn_source_index,
+					starting_location->position.x, starting_location->position.y,
+					starting_location->position.z, starting_location->facing);
+			else
+				platform_log("local multiplayer map spawn failed: player=%ld map has no valid in-BSP player start or non-teleporter netgame flag",
+					player_index);
+		}
+		else
+		{
+			starting_location_index =
+				(short)find_best_starting_location_index(player_index);
+			/* port: a network co-op respawn starts behind its teammate
+			(players_coop_spawn_location) */
+			starting_location = players_coop_spawn_location(&spawn_location);
+			if (!starting_location && starting_location_index != NONE)
+				starting_location = player_get_starting_location(starting_location_index);
+		}
 		if (starting_location)
 		{
 			game_globals = scenario_get_game_globals();
-			player_information = TAG_BLOCK_GET_ELEMENT(
-				&scenario_get_game_globals()->player_information,
-				0,
-				struct game_globals_player_information);
-			if (player_information->player_unit.index != NONE)
+			unit_definition_index = NONE;
+			if (game_globals)
 			{
-				if (game_engine_running())
+				if (local_mp_map)
 				{
-					multiplayer_information = TAG_BLOCK_GET_ELEMENT(
-						&game_globals->multiplayer_information,
-						0,
+					if (game_globals->multiplayer_information.count > 0)
+					{
+						multiplayer_information = TAG_BLOCK_GET_ELEMENT(
+							&game_globals->multiplayer_information,
+							0,
 						struct game_globals_multiplayer_information);
-					unit_definition_index = multiplayer_information->unit.index;
+						unit_definition_index = multiplayer_information->unit.index;
+					}
 				}
-				else
+				else if (game_globals->player_information.count > 0)
 				{
-					unit_definition_index = player_information->player_unit.index;
+					player_information = TAG_BLOCK_GET_ELEMENT(
+						&game_globals->player_information,
+						0,
+						struct game_globals_player_information);
+					if (player_information->player_unit.index != NONE)
+					{
+						if (game_engine_running())
+						{
+							if (game_globals->multiplayer_information.count > 0)
+							{
+								multiplayer_information = TAG_BLOCK_GET_ELEMENT(
+									&game_globals->multiplayer_information,
+									0,
+									struct game_globals_multiplayer_information);
+								unit_definition_index = multiplayer_information->unit.index;
+							}
+						}
+						else
+						{
+							unit_definition_index = player_information->player_unit.index;
+						}
+					}
 				}
-
+			}
+			if (unit_definition_index != NONE)
+			{
 				object_placement_data_new(
 					&placement_data,
 					unit_definition_index,
@@ -1461,6 +1653,10 @@ static void player_spawn(
 					&placement_data,
 					&change_color);
 				unit_index = object_new(&placement_data);
+				if (local_mp_map)
+					platform_log("local multiplayer map spawn: object_new result=%ld definition=%ld expected_position=(%.3f,%.3f,%.3f)",
+						unit_index, unit_definition_index, placement_data.position.x,
+						placement_data.position.y, placement_data.position.z);
 				if (unit_index != NONE && network_coop_active())
 					players_coop_color_unit(unit_index, &change_color);
 				if (unit_index != NONE)
@@ -1480,6 +1676,12 @@ static void player_spawn(
 								player2->local_player_index,
 								unit_index);
 						}
+						if (local_mp_map)
+							platform_log("local multiplayer map spawn: controlled unit=%ld player=%ld position=(%.3f,%.3f,%.3f) leaf=%ld local_controller=%d",
+								unit_index, player_index, unit->object.position.x,
+								unit->object.position.y, unit->object.position.z,
+								scenario_leaf_index_from_point(&unit->object.position),
+								player2->local_player_index);
 
 						if (!game_engine_running())
 						{
@@ -1503,7 +1705,15 @@ static void player_spawn(
 							}
 						}
 					}
+					else if (local_mp_map)
+						platform_log("local multiplayer map spawn failed: object=%ld could not be resolved after creation",
+							unit_index);
 				}
+			}
+			else if (local_mp_map)
+			{
+				platform_log("solo multiplayer free-roam spawn failed: player=%ld valid start index=%ld but multiplayer biped tag is missing",
+					player_index, spawn_source_index);
 			}
 		}
 	}
@@ -2518,8 +2728,15 @@ that was on another BSP. */
 
 static boolean players_coop_room_to_spawn(
 	void);
+static long player_spawnable_beside(
+	struct player_datum const *player);
 static boolean player_place_beside_teammate(
 	long player_index);
+static long players_coop_respawn_unit(
+	void);
+static boolean players_coop_respawn_beside(
+	long player_index,
+	long anchor_unit_index);
 
 /* How long into a level the extra players wait before spawning. The opening
 cutscene starts a tick or so in, and the first player may still be somewhere
@@ -2573,8 +2790,14 @@ to respawn beside */
 /* how often the respawn's safety test runs while someone is dead */
 #define COOP_RESPAWN_CHECK_TICKS (TICKS_PER_SECOND / 2)
 /* after waiting this long for a safe teammate, the dead respawn beside any
-teammate standing on the ground */
+teammate standing on the ground. A large game waits this long for someone
+safe inside the largest group, then uses that group anyway */
 #define COOP_RESPAWN_FALLBACK_TICKS (10 * TICKS_PER_SECOND)
+/* this many players in a campaign game is massive co-op. Respawns go to the
+largest group, and a dead host uses that same choice */
+#define COOP_MAJORITY_PLAYERS 5
+/* teammates within this distance (world units) count as one group */
+#define COOP_MAJORITY_RADIUS 30.0f
 
 /* TRUE if an enemy projectile (a grenade, a plasma bolt) is flying near the
 unit. Players' own shots and needles stuck in a body don't count. */
@@ -2642,7 +2865,8 @@ static boolean players_coop_unit_safe(
 
 /* the unit of a living player that passes `test`, the host's first (the
 team follows the host: its players are the host machine's local ones), or
-NONE */
+NONE. A game of COOP_MAJORITY_PLAYERS or more respawns with
+players_coop_respawn_unit instead. */
 static long players_coop_unit_where(
 	boolean (*test)(long unit_index))
 {
@@ -2662,6 +2886,143 @@ static long players_coop_unit_where(
 	}
 
 	return found_index;
+}
+
+/* how many players are in this campaign game, not counting someone who quit */
+static short players_coop_session_count(
+	void)
+{
+	struct data_iterator iterator;
+	struct player_datum *player;
+	short count = 0;
+
+	data_iterator_new(&iterator, player_data);
+	while ((player = data_iterator_next(&iterator)) != NULL)
+	{
+		if (!player->quit_out_of_game)
+			count++;
+	}
+
+	return count;
+}
+
+/* TRUE when respawns use the largest group */
+static boolean players_coop_use_majority(
+	void)
+{
+	return players_coop_session_count() >= COOP_MAJORITY_PLAYERS;
+}
+
+/* TRUE when a player can be stood beside: on foot, or in a vehicle a player
+drives. An AI vehicle (Silent Cartographer's Pelican) is not */
+static boolean players_coop_unit_spawnable(
+	long unit_index)
+{
+	long player_index = unit_get(unit_index)->unit.player_index;
+
+	return player_index != NONE && player_spawnable_beside(player_get(player_index)) != NONE;
+}
+
+/* how many listed positions are within radius of the one at index, including
+itself */
+static short players_coop_near_count(
+	real_point3d const *positions,
+	short count,
+	short index,
+	real radius_squared)
+{
+	short other_index;
+	short near_count = 0;
+
+	for (other_index = 0; other_index < count; other_index++)
+	{
+		if (distance_squared3d(&positions[index], &positions[other_index]) <= radius_squared)
+			near_count++;
+	}
+
+	return near_count;
+}
+
+/* who a network co-op respawn is placed beside. Fewer than
+COOP_MAJORITY_PLAYERS uses the host's teammate (players_coop_unit_where):
+a safe one, or after COOP_RESPAWN_FALLBACK_TICKS one on the ground. A larger
+game uses the largest group on the ground. The respawn is beside someone in
+that group who is safe to spawn next to. When that whole group is in a
+fight, it waits out COOP_RESPAWN_FALLBACK_TICKS and then uses the group
+anyway. A safe player outside the group does not win. A dead host has no
+unit, so the same count applies to them. NONE while the group is still
+unsafe, or while nobody is on the ground. */
+static long players_coop_respawn_unit(
+	void)
+{
+	long unit_indices[NETWORK_GAME_MAXIMUM_PLAYER_COUNT];
+	real_point3d positions[NETWORK_GAME_MAXIMUM_PLAYER_COUNT];
+	struct data_iterator iterator;
+	struct player_datum *player;
+	real radius_squared = COOP_MAJORITY_RADIUS * COOP_MAJORITY_RADIUS;
+	short count = 0;
+	short anchor_index = 0;
+	short anchor_count = 0;
+	short safe_index = -1;
+	short safe_count = 0;
+	short index;
+
+	if (!players_coop_use_majority())
+	{
+		long host_index = players_coop_unit_where(players_coop_unit_safe);
+
+		if (host_index == NONE &&
+			game_time_get() + 1 - players_coop_state.respawn_wait_since >= COOP_RESPAWN_FALLBACK_TICKS)
+		{
+			host_index = players_coop_unit_where(players_coop_unit_grounded);
+		}
+		return host_index;
+	}
+
+	data_iterator_new(&iterator, player_data);
+	while ((player = data_iterator_next(&iterator)) != NULL && count < NETWORK_GAME_MAXIMUM_PLAYER_COUNT)
+	{
+		if (player->unit_index == NONE || !players_coop_unit_grounded(player->unit_index))
+			continue;
+		unit_indices[count] = player->unit_index;
+		positions[count] = object_get(player->unit_index)->object.bounding_sphere_center;
+		count++;
+	}
+	if (count == 0)
+		return NONE;
+	for (index = 0; index < count; index++)
+	{
+		short near_count = players_coop_near_count(positions, count, index, radius_squared);
+
+		if (near_count > anchor_count)
+		{
+			anchor_count = near_count;
+			anchor_index = index;
+		}
+	}
+	for (index = 0; index < count; index++)
+	{
+		short near_count;
+
+		if (distance_squared3d(&positions[anchor_index], &positions[index]) > radius_squared ||
+			!players_coop_unit_safe(unit_indices[index]) ||
+			!players_coop_unit_spawnable(unit_indices[index]))
+		{
+			continue;
+		}
+		near_count = players_coop_near_count(positions, count, index, radius_squared);
+		if (near_count > safe_count)
+		{
+			safe_count = near_count;
+			safe_index = index;
+		}
+	}
+	if (safe_index >= 0)
+		return unit_indices[safe_index];
+	if (game_time_get() + 1 - players_coop_state.respawn_wait_since >= COOP_RESPAWN_FALLBACK_TICKS)
+		return unit_indices[anchor_index];
+
+	return NONE;
 }
 
 /* the teammate a network co-op respawn is for, while player_spawn makes
@@ -2696,12 +3057,14 @@ static struct player_starting_location const *players_coop_spawn_location(
 	return location;
 }
 
-/* Network co-op respawn: the dead come back beside the first teammate who
-is safe, or after COOP_RESPAWN_FALLBACK_TICKS beside one at least on the
-ground, so a long fight can't keep them out. The campaign's own test
-(players_respawn_coop) is map-wide (any projectile or enemy attack
-anywhere), which with many players spread out would almost never pass.
-Returns whether everyone waiting came back. */
+/* Network co-op respawn: the dead come back beside the first safe teammate,
+the host's before the others, or after COOP_RESPAWN_FALLBACK_TICKS beside
+one at least on the ground, so a long fight can't keep them out. With
+COOP_MAJORITY_PLAYERS or more they come back beside the largest group, and
+a dead host does too. The campaign's own test (players_respawn_coop) is
+map-wide (any projectile or enemy attack anywhere), which with many players
+spread out would almost never pass. Returns whether everyone waiting came
+back. */
 static boolean players_respawn_network_coop(
 	void)
 {
@@ -2716,12 +3079,7 @@ static boolean players_respawn_network_coop(
 	walks all the map's projectiles, so twice a second is enough */
 	if (game_time_get() % COOP_RESPAWN_CHECK_TICKS != 0)
 		return FALSE;
-	safe_unit_index = players_coop_unit_where(players_coop_unit_safe);
-	if (safe_unit_index == NONE &&
-		game_time_get() + 1 - players_coop_state.respawn_wait_since >= COOP_RESPAWN_FALLBACK_TICKS)
-	{
-		safe_unit_index = players_coop_unit_where(players_coop_unit_grounded);
-	}
+	safe_unit_index = players_coop_respawn_unit();
 	if (safe_unit_index == NONE)
 		return FALSE;
 	data_iterator_new(&iterator, player_data);
@@ -2738,14 +3096,10 @@ static boolean players_respawn_network_coop(
 		players_coop_spawn_beside_index = NONE;
 		if (player->unit_index == NONE)
 			result = FALSE;
-		/* (beside the safe teammate, else any with room; with none, left
-		behind the teammate, where player_spawn put them) */
-		else if (!player_teleport(iterator.datum_index, safe_unit_index,
-				&object_get(safe_unit_index)->object.bounding_sphere_center) &&
-			!player_place_beside_teammate(iterator.datum_index))
-		{
+		/* (beside that teammate, else somewhere in their group; with no
+		room, left behind them, where player_spawn put them) */
+		else if (!players_coop_respawn_beside(iterator.datum_index, safe_unit_index))
 			result = FALSE;
-		}
 	}
 	if (result)
 		players_coop_state.respawn_wait_since = 0;
@@ -3028,6 +3382,49 @@ static boolean player_place_beside_teammate(
 	{
 		if (iterator.datum_index != player_index && player_spawnable_beside(other) != NONE &&
 			player_teleport(player_index, other->unit_index, &object_get(other->unit_index)->object.bounding_sphere_center))
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+/* Moves a respawned player beside the chosen teammate. In a massive game
+the other spots tried are only teammates in that same group, so a failed
+spot beside the anchor does not send them to a player off on their own.
+Smaller games still try any teammate with room. FALSE leaves the player
+where player_spawn put them, behind the anchor. */
+static boolean players_coop_respawn_beside(
+	long player_index,
+	long anchor_unit_index)
+{
+	real_point3d anchor_position;
+	struct data_iterator iterator;
+	struct player_datum *other;
+	real radius_squared;
+
+	if (player_get(player_index)->unit_index == NONE)
+		return FALSE;
+	anchor_position = object_get(anchor_unit_index)->object.bounding_sphere_center;
+	if (player_teleport(player_index, anchor_unit_index, &anchor_position))
+		return TRUE;
+	if (!players_coop_use_majority())
+		return player_place_beside_teammate(player_index);
+
+	radius_squared = COOP_MAJORITY_RADIUS * COOP_MAJORITY_RADIUS;
+	data_iterator_new(&iterator, player_data);
+	while ((other = data_iterator_next(&iterator)) != NULL)
+	{
+		if (iterator.datum_index == player_index || other->unit_index == NONE ||
+			other->unit_index == anchor_unit_index || player_spawnable_beside(other) == NONE)
+		{
+			continue;
+		}
+		if (distance_squared3d(&anchor_position,
+				&object_get(other->unit_index)->object.bounding_sphere_center) <= radius_squared &&
+			player_teleport(player_index, other->unit_index,
+				&object_get(other->unit_index)->object.bounding_sphere_center))
 		{
 			return TRUE;
 		}
@@ -4706,9 +5103,20 @@ void players_update_before_game(
 						&action->desired_facing);
 					control_data.facing_vector =
 						control_data.looking_vector = control_data.aiming_vector;
+#ifdef HALO_VR
+					/* Test56: IMMERSIVE VEHICLE controls steer (the driver's
+					facing) while the guns aim where the head looks
+					(port/linux/game/vr_vehicle_handles.h) */
+					vr_vehicle_handles_facing(player->unit_index, control_data.facing_vector.n);
+#endif
 					control_data.throttle.i = action->throttle.i;
 					control_data.throttle.j = action->throttle.j;
 					control_data.throttle.k = 0.f;
+#ifdef HALO_VR
+					/* Test59: a tank's immersive drive stick pushed or pulled
+					drives (port/linux/game/vr_vehicle_handles.h) */
+					vr_vehicle_handles_throttle(player->unit_index, control_data.throttle.n);
+#endif
 					control_data.primary_trigger = action->primary_trigger;
 					control_data.animation_state = _unit_animation_state_in_combat;
 					control_data.weapon_index = action->desired_weapon_index;

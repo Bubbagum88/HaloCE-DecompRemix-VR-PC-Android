@@ -63,15 +63,19 @@ class ProfileCheck {
   App app=new App(); File root=Files.createTempDirectory(Path.of(args[0]),"data").toFile();
   File other=Files.createTempDirectory(Path.of(args[0]),"other-data").toFile();
   Files.writeString(new File(root,"config.toml").toPath(),"[vr]\nbody = 2\n[network]\nonline = true\n");
-  check(NetworkProfile.selected(app)==24);
-  NetworkProfile.prepare(app,root); check(NetworkProfile.configured(root)==24);
+  check(!NetworkProfile.legacyCoop(root));
+  NetworkProfile.setLegacyCoop(root,true);check(NetworkProfile.legacyCoop(root));
+  for(int v=0;v<=29;v++)check(NetworkProfile.campaignCompatible(v,true)==(v>=12&&v<=28)); // Test59: network 28
+  NetworkProfile.setLegacyCoop(root,false);check(!NetworkProfile.legacyCoop(root));
+  check(NetworkProfile.selected(app)==0);
+  NetworkProfile.prepare(app,root); check(NetworkProfile.configured(root)==0);
   NetworkProfile.select(app,root,23); check(NetworkProfile.selected(app)==23);
   check(NetworkProfile.configured(root)==23);
   NetworkProfile.prepare(app,other); check(NetworkProfile.configured(other)==23);
   check(ConfigSettings.read(root,"vr","body","").equals("2"));
   check(ConfigSettings.read(root,"network","online","").equals("true"));
   String before=ConfigSettings.contents(root);
-  for(int bad:new int[]{1,5,10,25,65535,-1}) {
+  for(int bad:new int[]{1,5,10,29,65535,-1}) { // Test59: 27 and 28 are selectable
    try {NetworkProfile.select(app,root,bad);throw new AssertionError();}catch(IOException expected){}
    check(ConfigSettings.contents(root).equals(before));
   }
@@ -81,19 +85,21 @@ class ProfileCheck {
   NetworkProfile.prepare(app,root);check(NetworkProfile.configured(root)==23);
   app.prefs.fail=false;
   NetworkProfile.select(app,root,24);check(NetworkProfile.selected(app)==24);
-  app.prefs.data.put("version",10);check(NetworkProfile.selected(app)==24);
+  NetworkProfile.select(app,root,26);check(NetworkProfile.selected(app)==26);
+  app.prefs.data.put("version",10);check(NetworkProfile.selected(app)==0);
   ConfigSettings.write(root,"network",Collections.singletonMap("protocol_version","10"));
-  check(NetworkProfile.configured(root)==24);
-  NetworkProfile.prepare(app,root);check(ConfigSettings.read(root,"network","protocol_version","").equals("24"));
+  check(NetworkProfile.configured(root)==0);
+  NetworkProfile.prepare(app,root);check(ConfigSettings.read(root,"network","protocol_version","").equals("0"));
   File invalid=new File(root,"not-a-directory");Files.writeString(invalid.toPath(),"keep");
   try {NetworkProfile.select(app,invalid,23);throw new AssertionError();}catch(IOException expected){}
-  check(NetworkProfile.selected(app)==24);
+  check(NetworkProfile.selected(app)==0);
   for(int version:NetworkProfile.SUPPORTED){NetworkProfile.select(app,root,version);check(NetworkProfile.configured(root)==version);}
   NetworkProfile.select(app,root,0);check(NetworkProfile.selected(app)==0);
   NetworkProfile.gameStarted(root);
+  try {NetworkProfile.setLegacyCoop(root,true);throw new AssertionError();}catch(IOException expected){}
   try {NetworkProfile.select(app,root,23);throw new AssertionError();}catch(IOException expected){}
   NetworkProfile.prepare(app,root);check(NetworkProfile.configured(root)==0);
-  System.out.println("PASS: all14 targets and auto persistence, per-data handoff, live-game switch blocked, invalid versions, write failures and config preservation");
+  System.out.println("PASS: all 18 targets 11-28 (default All compatible) and persistence, per-data handoff, live-game switch blocked, invalid versions, write failures and config preservation");
  }
 }'''
     }
@@ -103,6 +109,7 @@ import java.util.*;
 class PopulationCheck {
  static class Entry { int version,players; boolean customEdition; Entry(int v,int p){version=v;players=p;} }
  List<Entry> directory=new ArrayList<>(); int selectedNetworkVersion; boolean campaign;
+ java.io.File root; java.io.File gameRoot(){return root;}
 ''' + '\n'.join(block(browser, signature) for signature in [
         'private static final class NetworkPopulation',
         'private List<NetworkPopulation> networkPopulations()',
@@ -110,8 +117,9 @@ class PopulationCheck {
         'private int totalReportedPlayers()',
         'private List<Entry> filteredDirectory()']) + '''
  static void check(boolean b){if(!b)throw new AssertionError();}
- public static void main(String[] args){
+ public static void main(String[] args)throws Exception{
   PopulationCheck b=new PopulationCheck();
+  b.root=java.nio.file.Files.createTempDirectory("population-consent").toFile();
   b.directory.add(new Entry(24,10));b.directory.add(new Entry(11,8));
   b.directory.add(new Entry(24,4));b.directory.add(new Entry(11,8));
   b.directory.add(new Entry(22,14));
@@ -125,9 +133,12 @@ class PopulationCheck {
   check(rows.size()==2 && rows.get(0).players==10 && rows.get(1).players==4);
   b.selectedNetworkVersion=0;check(b.filteredDirectory().size()==5);
   check(b.compatibleReportedPlayers()==44);
-  b.directory.add(new Entry(25,9));check(b.totalReportedPlayers()==53 && b.compatibleReportedPlayers()==44);
+  b.directory.add(new Entry(29,9));check(b.totalReportedPlayers()==53 && b.compatibleReportedPlayers()==44); // Test59: 29 is past this build's 28
   b.directory.get(1).customEdition=true;check(b.compatibleReportedPlayers()==36);
-  b.campaign=true;check(b.compatibleReportedPlayers()==14);
+  b.campaign=true;check(b.compatibleReportedPlayers()==28);
+  b.directory.add(new Entry(14,7));check(b.compatibleReportedPlayers()==28);
+  NetworkProfile.setLegacyCoop(b.root,true);check(b.compatibleReportedPlayers()==35);
+  NetworkProfile.setLegacyCoop(b.root,false);check(b.compatibleReportedPlayers()==28);
   b.directory.clear();check(b.networkPopulations().stream().allMatch(g->g.players==0 && g.servers==0));
   System.out.println("PASS: production population totals, busiest-first ordering, tie breaks, zero-population supported profiles and filtering");
  }

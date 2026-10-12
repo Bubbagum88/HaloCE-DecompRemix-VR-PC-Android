@@ -93,6 +93,7 @@ static struct { int grip_held[2], weapon_hand, in_holster, button_source[VR_BUTT
 static int physical, buzzes;
 static int physical_weapons(void){return physical;}
 static void vr_haptic(int h,float a,float s){(void)h;(void)a;(void)s;buzzes++;}
+static int stick_zoom_active(void){return 0;} /* Test55: physical melee off here: melee stays on the stick click */
 static void platform_log(const char *f, ...){(void)f;}
 ''' + names + fn(frame, 'touch_source_hand') + fn(frame, 'touch_source_down') + fn(frame, 'touch_buttons') + r'''
 #define S HALO_XR_HAND_SOUTH

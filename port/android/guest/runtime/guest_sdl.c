@@ -192,6 +192,11 @@ SDL_Gamepad *SDL_GetGamepadFromID(SDL_JoystickID id)
 	return (SDL_Gamepad *)host_sdl_gamepad_from_id(id);
 }
 
+void SDL_CloseGamepad(SDL_Gamepad *gamepad)
+{
+	host_sdl_close_gamepad((unsigned int)gamepad);
+}
+
 Sint16 SDL_GetGamepadAxis(SDL_Gamepad *gamepad, SDL_GamepadAxis axis)
 {
 	return (Sint16)host_sdl_gamepad_axis((unsigned int)gamepad, (int)axis);
@@ -234,4 +239,19 @@ bool SDL_PutAudioStreamData(SDL_AudioStream *stream, const void *data, int lengt
 bool SDL_ResumeAudioStreamDevice(SDL_AudioStream *stream)
 {
 	return host_sdl_resume_audio_stream_device((unsigned int)stream) != 0;
+}
+
+int SDL_GetAudioStreamData(SDL_AudioStream *stream, void *data, int length)
+{
+	return host_sdl_get_audio_stream_data((unsigned int)stream, data, length);
+}
+
+int SDL_GetAudioStreamAvailable(SDL_AudioStream *stream)
+{
+	return host_sdl_get_audio_stream_available((unsigned int)stream);
+}
+
+void SDL_DestroyAudioStream(SDL_AudioStream *stream)
+{
+	host_sdl_destroy_audio_stream((unsigned int)stream);
 }

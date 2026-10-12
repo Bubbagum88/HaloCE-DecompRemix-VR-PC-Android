@@ -1,3 +1,16 @@
+> **Release pointer: v1.0.31 / Test64 / code76.** The older public pointers below are historical. See the release notes for current behavior and WIP limits.
+
+> **Public continuation:** use this repository’s `main` / `v1.0.31` source snapshot. Historical private branch names and local build hashes below are provenance, not prerequisites for cloning or continuing. Runtime/build sources match the supplied Test64 artifacts; public history excludes private development records from earlier commits.
+
+> **Public continuation:** use this repository’s `main` / `v1.0.31` source snapshot. Historical private branch names and local build hashes below are provenance, not prerequisites for cloning or continuing. Runtime/build sources match the supplied Test64 artifacts; public history excludes private development records from earlier commits.
+
+> **Public promotion authorized 2026-10-12:** the owner requested Test64 as
+> public **v1.0.31**, retaining the exact `1.0.31-test64`/code76 APKs.
+> This supersedes the historical local-only publication holds below for this release.
+> Read `docs/RELEASE-1.0.31.md` and `docs/RELEASE-PROVENANCE-1.0.31.md`.
+> Publication is for user testing/log collection; it does not certify the device checklist.
+> Runtime source remains `d1a61e06`; experimental systems remain WIP.
+
 > Historical development record. Current release/defaults/continuation instructions are in `docs/CURRENT-STATE.md` (or `CURRENT-STATE.md` from this directory). Dated branch/private-work references below describe earlier work.
 
 # Quest VR port: handoff
@@ -119,14 +132,14 @@ Frames from a video can be pulled with yt-dlp plus a static ffmpeg
 - `host_memory.c`: guest memory, and the SIGSEGV handler that logs the
   guest's frames.
 
-**Guest↔host calls:** `port/android/host_imports.list`,
+**Guestâ†”host calls:** `port/android/host_imports.list`,
 `host_imports_vr.list`, `guest/runtime/guest_host.h`, `guest_sdl.c`. A new SDL
 function the guest calls needs a shim there, or the link fails.
 
 **VR core (guest), `port/linux/src/vr_frame.c` and `vr.h`:**
 - Poses: `view`, `to_halo` (OpenXR LOCAL, where x is right, y up, z back, to
   Halo's x forward, y left, z up, by the heading), `hand_view`,
-  `vr_hand_world` (the grip pose: forward = −Z, up = +Y).
+  `vr_hand_world` (the grip pose: forward = âˆ’Z, up = +Y).
 - Input layout: `layout_controls`.
 - Gestures: `update_gestures` covers grips, finger curls, arm run, melee,
   flashlight, crouch, holsters and physical weapons.
@@ -164,7 +177,7 @@ function the guest calls needs a shim there, or the link fails.
 entries, each documented, written to config.toml.
 
 **Launcher (Java), `port/android/app/src/main/java/com/halo/decomp/`:**
-- `LauncherActivity`: Play; Mods → SPV1; the main menu 3D/flat toggle;
+- `LauncherActivity`: Play; Mods â†’ SPV1; the main menu 3D/flat toggle;
   resetting settings.
 - `ModInstaller`: SPV1's download, install and restore.
 
@@ -289,17 +302,17 @@ vr.body and vr.fingers.
    - Keep the gun (`frame gun` under `frame r wriste`) out of the collapse.
 2. **Free hand**, for the off hand, and the gun arm too when `vr_hand_empty()`:
    1. Read the controller with `vr_hand_world`, giving f and u.
-      Orthonormalize them. Let r = f × u. The palm P is −r for the right
+      Orthonormalize them. Let r = f Ã— u. The palm P is âˆ’r for the right
       hand and +r for the left.
-   2. Put the wrist target at grip − f·0.075 m. Stop it with
+   2. Put the wrist target at grip âˆ’ fÂ·0.075 m. Stop it with
       `vr_hand_out_of_walls`, which should also return the hit plane's
       normal. Then run `vr_solve_arm`.
-   3. Orient the hand. Build its frame from joint positions: F_b = wrist →
-      middle knuckle, U_b = little knuckle → index knuckle (orthogonalized).
-      Rotate the hand's subtree about the wrist by R = [f u f×u]·[F_b U_b
-      F_b×U_b]ᵀ. This works whatever the bone axes are, and when mirrored.
-   4. When pressed and the palm faces the surface (P·N < −0.2), rotate P
-      toward −N by up to 85%, scaled by depth/5 cm. That lays the palm flat.
+   3. Orient the hand. Build its frame from joint positions: F_b = wrist â†’
+      middle knuckle, U_b = little knuckle â†’ index knuckle (orthogonalized).
+      Rotate the hand's subtree about the wrist by R = [f u fÃ—u]Â·[F_b U_b
+      F_bÃ—U_b]áµ€. This works whatever the bone axes are, and when mirrored.
+   4. When pressed and the palm faces the surface (PÂ·N < âˆ’0.2), rotate P
+      toward âˆ’N by up to 85%, scaled by depth/5 cm. That lays the palm flat.
 3. **Fingers**, posed outright rather than on top of the animation:
    - **Find the joints.** Each finger's joints come from the names ("thumb",
      "index", "middle", "ring", "pinky", or "finger0".."finger4"). The
@@ -307,16 +320,16 @@ vr.body and vr.fingers.
      the same finger. The first-person arms' names are
      `frame l index low|mid|tip`, and the left middle's is
      `frame l middlelow`, with no space.
-   - **Bend.** Each finger's base direction is wrist → knuckle with the palm
-     component removed. Bend joint by joint toward P about base × P. Rest
+   - **Bend.** Each finger's base direction is wrist â†’ knuckle with the palm
+     component removed. Bend joint by joint toward P about base Ã— P. Rest
      bends are 0.12, 0.15 and 0.10 rad; full curl adds 1.25, 1.6 and 1.1.
-     Use `vr_rotation_between` (current bone direction → wanted) on each
+     Use `vr_rotation_between` (current bone direction â†’ wanted) on each
      joint's subtree.
    - **The last joint** has no child. Use the axis of the middle joint that
      lies along the bone (|dot| > 0.8); if none does, skip it.
-   - **Thumb.** Its direction runs from up (normalize(u·0.9 + f·0.3), a
-     thumbs-up) to across the controller's face (normalize(f·0.75 + P·0.55 +
-     u·0.1)) by its curl, with extra bends of 0.35 and 0.3 rad.
+   - **Thumb.** Its direction runs from up (normalize(uÂ·0.9 + fÂ·0.3), a
+     thumbs-up) to across the controller's face (normalize(fÂ·0.75 + PÂ·0.55 +
+     uÂ·0.1)) by its curl, with extra bends of 0.35 and 0.3 rad.
    - **Curls** come from `vr_finger_pose`: thumb, index, middle, ring+little.
    - **Alyx-like touch.** Test each finger from its knuckle to its tip end
      (`collision_test_vector` with `VR_HAND_TOUCH_FLAGS`, ignoring
@@ -343,9 +356,9 @@ vr.body and vr.fingers.
 - When `cinematic_in_progress() && vr_cinema_immersive()`, take the stereo
   path with `vr_render.cinematic_view`.
 - **Anchor** at the cutscene camera's position.
-- **Heading** = camera yaw − `vr_head_local_yaw()`, as it was at the last cut.
+- **Heading** = camera yaw âˆ’ `vr_head_local_yaw()`, as it was at the last cut.
   Detect a cut as the camera moving more than about 1.5 world units, or
-  turning more than 30°, in one frame, or the cutscene starting. At each
+  turning more than 30Â°, in one frame, or the cutscene starting. At each
   cut, call `vr_view_blink(0.85)`.
 - Follow the camera's yaw between cuts. Ignore its pitch and roll.
 - `view_heading` and `view_anchor` must use these.

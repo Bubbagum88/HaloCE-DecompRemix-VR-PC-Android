@@ -119,6 +119,7 @@ symbols in this file:
 #include "interface/hud_unit.h"
 #include "items/items.h"
 #include "items/projectiles.h"
+#include "items/projectile_definitions.h"
 #include "main/console.h"
 #include "math/periodic_functions.h"
 #include "damage_effect_definitions.h"
@@ -138,6 +139,9 @@ symbols in this file:
 #include "units/bipeds.h"
 #include "units/units.h"
 #include "units/vehicles.h"
+#ifdef HALO_VR
+#include "vr_npc_interaction.h"
+#endif
 
 /* network_game_globals.c's */
 boolean network_game_distributed_client(void);
@@ -1012,6 +1016,17 @@ static void object_damage_shield(
 	return;
 }
 
+/* port: damage from a player who is gone (an older checkpoint's, a grenade
+still flying) keeps its object and team, but not his handle, which a new
+player in his slot would get the credit of; after the network's admission
+of the damage (network_damage_deals), which needs the handle */
+static void damage_data_validate_owner(
+	struct damage_data *damage)
+{
+	if (damage->owner_player_index != NONE && !player_try_and_get(damage->owner_player_index))
+		damage->owner_player_index = NONE;
+}
+
 static void object_damage_aftermath(
 	long object_index,
 	struct damage_data *damage,
@@ -1026,6 +1041,9 @@ static void object_damage_aftermath(
 		object_definition_get(object->definition_index);
 	struct damage_effect_definition *damage_effect =
 		damage_effect_definition_get(damage->definition_index);
+
+	/* port: (a client's replay of the host's nonlethal damage too) */
+	damage_data_validate_owner(damage);
 
 	if (object_definition->object.acceleration_scale > _real_epsilon)
 	{
@@ -1436,8 +1454,20 @@ void object_cause_damage(
 		return;
 	}
 
+	/* port: a player who is gone is credited with nothing */
+	damage_data_validate_owner(damage);
+
 	damage_effect = damage_effect_definition_get(damage->definition_index);
 	damage_definition = &damage_effect->damage;
+#ifdef HALO_VR
+	/* Test55: where the hit landed, for a death ragdoll's impact-located kick
+	(port/linux/game/vr_npc_interaction.c); Test56: and how hard, from this
+	effect's damage and push. Nothing about the damage changes. */
+	vr_npc_interaction_note_damage(object_index, &damage->epicenter, &damage->direction,
+		damage_definition->damage_upper_bound * damage->scale,
+		damage_definition->instantaneous_acceleration * damage->scale,
+		damage_definition->category, TEST_FLAG(damage->flags, _damage_area_of_effect_bit));
+#endif
 	damage_was_modified = FALSE;
 	parent_takes_body_damage = TRUE;
 
@@ -2769,6 +2799,80 @@ void damage_get_network_state(
 	state->recent_body_damage = object->object.recent_body_damage;
 	state->current_shield_damage = object->object.current_shield_damage;
 	state->recent_shield_damage = object->object.recent_shield_damage;
+}
+
+
+/* Test62: slams/fists request the victim's own localized effect only after
+ * real body loss. Shield sparks/depletion already come from object_cause_damage.
+ * Stock Elites have no localized effect: borrow the loaded assault-rifle
+ * projectile's response for the BODY material (never a shield/dirt response).
+ * Missing optional art means no effect, never loading a tag during gameplay. */
+void object_cause_contact_damage(struct damage_data *damage, long object_index,
+    short node_index, short region_index, short material_index,
+    real_vector3d const *object_normal)
+{
+    struct object_datum *object=object_try_and_get(object_index);
+    struct object_definition const *definition;
+    struct collision_model const *model;
+    real before_body, before_shield;
+    long effect=NONE;
+    void platform_log(char const *format,...);
+    if(!object || !damage) return;
+    before_body=object->object.body_vitality;
+    before_shield=object->object.shield_vitality;
+    object_cause_damage(damage,object_index,node_index,region_index,material_index,object_normal);
+    object=object_try_and_get(object_index);
+    if(!object) return;
+    platform_log("VR contact damage: target=%08lx tag=%08lx scale=%.3f shield=%.3f->%.3f body=%.3f->%.3f material=%d",
+        object_index,damage->definition_index,(float)damage->scale,(float)before_shield,
+        (float)object->object.shield_vitality,(float)before_body,(float)object->object.body_vitality,damage->material_type);
+    if(object->object.type!=_object_type_biped ||
+        !(object->object.body_vitality<before_body) ||
+        TEST_FLAG(damage->flags,_damage_create_localized_effect_bit)) return;
+    definition=object_definition_get(object->definition_index);
+    if(definition->object.collision_model.index==NONE) return;
+    model=collision_model_definition_get(definition->object.collision_model.index);
+    effect=model->resistance.localized_damage_effect.index;
+    if(effect==NONE){
+        long projectile=tag_loaded(PROJECTILE_DEFINITION_TAG,"weapons\\assault rifle\\bullet");
+        short body_material=material_index;
+        if(!VALID_INDEX(body_material,model->resistance.materials.count))
+            body_material=model->resistance.indirect_damage_material_index;
+        if(projectile!=NONE && VALID_INDEX(body_material,model->resistance.materials.count)){
+            struct damage_resistance_material const *material=TAG_BLOCK_GET_ELEMENT(
+                &model->resistance.materials,body_material,struct damage_resistance_material);
+            struct projectile_definition const *bullet=projectile_definition_get(projectile);
+            if(VALID_INDEX(material->material_type,bullet->projectile.material_responses.count)){
+                struct projectile_material_response_definition const *response=TAG_BLOCK_GET_ELEMENT(
+                    &bullet->projectile.material_responses,material->material_type,struct projectile_material_response_definition);
+                effect=response->default_effect.index;
+            }
+        }
+    }
+    if(effect!=NONE){
+        if(!VALID_INDEX(node_index,model->nodes.count)) node_index=NONE;
+        damage_effect_new_at_location(effect,object_index,node_index,&damage->epicenter,&damage->direction,object_normal);
+    }
+}
+
+/* port (VR, Test62): the damage effect a body thrown or slammed by a hand
+takes from what it hits: the globals' falling damage (a body slammed into the
+ground falls onto it), else their vehicle collision damage; NONE without
+either (port/linux/game/vr_interaction_impact.c) */
+long damage_globals_impact_effect(
+	void)
+{
+	struct game_globals_falling_damage *falling_damage;
+
+	if (!scenario_get_game_globals() || scenario_get_game_globals()->falling_damage.count < 1)
+		return NONE;
+	falling_damage = TAG_BLOCK_GET_ELEMENT(
+		&scenario_get_game_globals()->falling_damage,
+		0,
+		struct game_globals_falling_damage);
+	if (falling_damage->falling_damage.index != NONE)
+		return falling_damage->falling_damage.index;
+	return falling_damage->vehicle_collision_damage.index;
 }
 
 /* the automated network tests (port/linux/game/network_test.c): kills the

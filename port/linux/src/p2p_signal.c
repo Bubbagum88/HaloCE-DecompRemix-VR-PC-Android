@@ -190,8 +190,23 @@ enum
 {
 	_message_join = 'J',
 	_message_accept = 'A',
-	/* 3: a JOIN proves its key before the host makes a session */
-	MESSAGE_VERSION = 3,
+	/* 3: a JOIN proves its key before the host makes a session (OpenCE
+	network 24 and 25); 4 (network 26, OpenCE Build184): both messages also
+	say the machine's WebRTC, so browsers join. This build has no WebRTC: it
+	says none, and a joiner sends each request in both versions until a host
+	answers in one, so it reaches hosts of either (each reads only its own) */
+	MESSAGE_VERSION_LEGACY = 3,
+	MESSAGE_VERSION = 4,
+	/* (the WebRTC description's kinds and limits: p2p_internal.h's in OpenCE
+	Build184) */
+	SIGNAL_WEBRTC_NONE = 0,
+	SIGNAL_WEBRTC_NATIVE = 1,
+	SIGNAL_WEBRTC_BROWSER = 2,
+	SIGNAL_FINGERPRINT_SIZE = 32,
+	SIGNAL_MAXIMUM_WEBRTC_NAMES = 2,
+	SIGNAL_WEBRTC_NAME_SIZE = 64,
+	SIGNAL_ICE_UFRAG_SIZE = 33,
+	SIGNAL_ICE_PASSWORD_SIZE = 65,
 };
 
 struct broker
@@ -349,6 +364,9 @@ static struct
 	unsigned long join_nonce_time;
 	int join_answered;
 	unsigned char join_host_nonce[NONCE_SIZE];
+	/* the message version the host answered in (0: none yet, so both are
+	sent) */
+	int join_version;
 } signalling;
 
 static int elapsed(unsigned long since, unsigned long time)
@@ -840,6 +858,110 @@ static int put_candidates(unsigned char *message)
 	return 1 + count * 6;
 }
 
+static int get_candidates(const unsigned char *message, int size, struct p2p_candidate *candidates);
+
+/* the addresses, then from version 4 the WebRTC: this build's is none */
+static int put_addresses(unsigned char *message, int version)
+{
+	int size = put_candidates(message);
+
+	if (version >= MESSAGE_VERSION)
+		message[size++] = SIGNAL_WEBRTC_NONE;
+	return size;
+}
+
+/* ICE's text (RFC 8839's ice-char), of a length from minimum to maximum, or
+none: skipped (this build makes no WebRTC connection), but checked as a
+Build184 machine checks it, so the message is read to its exact end */
+static int skip_ice_text(const unsigned char *message, int size, int *offset, int minimum, int maximum,
+	int *present)
+{
+	int length;
+	int index;
+
+	if (*offset >= size)
+		return 0;
+	length = message[(*offset)++];
+	if ((length && (length < minimum || length > maximum)) || *offset + length > size)
+		return 0;
+	for (index = 0; index < length; index++)
+	{
+		char character = (char)message[*offset + index];
+
+		if (!((character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') ||
+			(character >= '0' && character <= '9') || character == '+' || character == '/'))
+		{
+			return 0;
+		}
+	}
+	*present = length != 0;
+	*offset += length;
+	return 1;
+}
+
+/* the reverse of put_addresses (a Build184 machine's own WebRTC included):
+the bytes read, or -1 if they are not made so; webrtc_kind its kind */
+static int get_addresses(const unsigned char *message, int size, int version, struct p2p_candidate *candidates,
+	int *count, int *webrtc_kind)
+{
+	int offset;
+	int index;
+	int ufrag = 0, password = 0;
+	int names;
+
+	*webrtc_kind = SIGNAL_WEBRTC_NONE;
+	*count = get_candidates(message, size, candidates);
+	if (*count < 0)
+		return -1;
+	offset = 1 + *count * 6;
+	if (version < MESSAGE_VERSION)
+		return offset;
+	if (offset >= size)
+		return -1;
+	*webrtc_kind = message[offset++];
+	if (*webrtc_kind == SIGNAL_WEBRTC_NONE)
+		return offset;
+	if ((*webrtc_kind != SIGNAL_WEBRTC_NATIVE && *webrtc_kind != SIGNAL_WEBRTC_BROWSER) ||
+		offset + SIGNAL_FINGERPRINT_SIZE > size)
+	{
+		return -1;
+	}
+	offset += SIGNAL_FINGERPRINT_SIZE;
+	if (!skip_ice_text(message, size, &offset, 4, SIGNAL_ICE_UFRAG_SIZE - 1, &ufrag) ||
+		!skip_ice_text(message, size, &offset, 22, SIGNAL_ICE_PASSWORD_SIZE - 1, &password) ||
+		ufrag != password || offset >= size)
+	{
+		return -1;
+	}
+	names = message[offset++];
+	if (names > SIGNAL_MAXIMUM_WEBRTC_NAMES)
+		return -1;
+	for (index = 0; index < names; index++)
+	{
+		int length;
+		int character;
+
+		if (offset >= size)
+			return -1;
+		length = message[offset++];
+		if (length <= 6 || length >= SIGNAL_WEBRTC_NAME_SIZE || offset + length + 2 > size ||
+			memcmp(message + offset + length - 6, ".local", 6) ||
+			!(message[offset + length] | message[offset + length + 1]))
+		{
+			return -1;
+		}
+		for (character = 0; character < length - 6; character++)
+		{
+			unsigned char c = message[offset + character];
+
+			if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-'))
+				return -1;
+		}
+		offset += length + 2;
+	}
+	return offset;
+}
+
 static int get_candidates(const unsigned char *message, int size, struct p2p_candidate *candidates)
 {
 	int count;
@@ -951,19 +1073,19 @@ static int host_nonce_current(const unsigned char *public_key, const unsigned ch
 
 /* ---------- the messages */
 
-static void send_join(void)
+static void send_join_version(int version)
 {
 	unsigned char message[MAXIMUM_MESSAGE_SIZE];
 	unsigned char sealed[MAXIMUM_MESSAGE_SIZE + P2P_SEAL_OVERHEAD];
 	int size = 0;
 
 	message[size++] = _message_join;
-	message[size++] = MESSAGE_VERSION;
+	message[size++] = (unsigned char)version;
 	memcpy(message + size, p2p_public_key(), P2P_KEY_SIZE);
 	size += P2P_KEY_SIZE;
 	memcpy(message + size, signalling.join_nonce, NONCE_SIZE);
 	size += NONCE_SIZE;
-	size += put_candidates(message + size);
+	size += put_addresses(message + size, version);
 	/* answered: the proof that this machine holds its key, of which the host
 	makes the session */
 	if (signalling.join_answered)
@@ -975,6 +1097,16 @@ static void send_join(void)
 	}
 	size = p2p_seal(signalling.join_key, message, size, sealed);
 	publish_everywhere(signalling.join_host_topic, sealed, size);
+}
+
+/* the request in the version the host answered in, or (not answered yet)
+in both: a network 26 host reads version 4 alone, a 24 or 25 host 3 */
+static void send_join(void)
+{
+	if (!signalling.join_version || signalling.join_version == MESSAGE_VERSION)
+		send_join_version(MESSAGE_VERSION);
+	if (!signalling.join_version || signalling.join_version == MESSAGE_VERSION_LEGACY)
+		send_join_version(MESSAGE_VERSION_LEGACY);
 	signalling.join_sent_time = p2p_now();
 }
 
@@ -1031,7 +1163,7 @@ static int request_used(const unsigned char *request)
 
 /* the host's answer to a request, through the broker it came through */
 static void send_accept(struct broker *broker, const unsigned char *identifier, const unsigned char *nonce,
-	const unsigned char *host_nonce, const unsigned char *base, int proven)
+	const unsigned char *host_nonce, const unsigned char *base, int proven, int version)
 {
 	unsigned char answer[MAXIMUM_MESSAGE_SIZE];
 	unsigned char sealed[MAXIMUM_MESSAGE_SIZE + P2P_SEAL_OVERHEAD];
@@ -1039,14 +1171,14 @@ static void send_accept(struct broker *broker, const unsigned char *identifier, 
 	int size = 0;
 
 	answer[size++] = _message_accept;
-	answer[size++] = MESSAGE_VERSION;
+	answer[size++] = (unsigned char)version;
 	memcpy(answer + size, p2p_public_key(), P2P_KEY_SIZE);
 	size += P2P_KEY_SIZE;
 	memcpy(answer + size, nonce, NONCE_SIZE);
 	size += NONCE_SIZE;
 	memcpy(answer + size, host_nonce, NONCE_SIZE);
 	size += NONCE_SIZE;
-	size += put_candidates(answer + size);
+	size += put_addresses(answer + size, version);
 	message_tag(base, "accept", answer, size, answer + size);
 	size += TAG_SIZE;
 	size = p2p_seal(signalling.host_key, answer, size, sealed);
@@ -1072,15 +1204,28 @@ static void join_received(struct broker *broker, const unsigned char *message, i
 	int broker_index = (int)(broker - signalling.brokers);
 	struct joiner *joiner;
 	struct used_request *used;
+	int version = message[1];
 	int proven;
 	int count;
+	int read;
+	int webrtc_kind;
+	static int browser_reported;
 
 	if (size < fixed + 1)
 		return;
-	count = get_candidates(message + fixed, size - fixed, candidates);
-	if (count < 0)
+	read = get_addresses(message + fixed, size - fixed, version, candidates, &count, &webrtc_kind);
+	if (read < 0)
 		return;
-	proven = size - fixed - 1 - count * 6;
+	/* (a browser reaches a host over WebRTC alone, which this build has not:
+	it is turned away rather than answered with a session it cannot use) */
+	if (webrtc_kind == SIGNAL_WEBRTC_BROWSER)
+	{
+		if (!browser_reported)
+			platform_log("Internet play: a browser player tried to join; this build cannot host browsers (no WebRTC)");
+		browser_reported = 1;
+		return;
+	}
+	proven = size - fixed - read;
 	if (proven != 0 && proven != PROOF_SIZE)
 		return;
 	p2p_identifier_for(public_key, identifier);
@@ -1105,7 +1250,7 @@ static void join_received(struct broker *broker, const unsigned char *message, i
 		}
 		joiner->answered_time = p2p_now();
 		joiner->answered_broker_times[broker_index] = joiner->answered_time;
-		send_accept(broker, identifier, joiner->nonce, joiner->host_nonce, joiner->base, proven);
+		send_accept(broker, identifier, joiner->nonce, joiner->host_nonce, joiner->base, proven, version);
 		return;
 	}
 	memcpy(request, identifier, P2P_IDENTIFIER_SIZE);
@@ -1166,7 +1311,7 @@ static void join_received(struct broker *broker, const unsigned char *message, i
 		asker->answered_nonce_brokers[slot] = (signed char)broker_index;
 		asker->answered_nonce_times[slot] = asker->answered_time;
 		host_nonce_for(public_key, nonce, p2p_now() / HOST_NONCE_PERIOD, host_nonce);
-		send_accept(broker, identifier, nonce, host_nonce, asker->base, 0);
+		send_accept(broker, identifier, nonce, host_nonce, asker->base, 0, version);
 		return;
 	}
 	/* proven: with a nonce the host answered the request with lately, and a
@@ -1203,7 +1348,7 @@ static void join_received(struct broker *broker, const unsigned char *message, i
 	memset(joiner->answered_broker_times, 0, sizeof(joiner->answered_broker_times));
 	joiner->answered_broker_times[broker_index] = joiner->answered_time;
 	joiner->used = 1;
-	send_accept(broker, identifier, nonce, host_nonce, base, 1);
+	send_accept(broker, identifier, nonce, host_nonce, base, 1, version);
 }
 
 /* the joiner: the host answered */
@@ -1216,9 +1361,14 @@ static void accept_received(const unsigned char *message, int size)
 	const unsigned char *nonce = host_public + P2P_KEY_SIZE;
 	const unsigned char *host_nonce = nonce + NONCE_SIZE;
 	int fixed = 2 + P2P_KEY_SIZE + 2 * NONCE_SIZE;
+	int version = message[1];
 	int count;
+	int webrtc_kind;
 
 	if (size < fixed + 1 + TAG_SIZE || memcmp(nonce, signalling.join_nonce, NONCE_SIZE))
+		return;
+	/* (once answered, only in the version it answered in) */
+	if (signalling.join_version && version != signalling.join_version)
 		return;
 	/* the first answer to the request holds: the proof carries its host
 	nonce (the host's changes every HOST_NONCE_PERIOD) */
@@ -1241,14 +1391,17 @@ static void accept_received(const unsigned char *message, int size)
 	/* and the answer is its */
 	if (!tag_right(signalling.join_base, "accept", message, size))
 		return;
-	count = get_candidates(message + fixed, size - TAG_SIZE - fixed, candidates);
-	if (count < 0)
+	if (get_addresses(message + fixed, size - TAG_SIZE - fixed, version, candidates, &count, &webrtc_kind) !=
+		size - TAG_SIZE - fixed)
+	{
 		return;
+	}
 	session_secret(signalling.join_base, nonce, host_nonce, secret);
 	if (!p2p_peer_offered(signalling.join_host, secret, candidates, count, 1) || signalling.join_answered)
 		return;
 	memcpy(signalling.join_host_nonce, host_nonce, NONCE_SIZE);
 	signalling.join_answered = 1;
+	signalling.join_version = version;
 	/* the proof, at once */
 	send_join();
 }
@@ -1274,14 +1427,20 @@ static void publish_received(struct broker *broker, const char *topic, const uns
 	if (signalling.hosting && !strcmp(topic, signalling.host_topic))
 	{
 		message_size = p2p_open(signalling.host_key, payload, size, message);
-		if (message_size >= 2 && message[0] == _message_join && message[1] == MESSAGE_VERSION)
+		if (message_size >= 2 && message[0] == _message_join &&
+			(message[1] == MESSAGE_VERSION || message[1] == MESSAGE_VERSION_LEGACY))
+		{
 			join_received(broker, message, message_size);
+		}
 	}
 	else if (signalling.joining && !strcmp(topic, signalling.join_topic))
 	{
 		message_size = p2p_open(signalling.join_key, payload, size, message);
-		if (message_size >= 2 && message[0] == _message_accept && message[1] == MESSAGE_VERSION)
+		if (message_size >= 2 && message[0] == _message_accept &&
+			(message[1] == MESSAGE_VERSION || message[1] == MESSAGE_VERSION_LEGACY))
+		{
 			accept_received(message, message_size);
+		}
 	}
 }
 
@@ -1736,6 +1895,7 @@ void p2p_signal_join(const unsigned char *host_hash, const unsigned char *token)
 	posix_random_bytes(signalling.join_nonce, NONCE_SIZE);
 	signalling.join_nonce_time = p2p_now();
 	signalling.join_answered = 0;
+	signalling.join_version = 0;
 	signalling.joining = 1;
 	sync_all_topics();
 	send_join();

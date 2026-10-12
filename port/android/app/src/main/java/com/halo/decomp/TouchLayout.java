@@ -3,7 +3,11 @@ package com.halo.decomp;
 /** Device-independent touch settings and bounded geometry; tested without Android. */
 final class TouchLayout {
     static final int COUNT=19;
+    /** Stable IDs for portable presets; labels/order may change independently. */
+    static final String[] CONTROL_IDS={"move","look","fire","jump","melee","use","swap","crouch","zoom",
+        "grenade","grenade_type","flashlight","menu","back","dpad_up","dpad_down","dpad_left","dpad_right","touch_visibility"};
     final float[] x=new float[COUNT],y=new float[COUNT],size=new float[COUNT],alpha=new float[COUNT];
+    final boolean[] visible=new boolean[COUNT];
     float scale=1f,opacity=.65f,sensitivityX=1f,sensitivityY=1f,deadZone=.08f;
     boolean swipe=true,floating=false,invert=false,lookAnywhere=false;
     int color=0xff69c9ff;
@@ -13,7 +17,7 @@ final class TouchLayout {
     boolean gyroInvert=false;
     static final float[] DEFAULT_X={.14f,.67f,.91f,.91f,.96f,.83f,.80f,.28f,.80f,.10f,.21f,.32f,.56f,.44f,.40f,.40f,.34f,.46f,.94f};
     static final float[] DEFAULT_Y={.74f,.75f,.42f,.76f,.59f,.61f,.42f,.82f,.84f,.38f,.38f,.38f,.10f,.10f,.60f,.84f,.72f,.72f,.10f};
-    TouchLayout() { for(int i=0;i<COUNT;i++) { x[i]=DEFAULT_X[i];y[i]=DEFAULT_Y[i];size[i]=alpha[i]=1; } }
+    TouchLayout() { for(int i=0;i<COUNT;i++) { x[i]=DEFAULT_X[i];y[i]=DEFAULT_Y[i];size[i]=alpha[i]=1;visible[i]=true; } }
     static float bound(float value,float min,float max,float fallback) {
         return Float.isFinite(value)?Math.max(min,Math.min(max,value)):fallback;
     }

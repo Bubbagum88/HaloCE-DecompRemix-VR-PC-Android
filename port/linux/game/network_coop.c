@@ -78,6 +78,8 @@ index and tag, since the map placed them at the same index everywhere.
 #include "effects/player_effects.h"
 #include "game/game.h"
 #include "game/game_allegiance.h"
+#include "networking/network_client_manager.h"
+#include "../src/port_config.h"
 #include "game/game_engine.h"
 #include "game/players.h"
 #include "game/player_queues_new.h"
@@ -1031,6 +1033,7 @@ static struct
 	boolean moved;
 	real_point3d position;
 	real_vector3d forward;
+	real_vector3d up;
 } host_sent_transforms[MAXIMUM_OBJECTS_PER_MAP];
 
 /* host, each tick: the scenery and machines that moved (and, every
@@ -1060,15 +1063,18 @@ static void host_send_object_transforms(
 			host_sent_transforms[absolute_index].moved = FALSE;
 			host_sent_transforms[absolute_index].position = object->object.position;
 			host_sent_transforms[absolute_index].forward = object->object.forward;
+			host_sent_transforms[absolute_index].up = object->object.up;
 			continue;
 		}
 		moving = distance_squared3d(&host_sent_transforms[absolute_index].position, &object->object.position) >= 0.0001f ||
-			dot_product3d(&host_sent_transforms[absolute_index].forward, &object->object.forward) <= 0.9999f;
+			dot_product3d(&host_sent_transforms[absolute_index].forward, &object->object.forward) <= 0.9999f ||
+			dot_product3d(&host_sent_transforms[absolute_index].up, &object->object.up) <= 0.9999f;
 		if (!moving && !(host_resend.refresh && host_sent_transforms[absolute_index].moved))
 			continue;
 		host_sent_transforms[absolute_index].moved = TRUE;
 		host_sent_transforms[absolute_index].position = object->object.position;
 		host_sent_transforms[absolute_index].forward = object->object.forward;
+		host_sent_transforms[absolute_index].up = object->object.up;
 		transform = &message.transforms[count++];
 		transform->name_index = object->object.name_index;
 		transform->pad = 0;
@@ -2683,10 +2689,16 @@ void network_coop_client_tick(
 	}
 }
 
+static boolean legacy_presentation_without_allegiance(void)
+{
+    unsigned int version=network_game_client_joined_version();
+    return version>=12 && version<=14 && config_boolean("network.legacy_coop");
+}
+
 word network_coop_presentation_entry_size(
 	void)
 {
-	return sizeof(struct distributed_coop_presentation);
+	return legacy_presentation_without_allegiance() ? offsetof(struct distributed_coop_presentation, ally_teams) : sizeof(struct distributed_coop_presentation);
 }
 
 word network_coop_event_entry_size(
@@ -2971,21 +2983,31 @@ void network_coop_handle_events(
 in its turn (client_play_presentation) */
 void network_coop_handle_presentation(
 	void const *entries,
-	long host_time)
+	long host_time,
+    word bytes)
 {
 	short slot;
 
-	if (!coop_client() || host_time < 0)
+	if (!coop_client() || host_time < 0 || bytes != network_coop_presentation_entry_size())
 		return;
 	coop_presentation.heard_time = game_time_get();
 	if (coop_presentation.playing && host_time <= coop_presentation.played_time)
 		return;
 	slot = (short)(host_time % PRESENTATION_BUFFER_COUNT);
-	coop_presentation.buffered[slot] = *(struct distributed_coop_presentation const *)entries;
+	/* The legacy wire ends before allegiance. Copy only proven bytes;
+     * absent tail is never applied to gameplay (see apply guard). */
+    csmemset(&coop_presentation.buffered[slot],0,sizeof(coop_presentation.buffered[slot]));
+    csmemcpy(&coop_presentation.buffered[slot],entries,bytes);
 	coop_presentation.buffered_times[slot] = host_time;
 	if (!coop_presentation.heard_any || host_time > coop_presentation.newest_time)
 		coop_presentation.newest_time = host_time;
 	coop_presentation.heard_any = TRUE;
+}
+
+static void client_presentation_apply_allegiance(struct distributed_coop_presentation const *presentation)
+{
+    if (!legacy_presentation_without_allegiance())
+        game_allegiance_set_teams(presentation->ally_teams, presentation->friendly_teams);
 }
 
 static void client_presentation_apply(
@@ -3002,7 +3024,7 @@ static void client_presentation_apply(
 		players_vitality.maximum_body = presentation->players_maximum_body_vitality;
 		players_vitality.maximum_shield = presentation->players_maximum_shield_vitality;
 	}
-	game_allegiance_set_teams(presentation->ally_teams, presentation->friendly_teams);
+	client_presentation_apply_allegiance(presentation);
 	if (!presentation->scripted_shake && player_effect_port_scripted_active())
 		player_effect_port_scripted_end();
 

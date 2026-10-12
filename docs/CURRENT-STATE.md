@@ -1,6 +1,348 @@
+> **Release pointer: v1.0.31 / Test64 / code76.** The older public pointers below are historical. See the release notes for current behavior and WIP limits.
+
+> **Public continuation:** use this repository’s `main` / `v1.0.31` source snapshot. Historical private branch names and local build hashes below are provenance, not prerequisites for cloning or continuing. Runtime/build sources match the supplied Test64 artifacts; public history excludes private development records from earlier commits.
+
+> **Public promotion authorized 2026-10-12:** the owner requested Test64 as
+> public **v1.0.31**, retaining the exact `1.0.31-test64`/code76 APKs.
+> This supersedes the historical local-only publication holds below for this release.
+> Read `docs/RELEASE-1.0.31.md` and `docs/RELEASE-PROVENANCE-1.0.31.md`.
+> Publication is for user testing/log collection; it does not certify the device checklist.
+> Runtime source remains `d1a61e06`; experimental systems remain WIP.
+
 # Current development state
 
-## Current public release: v1.0.18 (2026-10-08)
+## Verified current public baseline: v1.0.18 (2026-10-12)
+
+A live check on 2026-10-12 of
+[GitHub releases/latest](https://github.com/moistman42069/HaloCE-Quest-VR/releases/latest)
+resolved to [v1.0.18](https://github.com/moistman42069/HaloCE-Quest-VR/releases/tag/v1.0.18),
+**OpenCE network24 / Android code48**. The public release points at commit
+`3867cd0ed565e8da97f3e9c62c27e316e30a4b73`; the local annotated
+`v1.0.18^{}` resolves to that same commit. The APK runtime source is
+`2680beaa42d9b53098a21198200f79c76aa3b308`, as recorded in the 1.0.18
+release provenance.
+
+The older v1.0.19 "current public" claim below is superseded: that release
+attempt was withdrawn/cancelled in the conversation and is not the current
+latest release. No local v1.0.19 tag exists. Preserve its notes as history,
+but do not use them as a live release pointer or instruction to check it out.
+Continue private Test64 on its stated branch. Public v1.0.18 and all earlier
+release assets remain unchanged; no publication is authorized.
+
+## Active private Test64 candidate (2026-10-12)
+
+Private **1.0.31-test64 / Android code76**, branch `test39-interaction-completion`,
+Test63 (APK source `e2849e9b`) plus one fix: opening VR SETTINGS crashed
+(owner's 14:09 Test63 log, signal 11 in `vr_menu_setting_text`) because
+Test63's settings index was also built for the category list (17 categories,
+three screens) and read `vr_menu_pages[VR_MENU_PAGE_COUNT]`; `vr_menu_paged`
+now builds the index for a category's own pages only. test_test31_vr_menu
+has 17 categories (fails without the fix under AddressSanitizer). Read
+`docs/TEST64-CHECKLIST.md`, `TEST64-DELIVERY-STATUS.md`,
+`TEST64-DEVICE-CHECKLIST.md`; all of Test63's device checks are still
+pending (`TEST63-DEVICE-CHECKLIST.md`). No protocol or voice change. Local
+commits only; no push/publish/install/launch.
+
+Built and packaged: APK source `d1a61e06d08b5ed044a941c447e8872661aea0fa`,
+delivery `<artifacts>\test64-20261012-v1.0.31-test64`; full suite,
+both native builds and package verification passed.
+
+## Previous private Test63 candidate (2026-10-12)
+
+Private **1.0.30-test63 / Android code75**, branch `test39-interaction-completion`,
+continuing Test62 (APK source `ed60571f`, kept whole). From the owner's
+fresh-install Test62 session (12:06 log and video, reviewed completely):
+BUTTON SPRINT owns the left stick's click and a reticle whose toggle has no
+button is shown (`vr_reload_settings`; the Buttons menu skips L STICK under
+sprint); X with an action on offer never drops the magazine
+(`player->action_result`); chest grenades sit in a torso frame
+(`vr_torso_place`, follows past 35 degrees, holds while looking down), use the
+game's frag/plasma projectile models (`vr_extra_models_render`, world model
+pass) and are taken at the drawn palm within 12 cm with a hover tick; the
+fist assist acquires (FIST REACH 1-3 m, 2.5 default; 45-degree gaze cone;
+hooks count; step up to 5 m/s; target slowed x.35, not frozen; a grab or
+climb ends it; miss diagnostics); world contact tests the nearest bounds
+first and skips objects over 4 units (b30's purple c_storage crate was
+starved by trees and the crashed Pelican); the Warthog's own model wheel is
+drawn at the virtual wheel and turned (`vr_vehicle_controls_matrices`), the
+Ghost/Scorpion/Banshee controls are redesigned shaded parts, and the
+`vr.handle_*` rows show a live blue calibration preview. New ONE-HAND
+HEAVIES (`vr.npc_one_hand_heavy`, off, requires NPC GRAB). Owner defaults:
+WALL SPEED 1.5X, WALL LEAP 1.5X, THROW POWER 1.5X (CLIMB LAUNCH 1X, WALL TIME
+2 S unchanged). A category of 3+ screens opens an index of its sections
+(`VR_MENU_INDEX_FROM`). No protocol or voice change.
+
+Full suite (127 suites), both native builds, ABI lint and package
+verification passed. APK source is `e2849e9b4effc9b1dab195bda0217e3aeabaf30e`;
+delivery is `<workspace>uilds	est63-20261012-v1.0.30-test63`.
+
+Read `docs/TEST63-CHECKLIST.md`, `docs/TEST63-FIELD-GUIDE.md`,
+`docs/TEST63-DEVICE-CHECKLIST.md`, `docs/TEST63-DELIVERY-STATUS.md`.
+Saved settings stay; new defaults reach fresh installs. Automated checks are
+not device evidence: device acceptance is pending for all of Test63.
+Local commits only; no push/publish/install/launch. PC/Steam Frame deferred.
+Every local commit message ends with the requested Claude co-author trailer.
+
+## Previous private Test62 candidate (2026-10-12)
+
+Private **1.0.29-test62 / Android code74**, branch `test39-interaction-completion`.
+Original four requests: settled-eye immersive control anchors (3 s cap),
+all-vehicle CTRL offsets; 5 cm default body grab assist; stationary first-hand
+heavy restraint/two-hand lift; native impact fallback/configured floor-slam
+threshold, 60 m death range and guarded parent-relative solver.
+
+Expanded scope: adjusted-palm manual reload and event-haptic priority; parkour
+defaults (14 cm climb contact, 2 s wallrun); optional experimental enemy-only
+FIST COMBAT (gaze/punch approach, combo restraint, brief stun/rear strike,
+highlights and native hurt feedback); adjustable chest PHYS GRENADES with
+native counts/projectiles; shared AIM STEADY and fresh final-wrist scope
+origin, including zero-offset frames. Slams/physical melee use a native
+contact-damage wrapper: real shield depletion and body-hit art only after
+body vitality loss, with a loaded material-response fallback and diagnostic
+vitality logs. Both flavor regression/build gates passed; final package verification is recorded in the delivery record.
+
+HOST VR ACTIONS is an opt-in co-op Server Setup permission for the host's new
+fist/grenade actions, requiring existing VR INTERACTIONS/all-peer handshake.
+PvP and guests retain native actions; manual reload/custom-rig/debris local
+restrictions remain. Existing NPC pose sync supports four remote machines,
+not unlimited peers. Protocol and voice implementations are unchanged.
+Euphoria-style active control/better solver replacement was assessed and not
+added; keep the tested solver and <=1 s living-NPC recovery.
+
+Both native builds, regression gates and final package verification passed. APK source is `ed60571ff85eaacbfe178cc98872d603bad32085`; delivery is `<artifacts>\test62-20261012-v1.0.29-test62`. Device acceptance remains pending. Read
+`docs/TEST62-CHECKLIST.md`, `docs/TEST62-FIELD-GUIDE.md`,
+`docs/TEST62-DEVICE-CHECKLIST.md`, `docs/TEST62-DELIVERY-STATUS.md`.
+Saved settings stay; new defaults do not overwrite a user's stored choices.
+Do not treat historical guide claims as fresh runtime evidence.
+Local commits only; no push/publish/install/launch. PC/Steam Frame deferred.
+Every local commit message ends with the requested Claude co-author trailer.
+
+
+## Previous private candidate: Test61 (2026-10-12)
+
+**1.0.28-test61 / Android code73**, branch `test39-interaction-completion`,
+for the owner's Quest and phone tests (not a release). The immersive vehicle
+controls stay under the hands (steady seat, the hands' level frame, no jump);
+IMMERSIVE VEHICLE turns on FIRST PERSON; impacts hurt (the unarmed blow);
+24 rig slots; dead Elites and Hunters lift with one hand; more settings come
+on together; a button held from a menu is no reload. Item outcomes:
+[TEST61-CHECKLIST.md](TEST61-CHECKLIST.md); APKs and hashes:
+[TEST61-DELIVERY-STATUS.md](TEST61-DELIVERY-STATUS.md). Device acceptance
+pending.
+
+## Previous private candidate: Test60 (2026-10-12)
+
+**1.0.27-test60 / Android code72**, branch `test39-interaction-completion`,
+for the owner's Quest and phone tests (not a release). Impact damage works
+on every NPC: slams onto floors and walls count, thrown and slammed bodies
+strike other bodies and vehicles, and allies take the blow in full; DEATH
+RAGDOLLS turns on NPC GRAB, NPC RESCUE and IMPACT DAMAGE, and the other
+features turn on what they play best with. Item outcomes:
+[TEST60-CHECKLIST.md](TEST60-CHECKLIST.md); APKs and hashes:
+[TEST60-DELIVERY-STATUS.md](TEST60-DELIVERY-STATUS.md). Device acceptance
+pending.
+
+## Previous private candidate: Test59 (2026-10-12)
+
+**1.0.26-test59 / Android code71**, branch `test39-interaction-completion`,
+for the owner's Quest and phone tests (not a release). Real first-person
+hands in vehicles, controls placed from the eyes, COMFORT REACH and TANK
+DRIVE; OpenCE Build 201 with network 28 hosting and 11-28 joining (All
+compatible by default, 27 selectable); the gun's own magazine goes back in
+and reload is steady while walking; DEATH FORCE ragdoll throws. Item
+outcomes: [TEST59-CHECKLIST.md](TEST59-CHECKLIST.md); APKs and hashes:
+[TEST59-DELIVERY-STATUS.md](TEST59-DELIVERY-STATUS.md). Device acceptance
+pending.
+
+## Previous private candidate: Test58 (2026-10-11)
+
+**1.0.25-test58 / Android code70**, branch `test39-interaction-completion`,
+for the owner's Quest and phone tests (not a release). Fixes Test57's
+immersive vehicle controls, which were placed out of reach (the Warthog's
+wheel at the map's origin from a marker's local offset; the Scorpion's stick
+inside the hull), steadies the mounted reticle with the immersive controls,
+and adds the off-by-default TANK HATCH view. Item outcomes:
+[TEST58-CHECKLIST.md](TEST58-CHECKLIST.md); APKs and hashes:
+[TEST58-DELIVERY-STATUS.md](TEST58-DELIVERY-STATUS.md). Device acceptance
+pending.
+
+## Previous private candidate: Test57 (2026-10-11)
+
+**1.0.24-test57 / Android code69**, branch `test39-interaction-completion`,
+for the owner's Quest and phone tests (not a release). A final polish pass on
+Test56 from the owner's Test56 session: every drivable vehicle its own
+immersive controls (Warthog virtual wheel, Ghost handlebar, Scorpion/Wraith
+drive stick, Banshee flight bar), a centre tick, a within-reach highlight,
+grab-miss logging and CONTROL GLOW / STEER HAPTICS / BANSH SLIDE rows; the
+assault rifle's safety button verified as authored; ragdolls and holster
+calibration reviewed and unchanged. Item outcomes:
+[TEST57-CHECKLIST.md](TEST57-CHECKLIST.md); APKs and hashes:
+[TEST57-DELIVERY-STATUS.md](TEST57-DELIVERY-STATUS.md). Device acceptance
+pending.
+
+## Previous private candidate: Test56 (2026-10-11)
+
+**1.0.23-test56 / Android code68**, branch `test39-interaction-completion`,
+for the owner's Quest and phone tests (not a release). A polish pass on Test55
+from the owner's two Test55 sessions: a parent-relative ragdoll solver for
+every species (Hunters and Flood included), shot-reactive death ragdolls,
+NPCs up within 1 s (NPC RECOVERY), immersive vehicles that steer the right
+way without stutter and steer apart from head aiming, the Warthog wheel rim,
+grip poses, throws at the release peak with THROW 2X, impact shoves, LIFT for
+everything held, CHARGE GRAB and heavy-hold haptics; OpenCE Build190's lobby
+countdown fix (Build189 is network 27 and not taken). Item outcomes:
+[TEST56-CHECKLIST.md](TEST56-CHECKLIST.md); APKs and hashes:
+[TEST56-DELIVERY-STATUS.md](TEST56-DELIVERY-STATUS.md). Device acceptance
+pending.
+
+## Previous private candidate: Test55 (2026-10-11)
+
+**1.0.22-test55 / Android code67**, branch `test39-interaction-completion`,
+for the owner's Quest and phone tests (not a release). A polish pass on
+Test54 from the owner's Test54 session and messages: named campaign objects
+grabbable (Shades and other vehicles, bodies, weapons, props), busy NPCs,
+one-hand restraint, Spartan throws, looser ragdolls, magazine grip and
+charging lock-on, automatic wall running, pouch/holster calibration with
+markers, one IMMERSION menu, immersive vehicle controls with first-person
+hands, zoom on the right stick with physical melee, and OpenCE Build 188's
+decal batching. Item outcomes: [TEST55-CHECKLIST.md](TEST55-CHECKLIST.md);
+APKs and hashes: [TEST55-DELIVERY-STATUS.md](TEST55-DELIVERY-STATUS.md).
+Device acceptance pending.
+
+## Previous private candidate: Test54 (2026-10-11)
+
+**1.0.21-test54 / Android code66**, branch `test39-interaction-completion`,
+built from 938a0448 for the owner's Quest and phone tests (not a release).
+It follows the owner's Test53 report (voice working online, wall run and wall
+jump working) and refines manual reload, NPC grabbing, throwing, ragdolls
+(new DEATH RAGDOLLS), climbing, melee/grab separation, hands and fingers, and
+the steady first-person gun parts; IMMERSION+ holds the technical options.
+Item outcomes: [TEST54-CHECKLIST.md](TEST54-CHECKLIST.md); APKs and hashes:
+[TEST54-DELIVERY-STATUS.md](TEST54-DELIVERY-STATUS.md); online scope:
+[TEST54-NETWORK.md](TEST54-NETWORK.md). Device acceptance pending.
+
+## Previous private candidate: Test53 (2026-10-11)
+
+**1.0.20-test53 / Android code65**, branch `test39-interaction-completion`,
+built for the owner's Quest and phone tests (not a release). Test52 (code64)
+was committed but never built; Test53 supersedes it. Every change since
+v1.0.18 and every requested item is in [TEST53-CHECKLIST.md](TEST53-CHECKLIST.md)
+with implemented / automated / device outcomes; the delivered APKs and hashes
+are in [TEST53-DELIVERY-STATUS.md](TEST53-DELIVERY-STATUS.md).
+
+- Voice: v1.0.19 crashed when a player spoke (the assembly converter
+  corrupted Opus's `cache_bits50`; see
+  [TEST52-CRASH-ANALYSIS.md](TEST52-CRASH-ANALYSIS.md)). Fixed and hardened;
+  the owner reported voice working on Test53.
+- Interaction features had two blocking defects, now fixed: grabs used a
+  zero-length pill sweep that cannot report a touch, and parkour/manual
+  reload could not read the head pose from game ticks. Also: bounded NPC
+  handoff, body retention through campaign script collections, co-op host
+  parkour, the IMMERSION settings page.
+- OpenCE Build184 / network 26: hosting 26, clients 11–26, All compatible
+  networks by default, selected Build177–184 fixes. Not a full Build184
+  rebase; browser (WebRTC) players cannot join this app's hosts.
+
+## Superseded/withdrawn release attempt: v1.0.19 (2026-10-10)
+
+Historical text follows. Its former publication/tag assertions and next-step
+instructions are superseded by the verified v1.0.18 pointer at the top; this
+section is retained to explain Test51-53's reported failures and fixes.
+
+Release source is based on test39-interaction-completion, merged with the
+latest main landing-page/logo update. The owner confirmed on Quest that the
+Test51 build no longer crashes when joining. (A voice-chat confirmation
+recorded here earlier was wrong: the owner then reported that v1.0.19 closes
+as soon as a player speaks; see Test53 above.) The
+stable release uses version 1.0.19 / Android code63. Build157/network24 remains
+the engine baseline with selected compatible changes through Build177, not a
+full Build177 rebase. See [RELEASE-1.0.19.md](RELEASE-1.0.19.md) and
+[RELEASE-PROVENANCE-1.0.19.md](RELEASE-PROVENANCE-1.0.19.md).
+
+Important: Parkour, ragdolls/body-retention changes, wall grabbing and
+enemy/NPC/ally grabbing remain unfinished or unreliable; enemy grabbing may
+activate but is broken and not recommended. Manual physical reload has not
+been confirmed as working end-to-end. The release calls these limits out at
+the top rather than presenting settings as completed features.
+
+Preserve public v1.0.18 and all older releases/artifacts. Keep PC/Steam Frame
+deferred. Future work should start from the v1.0.19 tag/source and the
+unimplemented interaction requirements, not from a superseded Test51 hold.
+
+## Superseded private candidate: Test48 (2026-10-10)
+
+Test48 remains preserved at
+`<artifacts>\test48-20261010-v1.0.29-test48-final`. Its original audit
+and delivery record remain available in [TEST48-REGRESSION-AUDIT.md](TEST48-REGRESSION-AUDIT.md)
+and [TEST48-DELIVERY-STATUS.md](TEST48-DELIVERY-STATUS.md). Test49 removes the
+added per-update head-to-hand haptic path implicated by the continuous-buzz
+report while retaining the signed-datum fix.
+
+## Superseded private candidate: Test47 (2026-10-09)
+
+Candidate target is **1.0.28-test47 / Android code58** on
+`test39-interaction-completion`. It carries forward Test46/Test45 and all
+recorded work since public v1.0.18. Its engine base is OpenCE Build157/network24
+with selected compatible changes through Build177; this is not a full Build177
+engine rebase and network24 is unchanged. The complete requirement disposition
+and evidence are tracked in
+[TEST47-REQUIREMENT-DISPOSITION.md](TEST47-REQUIREMENT-DISPOSITION.md);
+the upstream scope is in [TEST47-OPENCE177-INTEGRATION.md](TEST47-OPENCE177-INTEGRATION.md).
+Source/test status is separated from headset acceptance.
+
+Test47 APKs and matching source/build ZIPs are packaged at
+`<artifacts>\test47-20261010-v1.0.28-test47-final`. The full regression suite
+passed in standalone, VR and flat build workflows; package checks passed for
+both signed APKs and their source/build archives. This is a private owner test
+candidate. No Quest/Android device acceptance is recorded, and public v1.0.18
+remains the published release.
+
+The priority arm solver fix preserves authored bone lengths and clamps wrist
+reach. Compared with the public v1.0.18 tag, this deliberately removes its
+up-to-18% arm extension and 35% compression workaround, which the supplied
+video showed as visible deformation. Manual
+reload reads the mapped VR USE/RELOAD action directly as well as the native
+weapon reload bit, keeps authored-part contact and Grip/Trigger acquisition,
+and records input/contact/ownership changes. Right-stick click remains melee.
+Solo VR's new BODY RETENTION setting raises active-garbage thresholds from
+OpenCE 50/30 to 75/45 by default (100/60 is optional, STOCK restores upstream);
+it remains disabled for all network and multiplayer sessions and cannot promise
+a fixed corpse count under memory pressure. The local solo multiplayer-map path avoids stale campaign continuation units,
+uses a valid native game-type spawn when present or a validated in-BSP fallback,
+and selects the multiplayer biped. Campaign and network player paths remain
+scoped to their previous logic.
+
+All prior interaction features remain in the source candidate: contact-driven
+object/NPC handling and recovery, ragdoll integration, parkour/climbing,
+manual reload, haptics, dropped magazines, bounded vehicle lifting, voice,
+managed game data, Android controls, co-op, networking, VR settings, Safe
+Geometry, scopes, calibration and launcher. Their actual status and device
+checks are itemized in the Test47 disposition; no headset/Android-device
+acceptance is inferred from host tests.
+
+Use [TEST47-DELIVERY-STATUS.md](TEST47-DELIVERY-STATUS.md),
+[TEST47-PLAYER-NOTES.md](TEST47-PLAYER-NOTES.md), and
+[TEST47-DEVICE-CHECKLIST.md](TEST47-DEVICE-CHECKLIST.md). Preserve all older
+artifacts and public v1.0.18. Do not publish, install or launch the game.
+PC/Steam Frame remains deferred.
+
+## Superseded private candidate: Test40
+
+Test40 is **1.0.21-test40 / Android code51**, based on OpenCE Build157/network24.
+Its delivered package and exact record remain in
+`<artifacts>\test40-20261008-v1.0.21-test40-delivery` and
+[TEST40-DELIVERY.md](TEST40-DELIVERY.md). It introduced the bounded custom rig,
+magazine debris, vehicle lift and NPC rescue options. Test41 preserves these
+features; do not change the accepted public release based on candidate results.
+
+## Superseded private candidate: Test39
+
+Test39 was **1.0.20-test39 / Android code50**, based on OpenCE Build157/network24.
+Its archived candidate and delivery record remain at
+`<artifacts>\test39-20261008-v1.0.20-test39-final`; it is superseded by
+Test40 for ongoing work and did not alter public v1.0.18.
+
+## Historical public release: v1.0.18 (2026-10-08)
 
 The owner authorized publication of **Halo CE Quest VR + Android 1.0.18** as
 the new Latest release. It is built from the Test37 network-browser work on
@@ -138,7 +480,7 @@ Test31c/code41 device acceptance remains pending for both editions.
 
 ## Historical public release: v1.0.12 (test30 APKs)
 
-**Published as Latest on 2026-10-07** from `D:\HaloQuest\builds\test30-20261007-v1.0.12`. Version **1.0.12 / code 38**, OpenCE Build 144/network 21. This incremental release fixes Quest face-button behavior in VR menus and adds an optional remembered name for campaign co-op hosts; prior release features remain. See [`RELEASE-1.0.12.md`](RELEASE-1.0.12.md), [`RELEASE-PROVENANCE-1.0.12.md`](RELEASE-PROVENANCE-1.0.12.md), and [`TEST30-DELIVERY.md`](TEST30-DELIVERY.md). Previous releases remain intact; the GitHub About description was not changed.
+**Published as Latest on 2026-10-07** from `<artifacts>\test30-20261007-v1.0.12`. Version **1.0.12 / code 38**, OpenCE Build 144/network 21. This incremental release fixes Quest face-button behavior in VR menus and adds an optional remembered name for campaign co-op hosts; prior release features remain. See [`RELEASE-1.0.12.md`](RELEASE-1.0.12.md), [`RELEASE-PROVENANCE-1.0.12.md`](RELEASE-PROVENANCE-1.0.12.md), and [`TEST30-DELIVERY.md`](TEST30-DELIVERY.md). Previous releases remain intact; the GitHub About description was not changed.
 
 No device-session result for the exact v1.0.12 APK pair was supplied before publication. Automated tests and release hashes are recorded in test30 docs; they do not substitute for device acceptance. Network version remains 21, so v1.0.11 peers remain compatible. The 128-player capacity and resolution above 100% are not performance-certified.
 

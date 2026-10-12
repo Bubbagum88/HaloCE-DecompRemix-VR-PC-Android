@@ -56,6 +56,8 @@ for key, kind, default in [('vr.gun_anchor', '_config_boolean', 'true'), ('vr.gu
                            ('vr.weapon_offset_right', '_config_real', '0.10'), ('vr.weapon_offset_up', '_config_real', '-0.12'),
                            ('vr.weapon_offset_back', '_config_real', '-0.20'), ('vr.weapon_pitch', '_config_real', '0.0')]:
     assert table.get(key) == (kind, default), (key, table.get(key))
+assert table.get('vr.npc_max_ragdolls') == ('_config_integer', '24')  # Test61 (8 before)
+assert table.get('vr.interaction_reach') == ('_config_real', '0.04')
 
 # --- static wiring
 ik = fn(render, 'vr_render_first_person_ik')
@@ -176,7 +178,7 @@ static void scale_vector3d(real_vector3d const *v,real s,real_vector3d *o){for(i
 static void cross_product3d(real_vector3d const*a,real_vector3d const*b,real_vector3d*o){real_vector3d r={{a->j*b->k-a->k*b->j,a->k*b->i-a->i*b->k,a->i*b->j-a->j*b->i}};*o=r;}
 '''
 run('anchor_render', common + types + '#include "port/linux/game/vr_gun_anchor.h"\n' + fn(render, 'vr_length') +
-    fn(render, 'vr_unit_vector') + fn(render, 'vr_anchor_gun') + r'''
+    fn(render, 'vr_unit_vector') + 'static void vr_scope_wrist_anchor(float const*c,float const*w,float const*f){(void)c;(void)w;(void)f;}\n' + fn(render, 'vr_anchor_gun') + r'''
 static unsigned seed=11;
 static float rnd(void){seed=seed*1664525u+1013904223u;return (float)((seed>>8)&0xffff)/65535.f;}
 static void pose(real_vector3d*f,real_vector3d*u){real_vector3d a={{rnd()-.5f,rnd()-.5f,rnd()-.5f}},b={{rnd()-.5f,rnd()-.5f,rnd()-.5f}};
@@ -230,16 +232,33 @@ int main(void){
 ''')
 
 # --- the menu: every combined row identifies what it wrote, and shows the defaults
-# (test24b: Turning is one macro, on Controls; read as the row it is)
-menu_rows = re.sub(r'#define VR_MENU_TURNING_ROW (\{.*\})\n', r'\1,\n', menu)
+# (test24b: Turning is one macro, on Controls; Test53's immersion rows are
+# macros used on their pages and on IMMERSION: each read as the row it is)
+row_macros = dict(re.findall(r'^#define (VR_(?:MENU|IMMERSION)_\w+) (\{.*\})$', menu, re.M))
+menu = re.sub(r'^#define VR_(?:MENU|IMMERSION)_\w+ \{.*\}\n', '', menu, flags=re.M)
+menu = re.sub(r'\b(VR_(?:MENU|IMMERSION)_\w+)\b', lambda m: row_macros.get(m.group(1), m.group(1)), menu)
+menu_rows = menu
 rows = re.findall(r'\{ "([A-Z +\-]+)", "[\w.]+", _vr_setting_multi, (\d+), \{ (.*?) \} \},', menu_rows)
-assert {r[0] for r in rows} == {'TURNING', 'WEAPONS', 'HOLSTERS', 'HANDS', 'ARM RUN', 'MELEE'}, rows
+assert {r[0] for r in rows} >= {'TURNING', 'WEAPONS', 'HOLSTERS', 'HANDS', 'MELEE', 'NPC RIG SLOTS'}, rows
+locomotion = menu[menu.index('vr_menu_locomotion[]'):menu.index('static struct vr_menu_page')]
+for label, key in [('BUTTON SPRINT', 'vr.button_sprint'), ('SPRINT TOGGLE', 'vr.button_sprint_toggle'), ('ARM RUN', 'vr.arm_run'),
+                   ('ARM EFFORT', 'vr.arm_run_speed'), ('SPRINT SPEED', 'vr.sprint_speed')]:
+    assert '{ "%s", "%s"' % (label, key) in locomotion, (label, key)
+reach_row = next((line for line in menu.splitlines() if '"HAND CONTACT"' in line), '')
+assert '_vr_setting_real, 4,' in reach_row, 'VR menu exposes bounded palm contact radii'
+reach_values = re.findall(r'\{ "([^"]+)", "([^"]+)" \}', reach_row)
+assert reach_values == [('2 CM', '0.02'), ('4 CM', '0.04'), ('6 CM', '0.06'),
+                        ('8 CM', '0.08')], reach_values
+assert 'current = current < 0.02 ? 0.02 : current > 0.08 ? 0.08 : current;' in menu, 'legacy reach configs display their clamped contact radius'
 domains = {'vr.arms': {'ik', 'hidden', 'animated'}, 'vr.hand_tracking': {'ik', 'floating', 'floating_arms'},
            'vr.melee': {'impact', 'swing'},
-           'vr.weapons': {'locked', 'physical'}}
+           'vr.weapons': {'locked', 'physical'}, 'vr.npc_max_ragdolls': {str(n) for n in (4,8,12,16,20,24)},
+           'vr.interaction_reach': {'0.02', '0.04', '0.06', '0.08'}}
 for label, count, values in rows:
     pairs = re.findall(r'\{ "([^"]+)", "([^"]+)" \}', values)
     assert len(pairs) == int(count) <= 12, label
+    if label == "NPC RIG SLOTS":
+        assert pairs == [(str(n), "vr.npc_max_ragdolls=" + str(n)) for n in (4,8,12,16,20,24)]
     for _, value in pairs:
         for pair in value.split(';'):
             key, text = pair.split('=')
@@ -247,8 +266,24 @@ for label, count, values in rows:
             if kind == '_config_boolean': assert text in ('true', 'false'), pair
             elif kind == '_config_real': float(text)
             if key in domains: assert text in domains[key], pair
-pages = menu[menu.index('#define VR_MENU_TURNING_ROW'):].split('\n')[0] + '\n' + \
-    ''.join(block(menu, f'static struct vr_menu_setting const {name}[] =', '};')
+multi_options = {
+    label: re.findall(r'\{ "([^"]+)", "([^"]+)" \}', values)
+    for label, _, values in rows
+}
+assert multi_options['CUSTOM SCENERY'] == [
+    ('OFF', 'vr.custom_scenery_grab=false'),
+    ('ON', 'vr.custom_scenery_grab=true;vr.world_interaction=true')]
+assert multi_options['CUSTOM NPC RIGS'] == [
+    ('OFF', 'vr.custom_npc_rigs=false'),
+    ('ON', 'vr.custom_npc_rigs=true;vr.npc_interaction=true')]
+assert multi_options['MAG DEBRIS'] == [
+    ('OFF', 'vr.dropped_magazines=false'),
+    ('ON', 'vr.dropped_magazines=true;vr.manual_reload=true')]
+assert multi_options['MANUAL RELOAD'] == [
+    ('OFF', 'vr.manual_reload=false;vr.dropped_magazines=false'),
+    ('ON', 'vr.manual_reload=true')]
+assert '"NPC RIG SLOTS"' in menu and '"WORLD GRAB"' in menu and '"NPC GRAB"' in menu
+pages = ''.join(block(menu, f'static struct vr_menu_setting const {name}[] =', '};')
                 for name in ('vr_menu_controls', 'vr_menu_body', 'vr_menu_vr', 'vr_menu_hands'))
 cfg = ',\n'.join('{"%s",%d,"%s"}' % (k, {'_config_boolean': 0, '_config_integer': 1, '_config_real': 2}.get(v[0], 3), v[1])
                  for k, v in table.items())
@@ -275,7 +310,7 @@ static const char *config_string(const char*n){return find(n)->text;}
 static int hud_hidden_stub; static int vr_hud_hidden(void){return hud_hidden_stub;} static void vr_set_hud_hidden(int h){hud_hidden_stub=h;}
 static int config_matches(const char*n,const char*t){struct cfg*c=find(n);switch(c->type){case 0:return config_boolean(n)==!strcmp(t,"true");
  case 2:return fabs(atof(c->text)-atof(t))<0.001;default:return !strcmp(c->text,t);}}
-static int config_write_text(const char*n,const char*t){struct cfg*c=find(n);if(c->type==1)return 0;snprintf(c->text,64,"%s",t);return 1;}
+static int config_write_text(const char*n,const char*t){struct cfg*c=find(n);snprintf(c->text,64,"%s",t);return 1;}
 ''' + block(menu, 'enum\n{\n\t_vr_setting_boolean,', '};') + '#define VR_MENU_MAXIMUM_VALUES 12\n' +
     block(menu, 'struct vr_menu_setting\n{', '};') + pages + fn(menu, 'vr_menu_multi') + fn(menu, 'vr_menu_hand_angle') +
     buttons + fn(menu, 'vr_menu_value_index') + r'''
@@ -314,7 +349,7 @@ static struct { struct { uint32_t hand_buttons[2], buttons; float trigger[2], th
  grip_held[2], in_holster, hand_state, physical, button_source[VR_BUTTON_ACTIONS], recentre_source; unsigned pad_buttons; float pad_trigger[2];
  double x_held, grenade_pulse, view_held;
  /* test26: crouch on the turning stick held down, the reticle's toggle */
- int seated, turn_stick_down, reticle_hidden, reticle_press, reticle_cancelled;
+ int seated, turn_stick_down, reticle_hidden, reticle_press, reticle_cancelled, push_to_talk_held;
  /* test30: the menus' letters (0: in play, as these frames are) */
  int menus_active; } vr;
 static int recentres, buzzes;
@@ -322,6 +357,7 @@ static void platform_log(const char *f, ...){(void)f;}
 static int physical_weapons(void){return vr.physical;}
 static void host_xr_recenter(void){recentres++;}
 static void vr_haptic(int h,float a,float s){(void)h;(void)a;(void)s;buzzes++;}
+static int stick_zoom_active(void){return 0;} /* Test55: physical melee off in these frames: the trigger zooms */
 '''
 # test23: the Quest's buttons come from the remappable table, at its defaults here
 run('mirror', common + '#include <string.h>\n#include "port/android/include/halo_android_abi.h"\n' + button_names + host +
@@ -404,5 +440,30 @@ int main(void){
  /* a failed save retries next launch */
  applied=0;fail=1;migrate_handedness();assert(!applied);
  puts("PASS: handedness migration keeps existing left-handed controls standard once, leaves right-handed configs alone, retries failed saves; floating_arms kept");
+}
+''')
+
+# The first integer combined row must use the actual production text writer.
+run('integer_writer', r'''#include <assert.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+enum { _config_boolean, _config_integer, _config_real, _config_string };
+static struct { int type; } config_settings[]={{_config_integer}};
+static int fail, calls; static char saved[64];
+static long config_setting_index(const char*n){return !strcmp(n,"vr.npc_max_ragdolls")?0:-1;}
+static int config_write_typed(const char*n,int t,const char*v,const char*w){assert(t==_config_integer);calls++;if(fail)return 0;strcpy(saved,w);return 1;}
+static int config_write_boolean(const char*n,int v){return 0;}
+static int config_write_real(const char*n,double v){return 0;}
+static int config_write_string(const char*n,const char*v){return 0;}
+''' + fn(config, 'config_write_text') + r'''
+int main(void){
+ for(int i=1;i<=8;i++){char v[8];sprintf(v,"%d",i);assert(config_write_text("vr.npc_max_ragdolls",v));assert(!strcmp(v,saved));}
+ int before=calls;
+ assert(!config_write_text("vr.npc_max_ragdolls","1.5"));assert(!config_write_text("vr.npc_max_ragdolls",""));
+ assert(!config_write_text("vr.npc_max_ragdolls","9999999999999999999999999"));assert(calls==before);
+ fail=1;assert(!config_write_text("vr.npc_max_ragdolls","2"));assert(!strcmp(saved,"8"));
+ puts("PASS: production integer menu writer validates input and preserves failed-save behavior");
 }
 ''')

@@ -420,6 +420,7 @@ symbols in this file:
 #include "memory/data.h"
 #include "scenario/scenario.h"
 #include "scenario/scenario_definitions.h"
+#include <ctype.h> /* port: declared for the Android guest ABI */
 
 /* ---------- constants */
 

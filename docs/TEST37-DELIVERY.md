@@ -6,7 +6,7 @@
 
 ## Artifacts and source
 
-Delivery folder: `D:\HaloQuest\builds\test37-20261008-network-browser`.
+Delivery folder: `<artifacts>\test37-20261008-network-browser`.
 The package manifest identifies the exact committed source and APK payload hashes.
 `SHA256SUMS.txt` identifies the build/source archives without a self-referential hash.
 

@@ -6,7 +6,7 @@
 
 ## Package artifacts
 
-Final folder: `D:\HaloQuest\builds\test36-20261008-network24`.
+Final folder: `<artifacts>\test36-20261008-network24`.
 Final app source: `a1e0402617fc76105aea2e084bc36f9ada888c2b`.
 Native source was compiled at `ceaa304ddc55976243499f5ddfe40a19d927bfc1`;
 the only later app change is the Gradle private version label. Native payload

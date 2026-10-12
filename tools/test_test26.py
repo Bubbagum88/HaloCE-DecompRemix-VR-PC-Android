@@ -583,6 +583,8 @@ identity = identity_match.group(1)
 # The identity banner now explicitly names the candidate's upstream network.
 # Keep the history assertion and ensure it identifies Build157/network24.
 assert 'test26 candidate 1.0.8' in frame or 'test26:' in frame
-assert 'OpenCE Build 157 / network 24' in identity
+assert ('OpenCE Build157 base / network28' in identity or 'OpenCE Build157 base / network26' in identity or
+        'OpenCE Build157 base / network24' in identity or
+        'OpenCE Build 157 base / network 24' in identity)
 assert 'candidate_at_least(args.label, 26)' in package
 print('PASS: test26 wiring (version 1.0.8 / 34 or later, identity line, package markers)')

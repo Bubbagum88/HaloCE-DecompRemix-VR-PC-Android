@@ -1,4 +1,118 @@
-## Current release checkpoint — v1.0.18 (2026-10-08)
+## Current work checkpoint: private candidate: Test53 (2026-10-11)
+
+**1.0.20-test53 / Android code65**, branch `test39-interaction-completion`,
+built for the owner's Quest and phone tests (not a release). Test52 (code64)
+was committed but never built; Test53 supersedes it. Every change since
+v1.0.18 and every requested item is in [TEST53-CHECKLIST.md](TEST53-CHECKLIST.md)
+with implemented / automated / device outcomes; the delivered APKs and hashes
+are in [TEST53-DELIVERY-STATUS.md](TEST53-DELIVERY-STATUS.md).
+
+- **Voice is not confirmed working.** v1.0.19 crashes when a player speaks
+  (the assembly converter corrupted Opus's `cache_bits50`; see
+  [TEST52-CRASH-ANALYSIS.md](TEST52-CRASH-ANALYSIS.md)). Fixed and hardened in
+  source; awaiting a device test.
+- Interaction features had two blocking defects, now fixed: grabs used a
+  zero-length pill sweep that cannot report a touch, and parkour/manual
+  reload could not read the head pose from game ticks. Also: bounded NPC
+  handoff, body retention through campaign script collections, co-op host
+  parkour, the IMMERSION settings page.
+- OpenCE Build184 / network 26: hosting 26, clients 11–26, All compatible
+  networks by default, selected Build177–184 fixes. Not a full Build184
+  rebase; browser (WebRTC) players cannot join this app's hosts.
+
+## Current release checkpoint ? v1.0.19 (2026-10-10)
+
+The owner tested the Test51 runtime on Quest and confirmed the server-join
+crash is gone. (The voice-chat confirmation first recorded here was wrong:
+v1.0.19 closes as soon as a player speaks; see Test53.) It is the v1.0.19 / Android code63
+public baseline. Release notes and provenance are in
+[RELEASE-1.0.19.md](RELEASE-1.0.19.md) and
+[RELEASE-PROVENANCE-1.0.19.md](RELEASE-PROVENANCE-1.0.19.md). The new release
+preserves v1.0.18 and prior tags/assets.
+
+At the top of the release, disclose unfinished VR settings: parkour, ragdolls
+and wall/NPC/enemy/ally grabbing are not working reliably; enemy grabbing may
+activate but is broken and not recommended. Manual physical reload is not
+confirmed end-to-end. Do not imply a menu toggle works just because it exists.
+Preserve the confirmed join fix, mounted reticle alignment, toggle sprint,
+weapon release/drop/holsters, contact haptics and existing Android/mobile
+behavior. The engine remains Build157/network24 with selected compatible
+updates, not a complete Build177 rebase. PC/Steam Frame is still deferred.
+
+## Superseded private Test48 candidate (2026-10-10)
+
+Test48 is preserved at
+`<artifacts>\test48-20261010-v1.0.29-test48-final`; its package hashes
+and audit are in [TEST48-DELIVERY-STATUS.md](TEST48-DELIVERY-STATUS.md). The
+reported recurring contact buzz traces to the new per-update head-to-hand
+contact haptic path. Test49 restores the public 1.0.18 contact gate while
+retaining Test48's weapon datum correction.
+
+## Superseded private Test47 candidate (2026-10-09)
+
+Candidate **1.0.28-test47 / code58** on `test39-interaction-completion`.
+Both APKs and matching source/build ZIPs are packaged for owner testing at
+`<artifacts>\test47-20261010-v1.0.28-test47-final`; see
+[TEST47-DELIVERY-STATUS.md](TEST47-DELIVERY-STATUS.md) for hashes and checks.
+The full regression suite passed in standalone, VR and flat build workflows.
+No device acceptance is recorded yet; preserve Test46/Test45, Test44 and older
+APK/source artifacts. Runtime base is OpenCE Build157/network24 with selected
+compatible changes through Build177; the engine is not a full Build177 rebase
+and the network protocol is unchanged. Read
+[TEST47-REQUIREMENT-DISPOSITION.md](TEST47-REQUIREMENT-DISPOSITION.md) for the
+cumulative scope, evidence and device-acceptance boundary, and
+[TEST47-OPENCE177-INTEGRATION.md](TEST47-OPENCE177-INTEGRATION.md) for the
+upstream integration decisions.
+
+Test47's immediate corrections are: arm IK preserves authored bone lengths
+and clamps wrist reach; manual reload reads the mapped Quest USE/RELOAD action
+directly as well as the engine reload bit, with contact/Grip behavior intact;
+solo multiplayer-map loads bypass stale campaign unit state and use a valid
+in-BSP spawn with the multiplayer biped. Solo VR also raises the native active-
+garbage cleanup threshold for corpse retention to 75/45 by default (100/60
+optional, stock 50/30); all multiplayer keeps the upstream thresholds. The
+right-stick click remains melee.
+The manual-reload logger now records only input/contact/owner state changes so
+the next headset report identifies which part of the action path failed.
+
+Do not publish, install or launch the game. Device acceptance remains pending.
+PC/Steam Frame remains deferred. See
+[TEST47-DELIVERY-STATUS.md](TEST47-DELIVERY-STATUS.md),
+[TEST47-PLAYER-NOTES.md](TEST47-PLAYER-NOTES.md), and
+[TEST47-DEVICE-CHECKLIST.md](TEST47-DEVICE-CHECKLIST.md).
+## Superseded private Test39 candidate (2026-10-08)
+
+Continue on `test39-interaction-completion`; target private `1.0.20-test39`,
+Android code50. The owner explicitly asked to package both Quest/VR and flat
+Android builds after working through the prior interaction scope; do not
+publish, install, launch the game, or change the public release. PC/Steam Frame
+remains deferred.
+
+The logo-updated private pair and matching source/build archives are at
+`<artifacts>\test39-20261008-v1.0.20-test39-logo-verified`.
+The APK runtime/source revision is `34eafc3dffcd`; the manifest records the
+documentation/package revision separately. Both APKs passed signing and the
+final package checks. All 84 regression suites passed in both build workflows;
+cache-format pytest had 127 passes and four optional map fixtures skipped, as
+recorded in `docs/TEST39-DELIVERY.md`. Actual Quest/Android and live-network
+acceptance is still pending.
+
+Read `docs/TEST39-DELIVERY-STATUS.md` for the completed/restricted/unstarted
+ledger, `docs/TEST39-REQUIREMENT-DISPOSITION.md` for every retained request,
+`docs/TEST39-INTERACTION-NETWORK.md` for the compatibility change, and
+`docs/TEST39-DEVICE-CHECKLIST.md` for owner testing. New **SHAKE COOLING** is an
+explicit OFF/ON VR Controls toggle, defaults OFF, and is solo-only. Verify that
+it does not alter native weapon heat rules or activate online. Preserve the
+prior scope, reticle, reload, VR menu, Android controls, save and network
+behavior.
+
+World-object interaction can negotiate above four remote machines within the
+128-machine table when the host enables it and every peer negotiates. This is
+not 128-player campaign acceptance; articulated NPC palette sync remains
+limited to four remote machines. Manual reload and parkour remain solo-only.
+Public v1.0.18 is still the accepted baseline. Automated tests/builds do not
+establish headset, Android-device, heat-weapon or live-network acceptance.
+
 
 The owner authorized and published [v1.0.18](https://github.com/moistman42069/HaloCE-Quest-VR/releases/tag/v1.0.18) as Latest. It is Android code48, OpenCE Build157/network24, with the Test37 network-version selector and population-sorted launcher listings. The exact release assets and checks are in `docs/RELEASE-PROVENANCE-1.0.18.md`; full user-facing instructions are in `docs/RELEASE-1.0.18.md`. Prior releases and the GitHub About description are preserved.
 
@@ -18,7 +132,7 @@ Resume requirements:
 - Current source work implements client targets 0 (all compatible 11-24) or exact 11-24, with native discovery/admission gates; hosting and signed advertisements stay 24. Versions 11-22 are original Xbox-map PvP only; campaign/CE require 23 or 24. The earlier 23/24 host-profile and PC vehicle-guard plan is superseded. Final source is on local branch test37-network-browser; both APKs compiled and all62 suites have passing results. See TEST37-DELIVERY.md. This is not device acceptance.
 - Compare actual original/Rev1/Rev2 images once supplied: import detection, map/revision differences and reproducible compatibility failures. ISO revision is separate from network protocol. Do not claim universal ISO or network compatibility from source review alone.
 - Preserve working VR/mobile behavior, saves, original signing identity, prior APKs and public releases. No speculative fixes or unsupported selectable profiles. Explicitly report any remaining evidence/testing gap.
-- Latest verified upstream is OpenCE Build157 / 73dc01d / default network24. v1.0.18 is now public; Test36 and v1.0.16 assets remain preserved. Test37 private-candidate hashes and packaging gates are recorded in TEST37-DELIVERY.md; stable hashes are in RELEASE-PROVENANCE-1.0.18.md.
+- **Historical Test37 upstream check:** OpenCE Build157 / 73dc01d / network24 was latest at that time. Test47's current latest-upstream review is Build177; see `TEST47-OPENCE177-INTEGRATION.md`. v1.0.18 was the public release then; Test36 and v1.0.16 assets remain preserved. Test37 private-candidate hashes and packaging gates are recorded in TEST37-DELIVERY.md; stable hashes are in RELEASE-PROVENANCE-1.0.18.md.
 - Local WSL Ubuntu has clang/JDK/Android SDK and the existing debug keystore. Run checks in WSL, not Windows Python (which lacks clang/javac on PATH). Historical version tests were adjusted to accept private candidate suffixes. Final checks cover native admission and post-join lobby changes, Java persistence/counts and full launcher compilation; see the delivery record for the corrected test extractor and validation limits.
 - Relevant implementation files: NetworkProfile.java, ServerBrowser.java, native halo_port_active_network_version implementation/guards, tools/test_test37_launcher.py and tools/test_test37_network_profiles.py. Read git diff and both agents' findings before continuing. Read-only ChupathingyCE audit downloads are under ignored build/chupa-audit.
 
@@ -52,7 +166,7 @@ Read [TEST37-PROGRESS.md](TEST37-PROGRESS.md),
 
 ## Superseded Test36 candidate archive: 1.0.17-test36 / network24 (2026-10-08)
 
-The public latest release remains v1.0.16 / Android code45 / network23. The
+At that checkpoint, the public latest release was v1.0.16 / Android code45 / network23. The
 preceding test36 candidate was version 1.0.17-test36,
 code46 / network24. It ported the applicable OpenCE Build157 update and kept
 the existing public release intact. The owner's public Android1.0.16 browser
@@ -117,7 +231,7 @@ sniper rifle and hand aim, but no game zoom state and no submitted scope layer.
 Test34 now logs the off-hand trigger state, native game zoom transitions,
 effective Scope setting, render admission and VR pose rejection reasons. For
 right-handed Quest, test by holding the left index trigger; verify game zoom
-and a `scope` compositor layer before adjusting offsets. The ±30 cm alignment
+and a `scope` compositor layer before adjusting offsets. The Â±30 cm alignment
 implementation remains unchanged unless an actual zoomed layer is shown to
 drift.
 

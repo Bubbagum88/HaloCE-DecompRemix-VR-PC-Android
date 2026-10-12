@@ -594,6 +594,23 @@ static long player_aim_projectile_internal(
 	long aiming_unit_index= unit_get_aiming_unit_index(player->unit_index);
 	struct aim_assist_parameters parameters;
 
+#ifdef HALO_VR
+	/* Mounted VR aim is authored by the selected controller/head and the
+	 * vehicle's rendered weapon muzzle. Native assist traces the game's camera
+	 * instead, which causes the projectile to leave that visible reticle ray.
+	 * Keep this adjustment local to the VR driver's/gunner's shot; on-foot,
+	 * passenger, remote-player and flat-game aim assist retain the native path. */
+	if (vr_render_mounted_direct_fire(player_index))
+	{
+		if (record_target)
+		{
+			player->aim_assist_unit_index = NONE;
+			player->aim_assist_timestamp = game_time_get();
+		}
+		return NONE;
+	}
+#endif
+
 	match_assert_valid_real_normal3d(
 		"c:\\halo\\SOURCE\\game\\aim_assist.c",
 		77,
@@ -668,11 +685,22 @@ long player_aim_projectile(long player_index, real_point3d const *position, real
 }
 
 #ifdef HALO_VR
-/* The mounted-weapon sight uses the very same aim/convergence calculation,
-without recording a fictitious shot's target or timestamp on the player. */
+/* Mounted shots use the selected muzzle ray without camera-based aim assist,
+so this preview stays on the same ray and cannot snap toward targets. On foot,
+retain the stable geometric convergence preview used by handheld weapons. */
 void vr_preview_player_projectile(long player_index, real_point3d const *position, real_vector3d *direction)
 {
-	player_aim_projectile_internal(player_index, position, direction, FALSE);
+	real_point3d camera_position;
+	real_vector3d camera_direction;
+	struct player_datum *player = player_get(player_index);
+	struct unit_datum *player_unit = player ? unit_try_and_get(player->unit_index) : NULL;
+	/* Keep mounted sights on the selected weapon's actual muzzle ray. The VR
+	 * firing path uses that same ray and bypasses camera-based assist for the
+	 * local driver/gunner, avoiding target snapping and reticle/projectile drift. */
+	if (!player_unit || player_unit->object.parent_object_index != NONE)
+		return;
+	director_camera_deterministic(player->unit_index, &camera_position, &camera_direction);
+	vr_aim_assist_converge(player_index, &camera_position, &camera_direction, position, direction);
 }
 #endif
 

@@ -120,16 +120,16 @@ public LinearLayout(android.content.Context c){super(c);}public void setOrientat
 public SeekBar(android.content.Context c){super(c);}public void setMax(int n){}public void setProgress(int n){}
 public interface OnSeekBarChangeListener{void onProgressChanged(SeekBar b,int p,boolean u);void onStartTrackingTouch(SeekBar b);void onStopTrackingTouch(SeekBar b);}
 public void setOnSeekBarChangeListener(OnSeekBarChangeListener l){}}''',
-'android/widget/Toast.java': '''package android.widget;public class Toast {public static final int LENGTH_LONG=1;
-public static Toast makeText(android.content.Context c,String s,int n){return new Toast();}public void show(){}}''',
+'android/widget/Toast.java': '''package android.widget;public class Toast {public static final int LENGTH_LONG=1;public static String last;
+public static Toast makeText(android.content.Context c,String s,int n){last=s;return new Toast();}public void show(){}}''',
 'android/app/AlertDialog.java': '''package android.app;
 public class AlertDialog implements android.content.DialogInterface {
- public static AlertDialog last;public android.view.View view;public android.content.DialogInterface.OnClickListener positive,negative,choice;
+ public static AlertDialog last;public android.view.View view;public android.content.DialogInterface.OnClickListener positive,negative,choice,itemsListener;public String[] items;
  public String title;public void show(){last=this;}public void dismiss(){}
  public static class Builder {protected final AlertDialog dialog=new AlertDialog();public Builder(android.content.Context c){}
  public Builder setTitle(String s){dialog.title=s;return this;}public Builder setMessage(String s){return this;}public Builder setView(android.view.View v){dialog.view=v;return this;}
  public Builder setSingleChoiceItems(String[] a,int selected,android.content.DialogInterface.OnClickListener l){dialog.choice=l;return this;}
- public Builder setItems(String[] a,android.content.DialogInterface.OnClickListener l){return this;}
+ public Builder setItems(String[] a,android.content.DialogInterface.OnClickListener l){dialog.items=a;dialog.itemsListener=l;return this;}
  public Builder setPositiveButton(String s,android.content.DialogInterface.OnClickListener l){dialog.positive=l;return this;}
  public Builder setNegativeButton(String s,android.content.DialogInterface.OnClickListener l){dialog.negative=l;return this;}
  public AlertDialog create(){return dialog;}public AlertDialog show(){dialog.show();return dialog;}}
@@ -160,8 +160,9 @@ public class TouchLifecycleCheck {
  }
  static final class Rig {
   final Context context;final Input input=new Input();final TouchControls view;final View surface;
-  Rig(){this(new Context());}
-  Rig(Context context){this.context=context;view=new TouchControls(context,input);surface=new View(context);view.layout(0,0,1000,500);surface.layout(0,0,1000,500);view.controllerVisibility(GamepadPolicy.AUTO,0);}
+  Rig(){this(new Context(),null);}
+  Rig(Context context){this(context,null);}
+  Rig(Context context,TouchControls.LayoutTransfer transfer){this.context=context;view=new TouchControls(context,input,transfer);surface=new View(context);view.layout(0,0,1000,500);surface.layout(0,0,1000,500);view.controllerVisibility(GamepadPolicy.AUTO,0);}
   void menu(boolean value){input.menus=value;view.controllerVisibility(GamepadPolicy.AUTO,0);}
   void event(int action,int index,int[] ids,float[] xs,float[] ys){MotionEvent e=new MotionEvent(action,index,InputDevice.SOURCE_TOUCHSCREEN,ids,xs,ys);
    if(!view.dispatchMenuTouch(e,surface)&&view.getVisibility()==View.VISIBLE)view.onTouchEvent(e);}
@@ -172,10 +173,22 @@ public class TouchLifecycleCheck {
   Canvas draw(){Canvas c=new Canvas();view.onDraw(c);return c;}
   CheckBox option(String prefix){return findCheck(AlertDialog.last.view,prefix);}
  }
+ static final class Transfer implements TouchControls.LayoutTransfer {
+  String exported,incoming;boolean canceled;
+  public void exportLayout(String text){exported=text;}
+  public void importLayout(java.util.function.Consumer<String> imported){if(!canceled&&incoming!=null)imported.accept(incoming);}
+ }
  static CheckBox findCheck(View v,String prefix){if(v instanceof CheckBox&&((CheckBox)v).text.startsWith(prefix))return (CheckBox)v;
   if(v instanceof LinearLayout)for(View c:((LinearLayout)v).children){CheckBox found=findCheck(c,prefix);if(found!=null)return found;}return null;}
+ static Button findButton(View v,String prefix){if(v instanceof Button&&((Button)v).text.startsWith(prefix))return (Button)v;
+  if(v instanceof LinearLayout)for(View c:((LinearLayout)v).children){Button found=findButton(c,prefix);if(found!=null)return found;}return null;}
  static void editor(Rig r){r.tap(32,32);check((Boolean)get(r.view,"editing"),"HUD opens real editor");}
  static Object get(Object o,String n){try{return field(o,n);}catch(Exception e){throw new RuntimeException(e);}}
+ static CheckBox selectedControlOption(Rig r,int index){r.tap(375,22);check("Touch options".equals(AlertDialog.last.title),"Options opened for control selection");
+  Button picker=findButton(AlertDialog.last.view,"Select a control");check(picker!=null,"control picker present");picker.performClick();
+  AlertDialog list=AlertDialog.last;check(list.title.equals("Edit control")&&list.items!=null&&list.items.length==TouchLayout.COUNT,"picker lists all controls");
+  check(list.itemsListener!=null,"control picker is actionable");list.itemsListener.onClick(list,index);
+  check("Touch options".equals(AlertDialog.last.title),"selected control options reopened");return r.option("Show and enable this touch control");}
  static void setAnywhere(Rig r,boolean enabled,boolean save){editor(r);r.tap(375,22);check("Touch options".equals(AlertDialog.last.title),"real Options dialog");
   CheckBox toggle=r.option("Drag anywhere");check(toggle!=null,"visible anywhere toggle");toggle.setChecked(enabled);AlertDialog.last.dismiss();
   r.tap(save?75:225,22);check(!(Boolean)get(r.view,"editing"),"editor closes");}
@@ -257,7 +270,28 @@ public class TouchLifecycleCheck {
   // Follow the real Reset dialog action and Save to restore default preferences.
   r=new Rig();setAnywhere(r,true,true);editor(r);r.tap(525,22);check("Reset touch layout?".equals(AlertDialog.last.title),"Reset confirmation");AlertDialog.last.positive.onClick(AlertDialog.last,0);r.tap(75,22);
   check(!r.context.getSharedPreferences("phone-controls",0).getBoolean("look_anywhere",true),"Reset + Save disables optional look");
-  System.out.println("touch view lifecycle: "+checks+" checks passed (full production view, dialogs, pointer streams, original UI across menus/fallback, gameplay, controller, hidden LOOK and persistence)");
+  r=new Rig();Object[] controls=(Object[])field(r.view,"controls");float jumpX=(Float)field(controls[3],"x"),jumpY=(Float)field(controls[3],"y");
+  editor(r);CheckBox visible=selectedControlOption(r,3);check(visible!=null&&visible.isChecked(),"existing controls start enabled");visible.setChecked(false);AlertDialog.last.dismiss();r.tap(225,22);
+  check(r.draw().labels.contains("A / Jump"),"Cancel restores temporary hide");
+  editor(r);visible=selectedControlOption(r,3);check(visible!=null&&visible.isChecked(),"cancel left saved visibility unchanged");visible.setChecked(false);AlertDialog.last.dismiss();r.tap(75,22);
+  check(!r.draw().labels.contains("A / Jump"),"saved hidden control is absent from gameplay drawing");r.input.clean();r.tap(jumpX,jumpY);check(r.input.buttons==0,"hidden control no longer captures touches");
+  check(!r.context.getSharedPreferences("phone-controls",0).getBoolean("visible_jump",true),"hidden state persisted by stable ID");
+  editor(r);visible=selectedControlOption(r,3);check(visible!=null&&!visible.isChecked(),"hidden control remains accessible through picker");visible.setChecked(true);AlertDialog.last.dismiss();r.tap(75,22);
+  check(r.draw().labels.contains("A / Jump"),"restored control appears after Save");r.input.clean();r.tap(jumpX,jumpY);check((r.input.pressed&1)!=0,"restored control sends its original action");
+  Context transferContext=new Context();transferContext.getSharedPreferences("phone-controls",0).edit().putInt("controller_touch_mode",2).putInt("pad_response",7).apply();
+  Transfer transfer=new Transfer();r=new Rig(transferContext,transfer);editor(r);r.tap(375,22);
+  Button export=findButton(AlertDialog.last.view,"Export touch layout");Button importButton=findButton(AlertDialog.last.view,"Import touch layout");
+  check(export!=null&&importButton!=null,"preset actions available in HUD options");export.performClick();
+  check(transfer.exported!=null&&TouchLayoutCodec.decode(transfer.exported).visible[3],"export provides a validated default layout");
+  TouchLayout incoming=new TouchLayout();incoming.x[0]=.33f;incoming.visible[3]=false;transfer.incoming=TouchLayoutCodec.encode(incoming);
+  importButton.performClick();check(((TouchLayout)get(r.view,"layout")).x[0]==.33f&&!((TouchLayout)get(r.view,"layout")).visible[3],"valid import replaces editor preview");
+  check(Toast.last.contains("Back to editor")&&Toast.last.contains("SAVE")&&Toast.last.contains("CANCEL"),"import explains the open options step and Save/Cancel path");
+  check(transferContext.getSharedPreferences("phone-controls",0).getInt("controller_touch_mode",0)==2&&transferContext.getSharedPreferences("phone-controls",0).getInt("pad_response",0)==7,"preset does not alter gamepad options");
+  r.tap(225,22);reopened=new TouchControls(transferContext,new Input());
+  check(((TouchLayout)get(reopened,"layout")).x[0]==TouchLayout.DEFAULT_X[0]&&((TouchLayout)get(reopened,"layout")).visible[3],"Cancel discards imported preview");
+  editor(r);r.tap(375,22);importButton=findButton(AlertDialog.last.view,"Import touch layout");importButton.performClick();r.tap(75,22);
+  reopened=new TouchControls(transferContext,new Input());check(((TouchLayout)get(reopened,"layout")).x[0]==.33f&&!((TouchLayout)get(reopened,"layout")).visible[3],"Save persists imported layout");
+  System.out.println("touch view lifecycle: "+checks+" checks passed (full production view, menus, controller, per-control hide/restore, preset transfer and persistence)");
  }
 }
 '''
@@ -276,7 +310,7 @@ def main():
         check.write_text(CHECK)
         sources.append(check)
         sources += [JAVA / (name + '.java') for name in
-                    ['TouchControls', 'TouchLayout', 'MenuTouchGesture', 'GamepadPolicy', 'GyroPolicy']]
+                    ['TouchControls', 'TouchLayout', 'TouchLayoutCodec', 'MenuTouchGesture', 'GamepadPolicy', 'GyroPolicy']]
         subprocess.run(['javac', '-d', str(out), *map(str, sources)], check=True)
         subprocess.run(['java', '-cp', str(out), 'com.halo.decomp.TouchLifecycleCheck'], check=True)
     # Ensure the production activity uses the tested cancellation/routing hooks
@@ -285,6 +319,10 @@ def main():
     assert 'if (!BuildConfig.APPLICATION_ID.endsWith(".vr") && mLayout != null)' in activity
     assert activity.count('touchControls.releaseAll()') >= 3
     assert activity.index('touchControls.dispatchMenuTouch(event,mSurface)') < activity.index('return super.dispatchTouchEvent(event)')
+    assert 'implements TouchControls.LayoutTransfer' in activity
+    assert 'Intent.ACTION_CREATE_DOCUMENT' in activity and 'Intent.ACTION_OPEN_DOCUMENT' in activity
+    assert 'REQUEST_TOUCH_LAYOUT_EXPORT' in activity and 'REQUEST_TOUCH_LAYOUT_IMPORT' in activity
+    assert 'TouchLayoutCodec.MAX_BYTES' in activity and 'pendingTouchLayoutImport' in activity
 
 
 if __name__ == '__main__':

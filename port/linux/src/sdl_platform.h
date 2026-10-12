@@ -9,9 +9,11 @@ controller emulation (see sdl_platform.c).
 #define __HALO_LINUX_SDL_PLATFORM_H
 
 #include <SDL3/SDL_scancode.h>
+#include <SDL3/SDL_audio.h>
 #include <stddef.h>
 
 #define PLATFORM_MOUSE_BUTTON_COUNT 8
+#define PLATFORM_AUDIO_DEVICE_NAME_SIZE 128
 
 struct platform_input_state
 {
@@ -50,6 +52,14 @@ struct platform_keystroke
 };
 
 BOOL platform_sdl_initialize(void);
+/* SDL's system default recording/playback device when name is "default";
+ * desktop names are resolved against SDL's current device list. Android
+ * and Quest always use the system default. */
+int platform_audio_devices(int recording, char (*names)[PLATFORM_AUDIO_DEVICE_NAME_SIZE], int maximum);
+SDL_AudioDeviceID platform_audio_device(int recording, const char *name);
+/* Android: nonblocking microphone permission request/status. Returns -1 if
+denied, 0 while pending, and 1 when granted; desktop is always ready. */
+int platform_audio_recording_permission(void);
 /* creates the window and makes its OpenGL context current on this thread */
 BOOL platform_video_initialize(unsigned long width, unsigned long height);
 #ifndef HALO_ANDROID

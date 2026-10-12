@@ -350,9 +350,16 @@ int main(void)
 	crypto_checks();
 	lobby_checks();
 	check(discovery_logs > 0 && !discovery_too_frequent, "discovery logs are bounded to one per ten seconds");
-	check(strstr(discovery_text, "discovery target=24") && strstr(discovery_text, "local_host=24") &&
-		strstr(discovery_text, "broker_ready=1") && strstr(discovery_text, "version_rejected=1 "),
-		"discovery distinguishes the selected target, local host version, broker status and version filtering");
+	{
+		/* (the build's own version: 28 since Test59) */
+		char target_text[48], host_text[48];
+
+		snprintf(target_text, sizeof(target_text), "discovery target=%d", HALO_PORT_NETWORK_VERSION);
+		snprintf(host_text, sizeof(host_text), "local_host=%d", HALO_PORT_NETWORK_VERSION);
+		check(strstr(discovery_text, target_text) && strstr(discovery_text, host_text) &&
+			strstr(discovery_text, "broker_ready=1") && strstr(discovery_text, "version_rejected=1 "),
+			"discovery distinguishes the selected target, local host version, broker status and version filtering");
+	}
 	check(!strstr(discovery_text, "halo://") && !strstr(discovery_text, "hunter2"),
 		"discovery summary contains no invite or password");
 	printf("%s (%d failures)\n", failures ? "FAIL" : "PASS", failures);

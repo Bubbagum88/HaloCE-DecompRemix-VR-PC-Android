@@ -391,6 +391,7 @@ symbols in this file:
 #include "networking/network_messages.h"
 #include "networking/network_server_manager.h"
 #include "text/unicode.h"
+#include "../../port/linux/src/port_config.h"
 
 /* the platform layer's (sdl_platform.c) */
 void platform_show_message(char const *title, char const *message);
@@ -813,6 +814,7 @@ static struct
 /* The version of the host this client actually started joining. Keep this
 separate from the browse list: entries can move while the lobby is open. */
 static unsigned int network_game_client_joined_host_version;
+unsigned int network_game_client_joined_version(void) { return network_game_client_joined_host_version; }
 
 static unsigned int network_game_client_host_version_for_join(
 	struct network_game_client const *client,
@@ -1315,7 +1317,7 @@ boolean network_game_client_game_settings_updated(
 
 		csprintf(message,
 			"The host switched this lobby to %s, but its network version is %u.\n\n"
-			"Campaign co-op and Custom Edition maps require network version 23 or newer.",
+			"Campaign co-op requires network 15 or newer; Custom Edition maps require 23 or newer.",
 			custom_edition_map ? "a Custom Edition map" : "campaign co-op",
 			network_game_client_joined_host_version);
 		network_event("leaving pregame lobby: host version %u switched to campaign/Custom Edition settings",
@@ -2412,7 +2414,8 @@ static boolean network_game_client_map_name_is_valid(
 {
 	/* (a scenario's tag path, of which the cache takes the name after the
 	last backslash: letters, digits and a few more, none that a path reads
-	otherwise) */
+	otherwise; the [ ] ( ) + that Custom Edition maps' names use, as in
+	[H2]_Lockout, too) */
 	char const *character;
 	char const *leaf;
 
@@ -2422,7 +2425,8 @@ static boolean network_game_client_map_name_is_valid(
 	{
 		if (!((*character >= 'a' && *character <= 'z') || (*character >= 'A' && *character <= 'Z') ||
 			(*character >= '0' && *character <= '9') || *character == '_' || *character == '-' ||
-			*character == '.' || *character == ' ' || *character == '\\'))
+			*character == '.' || *character == ' ' || *character == '\\' ||
+			*character == '[' || *character == ']' || *character == '(' || *character == ')' || *character == '+'))
 		{
 			return FALSE;
 		}
@@ -2431,6 +2435,22 @@ static boolean network_game_client_map_name_is_valid(
 		return FALSE;
 	leaf = strrchr(map_name, '\\');
 	leaf = leaf ? leaf + 1 : map_name;
+	/* (and not one of Windows's devices (con, nul, com1...), whatever
+	follows it: maps\\com1.map opens the serial port there) */
+	{
+		static char const *const devices[] = { "con", "prn", "aux", "nul", "com", "lpt" };
+		long stem = (long)strcspn(leaf, ". ");
+		short device;
+
+		for (device = 0; device < (short)NUMBEROF(devices); device++)
+		{
+			if (!_strnicmp(leaf, devices[device], 3) &&
+				((device < 4 && stem == 3) || (device >= 4 && stem == 4 && leaf[3] >= '0' && leaf[3] <= '9')))
+			{
+				return FALSE;
+			}
+		}
+	}
 	return *leaf && leaf[strspn(leaf, ". ")] != 0;
 }
 
@@ -3143,7 +3163,8 @@ static boolean network_game_client_settings_version_compatible(
 	/* Older CE advertisements have map.version zero; the custom_maps path
 	continues to identify them in pre-game settings. */
 	custom_edition_map = game->map.version != 0 || network_advertised_map_is_custom_edition(&game->map);
-	return (!campaign || host_version >= HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM) &&
+	return (!campaign || host_version >= HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM ||
+        (host_version >= 12 && host_version <= 14 && config_boolean("network.legacy_coop"))) &&
 		(!custom_edition_map || host_version >= HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM);
 }
 
@@ -3157,10 +3178,10 @@ static boolean network_protocol_target_allows_version(unsigned int target, unsig
 joins the first open game the client's search has found, as picking it in
 the system link list does (network_game_join_game_from_server_list) */
 /* whether this client can join the advertised game: its host's network
-version matches the selected client target (or is anywhere in 11..24 when
-target is zero), and it plays distributed netcode. Campaign and Custom
-Edition map joins require version 23 or newer. This build itself always
-hosts as version 24. Incompatible hosts are rejected before joining. */
+version matches the selected client target (or is anywhere in 11..26 when
+target is zero), and it plays distributed netcode. Campaign joins require15
+(the full presentation/allegiance record), Custom Edition maps require23. This build itself always
+hosts as version 26. Incompatible hosts are rejected before joining. */
 boolean network_game_client_advertised_game_compatible(
 	struct network_game_client *client,
 	struct network_advertised_game const *game,
@@ -3221,11 +3242,12 @@ boolean network_game_client_advertised_game_compatible(
 			"The host is on version %u. Choose a compatible host or ask them to update.",
 			HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM, theirs);
 	}
-	else if (campaign && theirs < HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM)
+	else if (campaign && theirs < HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM &&
+        !(theirs >= 12 && theirs <= 14 && config_boolean("network.legacy_coop")))
 	{
 		csprintf(message,
 			"Campaign co-op requires network version %d or newer.\n\n"
-			"This host is on version %u. Choose a compatible host or ask them to update.",
+			"This host is on version %u. Networks12-14 require explicit Legacy co-op consent in launcher network settings; old hosts omit team allegiance. Prefer an updated host.",
 			HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM, theirs);
 	}
 	else

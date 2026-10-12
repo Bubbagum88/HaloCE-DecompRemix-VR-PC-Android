@@ -37,6 +37,13 @@ def run(name, text):
 frame = (ROOT / 'port/linux/src/vr_frame.c').read_text(encoding='utf-8')
 render = (ROOT / 'port/linux/game/vr_render.c').read_text(encoding='utf-8')
 menu = (ROOT / 'port/linux/game/vr_menu.c').read_text(encoding='utf-8')
+# Compile the actual shared scope macro table, then join adjacent C literals
+# so the same layout checks cover generated rows and saved keys.
+macro=menu[menu.index('#define SCOPE_MENU'):menu.index('#undef SCOPE_MENU')+len('#undef SCOPE_MENU')]
+expanded=subprocess.run(['clang','-E','-P','-x','c','-I',str(ROOT),'-'],input='#include "port/linux/src/vr_scope_profiles.h"\n'+macro,text=True,capture_output=True,check=True).stdout
+while re.search(r'"([^"\\]*)"\s+"([^"\\]*)"',expanded):
+    expanded=re.sub(r'"([^"\\]*)"\s+"([^"\\]*)"',lambda m:'"'+m.group(1)+m.group(2)+'"',expanded)
+menu=menu.replace(macro,expanded)
 config = (ROOT / 'port/linux/src/port_config.c').read_text(encoding='utf-8')
 transparent = (ROOT / 'source/rasterizer/xbox/rasterizer_xbox_transparent_geometry.c').read_text(encoding='latin-1')
 gradle = (ROOT / 'port/android/app/build.gradle').read_text(encoding='utf-8')
@@ -84,6 +91,8 @@ for label, key, kind, count, values in rows:
         texts = ['< -180 DEG >']
     elif kind == '_vr_setting_centimetres':
         texts = ['< -20 CM >']
+    elif kind == '_vr_setting_scope_centimetres':
+        texts = ['< -30 CM >', '< 30 CM >']
     elif kind == '_vr_setting_vehicle_centimetres':
         # (two-digit negatives on BANSHEE RIGHT and PELICAN RIGHT, -10 to -50 cm, may clip the final ">")
         texts = ['< -9 CM >', '< 50 CM >'] if label in ('BANSHEE RIGHT', 'PELICAN RIGHT') else ['< -50 CM >', '< 50 CM >']

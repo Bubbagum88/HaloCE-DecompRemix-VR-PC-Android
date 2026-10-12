@@ -190,6 +190,21 @@ PROFILE_USE_FLAGS = [
     "-Wno-backend-plugin",
 ]
 
+# OpenCE voice chat's low-latency Opus codec, built as plain floating-point C.
+OPUS_DIR = Path("port/third_party/opus")
+OPUS_DEFINES = ("-DOPUS_BUILD", "-DVAR_ARRAYS", "-DHAVE_LRINTF", "-DHAVE_LRINT")
+
+
+def opus_sources() -> List[Path]:
+    """Return the vendored Opus sources in its canonical source-list order."""
+    return [OPUS_DIR / line.strip() for line in (OPUS_DIR / "sources.txt").read_text().splitlines() if line.strip()]
+
+
+def opus_cflags(abi: str) -> str:
+    """Compile Opus with the target ABI and its private headers."""
+    return " ".join([abi, "-std=gnu11", "-O2", *OPUS_DEFINES,
+                     *(f"-I{OPUS_DIR / name}" for name in ("include", "celt", "silk", "silk/float")), "-w"])
+
 
 def musl_math_sources() -> List[Path]:
     """musl's maths functions the game uses (port/third_party/musl-math)"""
@@ -435,6 +450,7 @@ def generate_linux_build(n: Writer, sln: Any) -> None:
             f"-I{port_include}",
             f"-I{TOML_DIR}", f"-I{EXPAT_DIR}",
             f"-I{KCP_DIR}", f"-Iport/third_party/monocypher", f"-I{ZLIB_DIR}",
+            *(f"-I{OPUS_DIR / name}" for name in ("include", "celt", "silk", "silk/float")),
             "-Isource -Isource/cseries",
             sdk_flags,
         ])
@@ -474,6 +490,9 @@ def generate_linux_build(n: Writer, sln: Any) -> None:
             add_object(EXPAT_DIR / name, " ".join([abi, "-std=gnu11", f"-I{EXPAT_DIR}", "-w"]))
         # internet play's reliable streams (port/third_party/kcp; p2p.c)
         add_object(KCP_DIR / "ikcp.c", " ".join([abi, "-std=gnu11", "-w"]))
+        # voice chat's codec (port/third_party/opus)
+        for source in opus_sources():
+            add_object(source, opus_cflags(abi))
         for name in ("monocypher.c", "monocypher-ed25519.c"):
             add_object(Path("port/third_party/monocypher") / name, " ".join([abi, "-std=gnu11", "-w"]))
         # the port's zlib

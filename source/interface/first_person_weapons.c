@@ -125,6 +125,9 @@ symbols in this file:
 #include "sound/sound_manager.h"
 #include "units/units.h"
 #include "halo_vr.h"
+#ifdef HALO_VR
+#include "vr_manual_reload.h"
+#endif
 
 /* ---------- constants */
 
@@ -449,6 +452,18 @@ void first_person_weapons_dispose_from_old_map(
 	return;
 }
 
+#ifdef HALO_VR
+/* Test59: the weapon whose first-person rig is loaded for a local player
+(NONE without one): a driver's immersive vehicle hands need it loaded */
+long first_person_weapon_vr_weapon(
+	short local_player_index)
+{
+	if (local_player_index<0 || local_player_index>=MAXIMUM_NUMBER_OF_LOCAL_PLAYERS)
+		return NONE;
+	return first_person_weapon_get(local_player_index)->weapon_index;
+}
+#endif
+
 long first_person_weapon_get_local_index(
 	long weapon_index)
 {
@@ -538,6 +553,10 @@ void first_person_weapon_draw(
 							weapon_definition->weapon.interface_definition.first_person_animations.index,
 							first_person_weapon->node_matrices,
 							first_person_weapon->weapon_node_remapping_table);
+#ifdef HALO_VR
+						vr_manual_reload_model(first_person_weapon->weapon_index,
+							weapon_definition->weapon.interface_definition.first_person_model.index, model_node_matrices);
+#endif
 						render_model(
 							weapon_definition->weapon.interface_definition.first_person_model.index,
 							0.0f,
@@ -653,6 +672,10 @@ void first_person_weapon_render_update(
 			/* put away driving or on a turret (port/linux/game/vr_render.c) */
 			if (vr_render_hide_first_person_weapon())
 				visible= FALSE;
+			/* Test59: the hands on immersive vehicle controls are drawn though
+			the game's own camera for a seat is not first person */
+			if (vr_render_vehicle_first_person_hands())
+				visible= TRUE;
 #endif
 
 			first_person_weapon_set_visibility(render.local_player_index, visible);
@@ -1156,6 +1179,49 @@ static boolean first_person_weapon_animation_fits(
 	return FALSE;
 }
 
+#ifdef HALO_VR
+/* Test54: the walking ("moving"), sway/turn and push-back overlays animate the
+whole first-person rig, the gun's own parts included: the assault rifle's
+operating handle slid in and out whenever the player walked. In VR the gun is
+the controller's, so those overlays keep moving the arms but every part of the
+gun model other than its root keeps the pose the gun's own state animation
+gives it (reloads, firing and the ammunition overlay still move parts). */
+int vr_active(void);
+static real_orientation vr_first_person_part_orientations[MAXIMUM_NODES_PER_ANIMATION];
+
+static void vr_first_person_parts_save(
+	struct first_person_weapon const *first_person_weapon,
+	struct animation_graph const *animation_graph)
+{
+	short count = (short)MIN(animation_graph->nodes.count, MAXIMUM_NODES_PER_ANIMATION);
+
+	if (vr_active() && count > 0)
+		memcpy(vr_first_person_part_orientations, first_person_weapon->node_orientations,
+			count * sizeof(*vr_first_person_part_orientations));
+}
+
+static void vr_first_person_parts_restore(
+	struct first_person_weapon *first_person_weapon,
+	struct model const *model,
+	struct animation_graph const *animation_graph)
+{
+	short count = (short)MIN(animation_graph->nodes.count, MAXIMUM_NODES_PER_ANIMATION);
+	short model_count = (short)MIN(model->nodes.count, MAXIMUM_NODES_PER_ANIMATION);
+	short root, node;
+
+	if (!vr_active() || !first_person_weapon->weapon_node_remapping_table_valid || model_count <= 1 || count <= 0)
+		return;
+	root = first_person_weapon->weapon_node_remapping_table[0];
+	for (node = 1; node < model_count; node++)
+	{
+		short graph_node = first_person_weapon->weapon_node_remapping_table[node];
+
+		if (graph_node >= 0 && graph_node < count && graph_node != root)
+			first_person_weapon->node_orientations[graph_node] = vr_first_person_part_orientations[graph_node];
+	}
+}
+#endif
+
 static void first_person_weapon_build_node_matrices(
 	short local_player_index)
 {
@@ -1334,6 +1400,9 @@ static void first_person_weapon_build_node_matrices(
 					}
 				}
 
+#ifdef HALO_VR
+				vr_first_person_parts_save(first_person_weapon, animation_graph);
+#endif
 				if (first_person_weapon->moving_animation.index!=NONE)
 				{
 					struct animation *moving_animation= TAG_BLOCK_GET_ELEMENT(
@@ -1351,6 +1420,9 @@ static void first_person_weapon_build_node_matrices(
 					}
 				}
 
+#ifdef HALO_VR
+				vr_first_person_parts_restore(first_person_weapon, model, animation_graph);
+#endif
 				if (first_person_weapon->overcharged_jitter_animation.index!=NONE)
 				{
 					struct animation *overcharged_jitter_animation= TAG_BLOCK_GET_ELEMENT(
@@ -1376,6 +1448,9 @@ static void first_person_weapon_build_node_matrices(
 						&first_person_weapon_animations->animations)
 							[_first_person_weapon_animation_overlays].animation_index :
 					(short)NONE;
+#ifdef HALO_VR
+				vr_first_person_parts_save(first_person_weapon, animation_graph);
+#endif
 				if (overlay_animation_index!=NONE)
 				{
 					struct animation *overlay_animation= TAG_BLOCK_GET_ELEMENT(
@@ -1466,6 +1541,10 @@ static void first_person_weapon_build_node_matrices(
 					}
 				}
 
+#ifdef HALO_VR
+				if (overlay_animation_index!=NONE)
+					vr_first_person_parts_restore(first_person_weapon, model, animation_graph);
+#endif
 				if (first_person_weapon->interpolation_frame_count>0)
 				{
 					interpolate_node_orientations(
@@ -1640,6 +1719,14 @@ static void first_person_weapon_switch_weapons(
 			first_person_weapon->unit_index,
 			unit->unit.current_weapon_index);
 
+#ifdef HALO_VR
+		/* Test59: a driver's weapon is stowed, so there were no first-person
+		arms in a vehicle; holding immersive vehicle controls, the weapon
+		carried lends its first-person rig (its gun hidden: vr_render.c,
+		vr_vehicle_handles.h) */
+		if (weapon_index==NONE)
+			weapon_index= vr_render_vehicle_hands_weapon(first_person_weapon->unit_index);
+#endif
 		if (weapon_index!=NONE)
 		{
 			struct weapon_datum *weapon= weapon_get(weapon_index);

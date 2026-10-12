@@ -77,6 +77,10 @@ symbols in this file:
 #include "saved games/game_state.h"
 #include "scenario/scenario.h"
 
+/* port: declared here, not implicitly: an implicit declaration passes float
+arguments and reads narrow return values wrongly on the Android guest ABI */
+long game_time_get(void);
+
 /* ---------- constants */
 
 enum

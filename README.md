@@ -1,62 +1,61 @@
-<p align="center">
-  <img src=".github/decomplogo.png" alt="Halo Combat Evolved VR — OpenCE port" width="460" />
-</p>
+<p align="center"><img src=".github/decomplogo.png" alt="Halo Combat Evolved VR — OpenCE port" width="460" /></p>
 
 <h1 align="center">Halo CE Quest VR + Android</h1>
 
-<p align="center"><strong>Halo: Combat Evolved on standalone Meta Quest VR and Android</strong><br />An unofficial community port built on OpenCE.</p>
+<p align="center">An unofficial OpenCE-based community port for standalone Meta Quest VR and flat Android.</p>
 
-<p align="center">
-  <a href="https://github.com/moistman42069/HaloCE-Quest-VR/releases/tag/v1.0.18"><strong>Download latest release · v1.0.18</strong></a>
-  &nbsp;·&nbsp;
-  <a href="docs/RELEASE-1.0.18.md">Release notes</a>
-  &nbsp;·&nbsp;
-  <a href="https://github.com/OpenCommunityEdition/OpenCE">OpenCE upstream</a>
-</p>
+**MASSIVE UPDATE — MANY NEW FEATURES. [Read the full 1.0.31 release notes](docs/RELEASE-1.0.31.md).**
 
----
+> This release focuses on individual user testing and logs to refine future builds. Immersive vehicles, manual reload, ragdolls, grabbing/slamming, parkour, fist assistance and physical grenades are WIP/experimental. Report bugs, placement/comfort preferences and successful tests too.
 
-## Download and install
-
-**v1.0.18 · OpenCE Build 157 · network version 24**
+## Download and update
 
 | Device | Download |
 | --- | --- |
-| **Meta Quest** · standalone VR | [HaloCE-Quest-1.0.18.apk](https://github.com/moistman42069/HaloCE-Quest-VR/releases/download/v1.0.18/HaloCE-Quest-1.0.18.apk) |
-| **Android phone or tablet** · flat play | [HaloCE-Android-1.0.18.apk](https://github.com/moistman42069/HaloCE-Quest-VR/releases/download/v1.0.18/HaloCE-Android-1.0.18.apk) |
+| Android phone/tablet — flat | [HaloCE-Android-1.0.31.apk](https://github.com/moistman42069/HaloCE-Quest-VR/releases/download/v1.0.31/HaloCE-Android-1.0.31.apk) |
+| Meta Quest — VR | [HaloCE-Quest-1.0.31.apk](https://github.com/moistman42069/HaloCE-Quest-VR/releases/download/v1.0.31/HaloCE-Quest-1.0.31.apk) |
 
-Both APKs are ARM64 and require Android 9 / API 28 or newer. On Quest, enable Developer Mode and sideload the Quest APK with SideQuest or ADB. On Android, allow installation from your browser or file manager.
+ARM64, Android 9/API28+. On Quest enable Developer Mode and sideload with SideQuest/ADB. On Android allow installation from the browser/file manager. Existing users can use the launcher's project updater or install the matching APK over the current app. **Do not uninstall or clear data.** Back up important saves first.
 
-When updating, install over the existing app to keep your saves, settings and imported game data. **Do not uninstall the old app or clear its data.** Back up important data before updating.
+Public **v1.0.31** contains the exact supplied **Test64 / 1.0.31-test64 / code76** binaries. The internal test label is expected; someone already on Test64 has this build. Package IDs/signing remain unchanged. The release includes updater-required compatibility metadata; users do not install that JSON manually.
 
-The app does not contain Halo game data. On first launch, open **Game files & versions** and import your own supported Xbox Halo CE ISO/XISO or extracted game files. For best compatibility, use the original Xbox Halo CE XISO. Rev 1 and Rev 2 images are supported where recognized but are not recommended.
+Import your own complete supported Xbox Halo CE ISO/XISO or extracted data through **Game files & versions**. No game data is included. Tested USA Original/Rev1/Rev2 map contents are identical; other regions/modifications still need validation. Original Xbox XISO remains the reference. Identical managed map sets deduplicate. The manager can select/rename sets and delete inactive managed copies; active and protected Existing game data remain protected. Source ISOs selected through Android's picker stay at their original location.
 
-## What’s included
+## What is included
 
-- **Quest VR:** standalone OpenXR rendering, room-scale play, tracked body and hands, weapon-aligned aiming, configurable comfort and controls, and multiple body/hand modes. Safe geometry is the default.
-- **Android:** editable touch HUD, multitouch, swipe/fire-drag controls, optional gyro aiming, and USB/Bluetooth gamepad support with controller-aware touch visibility.
-- **OpenCE multiplayer and co-op:** native in-game server browser, PvP hosting and campaign co-op, with network 24 hosting and a launcher selector for compatible client targets 11–24.
-- **Game and launcher tools:** multiple game-data sets and revisions, updates, settings, saved invites, help and per-launch logs.
+- Standalone Quest OpenXR, room-scale movement, tracked hands, estimated body IK, holsters, two-hand weapons, scopes, gestures and wrist HUD. Legs + Arms and Safe geometry remain defaults.
+- Experimental physical reload with mirrored hip/shoulder pouches and charging; physical grenades; NPC/ally/object grabbing, heavy handling, ragdolls, slams, optional debris and bounded vehicle lifting/recovery.
+- Experimental parkour and fist-combat assist, toggle sprint, solo shake cooling, aim steadying and vehicle/turret reticle refinements.
+- Optional immersive vehicle wheels/bars/sticks with calibration preview and per-vehicle offsets. Ordinary third-person/right-hand steering remains the default. First-person vehicles still need refinement.
+- Flat Android circular touch HUD, layout import/export and individual control hiding, optional touch/gyro look and common USB/Bluetooth gamepads.
+- Native OpenCE server browsing, PvP/campaign hosting and voice; network28 hosting and compatible client targets11–28; launcher populations, updates, imports, support and per-launch logs.
+- Long VR-menu section indexes and the Test64 fix for the crash opening VR SETTINGS.
 
-### Network compatibility
+## Controls and feature setup
 
-The app always hosts on network 24. Selecting an older client target changes which compatible games this client can join; it does not downgrade hosted games. Targets 11–22 are limited to original Xbox-map PvP. Custom Edition and campaign co-op require network 23 or 24, with matching game files, maps and session conditions. The selectable co-op limit up to 128 is an engine setting, not a tested performance guarantee. See the [release notes](docs/RELEASE-1.0.18.md) for limitations and troubleshooting.
+The [release notes](docs/RELEASE-1.0.31.md) contain the Quest, gamepad and touch mappings and a feature-by-feature quick guide. **BUTTON SPRINT takes left-stick click; SPRINT TOGGLE makes it click-on/click-off. MANUAL RELOAD changes USE/RELOAD to magazine ejection.** Optional features can enable supporting settings; check those rows when experimenting.
 
-## Join or host a game
+Physical grenade slots may be offset: **VR Settings → IMMERSION → GRENADES → CHEST FWD / CHEST DOWN / CHEST SPACING** adjusts placement. Touch the visible slot with a free palm then Grip; release Grip to throw. THROW POWER adjusts strength separately.
 
-Join public games from **Play → Multiplayer → Join Game → Server Browser**, or nearby games from **LAN**. Use **Direct Link** to join by invite. To host PvP, choose **Create Game → Internet or LAN → Multiplayer**. To host campaign co-op, choose **Create Game → Internet or LAN → Singleplayer**, select a mission and difficulty, then configure **Server Setup**. Share the invite or make the lobby public. Hosting remains on network 24.
-## Guides and support
+## Multiplayer, co-op and voice
 
-- [Player guide](docs/PLAYER-GUIDE.md)
-- [Controls and settings reference](docs/CONTROLS-AND-OPTIONS.md)
-- [Complete v1.0.18 release notes](docs/RELEASE-1.0.18.md)
+Join from **Play → Multiplayer → Join Game → Server Browser**, LAN or Direct Link. Host from **Create Game → Internet or LAN → Multiplayer** for PvP, or **Singleplayer** for campaign; choose mission/difficulty and configure **Server Setup**, then start/share the lobby.
 
-For help or a bug report, include the device and OS, app and network versions, selected game-data set, map or mission, connection type, reproduction steps, and relevant logs from each player. Android logs are saved under **Download/HaloCE** when permitted. Contact **@MeWhenINameMyself** or visit the [Halo CE Decomp Discord](https://discord.gg/S9uSCKxKx). Remove private invites and device details before posting publicly.
+Hosting stays on network28. The launcher defaults to All compatible networks and offers targets11–28, taking effect next launch. Original-map PvP uses the implemented targets; co-op defaults to15+ with12–14 legacy opt-in; Custom Edition needs23+ and matching maps. Retail PC/CE, MCC and Xbox protocols are separate. NAT, content and host settings still affect joins. 128 players is an engine option, not a performance guarantee. This port does not host OpenCE web/browser clients or share maps.
 
-## Project and upstream status
+Enhanced VR actions require host permission and compatible peers. Manual reload and other local-only systems remain restricted; NPC ragdoll replication supports four remote machines, not a four-player general co-op limit. See the full notes for details.
 
-This repository publishes the Halo CE Quest VR and Android app source, documentation and releases. It is an unofficial community project based on [OpenCE](https://github.com/OpenCommunityEdition/OpenCE), includes OpenCE networking and campaign co-op, and contains no Halo game data or other Halo game assets.
+Hosts must allow voice. Mic Off still permits incoming voice; Voice Volume0 mutes it. Enable PTT/Open Mic, grant microphone permission and configure a PTT binding when needed. The notes explain Quest/flat controls and troubleshooting.
 
-The separate [OpenCE-VR fork](https://github.com/moistman42069/OpenCE-VR) holds the dedicated upstream integration branch. The Quest implementation is under review in [OpenCE PR #217](https://github.com/OpenCommunityEdition/OpenCE/pull/217); it remains open and has not been merged into upstream. The fork’s current Quest/Android release is also [available there](https://github.com/moistman42069/OpenCE-VR/releases/tag/quest-v1.0.18).
+## Guides, source and support
 
-The glasses-FOV and resolution contribution by [Willem Horak, PR #1](https://github.com/moistman42069/HaloCE-Quest-VR/pull/1) is included. See [CREDITS.md](CREDITS.md) and [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt) for additional contributors and licenses. This project is not affiliated with or endorsed by Microsoft or 343 Industries.
+- [Complete 1.0.31 release notes](docs/RELEASE-1.0.31.md)
+- [Test64 field guide and history](docs/TEST64-FIELD-GUIDE.md) — newest sections supersede older test instructions
+- [Android touch controls](docs/ANDROID-TOUCH-CONTROLS.md)
+- [Release provenance](docs/RELEASE-PROVENANCE-1.0.31.md)
+
+Logs normally appear under **Download/HaloCE**, with app-private fallback. Send device/OS, app/network version, selected data, map/mission, toggles, reproduction steps and relevant logs; collect both peers' logs for co-op. Remove private invites/device details before public posting. DM **@MeWhenINameMyself** or use the [Halo CE Decomp Discord](https://discord.gg/S9uSCKxKx) or the [Flat2VR Halo CE discussion](https://discord.com/channels/747967102895390741/1555959498349215774). This release's goal is real user testing and logs for future refinements.
+
+The source tag contains the supplied APK runtime source plus publication docs/metadata. Automated checks are recorded; a complete device checklist for this exact pair remains pending. PC/Steam Frame work remains deferred.
+
+Built on [OpenCE](https://github.com/OpenCommunityEdition/OpenCE): Build157 base with selected integrations through Build201/network28, not a complete rebase. Thanks to the upstream, port and testing communities, including [Willem Horak's PR #1](https://github.com/moistman42069/HaloCE-Quest-VR/pull/1). See [CREDITS.md](CREDITS.md) and [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt). Unofficial; not affiliated with Microsoft.

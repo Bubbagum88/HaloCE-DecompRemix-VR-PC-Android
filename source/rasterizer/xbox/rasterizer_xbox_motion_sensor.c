@@ -62,26 +62,28 @@ struct bitmap_data *bitmap_group_try_and_get_bitmap(
 	long bitmap_group_index,
 	short bitmap_index);
 
+/* (rasterizer_xbox.c's, with their exact types: on the Android guest ABI a
+caller extends narrow arguments to the callee's declared type) */
 void rasterizer_set_target(
-	word target,
-	boolean use_depth_buffer,
-	boolean clear_color,
-	boolean clear_depth,
-	boolean clear_stencil);
+	short target,
+	short mipmap_index,
+	pixel32 clear_color,
+	boolean clear,
+	boolean zbuffer);
 
 void rasterizer_set_target_as_texture(
 	short stage,
-	long target,
-	boolean filtered);
+	short target,
+	short maximum_mipmap_level);
 
-void rasterizer_set_texture_bitmap_data(
+boolean rasterizer_set_texture_bitmap_data(
 	short stage,
 	struct bitmap_data const *bitmap);
 
 void rasterizer_set_vertex_shader_permutation(
+	short vertex_shader_index,
 	short vertex_type,
-	short permutation,
-	boolean one_node);
+	short permutation_index);
 
 void rasterizer_set_pixel_shader(
 	struct pixel_shader_definition const *definition);

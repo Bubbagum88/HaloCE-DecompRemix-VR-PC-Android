@@ -14,6 +14,13 @@ swapchain images, whose GL texture names work in this context as they are.
 #include "port_config.h"
 #include "vr.h"
 #include "vr_alignment.h"
+#include "vr_scope_profiles.h"
+#include "../game/vr_manual_reload_math.h"
+#include "../game/vr_sprint_melee_math.h"
+#include "../game/vr_holster_math.h"
+#include "../game/vr_hand_pending_math.h"
+#include "../game/vr_haptics_math.h"
+#include "vr_weapon_release_latch.h"
 
 #include "guest_host.h"
 #include "halo_android_abi.h"
@@ -23,6 +30,10 @@ swapchain images, whose GL texture names work in this context as they are.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Implemented by vr_render.c; keep this narrow declaration here because the
+ * frame module is included before the game-side `real` type headers. */
+extern int vr_script_calibration_reticle_ray(float origin[3], float direction[3]);
 
 /* test21: the kinds of gun with their own aim adjustment (VR_GUN_*): the
 config key's part and the menu's name */
@@ -160,22 +171,25 @@ static struct
 	int physical_setting, physical_allowed, gun_held, x_hold_switched;
 	/* physical weapons: what the weapon hand holds (HAND_*), the weapon the
 	game has in it (vr_note_weapon), a change of it this side asked for and
-	what the hand then holds (pending_state, NONE none; until pending_until),
+	what the hand then holds (pending_state, -1 means none; until pending_until),
 	and how long a gun the game put in the hand has gone ungripped */
 	int hand_state, pending_state;
-	long noted_weapon;
+	long noted_weapon, pending_expected_weapon, holster_unit, holster_draw_request;
+	long holster_weapon[VR_HOLSTER_SLOT_COUNT];
+	struct vr_weapon_release_latch weapon_release;
 	double pending_until, now_seconds;
 	float ungripped_seconds;
 	int ungripped_warned;
 	/* vr.melee "impact": the hands strike what they sweep through (the
 	game's side, vr_render.c), where the game allows it; each hand's
 	recent peak speed (vr_hand_speed) */
-	int melee_impact, impact_allowed;
+	int melee_impact, impact_allowed, melee_requires_fist;
 	float hand_speed[2];
 	/* vr.arm_run: running by swinging the arms; the effort it takes
 	(vr.arm_run_speed) and the push on the stick it makes, eased */
-	int arm_run;
-	float arm_run_speed, run_push;
+	int arm_run, button_sprint_enabled, button_sprint_toggle, button_sprint_latched;
+	int button_sprint_was_pressed, button_sprint_active;
+	float arm_run_speed, sprint_speed, run_push;
 	/* each hand's fingers (vr_finger_pose): thumb, index, middle, the ring
 	and little fingers, 0 open to 1 curled, eased; vr.fingers; how long the
 	"L" (pointing, the thumb up) has been held, for the middle finger */
@@ -187,6 +201,8 @@ static struct
 	/* test23: the Quest's buttons, remappable (vr.button_*): which button
 	(VR_BUTTON_SOURCE_*) does each action (VR_BUTTON_ACTION_*) */
 	int button_source[VR_BUTTON_ACTIONS];
+	/* client-only voice Push-to-Talk; never becomes a Halo gameplay button */
+	int push_to_talk_held;
 	/* the Quest's Touch controllers: two face buttons a hand, no bumpers
 	(the grip throws, Y switches weapons) */
 	int touch_layout;
@@ -225,6 +241,8 @@ static struct
 	float hud_tap_distance;
 	int hud_tap_armed, hud_hidden, reticle_hidden, reticle_press, reticle_cancelled, turn_stick_down;
 	int wrist_hud, menus_active;
+	/* Test61: X held while a menu was up, not yet let go */
+	int reload_held_from_menu;
 	/* test29: how long the weapon hand has been held still by its temple
 	(the HUD tap); the wrist HUD's place adjusted from its default
 	(vr.wrist_hud_along/_across/_out, metres) and its size */
@@ -261,7 +279,7 @@ static struct
 	/* test22: the pistol's [0] and the sniper rifle's [1] scope moved
 	(forward, up, right, metres) and sized (a share of scope_size) from
 	their usual place (vr.scope_pistol_*, vr.scope_sniper_*) */
-	float scope_adjust[2][4];
+	float scope_adjust[VR_SCOPE_PROFILE_COUNT][4];
 	/* room-scale (vr.roomscale): the floor's point the player stands on, in
 	LOCAL metres (x, z), after the last tick and the one before (frames
 	blend them as the game's camera is blended); set aside while the player
@@ -322,8 +340,8 @@ enum
 	HOLSTER_RIGHT_SHOULDER,
 	HOLSTER_LEFT_HIP,
 	HOLSTER_RIGHT_HIP,
-	HOLSTER_COUNT,
 };
+#define HOLSTER_COUNT VR_HOLSTER_SLOT_COUNT
 static const float holster_places[HOLSTER_COUNT][3] =
 {
 	{ -0.18f, -0.15f, 0.15f },
@@ -332,6 +350,15 @@ static const float holster_places[HOLSTER_COUNT][3] =
 	{ 0.22f, -0.62f, 0.00f },
 };
 static const char *const holster_names[HOLSTER_COUNT] = { "left shoulder", "right shoulder", "left hip", "right hip" };
+
+/* Holster buzzes are optional without changing holster zones/actions or the
+ * global HAPTICS strength. Physical reload pouch feedback is intentionally
+ * separate: it continues to use vr_haptic() directly. */
+static void holster_haptic(int hand, float amplitude, float seconds)
+{
+	if (config_boolean("vr.holster_haptics"))
+		vr_haptic(hand, amplitude, seconds);
+}
 
 /* an eye's view cut to the glasses window (vr.fov_mode
 "glasses"): vr.glasses_fov_h by vr.glasses_fov_v degrees about the eye's
@@ -478,7 +505,7 @@ static void choose_refresh_rate(void)
 	static double asked;
 	double hertz = config_real("vr.refresh_rate");
 
-	if (hertz > 0.0 && hertz != asked)
+	if (hertz >= 0.0 && hertz != asked)
 	{
 		asked = hertz;
 		platform_log("vr: display at %.0f Hz", host_xr_set_refresh_rate((float)hertz));
@@ -768,6 +795,7 @@ void vr_reload_settings(void)
 		vr.controls_mirrored ? "mirrored (move on the right stick, turn on the left)" : "standard (move on the left stick)");
 	vr.melee_speed = (float)config_real("vr.melee_speed");
 	vr.melee_multiplayer = config_boolean("vr.melee_multiplayer");
+	vr.melee_requires_fist = config_boolean("vr.melee_requires_fist");
 	{
 		int action;
 
@@ -809,9 +837,38 @@ void vr_reload_settings(void)
 	vr.melee_impact = !strcmp(config_string("vr.melee"), "impact");
 	vr.fingers = config_boolean("vr.fingers");
 	vr.arm_run = config_boolean("vr.arm_run");
+	vr.button_sprint_enabled = config_boolean("vr.button_sprint");
+	vr.button_sprint_toggle = config_boolean("vr.button_sprint_toggle");
+	/* Test63: BUTTON SPRINT owns the left stick's click. The menu moves the
+	actions it had aside and gives them back when sprint is turned off
+	(vr_menu_button_sprint_set); an action still on the click (a config edited
+	by hand) waits until then, so one click never both sprints and toggles the
+	reticle. A reticle its toggle had hidden is shown again whenever the toggle
+	has no button: the owner's Test62 log hid it (12:10:53) just before sprint
+	took the click (12:11:04), and nothing could show it again. */
+	{
+		int owned;
+
+		for (owned = 0; vr.button_sprint_enabled && owned < VR_BUTTON_ACTIONS; owned++)
+			if (vr.button_source[owned] == VR_BUTTON_SOURCE_LEFT_STICK)
+			{
+				vr.button_source[owned] = VR_BUTTON_SOURCE_NONE;
+				platform_log("vr: %s waits while BUTTON SPRINT has the left stick's click", vr_button_action_key(owned));
+			}
+		if (vr.button_source[VR_BUTTON_ACTION_RETICLE] == VR_BUTTON_SOURCE_NONE && vr.reticle_hidden)
+		{
+			vr.reticle_hidden = 0;
+			platform_log("vr: reticle shown (its toggle has no button now)");
+		}
+		if (vr.button_source[VR_BUTTON_ACTION_RETICLE] == VR_BUTTON_SOURCE_NONE)
+			vr.reticle_press = vr.reticle_cancelled = 0;
+	}
 	vr.arm_run_speed = (float)config_real("vr.arm_run_speed");
 	if (vr.arm_run_speed < 0.1f)
 		vr.arm_run_speed = 0.1f;
+	vr.sprint_speed = (float)config_real("vr.sprint_speed");
+	if (!isfinite(vr.sprint_speed)) vr.sprint_speed = 1.0f;
+	vr.sprint_speed = fminf(1.5f, fmaxf(1.0f, vr.sprint_speed));
 	vr.flashlight_distance = (float)config_real("vr.flashlight_distance");
 	/* test26: the head taps' reach (0 off), bounded */
 	if (!(vr.flashlight_distance >= 0.0f)) vr.flashlight_distance = 0.0f;
@@ -853,7 +910,9 @@ void vr_reload_settings(void)
 		vr.pending_state = -1;
 		vr.gun_held = vr.hand_state == HAND_HELD;
 	}
-	vr.haptics = (float)config_real("vr.haptics");
+	vr.haptics = vr_haptics_level((float)config_real("vr.haptics"));
+	platform_log("vr: haptics master %.0f%% (applies to surface contact, weapons, reload and interaction feedback)",
+		vr.haptics * 100.0f);
 	{
 		static int previous_scope_setting = -1;
 		int enabled = config_boolean("vr.scope");
@@ -868,12 +927,14 @@ void vr_reload_settings(void)
 	}
 	vr.scope_size = (float)config_real("vr.scope_size");
 	{
-		static const char *const kinds[] = { "pistol", "sniper" };
+		#define SCOPE_KEY(key, label, gun) #key,
+		static const char *const kinds[] = { VR_SCOPE_PROFILES(SCOPE_KEY) };
+#undef SCOPE_KEY
 		static const char *const parts[] = { "forward", "up", "right", "scale" };
 		char key[64];
 		int kind, part;
 
-		for (kind = 0; kind < 2; kind++)
+		for (kind = 0; kind < VR_SCOPE_PROFILE_COUNT; kind++)
 		{
 			for (part = 0; part < 4; part++)
 			{
@@ -962,7 +1023,7 @@ void vr_initialize(void)
 		return;
 	vr.initialized = 1;
 	config_vr_vehicle_defaults();
-	platform_log("vr: HaloCE Quest 1.0.18 release code48 (OpenCE Build 157 / network 24; launcher network-version browser and population selector; upstream analog trigger, Custom Edition spawn facing, PC vehicle set and host-alone lobby start; scope/turret behavior retained; Safe geometry and accepted VR settings retained)");
+	platform_log("vr: HaloCE Quest test64 candidate 1.0.31-test64 code76 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; VR SETTINGS opens again (the settings index for a category's own pages only); test63: button sprint owns the stick click and the reticle returns; X kept for actions; chest grenades in a torso frame with the game's models; fist assist acquisition and Spartan step; the Warthog's own wheel, redesigned controls, live calibration preview; settings index; ONE-HAND HEAVIES; test62: settled controls, easier grabs, campaign impacts; device acceptance pending)");
 	platform_log("vr: retained baseline history: HaloCE Quest test30 candidate 1.0.12 (the menus' face buttons as the Xbox's of the same letter: X deletes a profile; the co-op host's server name; test29: OpenCE build 144 netcode, network 21; the HUD head tap held by the temple, HUD and head tap on the HUD page, wrist HUD on the wrist and movable, moving with a hand while holding the gun in both, glasses FOV and resolution to 200%% (PR #1); test28: co-op games entered in progress keep their camera upright, release checks as OpenCE ships, co-op hosted for 2 to 128 players as OpenCE's Server Setup offers, gyro aim on phones as an option; test27: OpenCE build 138 netcode, network 20, with its co-op for up to 16 players; test26: co-op: death screams no longer stop the second player, cutscene characters placed and animated as on the first; HUD head tap, reticle toggle on the left stick click with crouch on the turning stick held down (or crouch kept on the click: Controls), optional wrist HUD, adjustable head taps; impact melee along the gun with a follow-through; fingers bend smoothly against walls; test25: vehicle seat and recentre diagnostics, first-person horizon option and seat glass, settings rows that fit, vehicle offset reset; test24b: comfort vignette, smooth speed and snap angle, SPV1 compatibility note; test24: co-op cutscenes animate for the second player; test23: remappable Quest buttons with the grenade on X; test22: co-op campaign host crash fixed, steady first-person vehicle view, left-hand ammo display, adjustable scopes, shot diagnostics; test21b: floating hands restored, torso-following arms, neck-pivot full body, auto two-hand lock, horn, online melee off, two-hand gun roll, pistol shots from the hand, reticle converges as shots do, per-gun aim, horn from either stick)");
 	if (!config_boolean("vr.enabled"))
 	{
@@ -1010,6 +1071,10 @@ void vr_initialize(void)
 	vr.noted_weapon = -1;
 	vr.gun_class = -1;
 	vr.pending_state = -1;
+	vr.pending_expected_weapon = -1;
+	vr.holster_unit = -1;
+	vr.holster_draw_request = -1;
+	vr_holster_slots_clear(vr.holster_weapon);
 	vr.hand_state = HAND_LOOSE;
 	vr.force_render = config_boolean("vr.force_render");
 	vr.timing = config_boolean("vr.timing");
@@ -1142,7 +1207,8 @@ const char *vr_gun_class_key(int kind)
 static const char *const button_action_keys[VR_BUTTON_ACTIONS] =
 {
 	"vr.button_jump", "vr.button_action", "vr.button_melee", "vr.button_crouch",
-	"vr.button_switch_weapon", "vr.button_grenade", "vr.button_switch_grenade", "vr.button_reticle"
+	"vr.button_switch_weapon", "vr.button_grenade", "vr.button_switch_grenade", "vr.button_reticle",
+	"vr.button_push_to_talk"
 };
 static const char *const button_source_values[VR_BUTTON_SOURCES] =
 {
@@ -1153,7 +1219,8 @@ the turning stick held down (a room-scale crouch works as ever) */
 static const int button_defaults[VR_BUTTON_ACTIONS] =
 {
 	VR_BUTTON_SOURCE_A, VR_BUTTON_SOURCE_B, VR_BUTTON_SOURCE_RIGHT_STICK, VR_BUTTON_SOURCE_RIGHT_STICK_DOWN,
-	VR_BUTTON_SOURCE_Y, VR_BUTTON_SOURCE_X, VR_BUTTON_SOURCE_HOLD, VR_BUTTON_SOURCE_LEFT_STICK
+	VR_BUTTON_SOURCE_Y, VR_BUTTON_SOURCE_X, VR_BUTTON_SOURCE_HOLD, VR_BUTTON_SOURCE_LEFT_STICK,
+	VR_BUTTON_SOURCE_NONE
 };
 
 const char *vr_button_action_key(int action)
@@ -1204,6 +1271,21 @@ int vr_impact_melee(void)
 	return vr.active && vr.melee_impact && vr.impact_allowed && physical_melee_allowed();
 }
 
+int vr_physical_melee_hand_allowed(int hand)
+{
+	if (!vr.active || hand < 0 || hand > 1 || !(vr.frame.hand_valid[hand] & 1) ||
+		vr_interaction_owner(hand) != VR_INTERACTION_NONE)
+		return 0;
+	/* Assistance always means a deliberate fist, including configurations
+	 * loaded directly instead of through the menu's dependency resolver. The
+	 * shared helper preserves ordinary armed-gun melee and owner exclusion. */
+	return vr_melee_hand_permitted(vr.melee_requires_fist || config_boolean("vr.assisted_combat"),
+		config_boolean("vr.npc_interaction") || config_boolean("vr.world_interaction") ||
+			config_boolean("vr.parkour_climb") || config_boolean("vr.vehicle_lift"),
+		hand == vr.weapon_hand && !vr_hand_empty(),
+		vr.frame.squeeze[hand], vr.frame.trigger[hand], 0);
+}
+
 /* test21: the horn. A seated driver's horn is the game's crouch control,
 which player_control passes only while the move stick is below 98% (and
 the Warthog's throttle is that stick), so a stick click while driving was
@@ -1241,7 +1323,7 @@ float vr_sprint_effort(void)
 		!(vr.frame.flags & HALO_XR_FRAME_FOCUSED) || vr.frame.thumb[1] < -0.15f ||
 		fabsf(vr.frame.thumb[0]) > 0.6f)
 		return 0.0f;
-	return vr.run_push;
+	return vr_sprint_effort_combine(vr.run_push, vr.button_sprint_active);
 }
 
 int vr_finger_pose(int hand, float curls[4])
@@ -1268,12 +1350,46 @@ up): when the game makes it, the hand holds `state` */
 static void hand_pending(int state)
 {
 	vr.pending_state = state;
+	vr.pending_expected_weapon = -1;
 	vr.pending_until = now_ms() * 1e-3 + PENDING_SECONDS;
 }
 
-void vr_note_weapon(long weapon_index)
+void vr_note_weapon(long unit_index, long weapon_index, long const inventory[4])
 {
 	int state;
+	if (unit_index == -1 || !inventory || vr.holster_unit != unit_index || weapon_index != vr.noted_weapon)
+		vr_weapon_release_latch_reset(&vr.weapon_release);
+	if (unit_index == -1 || !inventory)
+	{
+		vr_holster_slots_clear(vr.holster_weapon);
+		vr.holster_unit = -1;
+		vr.noted_weapon = -1;
+		vr.pending_state = -1;
+		vr.pending_expected_weapon = -1;
+		vr.holster_draw_request = -1;
+		vr.noted_weapon = -1;
+		vr.hand_state = HAND_LOOSE;
+		vr.gun_held = 0;
+		return;
+	}
+	if (vr.holster_unit != unit_index)
+	{
+		vr_holster_slots_clear(vr.holster_weapon);
+		vr.holster_unit = unit_index;
+		vr.pending_state = -1;
+		vr.pending_expected_weapon = -1;
+		vr.holster_draw_request = -1;
+		vr.hand_state = HAND_LOOSE;
+		vr.gun_held = 0;
+	}
+	vr_holster_prune(vr.holster_weapon, inventory, 4);
+	if (vr.pending_expected_weapon != -1 && now_ms() * 1e-3 > vr.pending_until)
+	{
+		platform_log("vr: holster draw timed out for weapon=%ld; hand remains empty", vr.pending_expected_weapon);
+		vr.pending_expected_weapon = -1;
+		vr.pending_state = -1;
+		vr.holster_draw_request = -1;
+	}
 
 	if (weapon_index == vr.noted_weapon)
 	{
@@ -1283,12 +1399,39 @@ void vr_note_weapon(long weapon_index)
 			vr.hand_state = HAND_EMPTY;
 			vr.gun_held = 0;
 		}
-		/* (nothing came of what was asked) */
+		/* (nothing came of what was asked). If a drop/stow was refused by
+		 * player control, the same active weapon is still in the inventory;
+		 * restore the visible held state instead of leaving an empty invisible
+		 * hand with a live weapon. */
 		if (vr.pending_state >= 0 && now_ms() * 1e-3 > vr.pending_until)
+		{
+			int pending = vr.pending_state;
+			int restored = vr_hand_pending_timeout_state(pending,
+				vr.hand_state, weapon_index, HAND_EMPTY, HAND_HELD);
+			if (restored != vr.hand_state)
+			{
+				vr_holster_forget(vr.holster_weapon, weapon_index);
+				vr.hand_state = restored;
+				vr.gun_held = restored == HAND_HELD;
+				platform_log("vr: weapon drop/stow timed out; active weapon=%ld remains in inventory, restoring held hand",
+					weapon_index);
+			}
+			else
+				platform_log("vr: hand transition timed out state=%d active_weapon=%ld; keeping current hand state=%d",
+					pending, weapon_index, vr.hand_state);
 			vr.pending_state = -1;
+		}
 		return;
 	}
 	vr.noted_weapon = weapon_index;
+	if (vr.pending_expected_weapon != -1 && weapon_index != vr.pending_expected_weapon)
+	{
+		vr.hand_state = HAND_EMPTY;
+		vr.gun_held = 0;
+		platform_log("vr: holster draw waiting for weapon=%ld; current inventory weapon=%ld remains hidden",
+			vr.pending_expected_weapon, weapon_index);
+		return;
+	}
 	vr.two_hand_held = 0;
 	vr.support_near = 0;
 	if (weapon_index == -1)
@@ -1300,12 +1443,31 @@ void vr_note_weapon(long weapon_index)
 	else
 		state = vr.grip_held[vr.weapon_hand] ? HAND_HELD : HAND_LOOSE;
 	vr.pending_state = -1;
+	vr.pending_expected_weapon = -1;
 	vr.ungripped_seconds = 0.0f;
 	vr.ungripped_warned = 0;
 	if (state != vr.hand_state && physical_weapons())
 		platform_log("vr: the weapon hand holds %s", hand_state_names[state]);
 	vr.hand_state = state;
 	vr.gun_held = state == HAND_HELD;
+}
+
+long vr_take_holster_draw_request(void)
+{
+	long weapon = vr.holster_draw_request;
+	vr.holster_draw_request = -1;
+	return weapon;
+}
+
+void vr_holster_draw_request_failed(long weapon_index)
+{
+	if (vr.pending_expected_weapon != weapon_index) return;
+	platform_log("vr: holster draw unavailable for weapon=%ld; keeping hand empty", weapon_index);
+	vr.pending_expected_weapon = -1;
+	vr.pending_state = -1;
+	vr.holster_draw_request = -1;
+	vr.hand_state = HAND_EMPTY;
+	vr.gun_held = 0;
 }
 
 int vr_hand_empty(void)
@@ -1381,6 +1543,23 @@ switch weapons Y, grenade X (a tap throws; held, X switches grenades,
 "hold"), as the Quest always had them but the grenade, which was the grip
 with locked weapons (a locked gun's grip now does nothing but draw at a
 holster). A grenade on the grip throws while it is held, as it used to */
+/* Test55: with physical melee in use the arms strike, and a fist closes
+the off hand's index trigger, which zoomed. Zoom then moves to the right
+stick's click (the melee button's default, which the arms replace) when
+nothing but melee is mapped there; seated (stick clicks sound the horn) and
+with physical melee off, the trigger zooms as before. */
+static int stick_zoom_active(void)
+{
+	int action;
+
+	if (!vr.touch_layout || vr.seated || !physical_melee_allowed())
+		return 0;
+	for (action = 0; action < VR_BUTTON_ACTIONS; action++)
+		if (action != VR_BUTTON_ACTION_MELEE && vr.button_source[action] == VR_BUTTON_SOURCE_RIGHT_STICK)
+			return 0;
+	return 1;
+}
+
 static unsigned int touch_buttons(unsigned int right, unsigned int left, double seconds, int *grenade_down)
 {
 	static const unsigned int pad[VR_BUTTON_ACTIONS] =
@@ -1393,8 +1572,14 @@ static unsigned int touch_buttons(unsigned int right, unsigned int left, double 
 	int hold_switches = vr.button_source[VR_BUTTON_ACTION_SWITCH_GRENADE] == VR_BUTTON_SOURCE_HOLD &&
 		grenade != VR_BUTTON_SOURCE_GRIP;
 
+	int stick_zoom = stick_zoom_active();
+
 	for (action = 0; action < VR_BUTTON_ACTIONS; action++)
 	{
+		/* (Test55: the stick's click zooms instead, stick_zoom_active) */
+		if (stick_zoom && action == VR_BUTTON_ACTION_MELEE &&
+			vr.button_source[action] == VR_BUTTON_SOURCE_RIGHT_STICK)
+			continue;
 		if (action != VR_BUTTON_ACTION_GRENADE && pad[action] &&
 			touch_source_down(vr.button_source[action], right, left))
 			buttons |= pad[action];
@@ -1462,6 +1647,10 @@ static void layout_controls(void)
 	unsigned int buttons = 0;
 	double seconds = vr.frame.predicted_display_period * 1e-9;
 	int grenade_down = 0;
+	/* PTT is independent of the game's VR/Xbox layout and never adds a pad
+	 * button. Sources use the same mirrored hand layout as the button menu. */
+	vr.push_to_talk_held = vr.touch_layout &&
+		touch_source_down(vr.button_source[VR_BUTTON_ACTION_PUSH_TO_TALK], right, left);
 
 	if (!vr.layout_vr)
 	{
@@ -1546,14 +1735,28 @@ static void layout_controls(void)
 		vr.x_hold_switched = 1;
 	}
 	/* the off hand's trigger zooms */
+	/* (Test55: or, with physical melee, the right stick's click:
+	stick_zoom_active) */
 	/* Record only changes in its useful range, including a partial squeeze
 	that never reaches the activation threshold. */
 	{
 		int off_hand = 1 - vr.weapon_hand;
 		float trigger = vr.frame.trigger[off_hand];
-		int state;
+		int state, stick_zoom = stick_zoom_active();
+		static int previous_stick_zoom = -1;
 
-		if (trigger > zoom_on)
+		if (stick_zoom != previous_stick_zoom)
+		{
+			platform_log("vr: zoom on %s", stick_zoom ? "the right stick's click (physical melee uses the arms; a fist no longer zooms)" :
+				"the off hand's index trigger");
+			previous_stick_zoom = stick_zoom;
+		}
+		if (stick_zoom)
+		{
+			vr.zoom_down = touch_source_down(VR_BUTTON_SOURCE_RIGHT_STICK, right, left);
+			trigger = vr.zoom_down ? 1.0f : 0.0f;
+		}
+		else if (trigger > zoom_on)
 			vr.zoom_down = 1;
 		else if (trigger < zoom_off)
 			vr.zoom_down = 0;
@@ -1639,6 +1842,260 @@ static void heading_point(const float offset[3], float out[3])
 	out[0] = vr.frame.head.position[0] + offset[0] * c + offset[2] * s;
 	out[1] = vr.frame.head.position[1] + offset[1];
 	out[2] = vr.frame.head.position[2] - offset[0] * s + offset[2] * c;
+}
+
+/* Test54: the manual-reload magazine pouches, in the holsters' frame (the
+head's heading; x right, y up, z back, metres): the free hand finds a fresh
+magazine at the hip or over the shoulder on its own side (left for a
+right-handed player, mirrored left-handed), or on the side vr.reload_pouch_side
+names ("left", "right", "both"). They are generous volumes so a hand reaching
+without looking finds them. 1 the hip, 2 the shoulder, 0 neither. */
+/* Test55: the pouches' and holsters' places can be moved (VR Settings,
+IMMERSION: POUCH PLACES / HOLSTER PLACES): metres out from the body's middle,
+up and back from each default (vr.pouch_*, vr.holster_*), and the pouches'
+reach (vr.reload_pouch_size). A side's "out" mirrors with the side, so a
+left-handed player's pouches move the same way on the other side. */
+static float calibration_offset(const char *key)
+{
+	double value = config_real(key);
+
+	return isfinite(value) ? (float)(value < -0.2 ? -0.2 : value > 0.2 ? 0.2 : value) : 0.0f;
+}
+
+static void calibrated_place(const float base[3], const char *prefix, float side, float out[3])
+{
+	char key[64];
+
+	snprintf(key, sizeof(key), "%s_out", prefix);
+	out[0] = (fabsf(base[0]) + calibration_offset(key)) * side;
+	snprintf(key, sizeof(key), "%s_up", prefix);
+	out[1] = base[1] + calibration_offset(key);
+	snprintf(key, sizeof(key), "%s_back", prefix);
+	out[2] = base[2] + calibration_offset(key);
+}
+
+/* a holster's place in the head-heading frame, with its calibration */
+static void holster_place(int index, float out[3])
+{
+	calibrated_place(holster_places[index], index < 2 ? "vr.holster_shoulder" : "vr.holster_hip",
+		holster_places[index][0] < 0.0f ? -1.0f : 1.0f, out);
+}
+
+static float reload_pouch_radius(void)
+{
+	double size = config_real("vr.reload_pouch_size");
+
+	return isfinite(size) ? (float)(size < 0.08 ? 0.08 : size > 0.30 ? 0.30 : size) : 0.16f;
+}
+
+static const float pouch_hip_place[3] = { 0.20f, -0.60f, 0.03f };
+static const float pouch_shoulder_place[3] = { 0.16f, -0.13f, 0.12f };
+
+/* the body sides (-1 left, +1 right) whose pouches serve `hand` */
+static int reload_pouch_sides(int hand, float sides[2])
+{
+	const char *side = config_string("vr.reload_pouch_side");
+	int count = 0;
+
+	if (side && !strcmp(side, "left"))
+		sides[count++] = -1.0f;
+	else if (side && !strcmp(side, "right"))
+		sides[count++] = 1.0f;
+	else if (side && !strcmp(side, "both"))
+	{
+		sides[count++] = -1.0f;
+		sides[count++] = 1.0f;
+	}
+	else
+		sides[count++] = hand == 0 ? -1.0f : 1.0f;
+	return count;
+}
+
+static void reload_pouch_place(int which, float side, float out[3])
+{
+	calibrated_place(which ? pouch_shoulder_place : pouch_hip_place,
+		which ? "vr.pouch_shoulder" : "vr.pouch_hip", side, out);
+}
+
+int vr_reload_pouch_zone(int hand, int hip, int shoulder)
+{
+	float sides[2];
+	int side_count, index, zone = 0;
+	float nearest = reload_pouch_radius();
+
+	if (!vr.active || hand < 0 || hand > 1 || !(vr.frame.hand_valid[hand] & 1))
+		return 0;
+	side_count = reload_pouch_sides(hand, sides);
+	for (index = 0; index < side_count; index++)
+	{
+		int which;
+
+		for (which = 0; which < 2; which++)
+		{
+			float offset[3], place[3], distance;
+
+			if (which ? !shoulder : !hip)
+				continue;
+			reload_pouch_place(which, sides[index], offset);
+			heading_point(offset, place);
+			distance = distance3(vr.frame.grip[hand].position, place);
+			if (distance < nearest)
+			{
+				nearest = distance;
+				zone = which + 1;
+			}
+		}
+	}
+	return zone;
+}
+
+/* Test55: calibration markers. While a POUCH PLACES / HOLSTER PLACES row is
+on screen (the menu reports it each frame it draws one), the real zones are
+shown as translucent blue spheres: the same places and sizes the pouch and
+holster tests use (vr_reload_pouch_zone, the holster loop), converted to the
+world like a hand. Hidden 0.2 s after the rows leave the screen. */
+static int hand_view(const struct halo_xr_pose *pose, const float extra[3], const float position[3],
+	float out_position[3], float out_forward[3], float out_up[3]);
+static double calibration_until;
+static int calibration_mask;
+
+void vr_calibration_note_shown(int mask)
+{
+	double now = now_ms() * 1e-3;
+
+	if (now > calibration_until)
+		calibration_mask = 0;
+	calibration_mask |= mask;
+	calibration_until = now + 0.2;
+}
+
+/* Test63: whether a calibration row of `mask` is on screen (4: the vehicle
+controls' offsets, vr_vehicle_handles.h's preview) */
+int vr_calibration_shown(int mask)
+{
+	return vr.active && now_ms() * 1e-3 <= calibration_until && (calibration_mask & mask) != 0;
+}
+
+/* Test63: a chest frame for what the body carries in front of it (the
+physical grenades). The pouches and holsters keep the head's heading
+(heading_point). The owner's Test62 grenades turned with every glance: this
+heading is the torso's, in tracking space (so smooth or snap turning carries
+it), and follows the head only past a 35 degree comfort cone, a little at a
+time; looking down at the chest (more than ~40 degrees) holds it, so the hand
+finds the same place it learned. */
+static struct { int valid; float yaw; double time; } torso;
+
+static float tracked_head_yaw(int *steady)
+{
+	static const float xr_forward[3] = { 0.0f, 0.0f, -1.0f }, xr_up[3] = { 0.0f, 1.0f, 0.0f };
+	float f[3], u[3], x, z;
+
+	rotate(vr.frame.head.orientation, xr_forward, f);
+	rotate(vr.frame.head.orientation, xr_up, u);
+	/* looking straight down the forward vector has no level part: the top
+	of the head points forward then */
+	x = f[0] - f[1] * u[0];
+	z = f[2] - f[1] * u[2];
+	*steady = f[1] > -0.64f;
+	return atan2f(-x, -z);
+}
+
+static float torso_yaw_now(void)
+{
+	double now = vr_pose_time();
+	int steady;
+	float head = tracked_head_yaw(&steady);
+
+	if ((vr.frame.flags & HALO_XR_FRAME_RECENTRED) || !torso.valid || !isfinite(torso.yaw) ||
+		!(now >= torso.time) || now - torso.time > 0.5)
+	{
+		torso.yaw = head;
+		torso.valid = 1;
+	}
+	else if (now > torso.time)
+	{
+		float difference = atan2f(sinf(head - torso.yaw), cosf(head - torso.yaw));
+
+		if (steady && fabsf(difference) > 0.61f)
+		{
+			float turn = difference - copysignf(0.61f, difference);
+
+			torso.yaw += turn * (1.0f - expf(-6.0f * (float)fmin(now - torso.time, 0.05)));
+			torso.yaw = atan2f(sinf(torso.yaw), cosf(torso.yaw));
+		}
+	}
+	torso.time = now;
+	return torso.yaw;
+}
+
+/* a point in that chest frame (metres from the eyes: x right, y up, z back,
+level) in the world, from the camera the frame is drawn from */
+int vr_torso_place(const float offset[3], const float camera[3], float out[3])
+{
+	struct halo_xr_pose pose;
+	float yaw, c, s, forward[3], up[3];
+
+	if (!vr.active || !offset || !camera || !out)
+		return 0;
+	yaw = torso_yaw_now();
+	c = cosf(yaw);
+	s = sinf(yaw);
+	pose.position[0] = vr.frame.head.position[0] + offset[0] * c + offset[2] * s;
+	pose.position[1] = vr.frame.head.position[1] + offset[1];
+	pose.position[2] = vr.frame.head.position[2] - offset[0] * s + offset[2] * c;
+	pose.orientation[0] = pose.orientation[1] = pose.orientation[2] = 0.0f;
+	pose.orientation[3] = 1.0f;
+	return hand_view(&pose, NULL, camera, out, forward, up) &&
+		isfinite(out[0]) && isfinite(out[1]) && isfinite(out[2]);
+}
+
+static int calibration_marker(const float offset[3], float radius, const float camera[3], float point[3], float *world_radius)
+{
+	struct halo_xr_pose pose;
+	float place[3], forward[3], up[3];
+
+	heading_point(offset, place);
+	memcpy(pose.position, place, sizeof(place));
+	pose.orientation[0] = pose.orientation[1] = pose.orientation[2] = 0.0f;
+	pose.orientation[3] = 1.0f;
+	if (!hand_view(&pose, NULL, camera, point, forward, up))
+		return 0;
+	*world_radius = radius * vr.units_per_metre;
+	return isfinite(point[0]) && isfinite(point[1]) && isfinite(point[2]) && isfinite(*world_radius);
+}
+
+int vr_calibration_markers(const float camera[3], float points[][3], float radii[], int capacity)
+{
+	int count = 0, index;
+
+	if (!vr.active || !camera || now_ms() * 1e-3 > calibration_until || !calibration_mask)
+		return 0;
+	if ((calibration_mask & 1) && config_boolean("vr.manual_reload"))
+	{
+		float sides[2], offset[3];
+		int hip = config_boolean("vr.reload_hip") || !config_boolean("vr.reload_shoulder");
+		int side_count = reload_pouch_sides(1 - vr.weapon_hand, sides);
+
+		for (index = 0; index < side_count; index++)
+			for (int which = 0; which < 2; which++)
+			{
+				if ((which ? !config_boolean("vr.reload_shoulder") : !hip) || count >= capacity)
+					continue;
+				reload_pouch_place(which, sides[index], offset);
+				if (calibration_marker(offset, reload_pouch_radius(), camera, points[count], &radii[count]))
+					count++;
+			}
+	}
+	if ((calibration_mask & 2) && vr.holsters)
+		for (index = 0; index < HOLSTER_COUNT && count < capacity; index++)
+		{
+			float offset[3];
+
+			holster_place(index, offset);
+			if (calibration_marker(offset, vr.holster_size, camera, points[count], &radii[count]))
+				count++;
+		}
+	return count;
 }
 
 /* HUD gesture in head-relative metres: a deliberate hold, followed by a
@@ -1732,31 +2189,131 @@ static void update_hud_tap(int hand, float seconds)
 	}
 }
 
+/* Claims are local input ownership, never network state or weapon inventory. */
+static int interaction_owner[2];
+static int interaction_trigger_held[2];
+int vr_interaction_owner(int hand)
+{
+    if (hand < 0 || hand > 1) return VR_INTERACTION_NONE;
+    if (!vr.active || vr.menus_active || !(vr.frame.flags & HALO_XR_FRAME_FOCUSED) ||
+        !(vr.frame.hand_valid[hand] & 1) || (vr.frame.flags & HALO_XR_FRAME_RECENTRED))
+        interaction_owner[hand] = VR_INTERACTION_NONE;
+    return interaction_owner[hand];
+}
+int vr_interaction_grip(int hand, int *pressed, int *released)
+{
+    if (pressed) *pressed = 0;
+    if (released) *released = 0;
+    if (hand < 0 || hand > 1 || !vr.active || vr.menus_active || !(vr.frame.flags & HALO_XR_FRAME_FOCUSED) ||
+        !(vr.frame.hand_valid[hand] & 1)) return 0;
+    if (pressed) *pressed = vr.grip_pressed[hand];
+    if (released) *released = vr.grip_released[hand];
+    return vr.grip_held[hand];
+}
+int vr_interaction_trigger(int hand)
+{
+    if (hand < 0 || hand > 1 || !vr.active || vr.menus_active ||
+        !(vr.frame.flags & HALO_XR_FRAME_FOCUSED) || !(vr.frame.hand_valid[hand] & 1)) return 0;
+    return interaction_trigger_held[hand];
+}
+/* Test61: X pressed in a menu (BACK) and still held as the menu closes is
+not a reload until it is let go: the owner's Test60 log, a menu closed with
+BACK and 27 ms later the held button ejected a magazine of 24 rounds, the
+gun not firing for 8 s ("stopped firing with the mag in and ammo") */
+int vr_manual_reload_action_down(void)
+{
+	if (!(vr.pad_buttons & HALO_XR_BUTTON_X))
+		vr.reload_held_from_menu = 0;
+	if (vr.reload_held_from_menu)
+		return 0;
+	return vr.active && !vr.menus_active &&
+		(vr.frame.flags & HALO_XR_FRAME_FOCUSED) &&
+		!(vr.frame.flags & HALO_XR_FRAME_RECENTRED) &&
+		(vr.pad_buttons & HALO_XR_BUTTON_X) != 0;
+}
+int vr_interaction_claim_input(int hand, int owner, int input_held)
+{
+    int current;
+    if (hand < 0 || hand > 1 || owner <= VR_INTERACTION_NONE || owner >= VR_INTERACTION_COUNT ||
+        !input_held || !vr.active || vr.menus_active || !(vr.frame.flags & HALO_XR_FRAME_FOCUSED) ||
+        !(vr.frame.hand_valid[hand] & 1) || (vr.frame.flags & HALO_XR_FRAME_RECENTRED)) return 0;
+    current = vr_interaction_owner(hand);
+    if (current != VR_INTERACTION_NONE && current != owner) return 0;
+    interaction_owner[hand] = owner;
+    vr.two_hand_held = vr.two_handed = vr.support_near = 0;
+    vr.support_dwell = 0;
+    if (hand == vr.weapon_hand)
+        vr.actions &= ~(VR_ACTION_SWITCH_WEAPON | VR_ACTION_DROP_WEAPON | VR_ACTION_GRAB_WEAPON);
+    return 1;
+}
+int vr_interaction_claim(int hand, int owner)
+{
+    return vr_interaction_claim_input(hand, owner, vr_interaction_grip(hand, NULL, NULL));
+}
+void vr_interaction_release(int hand, int owner)
+{
+    if (hand >= 0 && hand < 2 && interaction_owner[hand] == owner)
+        interaction_owner[hand] = VR_INTERACTION_NONE;
+}
+
 static void update_gestures(void)
 {
 	static const float melee_rearm_seconds = 0.4f;
 	float seconds = (float)(vr.frame.predicted_display_period * 1e-9);
 	int w = vr.weapon_hand, o = 1 - vr.weapon_hand, hand;
+	int weapon_release = VR_WEAPON_RELEASE_NONE;
 	int both_tracked = (vr.frame.hand_valid[0] & 1) && (vr.frame.hand_valid[1] & 1);
 	float hands_apart = both_tracked ? distance3(vr.frame.grip[0].position, vr.frame.grip[1].position) : 99.0f;
 
 	if (!(vr.frame.flags & HALO_XR_FRAME_FOCUSED))
 	{
+		interaction_trigger_held[0] = interaction_trigger_held[1] = 0;
 		reset_hud_tap();
 		vr.two_hand_held = 0;
 		vr.support_near = 0;
 		vr.run_push = 0.0f;
+		vr.button_sprint_latched = 0;
+		vr.button_sprint_was_pressed = 0;
+		vr.button_sprint_active = 0;
+		vr_weapon_release_latch_reset(&vr.weapon_release);
 		return;
+	}
+	{
+		unsigned int both_sticks = HALO_XR_BUTTON_LEFT_THUMB | HALO_XR_BUTTON_RIGHT_THUMB;
+		int active = vr_button_sprint_input_mode(vr.button_sprint_enabled,
+			vr.button_sprint_toggle,
+			(vr.frame.buttons & HALO_XR_BUTTON_LEFT_THUMB) != 0,
+			(vr.frame.buttons & both_sticks) == both_sticks,
+			(vr.frame.flags & HALO_XR_FRAME_FOCUSED) != 0,
+			vr.aiming_last_frame, vr.seated,
+			&vr.button_sprint_latched, &vr.button_sprint_was_pressed);
+		if (active != vr.button_sprint_active)
+			platform_log("vr: button sprint %s (left stick %s; local/offline movement only; configured %.2fx)",
+				active ? "entered" : "exited", vr.button_sprint_toggle ? "toggle" : "hold", vr.sprint_speed);
+		vr.button_sprint_active = active;
 	}
 	/* grips: held over 0.8, let go under 0.7 */
 	for (hand = 0; hand < 2; hand++)
 	{
 		int held = vr.grip_held[hand] ? vr.frame.squeeze[hand] > 0.7f : vr.frame.squeeze[hand] > 0.8f;
+		interaction_trigger_held[hand] = (vr.frame.hand_valid[hand] & 1)
+			? vr_mr_trigger_held(interaction_trigger_held[hand], vr.frame.trigger[hand]) : 0;
 
 		vr.grip_pressed[hand] = held && !vr.grip_held[hand];
 		vr.grip_released[hand] = !held && vr.grip_held[hand];
 		vr.grip_held[hand] = held;
 	}
+	weapon_release = vr_weapon_release_latch_step(&vr.weapon_release,
+		vr.noted_weapon, physical_weapons(),
+		(vr.frame.flags & HALO_XR_FRAME_FOCUSED) != 0,
+		(vr.frame.hand_valid[w] & 1) != 0,
+		(vr.frame.flags & HALO_XR_FRAME_RECENTRED) != 0,
+		vr.grip_held[w], vr.grip_pressed[w],
+		vr.hand_state == HAND_HELD && vr.grip_released[w],
+		vr_interaction_owner(w) != VR_INTERACTION_NONE);
+	if (weapon_release == VR_WEAPON_RELEASE_DEFERRED)
+		platform_log("vr: held-weapon release deferred for weapon=%ld while hand interaction owner=%d remains active",
+			vr.noted_weapon, vr_interaction_owner(w));
 
 	/* each hand's speed about the room (metres a second), its peak held over
 	the last tenth of a second for the game's ticks (vr_hand_speed: impact
@@ -1846,12 +2403,14 @@ static void update_gestures(void)
 		{
 			float vertical;
 
-			if (!(vr.frame.hand_valid[hand] & 1) || !(vr.hands_last_valid & (1 << hand)))
+			if (!(vr.frame.hand_valid[hand] & 1) || !(vr.hands_last_valid & (1 << hand)) ||
+				!vr_physical_melee_hand_allowed(hand))
 				continue;
 			vertical = (vr.frame.grip[hand].position[1] - vr.hands_last[hand][1]) / seconds;
 			if (fabsf(vertical) > vr.melee_speed && vr.melee_rearm <= 0.0f)
 			{
 				vr.actions |= VR_ACTION_MELEE;
+				platform_log("vr: physical melee gesture emitted hand=%d vertical=%.2f m/s", hand, vertical);
 				vr.melee_rearm = melee_rearm_seconds;
 				vr_haptic(hand, 0.5f, 0.05f);
 			}
@@ -1915,7 +2474,7 @@ static void update_gestures(void)
 	shoulder and at each hip, in the frame of the head's heading. The weapon
 	hand coming into one buzzes; with locked weapons its grip there switches
 	weapons (physical weapons: below) */
-	if (vr.holsters && (vr.frame.hand_valid[w] & 1))
+	if (vr.holsters && (vr.frame.hand_valid[w] & 1) && !vr_interaction_owner(w))
 	{
 		int zone = 0, index;
 		float nearest = vr.holster_size;
@@ -1924,7 +2483,10 @@ static void update_gestures(void)
 		{
 			float place[3], distance;
 
-			heading_point(holster_places[index], place);
+			float offset[3];
+
+			holster_place(index, offset);
+			heading_point(offset, place);
 			distance = distance3(vr.frame.grip[w].position, place);
 			if (distance < nearest)
 			{
@@ -1933,13 +2495,13 @@ static void update_gestures(void)
 			}
 		}
 		if (zone && zone != vr.holster_zone)
-			vr_haptic(w, 0.45f, 0.05f);
+			holster_haptic(w, 0.45f, 0.05f);
 		vr.holster_zone = zone;
 		vr.in_holster = zone != 0;
 		if (zone && vr.grip_pressed[w] && !physical_weapons())
 		{
 			vr.actions |= VR_ACTION_SWITCH_WEAPON;
-			vr_haptic(w, 0.6f, 0.06f);
+			holster_haptic(w, 0.6f, 0.06f);
 			platform_log("vr: weapons switched at the %s holster", holster_names[zone - 1]);
 		}
 	}
@@ -1959,7 +2521,7 @@ static void update_gestures(void)
 	  on the controller) stays supported until its first deliberate grip.
 	- An empty hand gripping at a holster draws the weapon there; gripping
 	  by a weapon lying about takes it up (VR_ACTION_GRAB_WEAPON). */
-	if (physical_weapons())
+	if (physical_weapons() && !vr_interaction_owner(w))
 	{
 		const char *holster = vr.holster_zone ? holster_names[vr.holster_zone - 1] : "";
 
@@ -1971,10 +2533,44 @@ static void update_gestures(void)
 			}
 			else if (vr.in_holster && vr.noted_weapon != -1)
 			{
-				vr.hand_state = HAND_HELD;
-				vr.pending_state = -1;
-				vr_haptic(w, 0.5f, 0.05f);
-				platform_log("vr: a weapon drawn from the %s holster", holster);
+				int zone = vr.holster_zone - 1, mapped_elsewhere = 0, index;
+				long stored = zone >= 0 && zone < HOLSTER_COUNT ? vr.holster_weapon[zone] : -1;
+				if (stored != -1 && stored != vr.noted_weapon)
+				{
+					vr.pending_state = HAND_HELD;
+					vr.pending_expected_weapon = stored;
+					vr.pending_until = now_ms() * 1e-3 + PENDING_SECONDS;
+					vr.holster_draw_request = stored;
+					platform_log("vr: holster draw requested %s weapon=%ld; current=%ld",
+						holster, stored, vr.noted_weapon);
+				}
+				else if (stored == vr.noted_weapon)
+				{
+					vr.hand_state = HAND_HELD;
+					vr.pending_state = -1;
+					vr.pending_expected_weapon = -1;
+					platform_log("vr: exact weapon=%ld drawn from %s holster", stored, holster);
+				}
+				else
+				{
+					for (index = 0; index < HOLSTER_COUNT; ++index)
+						if (index != zone && vr.holster_weapon[index] == vr.noted_weapon)
+							mapped_elsewhere = 1;
+					if (mapped_elsewhere)
+						platform_log("vr: %s holster is empty; weapon=%ld is stored at another holster",
+							holster, vr.noted_weapon);
+					else
+					{
+						vr_holster_store(vr.holster_weapon, zone, vr.noted_weapon);
+						vr.hand_state = HAND_HELD;
+						vr.pending_state = -1;
+						vr.pending_expected_weapon = -1;
+						platform_log("vr: unassigned inventory weapon=%ld drawn at %s; its holster now remembers it",
+							vr.noted_weapon, holster);
+					}
+				}
+				if (vr.hand_state == HAND_HELD)
+					holster_haptic(w, 0.5f, 0.05f);
 			}
 			else
 			{
@@ -1984,15 +2580,19 @@ static void update_gestures(void)
 			vr.ungripped_seconds = 0.0f;
 			vr.ungripped_warned = 0;
 		}
-		else if (vr.grip_released[w] && vr.hand_state == HAND_HELD)
+		else if (weapon_release == VR_WEAPON_RELEASE_READY && vr.hand_state == HAND_HELD)
 		{
 			if (vr.in_holster)
 			{
+				long stored_weapon = vr.noted_weapon;
+				if (stored_weapon != -1)
+					vr_holster_store(vr.holster_weapon, vr.holster_zone - 1, stored_weapon);
 				vr.hand_state = HAND_EMPTY;
 				vr.actions |= VR_ACTION_SWITCH_WEAPON;
 				hand_pending(HAND_EMPTY);
-				vr_haptic(w, 0.6f, 0.06f);
-				platform_log("vr: the gun put away in the %s holster", holster);
+				holster_haptic(w, 0.6f, 0.06f);
+				platform_log("vr: exact weapon=%ld put away in the %s holster",
+					stored_weapon, holster);
 			}
 			else if (vr.two_hand_held && vr.grip_held[o])
 			{
@@ -2022,7 +2622,7 @@ static void update_gestures(void)
 
 	/* the off hand's grip: with the palms together, the weapon changes
 	hands; otherwise, within reach of the gun, it holds it in both */
-	if (vr.grip_pressed[o] && both_tracked)
+	if (vr.grip_pressed[o] && both_tracked && !vr_interaction_owner(o) && !vr_interaction_owner(w))
 	{
 		if (hands_apart < 0.2f && !vr.grip_held[w])
 		{
@@ -2046,7 +2646,8 @@ static void update_gestures(void)
 	there as a squeeze would, once the hand has left the grip since the
 	last release */
 	{
-		int near = vr.support_near && vr_pose_time() - vr.support_time < 0.10;
+		int near = !vr_interaction_owner(o) && !vr_interaction_owner(w) &&
+            vr.support_near && vr_pose_time() - vr.support_time < 0.10;
 
 		if (!near)
 			vr.support_rearmed = 1;
@@ -2069,7 +2670,8 @@ static void update_gestures(void)
 	}
 	if (vr.two_hand_held)
 	{
-		int release = !both_tracked || !vr.aiming_last_frame || vr_hand_empty();
+		int release = !both_tracked || !vr.aiming_last_frame || vr_hand_empty() ||
+            vr_interaction_owner(o) || vr_interaction_owner(w);
 		const char *why = "";
 
 		if (!release && vr.two_handed_mode == 1 && !vr.grip_held[o])
@@ -2109,10 +2711,14 @@ static void steady_aim(void)
 {
 	static const float xr_forward[3] = { 0.0f, 0.0f, -1.0f }, xr_up[3] = { 0.0f, 1.0f, 0.0f };
 	float target[3], up[3], amount, half_life, t, length, seconds;
+	float extra = (float)config_real("vr.aim_steadying");
 	int axis;
 
 	rotate(vr.aim_pose.orientation, xr_forward, target);
 	amount = vr.zoom_level == 0 ? 0.4f : vr.zoom_level >= 1 ? 0.6f : 0.0f;
+	if (isfinite(extra) && extra > 0.0f) amount = fmaxf(amount, fminf(extra, 0.8f));
+	/* A discontinuity is a new pose, never a long catch-up across the view. */
+	if (vr.smoothed_valid && (vr.frame.flags & HALO_XR_FRAME_RECENTRED)) vr.smoothed_valid = 0;
 	if (amount <= 0.0f || !vr.smoothed_valid)
 	{
 		memcpy(vr.smoothed, target, sizeof(target));
@@ -2120,6 +2726,9 @@ static void steady_aim(void)
 		return;
 	}
 	seconds = (float)(vr.frame.predicted_display_period * 1e-9);
+	if (!isfinite(seconds) || seconds <= 0.0f || seconds > 0.1f) {
+		memcpy(vr.smoothed, target, sizeof(target)); return;
+	}
 	half_life = 90.0f * log2f(1.0f - expf(-20.0f * amount / 9.0f));
 	t = 1.0f - exp2f(seconds * half_life);
 	for (axis = 0; axis < 3; axis++)
@@ -2155,12 +2764,13 @@ int vr_two_handed(void)
 
 void vr_haptic(int hand, float amplitude, float seconds)
 {
-	if (vr.haptics <= 0.0f || hand < 0 || hand > 1 || amplitude <= 0.0f)
+	float scaled_amplitude;
+	if (hand < 0 || hand > 1 ||
+	    !vr_haptics_scale(vr.haptics, amplitude, seconds, &scaled_amplitude))
 		return;
-	amplitude *= vr.haptics;
 	/* the host's controller (it called itself here, without end: every buzz
 	hung the game - a menu click, a shot, a holster) */
-	host_xr_haptic((unsigned int)hand, amplitude > 1.0f ? 1.0f : amplitude, seconds);
+	host_xr_haptic((unsigned int)hand, scaled_amplitude, seconds);
 }
 
 unsigned int vr_take_actions(void)
@@ -2257,7 +2867,7 @@ int vr_controller(unsigned int *buttons, float trigger[2], float thumb[4])
 	/* the arms' run (vr.arm_run) pushes the stick ahead, on foot */
 	/* Deliberate stick movement always wins, including backing away while
 	gripping. Hand motion must not turn a backward input into forward motion. */
-	if (vr.run_push > 0.0f && vr.aiming_last_frame && !vr.seated &&
+		if (vr.run_push > 0.0f && vr.aiming_last_frame && !vr.seated &&
 		fabsf(thumb[0]) < 0.15f && fabsf(thumb[1]) < 0.15f)
 		thumb[1] = vr.run_push;
 	if (vr.aiming_last_frame && !vr.seated)
@@ -2273,6 +2883,11 @@ int vr_controller(unsigned int *buttons, float trigger[2], float thumb[4])
 		thumb[1] = x * s + y * c;
 	}
 	return 1;
+}
+
+int vr_push_to_talk_held(void)
+{
+	return vr.active && vr.touch_layout && (vr.frame.flags & HALO_XR_FRAME_FOCUSED) && vr.push_to_talk_held;
 }
 
 /* Called only for a newly acquired, actually recentred runtime frame. */
@@ -3446,8 +4061,8 @@ int vr_heading_forward(float out_forward[3])
 	return 1;
 }
 
-/* Script checks run before stereo rendering: use this frame's tracked head,
- * not the previous rendered camera or the weapon's looking vector. */
+/* Script checks use this frame's tracked head, except A10 look calibration,
+ * which can use the current fresh rendered hand-reticle ray below. */
 static int vr_script_head_valid(void)
 {
 	const unsigned int needed = HALO_XR_FRAME_SHOULD_RENDER | HALO_XR_FRAME_VIEWS_VALID | HALO_XR_FRAME_FOCUSED;
@@ -3463,23 +4078,28 @@ int vr_script_head_view(const float position[3], float out_position[3], float ou
 	return 1;
 }
 
-static struct { int valid; float yaw, pitch; } tutorial_look;
-void vr_head_look_reset(void) { tutorial_look.valid = 0; }
+static struct { int valid, source; float yaw, pitch; } tutorial_look;
+void vr_head_look_reset(void) { tutorial_look.valid = 0; tutorial_look.source = 0; }
 
 unsigned int vr_head_look_actions(void)
 {
-	float forward[3], yaw, pitch, delta;
+	float forward[3], origin[3], yaw, pitch, delta;
+	int source = 0, reticle;
 	unsigned int actions = 0;
 	if (!vr_script_head_valid()) { vr_head_look_reset(); return 0; }
 	head_forward(forward);
+	/* In the opening A10 calibration, use the visible hand-aim reticle. If its
+	 * render ray is unavailable, wait for one instead of counting head motion. */
+	reticle = vr_script_calibration_reticle_ray(origin, forward);
+	if (reticle < 0) { vr_head_look_reset(); return 0; }
+	if (reticle > 0) source = 1;
 	yaw = atan2f(forward[1], forward[0]);
 	pitch = atan2f(forward[2], hypotf(forward[0], forward[1]));
 	if (!isfinite(yaw) || !isfinite(pitch)) { vr_head_look_reset(); return 0; }
-	if (!tutorial_look.valid || (vr.frame.flags & HALO_XR_FRAME_RECENTRED)) {
-		tutorial_look.valid = 1; tutorial_look.yaw = yaw; tutorial_look.pitch = pitch; return 0;
+	if (!tutorial_look.valid || tutorial_look.source != source || (vr.frame.flags & HALO_XR_FRAME_RECENTRED)) {
+		tutorial_look.valid = 1; tutorial_look.source = source; tutorial_look.yaw = yaw; tutorial_look.pitch = pitch; return 0;
 	}
-	/* Accumulate slow deliberate movement as well as fast turns. World turns,
-	 * weapon movement and controller grip cannot pass the head-look test. */
+	/* Accumulate slow deliberate movement as well as fast turns. */
 	delta = wrap_angle(yaw - tutorial_look.yaw);
 	if (fabsf(delta) > 0.02f) { actions |= delta > 0 ? 4u : 8u; tutorial_look.yaw = yaw; }
 	delta = pitch - tutorial_look.pitch;
@@ -3490,9 +4110,18 @@ unsigned int vr_head_look_actions(void)
 int vr_head_view(const float position[3], const float forward[3],
 	float out_position[3], float out_forward[3], float out_up[3])
 {
+	const unsigned int needed = HALO_XR_FRAME_SHOULD_RENDER | HALO_XR_FRAME_VIEWS_VALID;
 	float offset[3];
 
-	if (!vr.stereo)
+	/* test53: also this frame's head for the game's ticks. They run before
+	the stereo pass begins (main.c: game_time_update, then main_game_render's
+	vr_stereo_begin) and vr.stereo is cleared at the frame's end, so asking
+	from a tick was always refused: parkour reset itself every tick and the
+	manual reload cancelled every tick, so neither could ever run. vr_aim
+	begins the frame before the ticks; its head is as current as the grips
+	vr_hand_world gives them. */
+	if (!vr.stereo && !(vr.active && vr.stereo_enabled && vr.frame_begun &&
+		(vr.frame.flags & needed) == needed))
 		return 0;
 	head_offset(offset);
 	view(offset, vr.frame.head.orientation, position, forward, out_position, out_forward, out_up);
@@ -4047,6 +4676,8 @@ int vr_ui_pointer(int menus_active, struct halo_ui_pointer *pointer)
 	short x, y;
 
 	vr.menus_active = menus_active != 0;
+	if (menus_active && (vr.pad_buttons & HALO_XR_BUTTON_X))
+		vr.reload_held_from_menu = 1;
 	if (!vr.active || !menus_active)
 	{
 		vr.pointer_age = 0;
@@ -4217,6 +4848,26 @@ int vr_scope_view(const float position[3], float out_position[3], float out_forw
 	return 1;
 }
 
+/* The lens follows the gun's final drawn wrist, including gun anchoring,
+ * hand-angle adjustments, left-hand mirroring, wall pullback and gun offsets.
+ * It is neither a separately filtered pose nor a previous frame's anchor. */
+static float scope_wrist_origin[3];
+static double scope_wrist_time = -1;
+void vr_scope_wrist_anchor(float const camera[3],float const wrist[3],float const forward[3])
+{
+    float relative[3],offset[3],local[3],c=cosf(vr.heading),s=sinf(vr.heading);
+    scope_wrist_time=-1;
+    if(!vr.heading_valid||!isfinite(vr.heading)||!(vr.units_per_metre>0))return;
+    for(int k=0;k<3;k++){
+        relative[k]=(wrist[k]-camera[k])/vr.units_per_metre+forward[k]*.075f;
+        if(!isfinite(relative[k]))return;
+    }
+    local[0]=relative[0]*s-relative[1]*c;local[1]=relative[2];local[2]=-(relative[0]*c+relative[1]*s);
+    head_offset(offset);
+    for(int k=0;k<3;k++)scope_wrist_origin[k]=vr.frame.head.position[k]+local[k]-offset[k];
+    scope_wrist_time=vr_pose_time();
+}
+
 static int scope_program_ready(void)
 {
 	if (!scope_program)
@@ -4276,6 +4927,9 @@ void vr_resolve_scope(unsigned int texture, int width, int height, int x, int y,
 /* the scope's layer, held at the gun: its place by the sight's shape
 (the PC mod HaloCEVR's offsets: forward, left and up, metres, from the
 aim), facing back along it, vr.scope_size across */
+#define SCOPE_ENUM(key, label, gun) scope_profile_##key,
+enum { VR_SCOPE_PROFILES(SCOPE_ENUM) };
+#undef SCOPE_ENUM
 static void place_scope(struct halo_xr_layers *layers)
 {
 	static int logged_shape = -1, logged_zoom = -999, logged_weapon_hand = -1;
@@ -4289,10 +4943,15 @@ static void place_scope(struct halo_xr_layers *layers)
 	};
 	const float *offset = offsets[vr.scope_shape >= VR_SCOPE_ROUND && vr.scope_shape <= VR_SCOPE_ROCKET ?
 		vr.scope_shape - VR_SCOPE_ROUND : 0];
-	/* test22: the player's own place and size for the pistol's and the
-	sniper rifle's (none set: exactly the usual) */
-	int kind = vr.scope_shape == VR_SCOPE_SNIPER ? 1 : vr.scope_shape == VR_SCOPE_ROUND ? 0 : -1;
-	const float *adjust = kind >= 0 ? vr.scope_adjust[kind] : NULL;
+	/* Select by weapon, not mask shape: modded guns may reuse another mask. */
+	int kind = scope_profile_other; /* unknown/custom weapon */
+	switch (vr.gun_class)
+	{
+#define SCOPE_CLASS(key, label, gun) case gun: kind = scope_profile_##key; break;
+		VR_SCOPE_PROFILES(SCOPE_CLASS)
+#undef SCOPE_CLASS
+	}
+	const float *adjust = vr.scope_adjust[kind];
 	/* OpenXR's x right, y up, z back; in the left hand, left is the other way */
 	float local[3], turned[3], origin[3], shot_forward[3];
 	int axis;
@@ -4308,6 +4967,10 @@ static void place_scope(struct halo_xr_layers *layers)
 		local[2] -= adjust[0];
 	}
 	tracked_hand_origin(&vr.aim_pose, origin);
+	if (config_boolean("vr.gun_anchor") && scope_wrist_time == vr_pose_time())
+	{
+		memcpy(origin, scope_wrist_origin, sizeof(origin));
+	}
 	rotate(vr.aim_pose.orientation, local, turned);
 	for (axis = 0; axis < 3; axis++)
 		layers->scope_pose.position[axis] = origin[axis] + turned[axis];

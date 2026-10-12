@@ -249,6 +249,10 @@ symbols in this file:
 #include "cseries/cseries.h"
 #include "unicode.h"
 
+/* port: port/linux/src/msvc_wide.c's (declared for the Android guest ABI) */
+FILE *_wfreopen(const wchar_t *path, const wchar_t *mode, FILE *stream);
+FILE *_wfdopen(int handle, const wchar_t *mode);
+
 /* ---------- constants */
 
 enum

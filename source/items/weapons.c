@@ -202,6 +202,10 @@ symbols in this file:
 
 #include "cseries.h"
 #include "weapons.h"
+#ifdef HALO_VR
+#include "vr_manual_reload.h"
+#endif
+#include "vr_cooldown_shake.h"
 
 #include "equipment.h"
 #include "weapon_datum_flags.h"
@@ -516,6 +520,9 @@ void weapons_initialize(
 void weapons_initialize_for_new_map(
 	void)
 {
+#ifdef HALO_VR
+	vr_manual_reload_reset();
+#endif
 	struct tag_iterator iterator;
 	long weapon_definition_index;
 
@@ -564,6 +571,9 @@ void weapons_initialize_for_new_map(
 void weapons_dispose_from_old_map(
 	void)
 {
+#ifdef HALO_VR
+	vr_manual_reload_reset();
+#endif
 	return;
 }
 
@@ -3032,6 +3042,7 @@ boolean weapon_update(
 	boolean triggers_down[MAXIMUM_NUMBER_OF_TRIGGERS_PER_WEAPON];
 	short magazine_index;
 	short trigger_index;
+	boolean physical_reload_auto = FALSE, physical_reload_block = FALSE;
 
 	profile_enter(data_00307140.update_profile);
 
@@ -3096,6 +3107,10 @@ boolean weapon_update(
 		if (weapon->weapon.overcharged==0.0f)
 		{
 			real heat_loss= weapon_definition->weapon.heat_loss_per_second*(1.0f/TICKS_PER_SECOND);
+			if (TEST_FLAG(weapon->weapon.flags, _weapon_overheated_bit))
+			{
+				heat_loss *= vr_cooldown_shake_rate(weapon_index);
+			}
 
 			if (weapon_definition->weapon.age_heat_recovery_penalty>0.0f)
 			{
@@ -3160,11 +3175,31 @@ boolean weapon_update(
 		break;
 	}
 
+#ifdef HALO_VR
+	{
+		unsigned manual = vr_manual_reload_update(weapon_index,
+			TEST_FLAG(weapon->weapon.control_flags, _weapon_control_reload_bit));
+		physical_reload_auto = (manual & VR_MANUAL_SUPPRESS_AUTO) != 0;
+		physical_reload_block = (manual & VR_MANUAL_BLOCK_FIRE) != 0;
+		if (manual & VR_MANUAL_COMMIT) {
+			word saved_control_flags = weapon->weapon.control_flags;
+			/* Physical insertion and chambering are complete. Native conservation
+			 * handles tactical/empty reloads and infinite-ammo semantics once.
+			 * Suppress its optional follow-on automatic reload (including an
+			 * infinite-ammo magazine with less reserve than its capacity). */
+			SET_FLAG(weapon->weapon.control_flags, _weapon_control_user_switching_weapons_bit, TRUE);
+			weapon_magazine_finish_reload(weapon_index, 0);
+			weapon->weapon.control_flags = saved_control_flags;
+			weapon_magazine_finish_chamber(weapon_index, 0);
+			SET_FLAG(weapon->weapon.flags, _weapon_needs_to_reload_bit, FALSE);
+		}
+	}
+#endif
 	if (TEST_FLAG(weapon->weapon.control_flags, _weapon_control_reload_bit) && weapon_definition->weapon.magazines.count>0)
 	{
 		SET_FLAG(weapon->weapon.flags, _weapon_needs_to_reload_bit, TRUE);
 	}
-	if (TEST_FLAG(weapon->weapon.flags, _weapon_needs_to_reload_bit))
+	if (!physical_reload_auto && TEST_FLAG(weapon->weapon.flags, _weapon_needs_to_reload_bit))
 	{
 		weapon_magazine_start_reload(weapon_index, 0, TRUE);
 	}
@@ -3258,6 +3293,7 @@ boolean weapon_update(
 			triggers_down[trigger_index]= TEST_FLAG(trigger->flags, _weapon_trigger_toggled_bit);
 		}
 
+		if (physical_reload_block) triggers_down[trigger_index] = FALSE;
 		if (!triggers_down[trigger_index])
 		{
 			SET_FLAG(trigger->flags, _weapon_trigger_released_since_last_shot_bit, TRUE);
@@ -3291,7 +3327,7 @@ boolean weapon_update(
 			{
 				struct weapon_magazine *magazine= weapon_magazine_get(weapon, trigger_definition->magazine_index);
 
-				if (magazine &&
+				if (!physical_reload_auto && magazine &&
 					((magazine->rounds_loaded<trigger_definition->rounds_per_shot && !TEST_FLAG(trigger_definition->flags, _weapon_trigger_can_fire_with_partial_ammunition_bit)) ||
 					magazine->rounds_loaded<trigger_definition->minimum_rounds_loaded_per_shot ||
 					magazine->rounds_loaded==0))
@@ -3300,7 +3336,7 @@ boolean weapon_update(
 				}
 			}
 
-			if (triggers_down[trigger_index] && weapon_trigger_can_fire_again(weapon_index, trigger_index))
+			if (!physical_reload_block && triggers_down[trigger_index] && weapon_trigger_can_fire_again(weapon_index, trigger_index))
 			{
 				weapon_trigger_begin_firing(weapon_index, trigger_index, FALSE);
 			}

@@ -44,6 +44,11 @@ final class TouchControls extends View {
         void look(float yaw,float pitch);
     }
     private final Input input;
+    interface LayoutTransfer {
+        void exportLayout(String contents);
+        void importLayout(java.util.function.Consumer<String> imported);
+    }
+    private final LayoutTransfer layoutTransfer;
     private static final Input NATIVE=new Input() {
         public boolean menus(){return nativeMenus();}
         public void pointer(int action,float x,float y){nativePointer(action,x,y);}
@@ -67,7 +72,9 @@ final class TouchControls extends View {
         layout.floating=p.getBoolean("floating",false);layout.invert=p.getBoolean("invert",false);layout.color=p.getInt("color",0xff69c9ff);
         layout.gyroMode=p.getInt("gyroMode",GyroPolicy.OFF);layout.gyroX=p.getFloat("gyroX",1);layout.gyroY=p.getFloat("gyroY",1);layout.gyroInvert=p.getBoolean("gyroInvert",false);
         for(int i=0;i<TouchLayout.COUNT;i++) { layout.x[i]=p.getFloat("x"+i,layout.x[i]);layout.y[i]=p.getFloat("y"+i,layout.y[i]);
-            layout.size[i]=p.getFloat("size"+i,1);layout.alpha[i]=p.getFloat("alpha"+i,1); }
+            layout.size[i]=p.getFloat("size"+i,1);layout.alpha[i]=p.getFloat("alpha"+i,1);
+            // Existing installs have no visibility keys; keep their controls enabled.
+            layout.visible[i]=p.getBoolean("visible_"+TouchLayout.CONTROL_IDS[i],true); }
         layout.sanitize();
     }
     private void saveLayout() {
@@ -77,7 +84,8 @@ final class TouchControls extends View {
             .putBoolean("swipe",layout.swipe).putBoolean("floating",layout.floating).putBoolean("invert",layout.invert).putInt("color",layout.color)
             .putBoolean("look_anywhere",layout.lookAnywhere)
             .putInt("gyroMode",layout.gyroMode).putFloat("gyroX",layout.gyroX).putFloat("gyroY",layout.gyroY).putBoolean("gyroInvert",layout.gyroInvert);
-        for(int i=0;i<TouchLayout.COUNT;i++) e.putFloat("x"+i,layout.x[i]).putFloat("y"+i,layout.y[i]).putFloat("size"+i,layout.size[i]).putFloat("alpha"+i,layout.alpha[i]);
+        for(int i=0;i<TouchLayout.COUNT;i++) e.putFloat("x"+i,layout.x[i]).putFloat("y"+i,layout.y[i]).putFloat("size"+i,layout.size[i]).putFloat("alpha"+i,layout.alpha[i])
+            .putBoolean("visible_"+TouchLayout.CONTROL_IDS[i],layout.visible[i]);
         e.apply();RunLog.line("Touch layout saved: swipe="+layout.swipe+" anywhere="+layout.lookAnywhere+" floating="+layout.floating+" sensitivity="+layout.sensitivityX+"/"+layout.sensitivityY
             +" gyro="+GyroPolicy.MODES[layout.gyroMode]+" "+layout.gyroX+"/"+layout.gyroY+(layout.gyroInvert?" inverted":""));
     }
@@ -129,11 +137,15 @@ final class TouchControls extends View {
                                            int buttons, boolean reset);
 
     TouchControls(Context context) {
-        this(context,NATIVE);
+        this(context,NATIVE,context instanceof LayoutTransfer?(LayoutTransfer)context:null);
     }
     TouchControls(Context context,Input input) {
+        this(context,input,context instanceof LayoutTransfer?(LayoutTransfer)context:null);
+    }
+    TouchControls(Context context,Input input,LayoutTransfer transfer) {
         super(context);
         this.input=input;
+        this.layoutTransfer=transfer;
         readLayout();
         setFocusable(false); // SDL's surface keeps keyboard/gamepad focus.
         setContentDescription("Halo touch controls: move, look, combat and menus");
@@ -230,8 +242,9 @@ final class TouchControls extends View {
         }
     }
     private boolean controlVisible(Control c) {
-        return editing || ((controlsShown || c.kind==TOGGLE || c.kind==EDIT) &&
-            !(layout.lookAnywhere && c.kind==LOOK));
+        if(c.kind==EDIT || editing)return true;
+        if(c.id>=0 && c.id<TouchLayout.COUNT && !layout.visible[c.id])return false;
+        return (controlsShown || c.kind==TOGGLE) && !(layout.lookAnywhere && c.kind==LOOK);
     }
     private Control controlAt(float x,float y) {
         for(int i=controls.length-1;i>=0;i--) {
@@ -394,12 +407,14 @@ final class TouchControls extends View {
             boolean pressed=owned(c);
             float opacity=c.kind==EDIT?1:layout.opacity*(c.id<TouchLayout.COUNT?layout.alpha[c.id]:1);
             if(editing)opacity=Math.max(.65f,opacity);
+            boolean disabled=editing && c.id>=0 && c.id<TouchLayout.COUNT && !layout.visible[c.id];
+            if(disabled)opacity=.28f;
             paint.setStyle(Paint.Style.FILL);
             paint.setColor(layout.color);paint.setAlpha(Math.round((pressed?150:50)*opacity));
             canvas.drawCircle(c.x, c.y, c.radius, paint);
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(2*getResources().getDisplayMetrics().density);
-            paint.setColor(editing && c.id==selected?0xffffcc66:pressed?Color.WHITE:layout.color);paint.setAlpha(Math.round(230*opacity));
+            paint.setColor(editing && c.id==selected?0xffffcc66:disabled?0xffaeb8c2:pressed?Color.WHITE:layout.color);paint.setAlpha(Math.round(230*opacity));
             canvas.drawCircle(c.x, c.y, c.radius, paint);
             paint.setStyle(Paint.Style.FILL);
             paint.setTextSize(Math.min(textSize, c.radius*1.6f/Math.max(1,c.label.length())*1.7f));
@@ -473,7 +488,12 @@ final class TouchControls extends View {
         final AlertDialog[] optionsDialog=new AlertDialog[1];
         choose.setOnClickListener(v->{String[] names=new String[TouchLayout.COUNT];for(int i=0;i<names.length;i++)names[i]=controls[i].label;
             new GamepadNavigation.Builder(getContext()).setTitle("Edit control").setItems(names,(d,i)->{selected=i;optionsDialog[0].dismiss();showOptions();invalidate();}).show();});
+        Button export=new Button(getContext());export.setText("Export touch layout preset");export.setEnabled(layoutTransfer!=null);box.addView(export);
+        export.setOnClickListener(v->{if(layoutTransfer!=null)layoutTransfer.exportLayout(TouchLayoutCodec.encode(layout));});
+        Button importPreset=new Button(getContext());importPreset.setText("Import touch layout preset");importPreset.setEnabled(layoutTransfer!=null);box.addView(importPreset);
+        importPreset.setOnClickListener(v->{if(layoutTransfer!=null)layoutTransfer.importLayout(this::applyImportedLayout);});
         if(selected>=0) {final int id=selected;TextView label=new TextView(getContext());label.setText("Selected: "+controls[id].label+" (drag to change spacing)");box.addView(label);
+            check(box,"Show and enable this touch control",layout.visible[id],v->{layout.visible[id]=v;releaseAll();layoutControls();});
             slider(box,"Horizontal position",layout.x[id],0,1,v->layout.x[id]=v);
             slider(box,"Vertical position",layout.y[id],0,1,v->layout.y[id]=v);
             slider(box,"Control size",layout.size[id],.65f,1.6f,v->layout.size[id]=v);
@@ -498,6 +518,16 @@ final class TouchControls extends View {
         String[] colors={"CE blue","Cyan","White","Amber","Green"};int[] values={0xff69c9ff,0xff65eeee,0xffeeeeee,0xffffbd65,0xff8be298};
         Button color=new Button(getContext());color.setText("HUD color");box.addView(color);color.setOnClickListener(v->new GamepadNavigation.Builder(getContext()).setTitle("HUD color").setItems(colors,(d,i)->{layout.color=values[i];invalidate();}).show());
         ScrollView scroll=new ScrollView(getContext());scroll.addView(box);optionsDialog[0]=new GamepadNavigation.Builder(getContext()).setTitle("Touch options").setView(scroll).setPositiveButton("Back to editor",null).create();optionsDialog[0].show();
+    }
+
+    private void applyImportedLayout(String contents) {
+        try {
+            TouchLayout imported=TouchLayoutCodec.decode(contents);
+            releaseAll();layout=imported;layoutControls();invalidate();
+            Toast.makeText(getContext(),"Layout imported. Tap Back to editor, then SAVE to keep it or CANCEL to discard it.",Toast.LENGTH_LONG).show();
+        } catch(RuntimeException invalid) {
+            Toast.makeText(getContext(),"Layout not imported: "+invalid.getMessage(),Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override protected void onDetachedFromWindow() {

@@ -143,6 +143,21 @@ static const struct config_setting config_settings[] =
 		"Reverberate the world's sounds as the place the player is in does (the\n"
 		"maps' sound environments, as the Xbox's I3DL2 reverb did); false keeps\n"
 		"them dry." },
+	{ "audio.voice_chat", _config_string, "\"off\"", "HALO_VOICE_CHAT", _environment_value, _platform_all,
+		"Voice chat microphone: \"off\" (default), \"push_to_talk\" (hold\n"
+		"controls.push_to_talk; the microphone opens only while held), or\n"
+		"\"open_mic\" (transmit while speech is detected). Receiving is controlled\n"
+		"separately by audio.voice_volume." },
+	{ "audio.voice_volume", _config_real, "1.0", "HALO_VOICE_VOLUME", _environment_value, _platform_all,
+		"The volume of other players' voices, from 0 (muted) to 2." },
+	{ "audio.input_device", _config_string, "\"default\"", "HALO_AUDIO_INPUT_DEVICE", _environment_value,
+		_platform_desktop,
+		"The voice chat microphone device by its SDL name, or \"default\" for the\n"
+		"system default. Android uses the system's default recording device." },
+	{ "audio.output_device", _config_string, "\"default\"", "HALO_AUDIO_OUTPUT_DEVICE", _environment_value,
+		_platform_desktop,
+		"Where game and voice audio plays: an SDL device name or \"default\" for\n"
+		"the system's default." },
 
 	{ "input.mouse_vertical_sensitivity", _config_real, "0.0", "HALO_MOUSE_VERTICAL_SENSITIVITY", _environment_value,
 		_platform_desktop,
@@ -207,6 +222,9 @@ static const struct config_setting config_settings[] =
 
 	{ "controls.pause", _config_string, "\"Escape\"", "HALO_KEY_PAUSE", _environment_value, _platform_all,
 		"The pause menu (the controller's Start)." },
+	{ "controls.push_to_talk", _config_string, "\"V\"", "HALO_KEY_PUSH_TO_TALK", _environment_value, _platform_all,
+		"Hold to transmit voice when audio.voice_chat is \"push_to_talk\". In VR,\n"
+		"the BUTTONS page also lets you bind a Quest controller button." },
 
 	{ "debug.menu_open", _config_string, "\"\"", "HALO_MENU_OPEN", _environment_value, _platform_all,
 		"Start on this screen of the menus (port/assets/menus) instead of the main\n"
@@ -347,13 +365,28 @@ static const struct config_setting config_settings[] =
 		"clipboard) that lets whoever has it join over the internet; opening a\n"
 		"link (or copying one before switching to the game) joins. Only people\n"
 		"with the invite can join. Off keeps system link to the local network." },
-	{ "network.protocol_version", _config_integer, "24", "HALO_NETWORK_PROTOCOL_VERSION", _environment_value,
+	{ "network.voice_lobby", _config_boolean, "true", "HALO_NET_VOICE_LOBBY", _environment_value, _platform_all,
+		"Hosting: allow voice chat in the lobby and post-game." },
+	{ "network.voice_mode", _config_string, "\"team_global_enemy_proximity\"", "HALO_NET_VOICE_MODE",
+		_environment_value, _platform_all,
+		"Hosting: in-game voice routing: off, team_proximity, team_enemy_proximity,\n"
+		"team_global, or team_global_enemy_proximity. The Server Setup menu names\n"
+		"these choices." },
+	{ "network.voice_kbps", _config_integer, "24", "HALO_NET_VOICE_KBPS", _environment_value, _platform_all,
+		"Hosting: voice quality in kilobits per second, 8 to 64." },
+	{ "network.voice_proximity", _config_real, "15.0", "HALO_NET_VOICE_PROXIMITY", _environment_value,
 		_platform_all,
-		"Client protocol target: 0 lists/joins all compatible PvP versions 11-24;\n"
-		"11-24 selects one exact server version. This build always hosts as 24.\n"
-		"Campaign and Custom Edition map joins require version 23 or newer. This\n"
-		"is read once when the game starts; restart after changing it. Invalid\n"
-		"values fall back to the default, 24." },
+		"Hosting: proximity voice range in world units (5 to 100)." },
+    { "network.legacy_coop", _config_boolean, "false", "HALO_NET_LEGACY_COOP", _environment_value, _platform_all,
+        "Opt in to legacy network12-14 campaign clients. Old hosts omit scripted team allegiance; marine reticles/team behavior may be wrong.\n"
+        "Uses old native presentation behavior without invented allegiance. Prefer network15-28. Hosting stays28." },
+	{ "network.protocol_version", _config_integer, "0", "HALO_NETWORK_PROTOCOL_VERSION", _environment_value,
+		_platform_all,
+		"Client protocol target: 0 (the default) lists/joins all compatible PvP\n"
+		"versions 11-28; 11-28 selects one exact server version. This build always\n"
+		"hosts as 28. Campaign needs15+, or consented legacy12-14; Custom Edition\n"
+		"needs23+. This is read once when the game starts; restart after changing\n"
+		"it. Invalid values fall back to the build's own version, 28." },
 	{ "network.join_from_clipboard", _config_boolean, "true", "HALO_NET_JOIN_FROM_CLIPBOARD", _environment_value,
 		_platform_all,
 		"Join the game of an invite link found on the clipboard when the game\n"
@@ -377,6 +410,9 @@ static const struct config_setting config_settings[] =
 		"other and the server browser's listings travel (its messages are\n"
 		"encrypted); comma-separated host:port, up to 4. The first is upstream's\n"
 		"own broker (its brokers.txt); the earlier default list moves to this one." },
+    { "net.physical_interactions", _config_boolean, "false", "HALO_NET_PHYSICAL_INTERACTIONS", _environment_value, _platform_all,
+        "Host permission for enhanced campaign physical interactions. Requires every peer to negotiate this port's optional extension.\n"
+        "Off by default; unsupported or mixed peers retain ordinary campaign behavior." },
 	{ "network.coop_public", _config_boolean, "false", "HALO_NET_COOP_PUBLIC", _environment_value, _platform_all,
 		"Whether an online co-op game (Create Game > Internet, a SINGLEPLAYER\n"
 		"map) starts as PUBLIC or, false, PRIVATE: Server Setup's LISTING in\n"
@@ -448,6 +484,8 @@ static const struct config_setting config_settings[] =
 		_platform_all,
 		"The weapon network_test_pickup stands the player on: the first whose tag\n"
 		"name has this in it (\"sniper\", say); empty any." },
+	{ "debug.voice_test", _config_boolean, "false", "HALO_VOICE_TEST", _environment_set_is_true, _platform_all,
+		"Automated voice tests: use a generated tone instead of a microphone." },
 	{ "debug.telnet_console", _config_boolean, "false", "HALO_TELNET_CONSOLE", _environment_set_is_true, _platform_all,
 		"Listen on 127.0.0.1 (port telnet_console_port) for a script console that\n"
 		"runs what it is sent as the game's console does, with no password; false\n"
@@ -514,6 +552,9 @@ static const struct config_setting config_settings[] =
 		"Log texture uploads." },
 	{ "debug.texture_no_cache", _config_boolean, "false", "HALO_TEXTURE_NO_CACHE", _environment_set_is_true, _platform_all,
 		"Upload textures again every time they are used." },
+	{ "debug.memory_watch", _config_boolean, "true", NULL, _environment_value, _platform_android,
+		"Track guest writes by page protection; false compares page contents\n"
+		"once per frame. ARM-translated guests always compare page contents." },
 	{ "debug.sample_seconds", _config_real, "0.0", "HALO_SAMPLE", _environment_value,
 		_platform_android | _platform_windows,
 		"Log where the game is this often, in seconds; 0 never. On Android every\n"
@@ -603,6 +644,26 @@ static const struct config_setting config_settings[] =
 		"or \"off\" hides it. The menu pointer is independent." },
 	{ "vr.crosshair_size", _config_real, "1.0", "HALO_VR_CROSSHAIR_SIZE", _environment_value, _platform_vr,
 		"Native crosshair size multiplier (0.25 to 3)." },
+    { "vr.aim_steadying", _config_real, "0", "HALO_VR_AIM_STEADYING", _environment_value, _platform_vr,
+        "Extra shared gun/shot/scope aim steadying, 0..0.8. Zero preserves stock scope smoothing." },
+    { "vr.assisted_combat", _config_boolean, "false", "HALO_VR_ASSISTED_COMBAT", _environment_value, _platform_vr,
+        "Optional enemy-only gaze/punch combo assist, local play or a co-op host. Native collision and damage remain in use." },
+    { "vr.combat_highlights", _config_boolean, "true", "HALO_VR_COMBAT_HIGHLIGHTS", _environment_value, _platform_vr,
+        "Highlight a locked enemy head/chest and show stun/impact feedback with assisted combat." },
+    { "vr.combat_reach", _config_real, "2.5", "HALO_VR_COMBAT_REACH", _environment_value, _platform_vr,
+        "How far from the eyes a punch picks an enemy (metres, 0.75..3); short of striking range a short step closes the gap." },
+    { "vr.physical_grenades", _config_boolean, "false", "HALO_VR_PHYSICAL_GRENADES", _environment_value, _platform_vr,
+        "Grab a chest grenade with a free hand and release Grip to throw. Local play and co-op host only; buttons remain available." },
+    { "vr.grenade_chest_forward", _config_real, "0.16", "HALO_VR_GRENADE_CHEST_FORWARD", _environment_value, _platform_vr,
+        "Grenade chest forward distance from the head in metres, 0.08..0.4." },
+    { "vr.grenade_chest_down", _config_real, "0.30", "HALO_VR_GRENADE_CHEST_DOWN", _environment_value, _platform_vr,
+        "Grenade chest distance below the head in metres, 0.15..0.6." },
+    { "vr.grenade_chest_spread", _config_real, "0.14", "HALO_VR_GRENADE_CHEST_SPREAD", _environment_value, _platform_vr,
+        "Chest grenade half spacing in metres, 0.06..0.3. Frag left, plasma right." },
+    { "vr.grenade_throw_scale", _config_real, "1.5", "HALO_VR_GRENADE_THROW_SCALE", _environment_value, _platform_vr,
+        "Physical grenade hand momentum multiplier, 0.5..2.0; final speed capped at 15 m/s." },
+    { "net.host_vr_actions", _config_boolean, "false", "HALO_HOST_VR_ACTIONS", _environment_value, _platform_all,
+        "Co-op host permission for its optional fist assist and physical chest grenades. Requires Physical Interactions and all peers negotiated. Guests retain standard controls." },
 	{ "vr.crosshair_opacity", _config_real, "1.0", "HALO_VR_CROSSHAIR_OPACITY", _environment_value, _platform_vr,
 		"Native crosshair opacity (0 to 1). Does not change the menu pointer." },
     { "vr.vehicle_defaults_applied", _config_boolean, "false", "HALO_VR_VEHICLE_DEFAULTS_APPLIED", _environment_value, _platform_vr,
@@ -732,7 +793,7 @@ static const struct config_setting config_settings[] =
 		"Ducking this far (metres) below your height at the last recentre\n"
 		"crouches; 0 turns it off." },
 	{ "vr.haptics", _config_real, "1.0", "HALO_VR_HAPTICS", _environment_value, _platform_vr,
-		"The strength of the controllers' buzz (shots, gestures), 0 to 1; 0 none." },
+		"The strength of all controller haptics (shots, contact, reload, movement and interaction feedback), 0 to 1; 0 disables all haptics." },
 	{ "vr.menu_3d", _config_boolean, "true", "HALO_VR_MENU_3D", _environment_value, _platform_vr,
 		"The main menu in 3D: its scene around you, its menus on a panel ahead;\n"
 		"false shows it all on the flat screen." },
@@ -755,8 +816,21 @@ static const struct config_setting config_settings[] =
 		"bob). Offline, strong forward pumping raises movement speed up to 1.5x.\n"
 		"Network games retain stock speed. Deliberate stick movement takes priority." },
 	{ "vr.arm_run_speed", _config_real, "0.6", "HALO_VR_ARM_RUN_SPEED", _environment_value, _platform_vr,
-		"With vr.arm_run: how fast the hands must move (metres a second) to start\n"
-		"running; full speed at 2.5 times it. Lower is easier." },
+		"With vr.arm_run: hand-motion threshold in metres per second. This is\n"
+		"arm-run sensitivity; sprint speed is configured separately." },
+	{ "vr.button_sprint", _config_boolean, "false", "HALO_VR_BUTTON_SPRINT", _environment_value, _platform_vr,
+		"Use left stick click for offline sprint. The VR menu temporarily frees\n"
+		"that binding and restores it when this option is disabled." },
+	{ "vr.button_sprint_toggle", _config_boolean, "false", "HALO_VR_BUTTON_SPRINT_TOGGLE", _environment_value, _platform_vr,
+		"When Button Sprint is enabled, click left stick once to start sprinting\n"
+		"and click again to stop. Off keeps the hold-to-sprint behavior." },
+	{ "vr.sprint_speed", _config_real, "1.5", "HALO_VR_SPRINT_SPEED", _environment_value, _platform_vr,
+		"Maximum offline sprint movement multiplier, bounded from 1.0x to 1.5x." },
+	{ "vr.melee_requires_fist", _config_boolean, "false", "HALO_VR_MELEE_REQUIRES_FIST", _environment_value, _platform_vr,
+		"Physical melee requires grip and index trigger together; an active hand\n"
+		"interaction takes priority over physical melee." },
+	{ "vr.button_sprint_saved_mask", _config_integer, "0", NULL, _environment_value, _platform_vr,
+		"Internal saved VR button mapping used while Button Sprint is active." },
 	{ "vr.close_contact", _config_boolean, "true", "HALO_VR_CLOSE_CONTACT", _environment_value, _platform_vr,
 		"Offline local VR player only: reduce capsule radius by up to 15 percent\n"
 		"(at most 5 cm, minimum radius 18 cm) for closer hand contact. Solid\n"
@@ -781,6 +855,10 @@ static const struct config_setting config_settings[] =
 		"coming into one): its grip there switches weapons, or with physical\n"
 		"weapons (vr.weapons) a gun let go there is put away and an empty hand\n"
 		"gripping there draws one." },
+	{ "vr.holster_haptics", _config_boolean, "true", "HALO_VR_HOLSTER_HAPTICS", _environment_value, _platform_vr,
+		"Vibrate when the weapon hand enters, draws from, or puts away a weapon\n"
+		"at a holster. This does not disable magazine reload or other haptics;\n"
+		"the global HAPTICS strength still scales every vibration." },
 	{ "vr.holster_size", _config_real, "0.2", "HALO_VR_HOLSTER_SIZE", _environment_value, _platform_vr,
 		"How far from its place each holster reaches, in metres (0.05 to 0.6)." },
 	{ "vr.roomscale", _config_boolean, "true", "HALO_VR_ROOMSCALE", _environment_value, _platform_vr,
@@ -790,6 +868,169 @@ static const struct config_setting config_settings[] =
 	{ "vr.scope", _config_boolean, "true", "HALO_VR_SCOPE", _environment_value, _platform_vr,
 		"With vr.aim \"hand\": a zoomed weapon shows its zoom in a scope held at\n"
 		"the gun (an extra view rendered while zoomed); your eyes stay unzoomed." },
+    { "vr.grab_contact", _config_string, "\"auto\"", "HALO_VR_GRAB_CONTACT", _environment_value, _platform_vr,
+        "Offline physical contact radius: auto applies when world interaction is enabled; on always; off keeps existing close-contact behavior." },
+    { "vr.grab_radius", _config_real, "0.25", "HALO_VR_GRAB_RADIUS", _environment_value, _platform_vr,
+        "Offline player contact radius in metres, clamped 0.18..0.60 and never above the native radius. Occupied space blocks radius expansion." },
+    { "vr.parkour_wallrun", _config_boolean, "false", "HALO_VR_PARKOUR_WALLRUN", _environment_value, _platform_vr,
+        "Optional offline wall running. Jump near a wall while moving along it; the wallrun is brief and native collision remains authoritative." },
+    { "vr.parkour_walljump", _config_boolean, "false", "HALO_VR_PARKOUR_WALLJUMP", _environment_value, _platform_vr,
+        "Optional offline wall jumping. Press jump again while airborne beside a wall to leap away; native collision remains authoritative." },
+    { "vr.parkour_climb", _config_boolean, "false", "HALO_VR_PARKOUR_CLIMB", _environment_value, _platform_vr,
+		"Optional offline grip climbing. Touch a solid vertical world surface with a free tracked hand, then squeeze Grip; pull to climb and release to launch. HAND CONTACT controls the palm collision radius, not reach; native collision remains authoritative." },
+    { "vr.wallrun_speed", _config_real, "1.5", "HALO_VR_WALLRUN_SPEED", _environment_value, _platform_vr,
+        "Wallrun speed multiplier, 1..2." },
+    { "vr.wallrun_duration", _config_real, "2.0", "HALO_VR_WALLRUN_DURATION", _environment_value, _platform_vr,
+        "Maximum wallrun duration in seconds, 0.5..3." },
+    { "vr.walljump_scale", _config_real, "1.5", "HALO_VR_WALLJUMP_SCALE", _environment_value, _platform_vr,
+        "Walljump impulse multiplier, 0.5..1.5." },
+    { "vr.climb_launch_scale", _config_real, "1.0", "HALO_VR_CLIMB_LAUNCH_SCALE", _environment_value, _platform_vr,
+        "Climb release launch multiplier, 0..1.5." },
+    { "vr.contact_volumes", _config_boolean, "true", "HALO_VR_CONTACT_VOLUMES", _environment_value, _platform_vr,
+        "Use finger/palm volume contact; disable to use the prior ray-contact fallback." },
+    { "vr.contact_debug", _config_boolean, "false", "HALO_VR_CONTACT_DEBUG", _environment_value, _platform_vr,
+        "Opt-in detailed contact diagnostics emitted outside render hooks." },
+    { "vr.vehicle_handles", _config_boolean, "false", "HALO_VR_VEHICLE_HANDLES", _environment_value, _platform_vr,
+        "IMMERSIVE VEHICLE: first-person cockpit controls. Grip the Warthog's own wheel, or the Ghost handlebar, Scorpion sticks or Banshee yoke (push/pull to dive/climb), and turn physically; stick throttle remains. While shown they replace controller steering and return to centre when let go; your first-person hands hold them." },
+    { "vr.vehicle_wheel_visible", _config_boolean, "true", "HALO_VR_VEHICLE_WHEEL_VISIBLE", _environment_value, _platform_vr,
+        "Show virtual cockpit control geometry. Hiding it retains physical grip controls; the Warthog's wheel is then taken on the vehicle's own wheel (HOG REACH, LEFT, HEIGHT and SIZE line it up), drawn it sits 2.5 cm in front of it." },
+    { "vr.vehicle_control_glow", _config_boolean, "true", "HALO_VR_VEHICLE_CONTROL_GLOW", _environment_value, _platform_vr,
+        "CONTROL GLOW: the immersive vehicle controls light up while a free hand is close enough to take them." },
+    { "vr.vehicle_steer_haptics", _config_boolean, "true", "HALO_VR_VEHICLE_STEER_HAPTICS", _environment_value, _platform_vr,
+        "STEER HAPTICS: light ticks as the immersive vehicle controls turn, a tick crossing the centre and a firmer buzz at full lock (the grab and let-go pulses stay; HAPTICS scales all)." },
+    { "vr.vehicle_comfort_reach", _config_boolean, "true", "HALO_VR_VEHICLE_COMFORT_REACH", _environment_value, _platform_vr,
+        "COMFORT REACH: an immersive vehicle control on the vehicle's own place that is more than 55 cm from the eyes (the Warthog's wheel, the Ghost's handlebar) comes in toward them along the same line, so the arms do not stretch; off, every control stays on the vehicle's own place (a hidden Warthog wheel always does). Over a metre away, a control is put in front of the chest either way." },
+    { "vr.vehicle_tank_drive", _config_boolean, "true", "HALO_VR_VEHICLE_TANK_DRIVE", _environment_value, _platform_vr,
+        "TANK DRIVE: a tank's immersive drive stick (Scorpion, Wraith) drives as well as steers: pushed forward it drives on, pulled back it reverses (10 cm is full), leaned left or right it turns; the left thumbstick still drives, and the one pushed further wins. Off, the stick only steers." },
+    { "vr.vehicle_tank_hatch", _config_boolean, "false", "HALO_VR_VEHICLE_TANK_HATCH", _environment_value, _platform_vr,
+        "TANK HATCH (off by default): in a tank's first-person driver seat (Scorpion, Wraith) the eyes rise over the hull above the driver's head, as from an open hatch (measured on the vehicle itself; 12 cm over it); off, the view stays at the driver's head inside the hull. TANK UP/FWD/RIGHT still adjust it." },
+    { "vr.vehicle_banshee_slide", _config_boolean, "true", "HALO_VR_VEHICLE_BANSHEE_SLIDE", _environment_value, _platform_vr,
+        "BANSH SLIDE: the Banshee's immersive flight bar also turns when slid sideways (12 cm is full lock), as well as when rolled; off, rolling alone turns it." },
+    { "vr.handle_all_forward", _config_real, "0.0", "HALO_VR_HANDLE_ALL_FORWARD", _environment_value, _platform_vr,
+        "Moves all immersive vehicle controls forward, in metres. Added to each vehicle's own adjustment, combined limit -0.50 to 0.50 m. COMFORT REACH still limits final reach." },
+    { "vr.handle_all_left", _config_real, "0.0", "HALO_VR_HANDLE_ALL_LEFT", _environment_value, _platform_vr,
+        "Moves all immersive vehicle controls left, in metres. Added to each vehicle's own adjustment, combined limit -0.50 to 0.50 m. COMFORT REACH still limits final reach." },
+    { "vr.handle_all_up", _config_real, "0.0", "HALO_VR_HANDLE_ALL_UP", _environment_value, _platform_vr,
+        "Moves all immersive vehicle controls up, in metres. Added to each vehicle's own adjustment, combined limit -0.50 to 0.50 m. COMFORT REACH still limits final reach." },
+    { "vr.handle_warthog_forward", _config_real, "0.0", "HALO_VR_HANDLE_WARTHOG_FORWARD", _environment_value, _platform_vr,
+        "Virtual warthog control forward; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_warthog_left", _config_real, "0.0", "HALO_VR_HANDLE_WARTHOG_LEFT", _environment_value, _platform_vr,
+        "Virtual warthog control left; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_warthog_up", _config_real, "0.0", "HALO_VR_HANDLE_WARTHOG_UP", _environment_value, _platform_vr,
+        "Virtual warthog control up; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_warthog_size", _config_real, "1.0", "HALO_VR_HANDLE_WARTHOG_SIZE", _environment_value, _platform_vr,
+        "Virtual warthog control size; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_ghost_forward", _config_real, "0.0", "HALO_VR_HANDLE_GHOST_FORWARD", _environment_value, _platform_vr,
+        "Virtual ghost control forward; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_ghost_left", _config_real, "0.0", "HALO_VR_HANDLE_GHOST_LEFT", _environment_value, _platform_vr,
+        "Virtual ghost control left; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_ghost_up", _config_real, "0.0", "HALO_VR_HANDLE_GHOST_UP", _environment_value, _platform_vr,
+        "Virtual ghost control up; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_ghost_size", _config_real, "1.0", "HALO_VR_HANDLE_GHOST_SIZE", _environment_value, _platform_vr,
+        "Virtual ghost control size; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_scorpion_forward", _config_real, "0.0", "HALO_VR_HANDLE_SCORPION_FORWARD", _environment_value, _platform_vr,
+        "Virtual scorpion control forward; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_scorpion_left", _config_real, "0.0", "HALO_VR_HANDLE_SCORPION_LEFT", _environment_value, _platform_vr,
+        "Virtual scorpion control left; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_scorpion_up", _config_real, "0.0", "HALO_VR_HANDLE_SCORPION_UP", _environment_value, _platform_vr,
+        "Virtual scorpion control up; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_scorpion_size", _config_real, "1.0", "HALO_VR_HANDLE_SCORPION_SIZE", _environment_value, _platform_vr,
+        "Virtual scorpion control size; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_banshee_forward", _config_real, "0.0", "HALO_VR_HANDLE_BANSHEE_FORWARD", _environment_value, _platform_vr,
+        "Virtual banshee control forward; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_banshee_left", _config_real, "0.0", "HALO_VR_HANDLE_BANSHEE_LEFT", _environment_value, _platform_vr,
+        "Virtual banshee control left; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_banshee_up", _config_real, "0.0", "HALO_VR_HANDLE_BANSHEE_UP", _environment_value, _platform_vr,
+        "Virtual banshee control up; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.handle_banshee_size", _config_real, "1.0", "HALO_VR_HANDLE_BANSHEE_SIZE", _environment_value, _platform_vr,
+        "Virtual banshee control size; position in metres, size as multiplier. Readjust only while ungripped." },
+    { "vr.reload_shoulder", _config_boolean, "true", "HALO_VR_RELOAD_SHOULDER", _environment_value, _platform_vr,
+        "Manual reload pouch behind the free-hand shoulder. Automatically mirrors when the gun changes hands." },
+    { "vr.reload_hip", _config_boolean, "true", "HALO_VR_RELOAD_HIP", _environment_value, _platform_vr,
+        "Manual reload pouch at the free-hand hip. Automatically mirrors when the gun changes hands." },
+    { "vr.reload_pouch_side", _config_string, "\"auto\"", "HALO_VR_RELOAD_POUCH_SIDE", _environment_value, _platform_vr,
+        "Body side of the manual reload magazine pouches: auto (the free hand's side: left for a right-handed player), left, right or both." },
+    { "vr.pouch_hip_out", _config_real, "0.0", "HALO_VR_POUCH_HIP_OUT", _environment_value, _platform_vr,
+        "Moves the hip magazine pouch out from the body's middle (each side mirrored) from its default, in metres (-0.20 to 0.20). A blue marker shows the zone while the row is on screen." },
+    { "vr.pouch_hip_up", _config_real, "0.0", "HALO_VR_POUCH_HIP_UP", _environment_value, _platform_vr,
+        "Moves the hip magazine pouch up from its default, in metres (-0.20 to 0.20). A blue marker shows the zone while the row is on screen." },
+    { "vr.pouch_hip_back", _config_real, "0.0", "HALO_VR_POUCH_HIP_BACK", _environment_value, _platform_vr,
+        "Moves the hip magazine pouch back from its default, in metres (-0.20 to 0.20). A blue marker shows the zone while the row is on screen." },
+    { "vr.pouch_shoulder_out", _config_real, "0.0", "HALO_VR_POUCH_SHOULDER_OUT", _environment_value, _platform_vr,
+        "Moves the shoulder magazine pouch out from the body's middle (each side mirrored) from its default, in metres (-0.20 to 0.20). A blue marker shows the zone while the row is on screen." },
+    { "vr.pouch_shoulder_up", _config_real, "0.0", "HALO_VR_POUCH_SHOULDER_UP", _environment_value, _platform_vr,
+        "Moves the shoulder magazine pouch up from its default, in metres (-0.20 to 0.20). A blue marker shows the zone while the row is on screen." },
+    { "vr.pouch_shoulder_back", _config_real, "0.0", "HALO_VR_POUCH_SHOULDER_BACK", _environment_value, _platform_vr,
+        "Moves the shoulder magazine pouch back from its default, in metres (-0.20 to 0.20). A blue marker shows the zone while the row is on screen." },
+    { "vr.holster_hip_out", _config_real, "0.0", "HALO_VR_HOLSTER_HIP_OUT", _environment_value, _platform_vr,
+        "Moves the hip holsters out from the body's middle (each side mirrored) from its default, in metres (-0.20 to 0.20). A blue marker shows the zone while the row is on screen." },
+    { "vr.holster_hip_up", _config_real, "0.0", "HALO_VR_HOLSTER_HIP_UP", _environment_value, _platform_vr,
+        "Moves the hip holsters up from its default, in metres (-0.20 to 0.20). A blue marker shows the zone while the row is on screen." },
+    { "vr.holster_hip_back", _config_real, "0.0", "HALO_VR_HOLSTER_HIP_BACK", _environment_value, _platform_vr,
+        "Moves the hip holsters back from its default, in metres (-0.20 to 0.20). A blue marker shows the zone while the row is on screen." },
+    { "vr.holster_shoulder_out", _config_real, "0.0", "HALO_VR_HOLSTER_SHOULDER_OUT", _environment_value, _platform_vr,
+        "Moves the shoulder holsters out from the body's middle (each side mirrored) from its default, in metres (-0.20 to 0.20). A blue marker shows the zone while the row is on screen." },
+    { "vr.holster_shoulder_up", _config_real, "0.0", "HALO_VR_HOLSTER_SHOULDER_UP", _environment_value, _platform_vr,
+        "Moves the shoulder holsters up from its default, in metres (-0.20 to 0.20). A blue marker shows the zone while the row is on screen." },
+    { "vr.holster_shoulder_back", _config_real, "0.0", "HALO_VR_HOLSTER_SHOULDER_BACK", _environment_value, _platform_vr,
+        "Moves the shoulder holsters back from its default, in metres (-0.20 to 0.20). A blue marker shows the zone while the row is on screen." },
+    { "vr.charge_grab_radius", _config_real, "0.04", "HALO_VR_CHARGE_GRAB_RADIUS", _environment_value, _platform_vr,
+        "CHARGE GRAB: how far in metres (0.02 to 0.10) past HAND CONTACT a hand still takes a weapon's charging handle or slide during a manual reload; 0.04 keeps Test55's reach." },
+    { "vr.reload_pouch_size", _config_real, "0.16", "HALO_VR_RELOAD_POUCH_SIZE", _environment_value, _platform_vr,
+        "Reach of each magazine pouch in metres (0.08 to 0.30)." },
+	{ "vr.manual_reload", _config_boolean, "false", "HALO_VR_MANUAL_RELOAD", _environment_value, _platform_vr,
+		"Optional solo VR physical reload for supported weapons. The USE/RELOAD action drops the magazine (it never reloads automatically while this is on); take a fresh one from a hip or shoulder pouch, push it into the well, and charge the gun only if the chamber was empty. Unsupported weapons keep the stock reload." },
+	{ "vr.npc_grab_assist", _config_real, "0.05", "HALO_VR_NPC_GRAB_ASSIST", _environment_value, _platform_vr,
+		"Extra reach in metres (0 to 0.15) added to an NPC's body volumes when grabbing it. Default 0.05 adds 5 cm; 0 keeps the closer touch setting. Existing saved choices are preserved." },
+	{ "vr.npc_one_hand_heavy", _config_boolean, "false", "HALO_VR_NPC_ONE_HAND_HEAVY", _environment_value, _platform_vr,
+		"ONE-HAND HEAVIES: a living Elite or Hunter lifts with one hand (off: one hand holds it in place, the second lifts). Needs NPC GRAB." },
+	{ "vr.npc_hold_strength", _config_real, "1.5", "HALO_VR_NPC_HOLD_STRENGTH", _environment_value, _platform_vr,
+		"LIFT: how firmly what the hands lift follows them: NPCs, props, turrets and vehicles (0.75 to 2.5; 1.5 Spartan, the default, keeps props as before). Heavier species and objects still resist or need two hands." },
+	{ "vr.throw_strength", _config_real, "2.0", "HALO_VR_THROW_STRENGTH", _environment_value, _platform_vr,
+		"Multiplier on the hand's release velocity for thrown props and NPCs (0.75 to 2.0; 2.0 by default)." },
+	{ "vr.climb_grab_radius", _config_real, "0.14", "HALO_VR_CLIMB_GRAB_RADIUS", _environment_value, _platform_vr,
+		"How far in metres (0.04 to 0.20) from a solid surface a squeezed free hand still grips it for climbing; a hand pushed into a wall grips its surface." },
+	{ "vr.immersion_auto", _config_string, "\"\"", "HALO_VR_IMMERSION_AUTO", _environment_value, _platform_vr,
+		"Written by VR Settings: the settings it turned on only because an immersion feature needs them (FIST REQUIRED for grabbing and climbing, MANUAL RELOAD for MAG DEBRIS...), turned off again when no feature needs them." },
+	{ "vr.death_ragdolls", _config_boolean, "false", "HALO_VR_DEATH_RAGDOLLS", _environment_value, _platform_vr,
+		"Solo (and co-op host): NPCs killed nearby fall as physical ragdolls carrying their momentum, then rest as grabbable corpses. Uses the NPC RIG SLOTS pool." },
+    { "vr.death_ragdoll_range", _config_real, "60.0", "HALO_VR_DEATH_RAGDOLL_RANGE", _environment_value, _platform_vr,
+        "Death ragdoll distance from a local player in metres (20 to 80, default 60). The existing NPC RIG SLOTS and settling limits still apply; lower this on busy maps if needed." },
+	{ "vr.death_force", _config_string, "\"strong\"", "HALO_VR_DEATH_FORCE", _environment_value, _platform_vr,
+		"DEATH RAGDOLLS: how hard a killing burst or blast throws the body: classic (Test56's: shot bodies crumple where they stand), strong (the default: back along the shots, away from explosions with lift) or huge." },
+	{ "vr.npc_recovery", _config_real, "1.0", "HALO_VR_NPC_RECOVERY", _environment_value, _platform_vr,
+		"The longest time in seconds (0.25 to 1.0) a living NPC lies limp after being dropped or thrown before it gets up; it gets up sooner once it is at rest. Corpses never get up." },
+	{ "vr.reload_input", _config_string, "\"grip\"", "HALO_VR_RELOAD_INPUT", _environment_value, _platform_vr,
+		"Input for the free hand during optional manual reload only: grip (default) or trigger. Other interaction and firing inputs are unchanged." },
+	{ "vr.dropped_magazines", _config_boolean, "false", "HALO_VR_DROPPED_MAGAZINES", _environment_value, _platform_vr,
+		"Keep ejected supported rifle/pistol/sniper magazines as local visual debris until the map changes. Requires MANUAL RELOAD; disabling MANUAL RELOAD in the VR menu also turns this off. Cancelled reloads remove their provisional visual. No ammo, save, or network state is created." },
+	{ "vr.cooldown_shake", _config_boolean, "false", "HALO_VR_COOLDOWN_SHAKE", _environment_value, _platform_vr,
+		"Offline VR toggle: shake the currently held overheated weapon to speed its authored cooling. Automatically disabled online." },
+	{ "vr.custom_scenery_grab", _config_boolean, "false", "HALO_VR_CUSTOM_SCENERY_GRAB", _environment_value, _platform_vr,
+		"Opt in to bounded collision-box grabbing of eligible unnamed custom scenery. The VR menu also enables WORLD GRAB; scripted, animated, unsafe or malformed tags remain refused." },
+	{ "vr.custom_npc_rigs", _config_boolean, "false", "HALO_VR_CUSTOM_NPC_RIGS", _environment_value, _platform_vr,
+		"Solo-only fallback for otherwise-unprofiled human, Covenant, and combat-form actors with grounded native biped capsules and a valid authored joint graph. The VR menu also enables NPC GRAB. Existing species profiles are unchanged; flying, swarm, scripted, unsafe, and malformed rigs remain refused." },
+	{ "vr.npc_rescue", _config_boolean, "false", "HALO_VR_NPC_RESCUE", _environment_value, _platform_vr,
+		"Optional solo VR recovery for eligible live encounter NPCs falling unsupported for 10 seconds. Returns them to a clear last-grounded pose; does not respawn, revive, or override active scripts." },
+	{ "vr.npc_max_ragdolls", _config_integer, "24", "HALO_VR_NPC_MAX_RAGDOLLS", _environment_value, _platform_all | _platform_vr,
+		"Maximum simultaneously active physical NPC interaction rigs (1-16), including settling/recovery. New configurations default to 8 for performance. This controls mod interaction rigs, separately from BODY RETENTION." },
+	{ "vr.ragdoll_retention", _config_integer, "75", "HALO_VR_RAGDOLL_RETENTION", _environment_value, _platform_vr,
+		"Solo campaign only: active-garbage cleanup trigger per 16 players. 75 (default) uses a 75 trigger / 45 target; 100 uses 100 / 60; 0 keeps OpenCE's 50 / 30. Corpses share this pool with other garbage, and memory/object pressure can still collect sooner. Multiplayer always uses native thresholds." },
+    { "vr.npc_interaction", _config_boolean, "false", "HALO_VR_NPC_INTERACTION", _environment_value, _platform_vr,
+        "Optional physical interaction with supported native NPC rigs. Co-op requires host permission and negotiated compatible peers; PvP stays native." },
+	{ "vr.interaction_damage", _config_boolean, "true", "HALO_VR_INTERACTION_DAMAGE", _environment_value, _platform_all,
+        "Physical impact damage for explicitly grabbed objects only; requires optional physical interactions." },
+	{ "vr.impact_threshold", _config_real, "2.0", "HALO_VR_IMPACT_THRESHOLD", _environment_value, _platform_all,
+        "Minimum surface-normal impact speed in metres/second before physical damage." },
+	{ "vr.impact_damage_cap", _config_real, "1.0", "HALO_VR_IMPACT_DAMAGE_CAP", _environment_value, _platform_all,
+        "Maximum impact damage as a multiple of the grabbing player native melee damage." },
+	{ "vr.world_interaction", _config_boolean, "false", "HALO_VR_WORLD_INTERACTION", _environment_value, _platform_vr,
+        "Optional loose weapon, equipment and movable prop grabbing. Grip close with a free hand.\n"
+        "Two hands improve control. Co-op requires a consenting compatible host and peers; competitive multiplayer stays native." },
+	{ "vr.interaction_reach", _config_real, "0.04", "HALO_VR_INTERACTION_REACH", _environment_value, _platform_vr,
+		"Tracked palm contact-sphere radius in metres for physical object/NPC grabs and climbing (0.02 to 0.08). Grip only acquires a target while the hand collision sphere overlaps its collision model or solid surface." },
+	{ "vr.vehicle_lift", _config_boolean, "false", "HALO_VR_VEHICLE_LIFT", _environment_value, _platform_vr,
+		"Optional offline, contact-grabbed full-body lifting of unoccupied, unnamed Warthog, Ghost, Scorpion and turret vehicles; independent of WORLD GRAB. One/two hand motion controls bounded native translation and orientation; release leaves a speed-capped vehicle in native physics. No teleporting. Destroyed, occupied, parented, named/movie-star, unsupported and network vehicles remain native." },
 	{ "vr.scope_size", _config_real, "0.06", "HALO_VR_SCOPE_SIZE", _environment_value, _platform_vr,
 		"How wide the scope is, in metres." },
 	{ "vr.scope_pistol_forward", _config_real, "0.0", "HALO_VR_SCOPE_PISTOL_FORWARD", _environment_value, _platform_vr,
@@ -808,6 +1049,78 @@ static const struct config_setting config_settings[] =
 		"The sniper rifle scope moved right (in either hand) from its usual place, metres (-0.30..0.30)." },
 	{ "vr.scope_sniper_scale", _config_real, "1.0", "HALO_VR_SCOPE_SNIPER_SCALE", _environment_value, _platform_vr,
 		"The sniper rifle scope's size as a share of vr.scope_size (1 = as usual)." },
+	{ "vr.scope_rocket_launcher_forward", _config_real, "0.0", "HALO_VR_SCOPE_ROCKET_LAUNCHER_FORWARD", _environment_value, _platform_vr,
+		"SPNKR native scope forward adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_rocket_launcher_up", _config_real, "0.0", "HALO_VR_SCOPE_ROCKET_LAUNCHER_UP", _environment_value, _platform_vr,
+		"SPNKR native scope up adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_rocket_launcher_right", _config_real, "0.0", "HALO_VR_SCOPE_ROCKET_LAUNCHER_RIGHT", _environment_value, _platform_vr,
+		"SPNKR native scope right adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_rocket_launcher_scale", _config_real, "1.0", "HALO_VR_SCOPE_ROCKET_LAUNCHER_SCALE", _environment_value, _platform_vr,
+		"SPNKR native scope scale adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_other_forward", _config_real, "0.0", "HALO_VR_SCOPE_OTHER_FORWARD", _environment_value, _platform_vr,
+		"OTHER native scope forward adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_other_up", _config_real, "0.0", "HALO_VR_SCOPE_OTHER_UP", _environment_value, _platform_vr,
+		"OTHER native scope up adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_other_right", _config_real, "0.0", "HALO_VR_SCOPE_OTHER_RIGHT", _environment_value, _platform_vr,
+		"OTHER native scope right adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_other_scale", _config_real, "1.0", "HALO_VR_SCOPE_OTHER_SCALE", _environment_value, _platform_vr,
+		"OTHER native scope scale adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_plasma_pistol_forward", _config_real, "0.0", "HALO_VR_SCOPE_PLASMA_PISTOL_FORWARD", _environment_value, _platform_vr,
+		"PLASMA PISTOL native scope forward adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_plasma_pistol_up", _config_real, "0.0", "HALO_VR_SCOPE_PLASMA_PISTOL_UP", _environment_value, _platform_vr,
+		"PLASMA PISTOL native scope up adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_plasma_pistol_right", _config_real, "0.0", "HALO_VR_SCOPE_PLASMA_PISTOL_RIGHT", _environment_value, _platform_vr,
+		"PLASMA PISTOL native scope right adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_plasma_pistol_scale", _config_real, "1.0", "HALO_VR_SCOPE_PLASMA_PISTOL_SCALE", _environment_value, _platform_vr,
+		"PLASMA PISTOL native scope scale adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_assault_rifle_forward", _config_real, "0.0", "HALO_VR_SCOPE_ASSAULT_RIFLE_FORWARD", _environment_value, _platform_vr,
+		"ASSAULT RIFLE native scope forward adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_assault_rifle_up", _config_real, "0.0", "HALO_VR_SCOPE_ASSAULT_RIFLE_UP", _environment_value, _platform_vr,
+		"ASSAULT RIFLE native scope up adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_assault_rifle_right", _config_real, "0.0", "HALO_VR_SCOPE_ASSAULT_RIFLE_RIGHT", _environment_value, _platform_vr,
+		"ASSAULT RIFLE native scope right adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_assault_rifle_scale", _config_real, "1.0", "HALO_VR_SCOPE_ASSAULT_RIFLE_SCALE", _environment_value, _platform_vr,
+		"ASSAULT RIFLE native scope scale adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_plasma_rifle_forward", _config_real, "0.0", "HALO_VR_SCOPE_PLASMA_RIFLE_FORWARD", _environment_value, _platform_vr,
+		"PLASMA RIFLE native scope forward adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_plasma_rifle_up", _config_real, "0.0", "HALO_VR_SCOPE_PLASMA_RIFLE_UP", _environment_value, _platform_vr,
+		"PLASMA RIFLE native scope up adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_plasma_rifle_right", _config_real, "0.0", "HALO_VR_SCOPE_PLASMA_RIFLE_RIGHT", _environment_value, _platform_vr,
+		"PLASMA RIFLE native scope right adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_plasma_rifle_scale", _config_real, "1.0", "HALO_VR_SCOPE_PLASMA_RIFLE_SCALE", _environment_value, _platform_vr,
+		"PLASMA RIFLE native scope scale adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_shotgun_forward", _config_real, "0.0", "HALO_VR_SCOPE_SHOTGUN_FORWARD", _environment_value, _platform_vr,
+		"SHOTGUN native scope forward adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_shotgun_up", _config_real, "0.0", "HALO_VR_SCOPE_SHOTGUN_UP", _environment_value, _platform_vr,
+		"SHOTGUN native scope up adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_shotgun_right", _config_real, "0.0", "HALO_VR_SCOPE_SHOTGUN_RIGHT", _environment_value, _platform_vr,
+		"SHOTGUN native scope right adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_shotgun_scale", _config_real, "1.0", "HALO_VR_SCOPE_SHOTGUN_SCALE", _environment_value, _platform_vr,
+		"SHOTGUN native scope scale adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_needler_forward", _config_real, "0.0", "HALO_VR_SCOPE_NEEDLER_FORWARD", _environment_value, _platform_vr,
+		"NEEDLER native scope forward adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_needler_up", _config_real, "0.0", "HALO_VR_SCOPE_NEEDLER_UP", _environment_value, _platform_vr,
+		"NEEDLER native scope up adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_needler_right", _config_real, "0.0", "HALO_VR_SCOPE_NEEDLER_RIGHT", _environment_value, _platform_vr,
+		"NEEDLER native scope right adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_needler_scale", _config_real, "1.0", "HALO_VR_SCOPE_NEEDLER_SCALE", _environment_value, _platform_vr,
+		"NEEDLER native scope scale adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_fuel_rod_forward", _config_real, "0.0", "HALO_VR_SCOPE_FUEL_ROD_FORWARD", _environment_value, _platform_vr,
+		"FUEL ROD native scope forward adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_fuel_rod_up", _config_real, "0.0", "HALO_VR_SCOPE_FUEL_ROD_UP", _environment_value, _platform_vr,
+		"FUEL ROD native scope up adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_fuel_rod_right", _config_real, "0.0", "HALO_VR_SCOPE_FUEL_ROD_RIGHT", _environment_value, _platform_vr,
+		"FUEL ROD native scope right adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_fuel_rod_scale", _config_real, "1.0", "HALO_VR_SCOPE_FUEL_ROD_SCALE", _environment_value, _platform_vr,
+		"FUEL ROD native scope scale adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_flamethrower_forward", _config_real, "0.0", "HALO_VR_SCOPE_FLAMETHROWER_FORWARD", _environment_value, _platform_vr,
+		"FLAMETHROWER native scope forward adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_flamethrower_up", _config_real, "0.0", "HALO_VR_SCOPE_FLAMETHROWER_UP", _environment_value, _platform_vr,
+		"FLAMETHROWER native scope up adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_flamethrower_right", _config_real, "0.0", "HALO_VR_SCOPE_FLAMETHROWER_RIGHT", _environment_value, _platform_vr,
+		"FLAMETHROWER native scope right adjustment; applies when this weapon has zoom." },
+	{ "vr.scope_flamethrower_scale", _config_real, "1.0", "HALO_VR_SCOPE_FLAMETHROWER_SCALE", _environment_value, _platform_vr,
+		"FLAMETHROWER native scope scale adjustment; applies when this weapon has zoom." },
 	{ "vr.button_jump", _config_string, "\"a\"", "HALO_VR_BUTTON_JUMP", _environment_value, _platform_vr,
 		"Quest: the button that jumps: a, b (the gun hand's lower and upper), x, y (the other hand's),\n"
 		"right_stick, left_stick, right_stick_down (the turning stick held down), grip or none." },
@@ -833,6 +1146,9 @@ static const struct config_setting config_settings[] =
 	{ "vr.button_switch_grenade", _config_string, "\"hold\"", "HALO_VR_BUTTON_SWITCH_GRENADE", _environment_value, _platform_vr,
 		"Quest: the button that switches grenades, or \"hold\" (default): holding the grenade\n"
 		"button switches and tapping it throws. Also a, b, x, y, right_stick, left_stick, right_stick_down (the turning stick held down), grip or none." },
+	{ "vr.button_push_to_talk", _config_string, "\"none\"", "HALO_VR_BUTTON_PUSH_TO_TALK", _environment_value, _platform_vr,
+		"Quest: the controller button held to transmit when audio.voice_chat is \"push_to_talk\".\n"
+		"Default none; no microphone capture occurs until PTT is bound and held, or Open Mic is explicitly selected." },
 	{ "vr.align_left_pitch", _config_real, "0.0", "HALO_VR_ALIGN_LEFT_PITCH", _environment_value, _platform_vr,
 		"Left controller tracking correction, local pitch: degrees (-180..180). Moves hand AND gun;\n"
 		"for comfort use vr.hand_* (hand) or vr.weapon_* (gun). Zero preserves runtime tracking." },
@@ -1524,7 +1840,9 @@ static void config_report_unknown_keys(toml_datum_t table)
 			char name[128];
 
 			snprintf(name, sizeof(name), "%s.%s", table.u.tab.key[section_index], section.u.tab.key[key_index]);
-			if (config_setting_index(name) < 0)
+			/* Test40 exposed this opt-in. Test41 folds its output into vr.haptics;
+			 * keep old user config readable without logging it as a typo. */
+			if (config_setting_index(name) < 0 && strcmp(name, "vr.weight_haptics"))
 				platform_log("config.toml line %d: unknown setting %s", section.u.tab.value[key_index].lineno, name);
 		}
 	}
@@ -1705,6 +2023,9 @@ static void config_load(void)
 	for (index = 0; index < NUMBER_OF_CONFIG_SETTINGS; index++)
 	{
 		const struct config_setting *setting = &config_settings[index];
+		/* A NULL environment name means this setting is config-file only. */
+		if (!setting->environment)
+			continue;
 		const char *environment = getenv(setting->environment);
 
 		if (!environment)
@@ -1724,9 +2045,21 @@ static void config_load(void)
 	}
 }
 
+/* Names already looked up, by the address of the name: the game asks for the
+same literals every tick (parkour, NPC handling and the other VR hooks ask
+for several per biped), and a lookup otherwise compares the name against
+every setting. An entry is used only when its name still matches. */
+#define CONFIG_LOOKUP_CACHE_SIZE 512
+static struct
+{
+	const char *name;
+	long index;
+} config_lookup_cache[CONFIG_LOOKUP_CACHE_SIZE];
+
 static const struct config_value *config_value(const char *name, enum config_type type)
 {
 	static const struct config_value none = { 0, 0, 0.0, "" };
+	unsigned long slot = ((unsigned long)(size_t)name >> 2) % CONFIG_LOOKUP_CACHE_SIZE;
 	long index;
 
 	pthread_mutex_lock(&config_lock);
@@ -1735,11 +2068,26 @@ static const struct config_value *config_value(const char *name, enum config_typ
 		config_load();
 		config_loaded = 1;
 	}
+	/* (a name built in a buffer may later hold another name: the entry's
+	setting is compared with it again, and unknown names are never kept) */
+	if (name && config_lookup_cache[slot].name == name &&
+		!strcmp(config_settings[config_lookup_cache[slot].index].name, name))
+	{
+		index = config_lookup_cache[slot].index;
+	}
+	else
+	{
+		index = name ? config_setting_index(name) : -1;
+		if (index >= 0)
+		{
+			config_lookup_cache[slot].name = name;
+			config_lookup_cache[slot].index = index;
+		}
+	}
 	pthread_mutex_unlock(&config_lock);
-	index = config_setting_index(name);
 	if (index < 0 || config_settings[index].type != type)
 	{
-		platform_log("settings: no %s setting %s", type == _config_string ? "string" : "such", name);
+		platform_log("settings: no %s setting %s", type == _config_string ? "string" : "such", name ? name : "(null)");
 		return &none;
 	}
 	return &config_values[index];
@@ -1958,6 +2306,16 @@ int config_write_text(const char *name, const char *text)
 	{
 	case _config_boolean:
 		return config_write_boolean(name, !strcmp(text, "true"));
+	case _config_integer:
+	{
+		char *end, normalized[64];
+		long value;
+		errno = 0;
+		value = strtol(text, &end, 10);
+		if (errno == ERANGE || end == text || *end) return 0;
+		snprintf(normalized, sizeof(normalized), "%ld", value);
+		return config_write_typed(name, _config_integer, normalized, normalized);
+	}
 	case _config_real:
 		return config_write_real(name, atof(text));
 	case _config_string:

@@ -394,8 +394,8 @@ void _rasterizer_dynamic_vertices_unlock(
 void _rasterizer_dynamic_vertices_delete(
 	long dynamic_vertex_buffer_index);
 void *_rasterizer_decal_vertices_lock(
-	short cache_index,
-	unsigned long cache_size);
+	long cache_index,
+	long cache_size);
 long _rasterizer_decal_vertices_new(
 	long size);
 void _rasterizer_decal_vertices_delete(
@@ -560,7 +560,7 @@ void _rasterizer_environment_fog_screen_wind_get_vector(
 	real animation_time,
 	real_vector3d *wind_vector);
 void _rasterizer_environment_fog_screen_begin(
-	boolean render_fog);
+	short pass);
 void _rasterizer_screen_flash(
 	void);
 /* ---------- globals */
@@ -1889,7 +1889,11 @@ void rasterizer_debug_model_vertices(
 	short triangle_vertex_index;
 	char model_vertex_string[256];
 	char triangle_vertex_string[256];
-	struct rasterizer_debug_model_vertex debug_vertices[MAXIMUM_RASTERIZER_DEBUG_MODEL_VERTICES];
+	/* port: static. render_model calls this for each part it draws, and
+	the compiler inlines it there: on the stack, the Windows build probed
+	the 128 KB the debug display rarely uses a page at a time (_chkstk) for
+	every model drawn */
+	static struct rasterizer_debug_model_vertex debug_vertices[MAXIMUM_RASTERIZER_DEBUG_MODEL_VERTICES];
 
 	match_assert(
 		"c:\\halo\\SOURCE\\rasterizer\\rasterizer.c",

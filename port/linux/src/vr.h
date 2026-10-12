@@ -117,6 +117,7 @@ first-person weapon is posed in the hand. */
 int vr_hand_aiming(void);
 /* the hand's aiming ray from where the game's camera is (`position`): its
 origin in the world and direction; 0 unless the hand aims */
+void vr_scope_wrist_anchor(float const camera[3],float const wrist[3],float const forward[3]);
 int vr_hand_ray(const float position[3], float out_origin[3], float out_direction[3]);
 /* the camera the first-person weapon's model is posed from, for it to sit
 in the right hand; 0 unless the hand aims */
@@ -124,8 +125,26 @@ int vr_weapon_view(const float position[3], float out_position[3], float out_for
 /* a hand's grip (0 left, 1 right) in the world, seen from where the game's
 camera is (`position`); 0 when it is not tracked */
 int vr_hand_world(int hand, const float position[3], float out_position[3], float out_forward[3], float out_up[3]);
+/* Test63: a point in the torso's chest frame (metres from the eyes: x right,
+y up, z back, level; the torso turns with the head only past 35 degrees) in
+the world (vr_frame.c) */
+int vr_torso_place(const float offset[3], const float camera[3], float out[3]);
+/* Test63: whether a calibration row (vr_calibration_note_shown's mask) is on screen */
+int vr_calibration_shown(int mask);
 /* as vr_hand_world, turned by the visible hand's own orientation (vr.hand_*) */
 int vr_hand_pose(int hand, const float position[3], float out_position[3], float out_forward[3], float out_up[3]);
+
+/* Exclusive grip consumers. World poses use vr_hand_world (uncalibrated grip)
+ * or vr_hand_pose (visible-hand calibration), with the caller's camera anchor. */
+enum { VR_INTERACTION_NONE, VR_INTERACTION_RELOAD, VR_INTERACTION_VEHICLE, VR_INTERACTION_WORLD, VR_INTERACTION_PARKOUR, VR_INTERACTION_NPC, VR_INTERACTION_GRENADE, VR_INTERACTION_COUNT };
+int vr_interaction_claim(int hand, int owner);
+/* Same exclusive owner semantics for features with an alternate configured
+ * input (manual reload Grip/Trigger); does not alter normal grip consumers. */
+int vr_interaction_claim_input(int hand, int owner, int input_held);
+void vr_interaction_release(int hand, int owner);
+int vr_interaction_owner(int hand);
+int vr_interaction_grip(int hand, int *pressed, int *released);
+int vr_interaction_trigger(int hand);
 /* vr.hand_tracking: 0 body IK, 1 floating hands, 2 floating hands and arms */
 int vr_hand_tracking_mode(void);
 /* the game's world units per metre (vr.world_scale) */
@@ -169,10 +188,22 @@ game allows it (not a network game's client, whose blows the host would
 not see; the game says, from vr_render_actions); 1 while in effect */
 void vr_set_impact_melee_allowed(int allowed);
 int vr_impact_melee(void);
+int vr_physical_melee_hand_allowed(int hand);
 /* test21: physical melee is off in network games unless vr.melee_multiplayer */
 void vr_set_network_game(int network);
 /* test21: seated, either stick click sounds a driver's horn (the crouch control) */
 int vr_horn_held(void);
+/* Voice chat's remappable Quest Push-to-Talk; false when XR input is unfocused. */
+int vr_push_to_talk_held(void);
+/* Current mapped VR action/reload input for the manual reload transaction. */
+int vr_manual_reload_action_down(void);
+/* Test54: the body pouch a hand is in (1 hip, 2 shoulder, 0 none), for the
+pouches enabled (vr.reload_pouch_side picks the side) */
+int vr_reload_pouch_zone(int hand, int hip, int shoulder);
+/* Test55: while the menu shows pouch (mask 1) or holster (mask 2) place rows,
+the zones' world centres and radii for the blue calibration markers */
+void vr_calibration_note_shown(int mask);
+int vr_calibration_markers(const float camera[3], float points[][3], float radii[], int capacity);
 /* a hand's (0 left, 1 right) recent peak speed about the room, in metres a
 second, and vr.melee_speed, the speed a blow needs */
 float vr_hand_speed(int hand);
@@ -192,7 +223,9 @@ int vr_two_handed(void);
 object index, -1 none), each tick, for what the hand holds; and 1 while
 the hand holds nothing (a gun put away or let fall: the first-person gun
 is not drawn, the hand is free) */
-void vr_note_weapon(long weapon_index);
+void vr_note_weapon(long unit_index, long weapon_index, long const inventory[4]);
+long vr_take_holster_draw_request(void);
+void vr_holster_draw_request_failed(long weapon_index);
 /* test21: per-gun aim adjustment. The held gun's kind (from its tag's name,
 each tick: vr_set_gun_class, -1 none) selects vr.aim_<key>_up/_right
 (degrees, up to VR_GUN_AIM_LIMIT), which turn the shots, the reticle and
@@ -228,6 +261,8 @@ enum
 	/* test26: shows or hides the reticle (the crosshair) for the session;
 	it starts shown */
 	VR_BUTTON_ACTION_RETICLE,
+	/* Voice chat PTT; NONE by default so it does not take a gameplay button. */
+	VR_BUTTON_ACTION_PUSH_TO_TALK,
 	VR_BUTTON_ACTIONS
 };
 enum

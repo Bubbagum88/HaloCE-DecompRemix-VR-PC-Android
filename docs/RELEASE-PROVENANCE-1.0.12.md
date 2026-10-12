@@ -1,7 +1,7 @@
 # v1.0.12 release provenance
 
 Release: [Halo CE Quest VR + Android 1.0.12](https://github.com/moistman42069/HaloCE-Quest-VR/releases/tag/v1.0.12)  
-Candidate source: `D:\HaloQuest\builds\test30-20261007-v1.0.12`  
+Candidate source: `<artifacts>\test30-20261007-v1.0.12`  
 Runtime source commit: `688a63e3635efc97b93caeb62b5a07a0db1f6325` on `test30-profiles-coopname`  
 Version: 1.0.12 / code 38  
 OpenCE: Build 144 / network version 21  

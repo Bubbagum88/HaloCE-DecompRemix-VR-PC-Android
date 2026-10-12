@@ -27,7 +27,7 @@ from typing import Any, Dict, List, Optional
 
 from .linux_build import (LINUX_PROFILE, MINIUPNPC_DEFINES, MINIUPNPC_DIR, MUSL_MATH_DIR, XDK_INCLUDE,
                           compile_launcher, game_defines_and_includes, game_sources, miniupnpc_sources,
-                          musl_math_sources, pgo_mode, pgo_profile,
+                          musl_math_sources, opus_cflags, opus_sources, OPUS_DIR, pgo_mode, pgo_profile,
                           profile_use_flags, updater_defines, xdk_headers)
 from .embed_assets import hud_assets_build, hud_configure_inputs
 from .ninja_syntax import Writer
@@ -419,7 +419,21 @@ def generate_android_build(n: Writer, sln: Any) -> None:
     if profile:
         tool_implicit.append(profile)
 
+    # The guest ABI passes variadic arguments on the stack, promoted floats in
+    # double registers and leaves narrow return values unextended, so a call
+    # without a prototype is silently miscompiled (Test50/51 voice logging,
+    # the Test46+ NPC clearance radius). Every guest unit -- game, port,
+    # platform, runtime, musl, libtiff and the third-party libraries -- must
+    # declare what it calls. (In C89 an implicit declaration is only a
+    # warning, which -w silences even when promoted, so -w gives way to
+    # -Wno-everything here.)
+    prototype_flag = "-Wno-everything -Werror=implicit-function-declaration"
+
+    def strict(cflags: str) -> str:
+        return " ".join(token for token in cflags.split(" ") if token != "-w") + " " + prototype_flag
+
     def guest_object(source: Path, cflags: str, prefix: str = "") -> Path:
+        cflags = strict(cflags)
         obj = obj_dir / prefix / Path(str(source).lstrip("/")).with_suffix(".o")
         if str(source).startswith(str(BUILD)):
             obj = obj_dir / prefix / source.relative_to(BUILD).with_suffix(".o")
@@ -477,12 +491,14 @@ def generate_android_build(n: Writer, sln: Any) -> None:
 
     # the platform layer shared with Linux, and the guest runtime
     platform_cflags = " ".join([
-        guest_abi, guest_code, "-std=gnu11", "-D_GNU_SOURCE", "-DHALO_LINUX_PLATFORM_LAYER", "-w", profile_flags,
+        guest_abi, guest_code, "-std=gnu11", "-D_GNU_SOURCE", "-DHALO_LINUX_PLATFORM_LAYER", profile_flags,
         f"-include {prefix_header}", f"-include {platform_semantics_header}",
         f"-I{LINUX_DIR}/src", f"-I{LINUX_DIR}/include", f"-I{PORT_DIR}/guest/runtime",
         f"-I{PORT_DIR}/include", f"-I{TOML_DIR}", f"-I{EXPAT_DIR}", f"-I{KCP_DIR}", f"-Iport/third_party/monocypher", f"-I{ZLIB_DIR}",
         "-Isource -Isource/cseries",
-        f"-I{SDL_DIR}/include", f"-I{gl_include}", *libc_includes, f"-idirafter {XDK_INCLUDE}",
+        f"-I{SDL_DIR}/include", f"-I{gl_include}",
+        *(f"-I{OPUS_DIR / name}" for name in ("include", "celt", "silk", "silk/float")),
+        *libc_includes, f"-idirafter {XDK_INCLUDE}",
     ])
     guest_host_only = {"memory_watch.c"}  # replaced by guest_memory_watch.c
     for source in sorted((LINUX_DIR / "src").glob("*.c")):
@@ -498,6 +514,9 @@ def generate_android_build(n: Writer, sln: Any) -> None:
         objects.append(guest_object(EXPAT_DIR / name, platform_cflags))
     # internet play's reliable streams (port/third_party/kcp; p2p.c)
     objects.append(guest_object(KCP_DIR / "ikcp.c", platform_cflags))
+    # voice chat's codec (port/third_party/opus), with the guest ABI
+    for source in opus_sources():
+        objects.append(guest_object(source, " ".join([opus_cflags(guest_abi), *libc_includes])))
     for name in ("monocypher.c", "monocypher-ed25519.c"):
         objects.append(guest_object(Path("port/third_party/monocypher") / name, platform_cflags))
     # the port's zlib

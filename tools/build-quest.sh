@@ -8,12 +8,27 @@ case "$mode" in
   flat) flags=(--release) ;;
   *) echo "Usage: bash tools/build-quest.sh [vr|flat]" >&2; exit 2 ;;
 esac
+# The committed PGO profiles require LLVM 22. Keep the normal compiler
+# fallback portable, while allowing a verified profile-capable guest compiler
+# to be selected reproducibly for both APK variants.
+if [[ -n "${HALO_ANDROID_GUEST_CC:-}" ]]; then
+  flags+=(--android-guest-cc "$HALO_ANDROID_GUEST_CC")
+fi
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
 export ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-$ANDROID_HOME/ndk/27.2.12479018}"
 export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$PWD/build/gradle-cache}"
 export TMPDIR="$PWD/build/tmp"
 mkdir -p "$TMPDIR" "$GRADLE_USER_HOME"
 export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Djava.io.tmpdir=$TMPDIR"
+# Candidate APKs must bundle their own release notes, not the stable guide
+# fallback. Derive the TestNN cover from the checked-in default versionName;
+# callers can still explicitly select another candidate/release cover.
+if [[ -z "${HALO_CANDIDATE_GUIDE:-}" && -z "${HALO_RELEASE_GUIDE:-}" ]]; then
+  candidate_guide="$(sed -nE 's/.*"[^"]+-test([0-9]+)[a-z]?".*/\1/p' port/android/app/build.gradle | head -n 1)"
+  if [[ -n "$candidate_guide" ]]; then
+    export HALO_CANDIDATE_GUIDE="$candidate_guide"
+  fi
+fi
 python3 tools/generate-field-guide.py
 # Required for every candidate: includes full menu construction with the guest
 # ABI/allocator and Android input lifecycle, not just compilation or XML parsing.
@@ -22,6 +37,11 @@ python3 tools/run-quest-checks.py
 # log and play goes on, instead of halting the game: test28)
 python3 configure.py "${flags[@]}"
 ninja -j "${HALO_BUILD_JOBS:-6}" android_apk
+# The guest image just built must carry the exact Opus tables (the Test51
+# voice crash), and every guest call must match its callee's definition on
+# the arm64_32 ABI (the Test50/51 logging garbage, libtiff's lseek).
+HALO_REQUIRE_GUEST_IMAGE=1 python3 tools/test_android_asm_convert.py
+python3 tools/android_guest_abi_lint.py
 # The upstream Ninja APK edge lists native staging inputs only. Always let
 # Gradle check Java/resources too, including on launcher-only edits.
 cd port/android

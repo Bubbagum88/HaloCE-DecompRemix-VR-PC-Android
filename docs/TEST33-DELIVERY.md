@@ -21,7 +21,7 @@ Both packages are ARM64, min SDK 28, version name 1.0.14/code 43, and use the
 same project signing certificate. The VR APK carries the OpenXR loader; shared
 networking code, packaged native networking strings and app classes were
 verified equivalent between editions. The APKs and matching source/build ZIPs
-are under `D:\HaloQuest\builds\test33-20261007-v1.0.14-final-validated`.
+are under `<artifacts>\test33-20261007-v1.0.14-final-validated`.
 
 ## Checks completed
 

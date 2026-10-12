@@ -86,6 +86,8 @@ void item_accelerate(
 	long item_index,
 	real_vector3d const *acceleration,
 	boolean detonates_explosives);
+struct item_datum *item_vr_grabbable(long index);
+void item_vr_world_velocity(long item_index, real_vector3d const *linear, real_vector3d const *angular);
 
 /* ---------- globals */
 

@@ -673,6 +673,8 @@ typedef char screenshot_and_framerate_globals_size_assert[
 	sizeof(struct _screenshot_and_framerate_globals) == 0x38B ? 1 : -1];
 
 void network_test_update(boolean main_menu_loaded, real seconds);
+/* OpenCE Build167 voice chat's frame/session pump (port/linux/game). */
+void network_voice_update(void);
 
 /* ---------- prototypes */
 
@@ -3443,6 +3445,8 @@ void main_loop(
 
 			/* automated system link tests (port/linux/game/network_test.c) */
 			network_test_update(main_globals.main_menu_scenario_loaded, main_globals.seconds_elapsed);
+			/* OpenCE voice chat, both in the lobby and during network games. */
+			network_voice_update();
 			network_campaign_session_update(main_globals.main_menu_scenario_loaded, main_globals.seconds_elapsed);
 			network_pvp_session_update(main_globals.main_menu_scenario_loaded, main_globals.seconds_elapsed);
 			connection = main_globals.connection;

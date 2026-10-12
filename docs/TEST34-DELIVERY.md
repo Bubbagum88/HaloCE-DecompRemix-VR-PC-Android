@@ -6,9 +6,9 @@
 - Runtime source commit: `43872afb4b6afda491d1ab414b9378ac70b4aeca`.
 - OpenCE baseline: official Build 147 tag, commit
   `34e2d4fdd884d503e9e441155404612473591f8e`, network 23.
-- Package output: `D:\HaloQuest\builds\test34-20261007-v1.0.15-scope-diagnostics\package`.
+- Package output: `<artifacts>\test34-20261007-v1.0.15-scope-diagnostics\package`.
 - Candidate input APKs are in
-  `D:\HaloQuest\builds\test34-20261007-v1.0.15-scope-diagnostics`.
+  `<artifacts>\test34-20261007-v1.0.15-scope-diagnostics`.
 - Public GitHub release: none. Existing v1.0.12 remains unchanged.
 
 ## APKs

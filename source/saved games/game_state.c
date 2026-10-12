@@ -106,6 +106,17 @@ symbols in this file:
 #include "scenario.h"
 #include "main.h"
 #include "objects.h"
+#include "vr_npc_interaction.h"
+#include "vr_world_interaction.h"
+#include "vr_interaction_impact.h"
+#include "vr_world_props.h"
+#ifdef HALO_VR
+#include "vr_manual_reload.h"
+#include "vr_npc_rescue.h"
+#include "vr_parkour.h"
+#include "vr_extra_interaction.h"
+#include "halo_vr.h"
+#endif
 #include "game_sound.h"
 #include "sound_manager.h"
 #include "observer.h"
@@ -222,6 +233,11 @@ static void game_state_call_before_save_procs(
 	game_state_before_save_proc *proc = before_save_procs;
 	long i;
 
+	vr_npc_interaction_cancel();
+	vr_world_interaction_remote_reset();
+	vr_interaction_impact_reset();
+	vr_world_props_freeze();
+
 	for (i =NUMBEROF(before_save_procs); i>0; i--, proc++)
 	{
 		(*proc)();
@@ -235,7 +251,25 @@ static void game_state_call_before_load_procs(
 {
 	game_state_before_load_proc *proc = before_load_procs;
 	long i;
+	vr_npc_interaction_cancel();
+	vr_world_interaction_remote_reset();
+	vr_interaction_impact_reset();
+	vr_world_props_reset();
 
+#ifdef HALO_VR
+	/* Release transient interaction ownership while old IDs are still valid. */
+	vr_manual_reload_reset();
+	/* Detached magazine visuals belong to the loaded map, not the restored
+	 * checkpoint. Keep them, but forget collision owner datums that may be
+	 * reassigned by the restore. New-map/dispose hooks still clear the pool. */
+	vr_manual_reload_debris_prepare_for_state_restore();
+	vr_npc_rescue_reset();
+	vr_parkour_reset();
+	vr_extra_reset();
+	vr_world_interaction_reset();
+	vr_render_reset_vehicle_view();
+	vr_render_reset_contacts();
+#endif
 	for (i =NUMBEROF(before_load_procs); i>0; i--, proc++)
 	{
 		(*proc)();
@@ -249,7 +283,20 @@ static void game_state_call_after_load_procs(
 {
 	game_state_after_load_proc *proc = after_load_procs;
 	long i;
+	vr_npc_interaction_reset();
+	vr_world_interaction_remote_reset();
+	vr_interaction_impact_reset();
+	vr_world_props_reset();
 
+#ifdef HALO_VR
+	/* Restored datum IDs may match pre-restore IDs; clear transient ownership
+	 * before any callback can consume saved objects or touch hand state. */
+	vr_world_interaction_reset();
+	vr_manual_reload_reset();
+	vr_npc_rescue_reset();
+	vr_parkour_reset();
+	vr_extra_reset();
+#endif
 	for (i =NUMBEROF(after_load_procs); i>0; i--, proc++)
 	{
 		(*proc)();

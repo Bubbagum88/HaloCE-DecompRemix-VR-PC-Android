@@ -53,6 +53,21 @@ OBJECTS.C
 #include "sound/game_sound.h"
 #include "structures/structure_bsp_definitions.h"
 #include "units/units.h"
+#include "vr_world_interaction.h"
+#include "vr_npc_interaction.h"
+#include "vr_npc_rescue.h"
+#include "network_interaction.h"
+#include "vr_interaction_impact.h"
+#include "vr_world_props.h"
+#ifdef HALO_VR
+#include "vr_manual_reload.h"
+#include "vr_extra_interaction.h"
+#endif
+#ifdef HALO_VR
+#include "halo_vr.h"
+#include "../../port/linux/src/port_config.h"
+#include "active_garbage_limit_math.h"
+#endif
 
 /* ---------- constants */
 
@@ -558,7 +573,8 @@ void object_pvs_set_camera_point(
 void objects_port_set_activating_cluster(
 	short cluster_index)
 {
-	if (cluster_index == NONE || cluster_index >= global_structure_bsp_get()->clusters.count)
+	/* (a co-op host sends it, so any index outside the BSP's clusters is none) */
+	if (cluster_index < 0 || cluster_index >= global_structure_bsp_get()->clusters.count)
 	{
 		object_globals->pvs_activation_type = _pvs_activation_normal;
 		return;
@@ -1062,6 +1078,18 @@ void objects_initialize(
 void objects_initialize_for_new_map(
 	void)
 {
+	vr_world_interaction_reset();
+	vr_world_interaction_remote_reset();
+	vr_interaction_impact_reset();
+	vr_world_props_reset();
+	vr_npc_interaction_reset();
+	vr_npc_rescue_reset();
+#ifdef HALO_VR
+	/* Detached magazine render instances hold map-local model and weapon IDs. */
+	vr_manual_reload_debris_reset();
+	vr_extra_reset(); /* held grenades/combat handles never survive map identity reuse */
+	vr_render_reset_contacts();
+#endif
 	damage_initialize_for_new_map();
 	widgets_initialize_for_new_map();
 	object_types_initialize_for_new_map();
@@ -1087,6 +1115,18 @@ void objects_initialize_for_new_map(
 void objects_dispose_from_old_map(
 	void)
 {
+	vr_world_interaction_reset();
+	vr_world_interaction_remote_reset();
+	vr_interaction_impact_reset();
+	vr_world_props_reset();
+	vr_npc_interaction_reset();
+	vr_npc_rescue_reset();
+#ifdef HALO_VR
+	/* Drop map-local model/object references before the old cache is torn down. */
+	vr_manual_reload_debris_reset();
+	vr_extra_reset(); /* held grenades/combat handles never survive map identity reuse */
+	vr_render_reset_contacts();
+#endif
 	damage_dispose_from_old_map();
 	widgets_dispose_from_old_map();
 	object_types_dispose_from_old_map();
@@ -3860,6 +3900,8 @@ static boolean object_update(
 			object_compute_node_matrices(object_index);
 		}
 
+		vr_npc_interaction_palette(object_index);
+		network_interaction_palette(object_index);
 		object_compute_function_values(object_index);
 		object_compute_change_colors(object_index);
 
@@ -4083,6 +4125,12 @@ static long active_garbage_limit(
 	long limit_per_16_players)
 {
 	long player_count = player_data ? player_data->actual_count : 0;
+	#ifdef HALO_VR
+	boolean local_solo = game_connection() == _game_connection_local && !game_engine_running();
+	boolean target_limit = limit_per_16_players == GARBAGE_LIMIT_ACTIVE_GARBAGE_TARGET;
+	limit_per_16_players = objects_vr_active_garbage_limit(limit_per_16_players,
+		config_integer("vr.ragdoll_retention"), target_limit, local_solo);
+	#endif
 
 	return limit_per_16_players * MAX(16, player_count) / 16;
 }
@@ -4141,6 +4189,14 @@ void objects_garbage_collection(
 		short garbage_object_count = 0;
 		short collected_count = 0;
 		boolean should_collect = FALSE;
+		long forced_keep = 0;
+
+#ifdef HALO_VR
+		/* (BODY RETENTION, solo: a script's forced collection keeps the
+		newest bodies: active_garbage_limit_math.h) */
+		forced_keep = objects_vr_forced_garbage_keep(config_integer("vr.ragdoll_retention"),
+			game_connection() == _game_connection_local && !game_engine_running());
+#endif
 
 		{
 			long garbage_object_indices[MAXIMUM_OBJECTS_PER_MAP];
@@ -4183,7 +4239,9 @@ void objects_garbage_collection(
 				switch (garbage_collect_mode_wide)
 				{
 				case _garbage_collect_everything:
-					should_collect = FALSE;
+					/* (garbage_object_count: those not yet considered, the
+					oldest considered first) */
+					should_collect = garbage_object_count <= forced_keep;
 					break;
 				case _garbage_collect_active_objects:
 					should_collect = object_globals->active_garbage_object_count<=
@@ -4451,6 +4509,14 @@ void objects_update(
 	profile_enter(section);
 
 	object_globals->active_garbage_object_count = 0;
+	vr_world_interaction_tick();
+	vr_world_interaction_remote_tick();
+	vr_world_props_tick();
+	vr_npc_interaction_tick();
+	vr_npc_rescue_tick();
+#ifdef HALO_VR
+	vr_manual_reload_debris_tick();
+#endif
 	
 	last_active_cluster_bits = object_globals->last_active_cluster_bits;
 	active_cluster_bits = object_globals->active_cluster_bits;
@@ -4535,6 +4601,8 @@ void objects_update(
 		}
 		++i;
 	}
+
+	vr_interaction_impact_flush();
 
 	object_header = (struct object_header_datum *)object_header_data->data;
 	for (i = 0; i<object_header_data->count; ++object_header)
@@ -4678,6 +4746,23 @@ static void object_name_list_new(
 			TAG_BLOCK_GET_ELEMENT(&global_scenario_get()->object_names, name_index, struct scenario_object_name)->name);
 	}
 
+	return;
+}
+
+/* the name is free: deleting the vehicle that held it cleared the slot.
+A name something else still holds stays with that object. */
+void object_claim_scenario_name(
+	long object_index,
+	short name_index)
+{
+	if (object_index == NONE ||
+		!VALID_INDEX(name_index, MIN(global_scenario_get()->object_names.count, MAXIMUM_OBJECT_NAMES_PER_SCENARIO)) ||
+		object_name_list[name_index] != NONE)
+	{
+		return;
+	}
+
+	object_name_list_new(object_index, name_index);
 	return;
 }
 

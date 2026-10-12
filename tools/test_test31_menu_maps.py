@@ -90,6 +90,26 @@ static void find_files_start(int flags,struct file_reference *dir){(void)flags;(
 static int find_files_next(struct file_reference *r,void *unused){
  (void)unused;if(cursor==entry_count)return 0;r->index=cursor++;return 1;
 }
+/* Test53 (OpenCE a845bbf5): the listing has a handle of its own */
+typedef struct {unsigned long dwFileAttributes;char cFileName[260];} WIN32_FIND_DATAA;
+typedef void *HANDLE;
+#define INVALID_HANDLE_VALUE ((HANDLE)-1)
+#define FILE_ATTRIBUTE_DIRECTORY 0x10
+static int find_open;
+static int find_fill(WIN32_FIND_DATAA *d){
+ if(cursor==entry_count)return 0;
+ memset(d,0,sizeof(*d));
+ snprintf(d->cFileName,sizeof(d->cFileName),entries[cursor].extension[0]?"%s.%s":"%s",entries[cursor].name,entries[cursor].extension);
+ cursor++;return 1;
+}
+static HANDLE FindFirstFileA(const char *pattern,WIN32_FIND_DATAA *d){
+ char expected[512];snprintf(expected,sizeof(expected),"%s*.*",directory);assert(!strcmp(pattern,expected));
+ cursor=0;scan_count++;
+ if(!find_fill(d))return INVALID_HANDLE_VALUE;
+ find_open++;return (HANDLE)&find_open;
+}
+static int FindNextFileA(HANDLE h,WIN32_FIND_DATAA *d){assert(h==(HANDLE)&find_open);return find_fill(d);}
+static int CloseHandle(HANDLE h){assert(h==(HANDLE)&find_open);find_open--;return 1;}
 static void file_reference_get_name(struct file_reference *r,int flags,char *out){
  strcpy(out,flags==FLAG(_name_filename_bit)?entries[r->index].name:entries[r->index].extension);
 }
@@ -150,6 +170,7 @@ int main(void){
  assert(custom_edition_maps_level_display_index(2)==0x4000);
  for(int n=0;n<100;n++)custom_edition_maps_level_list(stock,2,&total);
  assert(scan_count==1); /* no directory or thumbnail churn per menu frame */
+ assert(find_open==0); /* the listing closes its own find handle */
  assert(custom_edition_maps_picture(NONE,NULL)==NULL);
  frame=0x6001;assert(custom_edition_maps_picture(1,&frame)==NULL&&frame==13);
 

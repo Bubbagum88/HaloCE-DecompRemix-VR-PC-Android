@@ -64,13 +64,13 @@ bipeds = read('source/units/bipeds.c', 'latin-1')
 # (test29 follows OpenCE build 144, network 21: test_test29 checks it and
 # its files; the build 138 checks below hold for a network 20 tree)
 network = int(re.search(r'#define HALO_PORT_NETWORK_VERSION (\d+)\b', limits).group(1))
-assert network == 24
+assert network == 28
 assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MINIMUM 11\b', limits)
-assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MAXIMUM 24\b', limits)
-assert re.search(r'#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 23\b', limits)
+assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MAXIMUM 28\b', limits)
+assert re.search(r'#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15\b', limits)
 assert re.search(r'#define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23\b', limits)
 assert '#define HALO_PORT_ADVERTISED_IN_PROGRESS_FLAG 0x02' in limits, "OpenCE's in-progress advertisement"
-print('PASS: host protocol %d; compatible PvP client range 11..24; campaign and CE maps require 23+; in-progress advertisement' % network)
+print('PASS: host protocol %d; compatible PvP client range 11..28; campaign15+ and CE maps23+; in-progress advertisement' % network)
 
 # --- 2. upstream's co-op and lobby modules byte for byte
 UPSTREAM_138 = [
@@ -114,11 +114,13 @@ expected = {'player_prediction': 1, 'unit_states': 2, 'player_statistics': 3, 'i
             'actor_states': 64, 'structure_bsp': 65, 'coop_presentation': 66, 'coop_sounds_retired': 67,
             'coop_device_groups': 68, 'coop_object_names': 69, 'coop_skip_vote': 70, 'coop_events': 71,
             'coop_object_transforms': 72, 'actor_damage': 73, 'coop_object_looks': 74, 'damage_animations': 75,
-            'coop_screen_effect': 76, 'coop_device_states': 77, 'NUMBER': 78}
+            'coop_screen_effect': 76, 'coop_device_states': 77, 'voice_up': 80,
+            'voice_down': 81, 'voice_config': 82, 'map_share_request': 83, 'map_share_offer': 84,
+            'map_share_sources': 85, 'map_share_progress': 86, 'NUMBER': 87}  # Test59: OpenCE network 27's map sharing
 checks = ''.join('\tassert(_distributed_message_%s == %d);\n' % (k, v) for k, v in expected.items() if k != 'NUMBER')
 run('message_numbers', '#include <assert.h>\n#include <stdio.h>\n' + enum + '\nint main(void){\n' + checks +
-    '\tassert(NUMBER_OF_DISTRIBUTED_MESSAGES == 78);\n\tputs("PASS: message numbers as OpenCE build 138\'s (1-19, 64-77);'
-    ' this app\'s VR avatars at 37 and 38, a range OpenCE leaves free");\n}\n')
+    '\tassert(NUMBER_OF_DISTRIBUTED_MESSAGES == 87);\n\tassert(_distributed_message_voice_up == 80 && _distributed_message_voice_down == 81 && _distributed_message_voice_config == 82);\n'
+    '\tputs("PASS: OpenCE message IDs retained, voice chat uses upstream 80-82, map sharing 83-86, and the existing VR avatar IDs remain unchanged");\n}\n')
 
 # --- 4. the receive path: OpenCE's (every co-op kind decoded), the VR avatars first
 assert 'header.type > _distributed_message_pings &&' not in distributed_c, 'no filter drops OpenCE\'s co-op kinds'

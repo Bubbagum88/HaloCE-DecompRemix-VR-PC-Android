@@ -19,7 +19,8 @@ rest as the host has it:
   (player_queues_new.c).
 - Every tick, a client sends the host where its own players' units are (it
   predicts them from its own input); the host takes that as they are,
-  within a tolerance, as later Halo engines do, at its next tick.
+  within a tolerance, as later Halo engines do, at its next tick (on a
+  moving elevator, only across: its own elevator takes them up and down).
 - Every tick, the host sends every client every player's unit: which unit
   the player has, alive or not, the seat it rides, its shields and health
   (down, recharging, the damage they show), and where it is (dead: who
@@ -54,6 +55,7 @@ machine (their datum identifiers need not be).
 #include "cseries.h"
 #include "cseries/errors.h"
 #include "cache/cache_files.h"
+#include "devices/devices.h"
 #include "models/model_animation_definitions.h"
 #include "game/game.h"
 #include "game/game_globals.h"
@@ -73,9 +75,12 @@ machine (their datum identifiers need not be).
 #include "network_coop.h"
 /* port: the VR avatars (this app's) */
 #include "network_vr_pose.h"
+#include "network_interaction.h"
 #include "network_distributed.h"
+#include "network_voice.h"
 
 #include <limits.h>
+#include <string.h>
 #include <stdio.h>
 #include <time.h>
 #include <math.h>
@@ -2002,8 +2007,31 @@ static boolean distributed_on_foot_move_valid(
 	return dx * dx + dy * dy + rise * rise <= reach * reach && -dz <= fall_reach;
 }
 
+/* (the host) whether a unit rides an elevator that is moving (bipeds.c's
+elevator, kept a moment after the unit leaves its floor, as in a jump) */
+static boolean distributed_riding_moving_elevator(
+	long unit_index)
+{
+	struct biped_datum *biped = (struct biped_datum *)object_try_and_get_and_verify_type(unit_index,
+		_object_mask_biped);
+	struct device_datum *elevator;
+
+	if (!biped || biped->biped.elevator_object_index == NONE)
+		return FALSE;
+	elevator = (struct device_datum *)object_try_and_get_and_verify_type(biped->biped.elevator_object_index,
+		_object_mask_device);
+	return elevator && elevator->device.position_velocity != 0.0f;
+}
+
 /* (the host) a client's player's prediction of its unit on foot, taken
-where it says within a tolerance (distributed_apply_predictions) */
+where it says within a tolerance (distributed_apply_predictions). Riding a
+moving elevator, only across: a client's elevator follows the host's
+(network_coop.c), behind it by the time the host's word takes to come, and
+the client's prediction a round trip behind the host's elevator when it
+comes. Taken up and down too, it would put the host's unit under its own
+elevator's floor going up, to fall through it, and the client's after it
+(distributed_correct_own_unit); each machine's elevator carries its own
+unit up and down as it moves, and they meet where it stops. */
 static void distributed_take_prediction(
 	short player_index,
 	long unit_index,
@@ -2012,10 +2040,14 @@ static void distributed_take_prediction(
 	struct distributed_unit_state const *state = &distributed_predictions[player_index].state;
 	struct object_datum *object = object_get(unit_index);
 	long now = game_time_get();
-	real dx = state->position.x - object->object.position.x;
-	real dy = state->position.y - object->object.position.y;
-	real dz = state->position.z - object->object.position.z;
+	real_point3d position = state->position;
+	real dx, dy, dz;
 
+	if (distributed_riding_moving_elevator(unit_index))
+		position.z = object->object.position.z;
+	dx = position.x - object->object.position.x;
+	dy = position.y - object->object.position.y;
+	dz = position.z - object->object.position.z;
 	if (!(dx * dx + dy * dy + dz * dz <= HOST_ACCEPT_TOLERANCE * HOST_ACCEPT_TOLERANCE))
 		return;
 	if (distributed_accepted[player_index].valid)
@@ -2035,7 +2067,7 @@ static void distributed_take_prediction(
 			distributed_host_speeds[player_index].ground_time = now;
 		}
 		else if (ticks <= 0 || !distributed_on_foot_move_valid(bound, &distributed_accepted[player_index].position,
-			&state->position, ticks))
+			&position, ticks))
 		{
 			return;
 		}
@@ -2043,14 +2075,14 @@ static void distributed_take_prediction(
 	/* (no higher above where the host last had it on the ground than a
 	jump, or a throw its ticks gave it, takes it, and in the air falling:
 	past that the host's copy falls as its ticks have it) */
-	if (!(state->position.z - distributed_host_speeds[player_index].ground_height <=
+	if (!(position.z - distributed_host_speeds[player_index].ground_height <=
 		distributed_on_foot_ceiling(player_index, bound)))
 	{
 		return;
 	}
 	/* (the client told which of its ticks the host has it at) */
-	if (distributed_apply_state(unit_index, state, &state->position, 0.0f, HOST_BLEND_DISTANCE, bound->speed,
-		distributed_on_foot_fall_speed(bound, state->position.z)))
+	if (distributed_apply_state(unit_index, state, &position, 0.0f, HOST_BLEND_DISTANCE, bound->speed,
+		distributed_on_foot_fall_speed(bound, position.z)))
 	{
 		distributed_predictions[player_index].taken_time = distributed_predictions[player_index].time;
 		distributed_predictions[player_index].taken_host_time = now;
@@ -2062,7 +2094,7 @@ static void distributed_take_prediction(
 			distributed_accepted[player_index].unit_index = unit_index;
 			distributed_accepted[player_index].time = distributed_predictions[player_index].time;
 			distributed_accepted[player_index].host_time = now;
-			distributed_accepted[player_index].position = state->position;
+			distributed_accepted[player_index].position = position;
 		}
 		distributed_accepted[player_index].taken_host_time = now;
 		distributed_accepted[player_index].taken_host_position = object->object.position;
@@ -2131,6 +2163,22 @@ static void distributed_apply_predictions(
 			if (object->object.position.z > distributed_host_speeds[player_index].top_height)
 				distributed_host_speeds[player_index].top_height = object->object.position.z;
 		}
+	}
+}
+
+/* (a client) the host's teleporter moved a remote player's unit. Remember
+ * its landing pad so the local teleporter tick does not immediately send the
+ * remote player back to the pad they left. */
+static void distributed_note_host_teleporter_correction(
+	struct player_datum *player,
+	long unit_index,
+	real_point3d const *before)
+{
+	real_point3d const *after = &object_get(unit_index)->object.position;
+	if (distance_squared3d(before, after) > 1.0f)
+	{
+		player->teleporter_index = find_netgame_flag(after, 1.0f, 0.0f,
+			_netgame_flag_teleporter_source, NONE);
 	}
 }
 
@@ -2247,6 +2295,8 @@ static void distributed_handle_unit_state(
 	if (TEST_FLAG(state->flags, _distributed_unit_placed_bit) &&
 		object_get(unit_index)->object.parent_object_index == NONE)
 	{
+		real_point3d before = object_get(unit_index)->object.position;
+
 		if (local)
 			distributed_correct_own_unit(player, unit_index, state);
 		else
@@ -2254,6 +2304,7 @@ static void distributed_handle_unit_state(
 			distributed_apply_state(unit_index, state, &state->position, REMOTE_CORRECTION_TOLERANCE,
 				REMOTE_BLEND_DISTANCE, 0.0f, 0.0f);
 		}
+		distributed_note_host_teleporter_correction(player, unit_index, &before);
 	}
 }
 
@@ -3302,6 +3353,7 @@ void network_distributed_new_game(
 	network_actors_new_game();
 	network_coop_new_game();
 	network_vr_pose_reset();
+	network_interaction_reset();
 }
 
 /* (the retired CE01/CE02 campaign's lifecycle, network_campaign_lifecycle.c,
@@ -3383,6 +3435,7 @@ void network_distributed_tick(
 	}
 	/* port: the VR avatars' poses, to machines that draw them */
 	network_vr_pose_tick();
+	network_interaction_tick();
 	distributed_batches_flush();
 	distributed_machines.in_tick = FALSE;
 	distributed_machines.valid = FALSE;
@@ -3870,6 +3923,100 @@ not overtaken by the newer damage sent with the ticks since
 (distributed_message_stale) */
 static boolean distributed_handling_batch;
 
+/* ---------- map sharing (OpenCE network 27)
+
+An OpenCE client of network 27 or newer joining a game on a Custom Edition
+map it lacks asks the host for the map (OpenCE's map_share.c). This build
+shares no maps: its host answers as an OpenCE host with network.map_share off
+does, and the client says "The host does not share its maps." instead of
+waiting for an answer. A client of this build never asks, and drops the
+host's messages. The layouts are OpenCE's. */
+
+#define MAP_SHARE_LEVEL_NAME_BYTES 64
+
+enum
+{
+	/* OpenCE's _offer_off: the host does not share maps */
+	_map_share_offer_off = 1,
+	/* OpenCE's _offer_in_progress_bit: the game is under way */
+	_map_share_offer_in_progress_bit = 0,
+};
+
+struct distributed_map_share_request
+{
+	char level_name[MAP_SHARE_LEVEL_NAME_BYTES];
+	unsigned long version;
+	/* the files the client lacks: a bit each */
+	byte wanted;
+	byte pad[3];
+};
+
+struct distributed_map_share_offer
+{
+	char level_name[MAP_SHARE_LEVEL_NAME_BYTES];
+	byte result;
+	byte file_count;
+	byte flags;
+	byte pad;
+};
+
+typedef char distributed_map_share_request_size_assert[sizeof(struct distributed_map_share_request) == 72 ? 1 : -1];
+typedef char distributed_map_share_offer_size_assert[sizeof(struct distributed_map_share_offer) == 68 ? 1 : -1];
+
+boolean map_share_handles_message(
+	word const *message,
+	word size)
+{
+	struct distributed_message_header header;
+
+	if (size < sizeof(header))
+		return FALSE;
+	csmemcpy(&header, message, sizeof(header));
+	return header.type >= _distributed_message_map_share_request &&
+		header.type <= _distributed_message_map_share_progress;
+}
+
+/* a message of map sharing: a request (from a machine of this host's game,
+over its connection alone: a datagram can be sent as from anyone) is
+answered; the rest are dropped */
+void map_share_handle_message(
+	long machine_index,
+	word const *message,
+	word size,
+	boolean from_stream)
+{
+	struct distributed_message_header header;
+	struct distributed_map_share_request request;
+	struct
+	{
+		struct distributed_message_header header;
+		struct distributed_map_share_offer offer;
+	} answer;
+
+	if (!map_share_handles_message(message, size) || !from_stream || machine_index < 0 ||
+		machine_index >= HALO_PORT_MAXIMUM_NETWORK_MACHINES || !global_network_game_server_get())
+	{
+		return;
+	}
+	csmemcpy(&header, message, sizeof(header));
+	if (header.type != _distributed_message_map_share_request || size != sizeof(header) + sizeof(request))
+		return;
+	csmemcpy(&request, (byte const *)message + sizeof(header), sizeof(request));
+	if (!memchr(request.level_name, 0, sizeof(request.level_name)) || !request.level_name[0])
+		return;
+	csmemset(&answer, 0, sizeof(answer));
+	answer.header.type = _distributed_message_map_share_offer;
+	answer.header.count = 1;
+	answer.header.game_time = game_in_progress() ? game_time_get() : 0;
+	build_message_header(&answer.header.header, (word)sizeof(answer), 2, 0);
+	csmemcpy(answer.offer.level_name, request.level_name, sizeof(answer.offer.level_name));
+	answer.offer.result = _map_share_offer_off;
+	answer.offer.flags = game_in_progress() ? FLAG(_map_share_offer_in_progress_bit) : 0;
+	network_distributed_server_send_to_machine_reliably(machine_index, &answer, (word)sizeof(answer));
+	error(_error_silent, "map sharing: machine #%ld asked for %s; this host shares no maps",
+		machine_index, request.level_name);
+}
+
 /* a message of the distributed kind; machine_index is the sender's on the
 host, NONE on a client */
 void network_distributed_handle_message(
@@ -3882,6 +4029,19 @@ void network_distributed_handle_message(
 	short index;
 	word entry_size;
 
+	/* (voice chat's, in the lobby too: network_voice.c) */
+	if (network_voice_handles_message(message, size))
+	{
+		network_voice_handle_message(machine_index, message, size);
+		return;
+	}
+	/* (map sharing's, in the lobby too, over the sender's connection alone:
+	above) */
+	if (map_share_handles_message(message, size))
+	{
+		map_share_handle_message(machine_index, message, size, distributed_handling_stream_message);
+		return;
+	}
 	/* (none between games: loading, or in the menus) */
 	if (size < sizeof(header) || !game_in_progress())
 		return;
@@ -3920,6 +4080,7 @@ void network_distributed_handle_message(
 	checks both directions and never touches the simulation */
 	if (header.type == _distributed_message_vr_pose || header.type == _distributed_message_vr_capability)
 	{
+		network_interaction_receive(machine_index, header.type, entries, header.count, size - sizeof(header));
 		network_vr_pose_receive(machine_index, header.type, entries, header.count, size - sizeof(header));
 		return;
 	}
@@ -4032,7 +4193,7 @@ void network_distributed_handle_message(
 		distributed_handle_structure_bsp((struct distributed_structure_bsp const *)entries);
 		break;
 	case _distributed_message_coop_presentation:
-		network_coop_handle_presentation(entries, header.game_time);
+		network_coop_handle_presentation(entries, header.game_time, size - sizeof(header));
 		break;
 	case _distributed_message_coop_events:
 		network_coop_handle_events(entries, header.count);

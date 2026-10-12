@@ -46,6 +46,7 @@ unsigned int host_memory_watch_generation(unsigned int address, unsigned int siz
 unsigned int host_memory_watch_serial(void);
 void host_memory_watch_prepare_write(unsigned int address, unsigned int size);
 void host_memory_watch_forget(unsigned int address, unsigned int size);
+void host_memory_watch_begin_frame(void);
 
 /* ---------- SDL (guest/runtime/guest_sdl.c)
 
@@ -78,6 +79,7 @@ int host_sdl_show_simple_message_box(unsigned int flags, const char *title, cons
 int host_sdl_get_gamepads(unsigned int *ids, int capacity);
 unsigned int host_sdl_open_gamepad(unsigned int id);
 unsigned int host_sdl_gamepad_from_id(unsigned int id);
+void host_sdl_close_gamepad(unsigned int gamepad);
 int host_sdl_gamepad_axis(unsigned int gamepad, int axis);
 int host_sdl_gamepad_button(unsigned int gamepad, int button);
 int host_sdl_gamepad_type(unsigned int gamepad);
@@ -89,6 +91,13 @@ called on the audio thread */
 unsigned int host_sdl_open_audio_stream(unsigned int device, const void *spec, unsigned int callback, unsigned int userdata);
 int host_sdl_put_audio_stream_data(unsigned int stream, const void *data, int length);
 int host_sdl_resume_audio_stream_device(unsigned int stream);
+/* (voice chat's microphone, a stream without a callback) */
+int host_sdl_get_audio_stream_data(unsigned int stream, void *data, int length);
+int host_sdl_get_audio_stream_available(unsigned int stream);
+void host_sdl_destroy_audio_stream(unsigned int stream);
+/* asynchronously request Android microphone permission; -1 denied/request
+failure, 0 pending, 1 granted */
+int host_sdl_request_microphone_permission(void);
 
 /* ---------- OpenGL ES */
 

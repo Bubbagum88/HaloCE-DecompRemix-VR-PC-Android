@@ -42,7 +42,14 @@ static float comfort_stick(float x,float y){(void)x;(void)y;return 0.0f;}
 static void comfort_update(double seconds){(void)seconds;}
 /* test25: the vehicle report's diagnostics (test_test25) */
 static void aim_diagnostics(float g,int s,int h,const float *b,float p){(void)g;(void)s;(void)h;(void)b;(void)p;}
-static struct {int valid;float yaw,pitch;} tutorial_look;
+static struct {int valid,source;float yaw,pitch;} tutorial_look;
+static const char *test_map_name="b30";static int calibration_ray_valid;
+static float calibration_origin[3],calibration_direction[3];
+static int vr_script_calibration_reticle_ray(float origin[3],float direction[3]){
+ if(strcmp(test_map_name,"a10"))return 0;
+ if(!calibration_ray_valid)return -1;
+ memcpy(origin,calibration_origin,sizeof(calibration_origin));memcpy(direction,calibration_direction,sizeof(calibration_direction));return 1;
+}
 '''
 helpers=''.join(fn(s,n) for n in ['rotate','to_halo','head_forward','wrap_angle','vr_aim','vr_script_head_valid','vr_head_look_reset','vr_head_look_actions'])
 run('aim-tutorial',pre+helpers+r'''
@@ -50,7 +57,7 @@ static void reset(void){
  memset(&vr,0,sizeof(vr));vr.active=vr.stereo_enabled=vr.hand_aim=1;vr.frame.flags=7;
  vr.frame.head.orientation[3]=1;vr.frame.aim[1].orientation[3]=1;
  vr.frame.aim[0].orientation[1]=sinf(.4f);vr.frame.aim[0].orientation[3]=cosf(.4f);
- vr.frame.hand_valid[0]=vr.frame.hand_valid[1]=2;vr_head_look_reset();
+ vr.frame.hand_valid[0]=vr.frame.hand_valid[1]=2;test_map_name="b30";calibration_ray_valid=0;vr_head_look_reset();
 }
 int main(void){
  float f[3],heading=0;reset();
@@ -72,7 +79,26 @@ int main(void){
  vr.frame.flags=0;assert(!vr_head_look_actions());vr.frame.flags=7;assert(!vr_head_look_actions());
  vr.frame.flags|=8;assert(!vr_head_look_actions());vr.frame.flags=7;
  vr.frame.head.orientation[0]=NAN;assert(!vr_head_look_actions());
- puts("PASS: independent right/left/head/stick, lost tracking, weapon mode, slow head look, no controller false positives, recenter/focus/invalid reset");
+ /* In A10, a fresh reticle ray drives look actions while the head stays put;
+  * a source transition re-baselines instead of producing a false direction. */
+ reset();test_map_name="a10";calibration_ray_valid=1;head_forward(f);
+ memcpy(calibration_direction,f,sizeof(f));assert(!vr_head_look_actions());
+ float reticle_yaw=atan2f(f[1],f[0])+.08f;
+ calibration_direction[0]=cosf(reticle_yaw);calibration_direction[1]=sinf(reticle_yaw);calibration_direction[2]=0;
+ assert(vr_head_look_actions()&4); /* crosshair moved right; head did not */
+ assert(!vr_head_look_actions()); /* controller-only movement is not repeated */
+ vr.frame.head.orientation[1]=sinf(.12f);vr.frame.head.orientation[3]=cosf(.12f);
+ assert(!vr_head_look_actions()); /* when reticle is authoritative, head motion is ignored */
+ calibration_ray_valid=0;assert(!vr_head_look_actions()); /* stale/missing ray cannot count head motion */
+ calibration_ray_valid=1;head_forward(f);memcpy(calibration_direction,f,sizeof(f));
+ assert(!vr_head_look_actions()); /* first fresh ray re-baselines after the gap */
+ test_map_name="b30";assert(!vr_head_look_actions()); /* source transition re-baselines */
+ vr.frame.head.orientation[1]=sinf(.18f);vr.frame.head.orientation[3]=cosf(.18f);
+ assert(vr_head_look_actions()&4); /* then the existing head path still works */
+ reset();test_map_name="b30";calibration_ray_valid=1;head_forward(f);memcpy(calibration_direction,f,sizeof(f));
+ assert(!vr_head_look_actions());calibration_direction[0]=0;calibration_direction[1]=1;calibration_direction[2]=0;
+ assert(!vr_head_look_actions()); /* a non-A10 controller ray cannot alter input */
+ puts("PASS: independent right/left/head/stick, tracking guards, slow head look, A10 reticle input, unavailable-ray gate, map/source fallback");
 }
 ''')
 # Full production config, including one-time upgrade, atomic persistence and opt-out.
@@ -119,7 +145,7 @@ typedef union {struct{float x,y,z;};float n[3];} real_point3d;
 typedef union {struct{float i,j,k;};float n[3];} real_vector3d;
 struct unit_datum {long definition_index;};
 struct collision_result {float t;};
-static struct {struct {long vehicle_index,unit_index;float heading;}seat;} vr_render;
+static struct {int stereo,cinematic_view;struct {long vehicle_index,unit_index;float heading;int seated;}seat;real_point3d reticle_origin;real_vector3d reticle_direction;double reticle_time;} vr_render;
 static struct unit_datum vehicle={1};
 static const char *tag="vehicles\\warthog\\mp_warthog";
 static float all_up,local_up,all_forward,all_right;static int collided;
@@ -139,6 +165,10 @@ static int collision_test_vector(unsigned flags,const real_point3d *p,const real
  (void)p;(void)v;assert(flags==1&&ignore==42);out->t=.5f;return collided;
 }
 static int active=1,cinematic=0,local=0,tracked=1;
+static const char *test_map_name="b30";static int hand_aiming=1;static double test_time=1.0;
+static double vr_pose_time(void){return test_time;}
+static int vr_hand_aiming(void){return hand_aiming;}
+static char *main_get_map_name(void){return (char *)test_map_name;}
 static struct {long unit_index;}player={42};
 static real_vector3d gaze={1,0,0};
 static int vr_active(void){return active;}
@@ -154,7 +184,7 @@ static void normalize3d(real_vector3d *v){float l=sqrtf(dot_product3d(v,v));if(l
 /* test22: the frame's seat heading (tested in test_test22); here the seat's own */
 static real vr_seat_frame_heading(void){return vr_render.seat.heading;}
 '''
-run('seat-gaze',pre+''.join(fn(r,n) for n in ['vr_vehicle_profile','vr_vehicle_offset','vr_vehicle_adjust_anchor','vr_script_can_see_point'])+r'''
+run('seat-gaze',pre+''.join(fn(r,n) for n in ['vr_vehicle_profile','vr_vehicle_offset','vr_vehicle_adjust_anchor','vr_script_calibration_reticle_ray','vr_script_can_see_point'])+r'''
 int main(void){
  assert(!vr_vehicle_profile(NULL)&&!vr_vehicle_profile("custom"));
  const char *names[]={"warthog","ghost","banshee","scorpion","pelican"};
@@ -167,6 +197,7 @@ int main(void){
  all_up=NAN;local_up=INFINITY;assert(vr_vehicle_offset("warthog","up")==0);
  collided=1;vr_render.seat.heading=0;p=(real_point3d){0,0,0};vr_vehicle_adjust_anchor(&p);assert(fabsf(p.x-.096f)<1e-6);
  real_point3d target={5,2,3};int result=0;
+ vr_render.stereo=1;
  assert(vr_script_can_see_point(42,&target,.1f,&result)&&result);
  gaze=(real_vector3d){0,1,0};assert(vr_script_can_see_point(42,&target,.1f,&result)&&!result);
  target=(real_point3d){1,6,3};assert(vr_script_can_see_point(42,&target,.1f,&result)&&result);
@@ -175,7 +206,24 @@ int main(void){
  tracked=0;assert(!vr_script_can_see_point(42,&target,.1f,&result));tracked=1;
  local=NONE;assert(!vr_script_can_see_point(42,&target,.1f,&result));local=0;
  active=0;assert(!vr_script_can_see_point(42,&target,.1f,&result));
- puts("PASS: five vehicle profiles/custom fallback, offset axes/bounds/nonfinite/collision, head gaze cones and local-only fallback guards");
+ active=1;target=(real_point3d){1,6,3};test_map_name="a10";test_time=1.0;hand_aiming=1;
+ vr_render.reticle_origin=(real_point3d){1,2,3};vr_render.reticle_direction=(real_vector3d){0,1,0};vr_render.reticle_time=.95;
+ gaze=(real_vector3d){1,0,0};assert(vr_script_can_see_point(42,&target,.1f,&result)&&result); /* reticle sees target, head does not */
+ target=(real_point3d){5,2,3};assert(vr_script_can_see_point(42,&target,.1f,&result)&&!result); /* head sees target, reticle does not */
+ target=(real_point3d){5,2,3};vr_render.reticle_time=.5;assert(vr_script_can_see_point(42,&target,.1f,&result)&&!result); /* stale hand ray cannot grant calibration progress */
+ target=(real_point3d){1,6,3};vr_render.reticle_time=.95;test_map_name="b30";
+ assert(vr_script_can_see_point(42,&target,.1f,&result)&&!result); /* non-A10 remains head-only */
+ target=(real_point3d){5,2,3};assert(vr_script_can_see_point(42,&target,.1f,&result)&&result);
+ float output_origin[3]={9,9,9},output_direction[3]={8,8,8};
+ test_map_name="a10";vr_render.reticle_direction=(real_vector3d){NAN,0,0};
+ assert(vr_script_calibration_reticle_ray(output_origin,output_direction)==-1);
+ assert(output_origin[0]==9&&output_direction[0]==8); /* invalid ray leaves outputs intact */
+ vr_render.reticle_direction=(real_vector3d){0,2,0};assert(vr_script_calibration_reticle_ray(output_origin,output_direction));
+ assert(output_origin[0]==1&&fabsf(output_direction[1]-1)<1e-6);
+ test_time=1.2;assert(vr_script_calibration_reticle_ray(output_origin,output_direction)==-1); /* stale */
+ test_time=1.0;hand_aiming=0;assert(vr_script_calibration_reticle_ray(output_origin,output_direction)==0);
+ hand_aiming=1;vr_render.seat.seated=1;assert(vr_script_calibration_reticle_ray(output_origin,output_direction)==-1);
+ puts("PASS: five vehicle profiles/custom fallback, offset bounds/collision, baseline head gaze and A10 fresh-reticle-only cones/gating");
 }
 ''')
 hs=(ROOT/'source/hs/hs_library_external.c').read_text(encoding='utf-8')

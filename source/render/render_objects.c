@@ -114,6 +114,8 @@ symbols in this file:
 #include "rasterizer/rasterizer_model_types.h"
 #ifdef HALO_VR
 #include "halo_vr.h"
+#include "vr_manual_reload.h"
+#include "vr_extra_interaction.h"
 #endif
 #include "network_vr_pose.h"
 
@@ -363,12 +365,17 @@ void render_objects(
 		else
 		{
 			process_rendered_objects(&data);
+#ifdef HALO_VR
+			/* Draw detached magazines while the world model pass and its view,
+			 * depth buffer, stereo projection and lighting state are active. */
+			vr_manual_reload_debris_render();
+			vr_extra_models_render();
+#endif
 		}
 
 		first_person_pass = !first_person_pass;
 	}
 	while (first_person_pass);
-
 	rasterizer_models_end();
 
 	profile_exit(render_objects_section);
@@ -616,8 +623,11 @@ static void render_object_list(
 						level_of_detail_pixels,
 #ifdef HALO_VR
 						vr_body ? vr_render_body_matrices(object_index) :
-#endif
+                        vr_vehicle_controls_matrices(object_index,
+                            vr_combat_render(object_index,network_vr_pose_render(object_index, object_get_node_matrices(object_index)))),
+#else
 						network_vr_pose_render(object_index, object_get_node_matrices(object_index)),
+#endif
 						object->object.region_permutations,
 						object->object.outgoing_change_colors,
 						object->object.outgoing_function_values,

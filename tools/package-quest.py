@@ -17,6 +17,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 CERTIFICATE = "53d416f7e123cc62b749940983209bc9a400002e033fd5f50900d4ffad8e2aa4"
+ANDROID_ICON_SHA256 = "45c467fb3ed4c859c1fe50b1d55d75930be8484a9895c6f562f6d27cebb516b3"
 
 
 def sha(path):
@@ -72,12 +73,40 @@ def network_value(name):
 # these platform pieces may differ between the two APKs.
 VR_ONLY_ENTRIES = {"lib/arm64-v8a/libopenxr_loader.so"}
 NETWORK_STRING = re.compile(rb"Internet play|browser: |signalling|UPnP|upnp|STUN|stun\.|tunnel|invite|network\.[a-z_]+|"
-                            rb"halo://join|p2p|lobby|games\.txt|joining|join requested|Multiplayer join")
-# This exact VR startup identity mentions "lobby" in its change summary. It is
-# not a networking path; keep all other runtime/import differences fatal.
+                            rb"halo://join|p2p|lobby|games\.txt|joining|join requested|Multiplayer join|vr: HaloCE Quest")
+# Check every VR startup banner explicitly, even when its summary has no network
+# keyword. Only exact reviewed guest identities are exempt; altered banners and
+# host-library identities remain fatal, independently of Python set ordering.
 VR_BUILD_IDENTITIES = {
     b"vr: HaloCE Quest test37 candidate 1.0.18-test37 code47 (OpenCE Build 157 / network 24; launcher network-version browser and population selector; upstream analog trigger, Custom Edition spawn facing, PC vehicle set and solo lobby start; scope/turret behavior retained; Safe geometry and accepted VR settings retained)",
-    b"vr: HaloCE Quest 1.0.18 release code48 (OpenCE Build 157 / network 24; launcher network-version browser and population selector; upstream analog trigger, Custom Edition spawn facing, PC vehicle set and host-alone lobby start; scope/turret behavior retained; Safe geometry and accepted VR settings retained)"
+    b"vr: HaloCE Quest 1.0.18 release code48 (OpenCE Build 157 / network 24; launcher network-version browser and population selector; upstream analog trigger, Custom Edition spawn facing, PC vehicle set and host-alone lobby start; scope/turret behavior retained; Safe geometry and accepted VR settings retained)",
+    b"vr: HaloCE Quest test38 candidate 1.0.19-test38 code49 (OpenCE Build 157 / network 24; legacy co-op15-24; optional physical interactions and vehicle controls; scope profiles and mounted reticle; device acceptance pending)",
+    b"vr: HaloCE Quest test39 candidate 1.0.20-test39 code50 (OpenCE Build 157 / network 24; offline shake cooling and weight haptics toggles; expanded bounded co-op world interactions; custom scenery and validated alternate NPC rig opt-ins; device acceptance pending)",
+    b"vr: HaloCE Quest test40 candidate 1.0.21-test40 code51 (OpenCE Build 157 / network 24; opt-in local custom humanoid rig fallback, persistent visual magazine debris, bounded vertical vehicle lifting, and solo mission-NPC recovery; prior systems retained; device acceptance pending)",
+    b"vr: HaloCE Quest test41 candidate 1.0.22-test41 code52 (OpenCE Build 157 / network 24; configurable 12-40 cm physical grab reach, 8 bounded NPC rig slots, unified all-effects haptics control, explicit interaction-session diagnostics; prior systems retained; device acceptance pending)",
+    b"vr: HaloCE Quest test42 candidate 1.0.23-test42 code53 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; all v1.0.18+ Test38-41 features retained; device acceptance pending)",
+    b"vr: HaloCE Quest test43 candidate 1.0.24-test43 code54 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; game-data set selection and safe deletion; all v1.0.18+ Test38-42 features retained; device acceptance pending)",
+    b"vr: HaloCE Quest test45 candidate 1.0.26-test45 code56 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes; touch-then-Grip NPC/enemy/ally contacts; held NPC grip persists through ordinary movement and bounded tracking rebases; release-reason diagnostics; prior launcher, calibration, reload, climbing, VR and Android work retained; device acceptance pending)",
+    b"vr: HaloCE Quest test46 candidate 1.0.27-test46 code57 (OpenCE Build 157 base / network 24; selected Build167 compatibility fixes and host-relayed voice; contact-driven NPC/ally interaction; bounded vehicle lifting; persistent same-map magazine visuals; prior launcher, calibration, reload, climbing, VR and Android work retained; device acceptance pending)",
+    b"vr: HaloCE Quest test47 candidate 1.0.28-test47 code58 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; voice chat; fixed-length arm IK, solo corpse retention, manual reload input and local multiplayer-map spawn; prior launcher, calibration, climbing, interactions, VR and Android work retained; device acceptance pending)",
+    b"vr: HaloCE Quest test48 candidate 1.0.29-test48 code59 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; signed-datum weapon release, drop and holster regression fixed; sustained surface pressure haptics restored and routed to both hands independent of arm ownership; OpenXR haptic results logged; Test47 features retained; device acceptance pending)",
+    b"vr: HaloCE Quest test49 candidate 1.0.30-test49 code60 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 signed-datum weapon release/drop/holster fix retained; v1.0.18 collision-gated contact haptics restored; weapon recoil haptic path preserved; melee action diagnostics added; Test47 features retained; device acceptance pending)",
+    b"vr: HaloCE Quest test50 candidate 1.0.31-test50 code61 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 weapon release/drop/holster fix and Test49 v1.0.18 contact haptics retained; mounted driver/gunner shots follow the selected reticle ray without camera aim assist; voice packet/config/decode diagnostics; optional hold or toggle left-stick sprint; Test47 features retained; device acceptance pending)",
+    b"vr: HaloCE Quest test51 candidate 1.0.32-test51 code62 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; Test48 weapon release/drop/holster fix and Test49 v1.0.18 contact haptics retained; mounted driver/gunner shots follow the selected reticle ray without camera aim assist; voice diagnostics use integer-only formats and accept host settings before logging to prevent join crash; optional hold or toggle left-stick sprint; Test47 features retained; device acceptance pending)",
+    b"vr: HaloCE Quest test52 candidate 1.0.20-test52 code64 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; voice crash fixed: the guest assembly converter no longer alters string/table data (Opus pulse cache); guest calls require prototypes (voice logs, NPC clearance radius, scoreboard text scale, MP vehicle placement); built with the v1.0.18 clang18 toolchain; v1.0.19 features retained; device acceptance pending)",
+    b"vr: HaloCE Quest test53 candidate 1.0.20-test53 code65 (OpenCE Build157 base / network26; selected fixes through Build184 including network25 unit lights and network26 signalling; clients 11-26, All compatible by default; voice crash fixed: the guest assembly converter no longer alters string/table data (Opus pulse cache); voice input and bitrate hardened; guest calls require exact prototypes; hand-contact grabs use sphere overlap; parkour and manual reload read the head from game ticks; bounded NPC handoff; solo body retention through script collections; IMMERSION settings page; built with the v1.0.18 clang18 toolchain; device acceptance pending)",
+    b"vr: HaloCE Quest test54 candidate 1.0.21-test54 code66 (OpenCE Build157 base / network26; selected fixes through Build184 including network25 unit lights and network26 signalling; clients 11-26, All compatible by default; voice unchanged from test53; manual reload end to end: the reload button drops the magazine, body pouches, insert on contact, charging only when empty; NPC grabs by body touch with hold and throw strength; death ragdolls; thrown bodies keep their root; climbing on slopes, overhangs and ledges; open hands never strike; IMMERSION+ and feature dependencies; gun parts steady while walking; device acceptance pending)",
+    b"vr: HaloCE Quest test55 candidate 1.0.22-test55 code67 (OpenCE Build157 base / network26; selected fixes through Build184 plus Build188 decal batching; clients 11-26, All compatible by default; voice unchanged; script-named campaign objects grabbable (Shades, vehicles, bodies, weapons, props); busy NPCs grabbable, one-hand restraint and Spartan throws; looser ragdolls with floor friction and hit reactions; magazine grip, charging lock-on; automatic wall running; pouch and holster calibration with markers; one IMMERSION menu with topics; immersive vehicle controls with first-person hands; zoom on the right stick with physical melee; device acceptance pending)",
+    b"vr: HaloCE Quest test56 candidate 1.0.23-test56 code68 (OpenCE Build157 base / network26; selected fixes through Build184 plus Build188 decal batching and the Build190 lobby countdown; Build189 map sharing not taken (network27); clients 11-26, All compatible by default; voice unchanged; parent-relative ragdoll joints for every species; shot-reactive death ragdolls; NPCs up within 1 s (NPC RECOVERY); immersive vehicles steer the right way, from the drawn pose, steering apart from head aiming, Warthog wheel rim, grip pose; throws at the release peak, THROW 2X, impact shove; LIFT for everything held; CHARGE GRAB; heavy-hold haptics; device acceptance pending)",
+    b"vr: HaloCE Quest test57 candidate 1.0.24-test57 code69 (OpenCE Build157 base / network26; selected fixes through Build184 plus Build188 decal batching and the Build190 lobby countdown; Build189 map sharing not taken (network27); clients 11-26, All compatible by default; voice unchanged; immersive vehicles: Warthog virtual wheel, Scorpion drive stick, Banshee flight bar slide, Ghost handlebar, control glow, centre tick, grab-miss log; test56: parent-relative ragdoll joints for every species; shot-reactive death ragdolls; NPCs up within 1 s (NPC RECOVERY); steering apart from head aiming; throws at the release peak, THROW 2X, impact shove; LIFT; CHARGE GRAB; device acceptance pending)",
+    b"vr: HaloCE Quest test58 candidate 1.0.25-test58 code70 (OpenCE Build157 base / network26; selected fixes through Build184 plus Build188 decal batching and the Build190 lobby countdown; Build189 map sharing not taken (network27); clients 11-26, All compatible by default; voice unchanged; immersive vehicles placed on the vehicle (Warthog wheel node fixed, stick and bar in front of the chest, out-of-reach fallback), steady mounted reticle, TANK HATCH option; test57: Warthog virtual wheel, Scorpion drive stick, Banshee flight bar slide, Ghost handlebar, control glow, centre tick; test56: parent-relative ragdoll joints, shot-reactive deaths, NPCs up within 1 s, THROW 2X, LIFT, CHARGE GRAB; device acceptance pending)",
+    b"vr: HaloCE Quest test59 candidate 1.0.26-test59 code71 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; real hands in vehicles, controls from the eyes, comfort reach, tank drive; the gun's own magazine back in, reload steady while walking; DEATH FORCE ragdoll throws; test58: immersive vehicles placed on the vehicle, steady mounted reticle, TANK HATCH option; test57: Warthog virtual wheel, Scorpion drive stick, Banshee flight bar slide, Ghost handlebar; test56: parent-relative ragdoll joints, NPCs up within 1 s; device acceptance pending)",
+    b"vr: HaloCE Quest test60 candidate 1.0.27-test60 code72 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; impacts for every NPC: slammed and thrown bodies strike other bodies, floors and walls, allies take the blow; DEATH RAGDOLLS turns on NPC RESCUE, NPC GRAB and IMPACT DAMAGE; test59: real hands in vehicles, controls from the eyes, comfort reach, tank drive, the gun's own magazine back in, DEATH FORCE ragdoll throws; test58: immersive vehicles placed on the vehicle, steady mounted reticle; test57: Warthog virtual wheel, Scorpion drive stick, Banshee flight bar, Ghost handlebar; test56: parent-relative ragdoll joints, NPCs up within 1 s; device acceptance pending)",
+    b"vr: HaloCE Quest test61 candidate 1.0.28-test61 code73 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; immersive controls held under the hands (steady seat, the hands' level frame); IMMERSIVE VEHICLE turns on FIRST PERSON; impacts hurt with the unarmed blow; 24 rig slots; dead Elites and Hunters one-handed; test60: impacts for every NPC, DEATH RAGDOLLS turns on NPC RESCUE, NPC GRAB and IMPACT DAMAGE; test59: real hands in vehicles, controls from the eyes, comfort reach, tank drive, the gun's own magazine back in, DEATH FORCE ragdoll throws; test58: immersive vehicles placed on the vehicle, steady mounted reticle; test57: Warthog virtual wheel, Scorpion drive stick, Banshee flight bar, Ghost handlebar; test56: parent-relative ragdoll joints, NPCs up within 1 s; device acceptance pending)",
+    b"vr: HaloCE Quest test62 candidate 1.0.29-test62 code74 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; seat settles before immersive controls lock (3 s cap); all-vehicle control offsets; easier body contact; one-hand heavy restraint, two-hand lift; campaign impact fallback and configured floor slam threshold; 60 m death ragdoll range, 24 rig slots, guarded parent-relative solver; native shield/body slam effects; optional assisted fists and chest grenade throws (local/authorized host); native capsule approach and contact ownership; wrist-anchored scopes and optional aim steady; reload palm/feedback polish; parkour defaults; prior hands, holsters, native animation handoff and recovery retained; device acceptance pending)",
+    b"vr: HaloCE Quest test63 candidate 1.0.30-test63 code75 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; button sprint owns the stick click and the reticle returns; X kept for actions; chest grenades in a torso frame with the game's models; fist assist acquisition and Spartan step; the Warthog's own wheel, redesigned controls, live calibration preview; settings index; ONE-HAND HEAVIES; test62: settled controls, easier grabs, campaign impacts; device acceptance pending)",
+    b"vr: HaloCE Quest test64 candidate 1.0.31-test64 code76 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; VR SETTINGS opens again (the settings index for a category's own pages only); test63: button sprint owns the stick click and the reticle returns; X kept for actions; chest grenades in a torso frame with the game's models; fist assist acquisition and Spartan step; the Warthog's own wheel, redesigned controls, live calibration preview; settings index; ONE-HAND HEAVIES; test62: settled controls, easier grabs, campaign impacts; device acceptance pending)",
+    b"vr: HaloCE Quest v1.0.19 release code63 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; signed weapon release/drop/holster fix; v1.0.18 collision-gated contact haptics retained; mounted vehicle/turret shots follow selected reticle ray without camera aim assist; optional toggle sprint; Build167 host-relayed voice with integer-only config diagnostics; owner-confirmed multiplayer join and voice; unfinished VR interaction toggles documented in release notes)"
 }
 
 
@@ -87,6 +116,46 @@ def candidate_at_least(label, number, letter=""):
     if not match:
         return False
     return (int(match.group(1)), match.group(2)) >= (number, letter)
+
+
+
+def candidate_document_prefix(label):
+    """Current private handoff must be inside the build ZIP, before history."""
+    if candidate_at_least(label, 64):
+        return ["TEST64-DELIVERY-STATUS.md", "TEST64-CHECKLIST.md",
+                "TEST64-FIELD-GUIDE.md", "TEST64-DEVICE-CHECKLIST.md",
+                "TEST63-DELIVERY-STATUS.md", "TEST63-CHECKLIST.md",
+                "TEST63-FIELD-GUIDE.md", "TEST63-DEVICE-CHECKLIST.md",
+                "TEST62-DELIVERY-STATUS.md", "TEST62-CHECKLIST.md",
+                "TEST62-FIELD-GUIDE.md", "TEST62-DEVICE-CHECKLIST.md"]
+    if candidate_at_least(label, 63):
+        return ["TEST63-DELIVERY-STATUS.md", "TEST63-CHECKLIST.md",
+                "TEST63-FIELD-GUIDE.md", "TEST63-DEVICE-CHECKLIST.md",
+                "TEST62-DELIVERY-STATUS.md", "TEST62-CHECKLIST.md",
+                "TEST62-FIELD-GUIDE.md", "TEST62-DEVICE-CHECKLIST.md"]
+    if candidate_at_least(label, 62):
+        return ["TEST62-DELIVERY-STATUS.md", "TEST62-CHECKLIST.md",
+                "TEST62-FIELD-GUIDE.md", "TEST62-DEVICE-CHECKLIST.md"]
+    return []
+
+
+def client_default_target(label, runtime_commit):
+    """Read the exact runtime source's default for All-compatible candidates.
+
+    Earlier candidates/stable releases retain their historical metadata path.
+    Never guess 24 when current source cannot prove its configured default.
+    """
+    if not candidate_at_least(label, 53):
+        return 24
+    source = subprocess.check_output(
+        ["git", "show", runtime_commit + ":port/linux/src/port_config.c"],
+        cwd=ROOT, text=True)
+    matches = re.findall(
+        r'^\s*\{\s*"network\.protocol_version"\s*,\s*_config_integer\s*,\s*"(\d+)"\s*,',
+        source, re.M)
+    if len(matches) != 1:
+        raise SystemExit("Cannot prove unique native network.protocol_version default")
+    return int(matches[0])
 
 
 def printable_strings(data):
@@ -201,6 +270,8 @@ def main():
         parser.error("--version-name requires a private candidate and a simple version string")
     version_name=args.version_name or (args.label if args.stable else "1.0-"+args.label)
     release_tag="v"+args.label if args.stable else "halo-ce-quest-"+args.label
+    if sha(ROOT / "port/android/art/android-icon.png") != ANDROID_ICON_SHA256:
+        raise SystemExit("The user's Halo CE Quest launcher artwork changed unexpectedly")
     subprocess.run(["git", "diff", "--exit-code", "HEAD", "--"], cwd=ROOT, check=True, stdout=subprocess.DEVNULL)
     untracked = subprocess.check_output(["git", "ls-files", "--others", "--exclude-standard"], cwd=ROOT)
     if untracked.strip():
@@ -215,24 +286,38 @@ def main():
         if "certificate SHA-256 digest: " + CERTIFICATE not in signed:
             raise SystemExit("APK signing certificate differs from the user's test8 key")
         badging = subprocess.check_output([str(args.build_tools / "aapt"), "dump", "badging", str(path)], text=True)
+        permissions = subprocess.check_output([str(args.build_tools / "aapt"), "dump", "permissions", str(path)], text=True)
         if f"package: name='{package}'" not in badging or "native-code: 'arm64-v8a'" not in badging:
             raise SystemExit("Wrong package or ABI: " + str(path))
         if f"versionName='{version_name}'" not in badging:
             raise SystemExit("Wrong candidate version: " + str(path))
         version_code = re.search(r"versionCode='(\d+)'", badging)
-        required_candidate_code = 47 if candidate_at_least(args.label, 37) else 46
+        required_candidate_code = 76 if candidate_at_least(args.label, 64) else 75 if candidate_at_least(args.label, 63) else 74 if candidate_at_least(args.label, 62) else 73 if candidate_at_least(args.label, 61) else 72 if candidate_at_least(args.label, 60) else 71 if candidate_at_least(args.label, 59) else 70 if candidate_at_least(args.label, 58) else 69 if candidate_at_least(args.label, 57) else 68 if candidate_at_least(args.label, 56) else 67 if candidate_at_least(args.label, 55) else 66 if candidate_at_least(args.label, 54) else 65 if candidate_at_least(args.label, 53) else 64 if candidate_at_least(args.label, 52) else 62 if candidate_at_least(args.label, 51) else 61 if candidate_at_least(args.label, 50) else 60 if candidate_at_least(args.label, 49) else 59 if candidate_at_least(args.label, 48) else 58 if candidate_at_least(args.label, 47) else 57 if candidate_at_least(args.label, 46) else 56 if candidate_at_least(args.label, 45) else 55 if candidate_at_least(args.label, 44) else 54 if candidate_at_least(args.label, 43) else 53 if candidate_at_least(args.label, 42) else 52 if candidate_at_least(args.label, 41) else 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
         if candidate_at_least(args.label, 36) and (version_code is None or int(version_code[1]) < required_candidate_code):
-            raise SystemExit("Test" + ("37" if required_candidate_code == 47 else "36")
+            raise SystemExit("Test" + ("64" if required_candidate_code == 76 else "63" if required_candidate_code == 75 else "62" if required_candidate_code == 74 else "61" if required_candidate_code == 73 else "60" if required_candidate_code == 72 else "59" if required_candidate_code == 71 else "58" if required_candidate_code == 70 else "57" if required_candidate_code == 69 else "56" if required_candidate_code == 68 else "55" if required_candidate_code == 67 else "54" if required_candidate_code == 66 else "53" if required_candidate_code == 65 else "52" if required_candidate_code == 64 else "51" if required_candidate_code == 62 else "50" if required_candidate_code == 61 else "49" if required_candidate_code == 60 else "48" if required_candidate_code == 59 else "47" if required_candidate_code == 58 else "46" if required_candidate_code == 57 else "45" if required_candidate_code == 56 else "44" if required_candidate_code == 55 else "43" if required_candidate_code == 54 else "42" if required_candidate_code == 53 else "41" if required_candidate_code == 52 else "40" if required_candidate_code == 51 else "39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
                              + " Android version code must be at least " + str(required_candidate_code) + ": " + str(path))
         if args.stable and args.label == "1.0.16" and "versionCode='45'" not in badging:
             raise SystemExit("Wrong v1.0.16 Android version code: " + str(path))
         if args.stable and args.label == "1.0.18" and "versionCode='48'" not in badging:
             raise SystemExit("Wrong v1.0.18 Android version code: " + str(path))
+        if args.stable and args.label == "1.0.19" and "versionCode='63'" not in badging:
+            raise SystemExit("Wrong v1.0.19 Android version code: " + str(path))
         with zipfile.ZipFile(path) as archive:
             if archive.testzip() is not None:
                 raise SystemExit("APK ZIP checksum failure")
             reject_orphaned_apk_data(path, archive)
             names = archive.namelist()
+            adaptive_icon = "res/mipmap-anydpi-v26/ic_launcher.xml"
+            if adaptive_icon not in names:
+                raise SystemExit("Adaptive launcher icon is missing from APK: " + str(path))
+            icon_xml = (ROOT / "port/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml").read_text()
+            if "@mipmap/ic_launcher_background_art" not in icon_xml or "@mipmap/ic_launcher_foreground" not in icon_xml:
+                raise SystemExit("Adaptive launcher icon no longer references the supplied artwork layer")
+            for density in ["mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"]:
+                member = "res/mipmap-" + density + "-v4/ic_launcher_background_art.png"
+                source_icon = ROOT / "port/android/app/src/main/res" / ("mipmap-" + density) / "ic_launcher_background_art.png"
+                if member not in names or archive.read(member) != source_icon.read_bytes():
+                    raise SystemExit("APK launcher artwork differs from the checked-in Halo CE Quest icon: " + member)
             for asset in ["assets/fonts/Orbitron-Regular.ttf", "assets/fonts/OFL-Orbitron.txt"]:
                 if asset not in names:
                     raise SystemExit("Launcher font/license missing from APK: " + asset)
@@ -294,7 +379,15 @@ def main():
                     raise SystemExit("Test30 VR identity missing")
             if candidate_at_least(args.label, 29):
                 # OpenCE build 144's network 21, and the held HUD tap's and PR #1's text
-                expected_upstream = (b"OpenCE build 157 (network 24)" if candidate_at_least(args.label, 36) else
+                expected_upstream = (b"Engine base: OpenCE Build 157 / network 28. Selected fixes through Build 201 are included, with OpenCE's network 25 (units' integrated lights), 26 (internet signalling), 27 (map sharing: this app's hosts answer that they share no maps) and 28 (its gameplay rules), so current OpenCE servers can be joined and can join this app's hosts; OpenCE's browser players cannot join this app's hosts. This is not a full Build201 rebase."
+                                     if candidate_at_least(args.label, 59) else
+                                     b"Engine base: OpenCE Build 157 / network 26. Selected fixes through Build 184 are included, with OpenCE's network 25 (units' integrated lights) and network 26 (internet signalling), so current OpenCE servers can be joined and can join this app's hosts; OpenCE's browser players cannot join this app's hosts. This is not a full Build184 rebase. Build174's high-resolution button rendering and Build184's new display options are not integrated because they build on OpenCE renderer and menu code this port has customized."
+                                     if candidate_at_least(args.label, 53) else
+                                     b"Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177 are included; Build175's old-kernel mapping guard is retained. This is not a full Build177 rebase, and network24 is unchanged. Build174's high-resolution button rendering is not integrated because its upstream renderer/asset patch conflicts with this port's customized UI."
+                                     if candidate_at_least(args.label, 47) else
+                                     b"Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167"
+                                     if candidate_at_least(args.label, 42) else
+                                     b"OpenCE build 157 (network 24)" if candidate_at_least(args.label, 36) else
                                      b"OpenCE build 148 (network 23)" if candidate_at_least(args.label, 34) else
                                      b"OpenCE build 145 (network 22)" if candidate_at_least(args.label, 31) else
                                      b"OpenCE build 144 (network 21)")
@@ -326,7 +419,104 @@ def main():
                     raise SystemExit("Test33 VR candidate identity marker missing")
             if candidate_at_least(args.label, 34):
                 if vr:
-                    current_upstream_markers = ([b"OpenCE Build 157 / network 24", b"test37 candidate 1.0.18-test37 code47"]
+                    current_upstream_markers = ([b"OpenCE Build157 base / network28", b"network27 map-sharing answer",
+                                                 b"VR SETTINGS opens again", b"the Warthog's own wheel",
+                                                 b"test64 candidate 1.0.31-test64 code76"]
+                        if candidate_at_least(args.label, 64) else
+                        [b"OpenCE Build157 base / network28", b"network27 map-sharing answer",
+                                                 b"button sprint owns the stick click", b"the Warthog's own wheel",
+                                                 b"test63 candidate 1.0.30-test63 code75"]
+                        if candidate_at_least(args.label, 63) else
+                        [b"OpenCE Build157 base / network28", b"network27 map-sharing answer",
+                                                 b"seat settles before immersive controls lock", b"one-hand heavy restraint",
+                                                 b"test62 candidate 1.0.29-test62 code74"]
+                        if candidate_at_least(args.label, 62) else [b"OpenCE Build157 base / network28", b"network27 map-sharing answer",
+                                                 b"immersive controls held under the hands", b"IMMERSIVE VEHICLE turns on FIRST PERSON",
+                                                 b"test61 candidate 1.0.28-test61 code73"]
+                        if candidate_at_least(args.label, 61) else
+                        [b"OpenCE Build157 base / network28", b"network27 map-sharing answer",
+                                                 b"impacts for every NPC", b"DEATH RAGDOLLS turns on NPC RESCUE",
+                                                 b"test60 candidate 1.0.27-test60 code72"]
+                        if candidate_at_least(args.label, 60) else
+                        [b"OpenCE Build157 base / network28", b"network27 map-sharing answer",
+                                                 b"the gun's own magazine back in", b"DEATH FORCE ragdoll throws",
+                                                 b"test59 candidate 1.0.26-test59 code71"]
+                        if candidate_at_least(args.label, 59) else
+                        [b"OpenCE Build157 base / network26", b"the Build190 lobby countdown",
+                                                 b"immersive vehicles placed on the vehicle", b"steady mounted reticle",
+                                                 b"test58 candidate 1.0.25-test58 code70"]
+                        if candidate_at_least(args.label, 58) else
+                        [b"OpenCE Build157 base / network26", b"the Build190 lobby countdown",
+                                                 b"Warthog virtual wheel", b"Scorpion drive stick",
+                                                 b"test57 candidate 1.0.24-test57 code69"]
+                        if candidate_at_least(args.label, 57) else
+                        [b"OpenCE Build157 base / network26", b"the Build190 lobby countdown",
+                                                 b"parent-relative ragdoll joints for every species", b"NPCs up within 1 s",
+                                                 b"test56 candidate 1.0.23-test56 code68"]
+                        if candidate_at_least(args.label, 56) else
+                        [b"OpenCE Build157 base / network26", b"plus Build188 decal batching",
+                                                 b"script-named campaign objects grabbable", b"one IMMERSION menu with topics",
+                                                 b"test55 candidate 1.0.22-test55 code67"]
+                        if candidate_at_least(args.label, 55) else
+                        [b"OpenCE Build157 base / network26", b"selected fixes through Build184",
+                                                 b"voice unchanged from test53", b"death ragdolls",
+                                                 b"gun parts steady while walking",
+                                                 b"test54 candidate 1.0.21-test54 code66"]
+                        if candidate_at_least(args.label, 54) else
+                        [b"OpenCE Build157 base / network26", b"selected fixes through Build184",
+                                                 b"guest calls require exact prototypes", b"hand-contact grabs use sphere overlap",
+                                                 b"parkour and manual reload read the head from game ticks",
+                                                 b"test53 candidate 1.0.20-test53 code65"]
+                        if candidate_at_least(args.label, 53) else
+                        [b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
+                                                 b"the guest assembly converter no longer alters string/table data (Opus pulse cache)",
+                                                 b"guest calls require prototypes",
+                                                 b"test52 candidate 1.0.20-test52 code64"]
+                        if candidate_at_least(args.label, 52) else
+                        [b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
+                                                 b"integer-only formats and accept host settings before logging to prevent join crash",
+                                                 b"test51 candidate 1.0.32-test51 code62"]
+                        if candidate_at_least(args.label, 51) else
+                        [b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
+                                                 b"mounted driver/gunner shots follow the selected reticle ray without camera aim assist",
+                                                 b"selected mounted ray (camera assist bypassed)",
+                                                 b"voice packet/config/decode diagnostics", b"optional hold or toggle left-stick sprint",
+                                                 b"test50 candidate 1.0.31-test50 code61"]
+                        if candidate_at_least(args.label, 50) else
+                        [b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
+                                                 b"v1.0.18 collision-gated contact haptics restored", b"weapon recoil haptic path preserved",
+                                                 b"test49 candidate 1.0.30-test49 code60"]
+                        if candidate_at_least(args.label, 49) else
+                        [b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
+                                                 b"signed-datum weapon release, drop and holster regression fixed",
+                                                 b"sustained surface pressure haptics restored and routed to both hands independent of arm ownership", b"OpenXR haptic results logged",
+                                                 b"test48 candidate 1.0.29-test48 code59"]
+                        if candidate_at_least(args.label, 48) else
+                        [b"OpenCE Build157 base / network24", b"selected fixes from Builds167,169,170,173,176 and reticle assets from177",
+                                                 b"not a full Build177 rebase", b"test47 candidate 1.0.28-test47 code58"]
+                        if candidate_at_least(args.label, 47) else
+                        [b"OpenCE Build 157 base / network 24", b"selected Build167 compatibility fixes and host-relayed voice",
+                                                 b"test46 candidate 1.0.27-test46 code57"]
+                        if candidate_at_least(args.label, 46) else
+                        [b"OpenCE Build 157 base / network 24", b"selected Build167 compatibility fixes",
+                                                 b"test45 candidate 1.0.26-test45 code56"]
+                        if candidate_at_least(args.label, 45) else
+                        [b"OpenCE Build 157 base / network 24", b"selected Build167 compatibility fixes",
+                                                 b"test44 candidate 1.0.25-test44 code55"]
+                        if candidate_at_least(args.label, 44) else
+                        [b"OpenCE Build 157 base / network 24", b"selected Build167 compatibility fixes",
+                                                 b"test43 candidate 1.0.24-test43 code54"]
+                        if candidate_at_least(args.label, 43) else
+                        [b"OpenCE Build 157 base / network 24", b"selected Build167 compatibility fixes",
+                                                 b"test42 candidate 1.0.23-test42 code53"]
+                        if candidate_at_least(args.label, 42) else
+                        [b"OpenCE Build 157 / network 24", b"test41 candidate 1.0.22-test41 code52"]
+                        if candidate_at_least(args.label, 40) else
+                        [b"OpenCE Build 157 / network 24", b"test39 candidate 1.0.20-test39 code50"]
+                        if candidate_at_least(args.label, 39) else
+                        [b"OpenCE Build 157 / network 24", b"test38 candidate 1.0.19-test38 code49"]
+                        if candidate_at_least(args.label, 38) else
+                        [b"OpenCE Build 157 / network 24", b"test37 candidate 1.0.18-test37 code47"]
                         if candidate_at_least(args.label, 37) else
                         [b"OpenCE Build 157 / network 24", b"test36 candidate 1.0.17-test36 code46"]
                         if candidate_at_least(args.label, 36) else
@@ -334,6 +524,10 @@ def main():
                     for marker in current_upstream_markers:
                         if marker not in guest:
                             raise SystemExit("OpenCE or candidate identity marker missing: " + repr(marker))
+                    if candidate_at_least(args.label, 47):
+                        for marker in [b"vr.ragdoll_retention", b"BODY RETENTION"]:
+                            if marker not in guest:
+                                raise SystemExit("Test47 corpse-retention setting missing from VR APK: " + repr(marker))
                     for marker in [b"scope display %s; zoom with the off-hand index trigger",
                                    b"zoom input %s from %s-hand index trigger", b"game zoom transition %d -> %d",
                                    b"scope view gate: %s", b"scope render path %s"]:
@@ -347,11 +541,179 @@ def main():
                                b"leaving pregame lobby: host version"]:
                     if marker not in guest:
                         raise SystemExit("Test37 native compatibility gate missing: " + repr(marker))
-                guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt"))
-                for marker in [b"1.0.18-test37", b"network-version population selector",
-                               b"Hosting remains on network 24"]:
-                    if marker not in guide:
+                guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt")).lower()
+                guide_markers = ([b"all project changes made after v1.0.18",
+                                  b"opence build167 voice chat", b"microphone permission", b"voice volume",
+                                  b"vehicle lift uses contact plus grip to move and rotate",
+                                  b"32 discarded magazines remain visible through same-map checkpoint/core restores",
+                                  b"friendly marines and crew", b"npc rescue", b"npc rig slots",
+                                  b"picker-selected iso/xiso", b"launcher does not keep or delete", b"android files",
+                                  b"a10 look-calibration", b"rendered ray is fresh and valid", b"outside a10",
+                                  b"game-data selection and storage", b"delete imported copy",
+                                  b"manual reload", b"export or import a versioned layout",
+                                  b"shake cooling", b"custom npc rigs", b"mag debris", b"lift vehicles",
+                                  b"hand contact", b"holster haptics", b"body retention", b"75 trigger / 45 target",
+                                  b"stock values", b"opence build157", b"network24"]
+                                 if candidate_at_least(args.label, 47) else
+                                 [b"1.0.27-test46", b"all project changes made after v1.0.18",
+                                  b"opence build167 voice chat", b"microphone permission", b"voice volume",
+                                  b"vehicle lift uses contact plus grip to move and rotate",
+                                  b"32 discarded magazines remain visible through same-map checkpoint/core restores",
+                                  b"friendly marines and crew", b"npc rescue", b"npc rig slots",
+                                  b"picker-selected iso/xiso", b"launcher does not keep or delete", b"android files",
+                                  b"a10 look-calibration", b"rendered ray is fresh and valid", b"outside a10",
+                                  b"game-data selection and storage", b"delete imported copy",
+                                  b"manual reload", b"export or import a versioned layout",
+                                  b"shake cooling", b"custom npc rigs", b"mag debris", b"lift vehicles",
+                                  b"hand contact", b"holster haptics", b"opence build157", b"network24"]
+                                 if candidate_at_least(args.label, 46) else
+                                 [b"1.0.26-test45", b"all project changes made after v1.0.18",
+                                  b"overlap the npc's authored collision model, followed by a fresh grip press",
+                                  b"friendly marines and crew",
+                                  b"ordinary hand movement and target-to-joint distance no longer drop an npc or prop",
+                                  b"picker-selected iso/xiso", b"launcher does not keep or delete", b"android files",
+                                  b"a10 look-calibration", b"rendered ray is fresh and valid", b"outside a10",
+                                  b"game-data selection and storage", b"delete imported copy",
+                                  b"source iso/xiso stays where you selected it", b"manual reload",
+                                  b"export or import a versioned layout", b"show and enable this touch control",
+                                  b"shake cooling", b"custom npc rigs", b"mag debris", b"lift vehicles",
+                                  b"npc rescue", b"hand contact", b"npc rig slots", b"holster haptics",
+                                  b"opence build157", b"build167", b"network24"]
+                                 if candidate_at_least(args.label, 45) else
+                                 [b"1.0.25-test44", b"all project changes made after v1.0.18", b"picker-selected iso/xiso",
+                                  b"launcher does not keep or delete", b"android files", b"a10 look-calibration",
+                                  b"rendered ray is fresh and valid", b"outside a10", b"game-data selection and storage",
+                                  b"Delete imported copy", b"source ISO/XISO stays where you selected it",
+                                  b"manual reload", b"export or import a versioned layout", b"show and enable this touch control",
+                                  b"SHAKE COOLING", b"CUSTOM NPC RIGS", b"MAG DEBRIS", b"LIFT VEHICLES",
+                                  b"NPC RESCUE", b"HAND CONTACT", b"NPC RIG SLOTS", b"HOLSTER HAPTICS",
+                                  b"OpenCE Build157", b"Build167", b"network24"]
+                                 if candidate_at_least(args.label, 44) else
+                                 [b"1.0.24-test43", b"all project changes made after v1.0.18", b"game-data selection and storage",
+                                  b"Delete imported copy", b"source ISO/XISO stays where you selected it",
+                                  b"manual reload", b"export or import a versioned layout", b"show and enable this touch control",
+                                  b"SHAKE COOLING", b"CUSTOM NPC RIGS", b"MAG DEBRIS", b"LIFT VEHICLES",
+                                  b"NPC RESCUE", b"HAND CONTACT", b"NPC RIG SLOTS", b"HOLSTER HAPTICS",
+                                  b"OpenCE Build157", b"Build167", b"network24"]
+                                 if candidate_at_least(args.label, 43) else
+                                 [b"1.0.23-test42", b"all project changes made after v1.0.18", b"manual reload",
+                                  b"export or import a versioned layout", b"show and enable this touch control",
+                                  b"SHAKE COOLING", b"CUSTOM NPC RIGS", b"MAG DEBRIS", b"LIFT VEHICLES",
+                                  b"NPC RESCUE", b"HAND CONTACT", b"NPC RIG SLOTS", b"HOLSTER HAPTICS",
+                                  b"OpenCE Build157", b"Build167", b"network24"]
+                                 if candidate_at_least(args.label, 42) else
+                                 [b"1.0.22-test41", b"12 to 40 cm", b"physical NPC interaction rigs", b"NPC RIG SLOTS",
+                                  b"pending invite did not complete a network join", b"Hosting remains on OpenCE network version 24",
+                                  b"four remote machines", b"128-machine table", b"SHAKE COOLING",
+                                  b"HAPTICS", b"0% to disable all vibration", b"NPC RESCUE", b"DROPPED MAGAZINES",
+                                  b"LIFT VEHICLES", b"CUSTOM NPC RIGS", b"32-magazine pool",
+                                  b"Vehicle lifting is independent of WORLD GRAB",
+                                  b"10 seconds", b"vertical lifting"]
+                                 if candidate_at_least(args.label, 41) else
+                                 [b"1.0.21-test40", b"Hosting remains on OpenCE network version 24",
+                                  b"four remote machines", b"128-machine table", b"SHAKE COOLING",
+                                  b"WEIGHT HAPTICS", b"NPC RESCUE", b"DROPPED MAGAZINES",
+                                  b"LIFT VEHICLES", b"CUSTOM NPC RIGS", b"32-magazine pool",
+                                  b"10 seconds", b"vertical lifting"]
+                                 if candidate_at_least(args.label, 40) else
+                                 [b"1.0.20-test39", b"Hosting remains network version 24", b"SHAKE COOLING",
+                                  b"WEIGHT HAPTICS", b"four remote machines", b"128-machine table",
+                                  b"alternate Assassin actor enum", b"OFF by default"]
+                                 if candidate_at_least(args.label, 39) else
+                                 [b"1.0.19-test38", b"Hosting stays network 24",
+                                  b"SHOULDER POUCH", b"HIP POUCH", b"four remote peers",
+                                  b"Manual reload and parkour remain solo-only",
+                                  b"optional legacy", b"12-14", b"PHYSICAL HANDLES"]
+                                 if candidate_at_least(args.label, 38) else
+                                 [b"1.0.18-test37", b"network-version population selector",
+                                  b"Hosting remains on network 24"])
+                if candidate_at_least(args.label, 50):
+                    guide_markers.extend([b"test50: voice diagnostics and sprint toggle", b"sprint toggle"])
+                if candidate_at_least(args.label, 51) and not candidate_at_least(args.label, 52):
+                    guide_markers.extend([b"test51: network-join crash and voice-config fix",
+                                          b"host voice settings accepted before diagnostics"])
+                if candidate_at_least(args.label, 64):
+                    guide_markers.extend([b"test64: vr settings open again", b"crash"])
+                if candidate_at_least(args.label, 63):
+                    guide_markers.extend([b"test63: your test62 session, fixed",
+                                          b"one-hand heavies", b"button sprint", b"chest grenades", b"fist reach"])
+                if candidate_at_least(args.label, 62):
+                    guide_markers.extend([b"test62: settled controls, easier grabs and campaign impacts",
+                                          b"ctrl reach", b"ragdoll range", b"5 cm", b"three seconds"])
+                if candidate_at_least(args.label, 61):
+                    guide_markers.extend([b"test61: the wheel stays in your hands, impacts that hurt, more ragdolls",
+                                          b"first person", b"24", b"one hand"])
+                if candidate_at_least(args.label, 60):
+                    guide_markers.extend([b"test60: impacts for every NPC, settings that come on together",
+                                          b"npc rescue", b"impact damage", b"friendly"])
+                if candidate_at_least(args.label, 59):
+                    guide_markers.extend([b"test59: real hands in vehicles, the latest network, magazines back in",
+                                          b"network 28", b"network 27", b"death force", b"tank drive", b"comfort reach"])
+                if candidate_at_least(args.label, 58):
+                    guide_markers.extend([b"test58: vehicle controls where your hands are",
+                                          b"540 m", b"tank hatch", b"reticle"])
+                if candidate_at_least(args.label, 57):
+                    guide_markers.extend([b"test57: final polish: every vehicle its own controls",
+                                          b"virtual wheel", b"drive stick", b"control glow", b"safety button"])
+                if candidate_at_least(args.label, 56):
+                    guide_markers.extend([b"test56: polish: ragdolls, immersive vehicles, throwing and lifting",
+                                          b"npc recovery", b"charge grab", b"lift", b"network 27"])
+                if candidate_at_least(args.label, 55):
+                    guide_markers.extend([b"test55: polish: grabbing everything, vehicles, calibration and one immersion menu",
+                                          b"immersive vehicle", b"pouch places", b"right stick"])
+                if candidate_at_least(args.label, 54):
+                    guide_markers.extend([b"test54: manual reload, grabbing, climbing and ragdolls refined",
+                                          b"death ragdolls", b"immersion+", b"fist required"])
+                if candidate_at_least(args.label, 53):
+                    guide_markers.extend([b"test53: voice crash fixed and immersion features repaired",
+                                          b"immersion", b"network 26", b"all compatible networks"])
+                if candidate_at_least(args.label, 52) and not candidate_at_least(args.label, 53):
+                    guide_markers.extend([b"test52: voice crash root cause fixed",
+                                          b"opus pulse-cache table", b"missing function prototypes"])
+                for marker in guide_markers:
+                    if marker.lower() not in guide:
                         raise SystemExit("Test37 offline guide marker missing: " + repr(marker))
+                if candidate_at_least(args.label, 45):
+                    if "android.permission.RECORD_AUDIO" not in permissions:
+                        raise SystemExit("OpenCE Build167 Android microphone permission missing from APK: " + str(path))
+                    for marker in [b"voice chat: microphone", b"audio.voice_chat", b"audio.voice_volume"]:
+                        if marker not in guest:
+                            raise SystemExit("OpenCE Build167 voice-chat runtime marker missing from APK: " + repr(marker))
+                    for marker in [b"voice chat", b"microphone permission", b"voice volume",
+                                   b"push to talk", b"two-client voice"]:
+                        if marker not in guide:
+                            raise SystemExit("OpenCE Build167 voice-chat player-guide marker missing from APK: " + repr(marker))
+            if candidate_at_least(args.label, 42):
+                for marker in [b"halo-ce-touch-layout", b"touch_visibility", b"visible_",
+                               b"Export touch layout preset", b"Import touch layout preset",
+                               b"Show and enable this touch control", b"Layout not imported"]:
+                    if marker not in dex:
+                        raise SystemExit("Test42 Android touch-layout feature missing from APK: " + repr(marker))
+                touch_guide = archive.read("assets/guide/touch.txt")
+                for marker in [b"Export touch layout preset", b"Import touch layout preset",
+                               b"Show and enable this touch control", b"64 KiB", b"SAVE", b"CANCEL"]:
+                    if marker not in touch_guide:
+                        raise SystemExit("Test42 touch-layout guide marker missing: " + repr(marker))
+            if candidate_at_least(args.label, 43):
+                for marker in [b"Delete imported copy", b"Use this set:", b"deleteInboxImage", b"Delete inbox image?"]:
+                    if marker not in dex:
+                        raise SystemExit("Test43 game-data management feature missing from APK: " + repr(marker))
+            if candidate_at_least(args.label, 44):
+                guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt")).lower()
+                for marker in [b"launcher does not keep or delete", b"android files", b"a10 look-calibration",
+                               b"rendered ray is fresh and valid", b"outside a10"]:
+                    if marker not in guide:
+                        raise SystemExit("Test44 guide marker missing from APK: " + repr(marker))
+                if b"does not keep or delete the original image" not in dex.lower():
+                    raise SystemExit("Test44 launcher source-file warning missing from APK")
+            if candidate_at_least(args.label, 41) and vr:
+                controls_guide = archive.read("assets/guide/controls.txt")
+                for marker in [b"HOLSTER HAPTICS", b"vr.holster_haptics"]:
+                    if marker not in guest:
+                        raise SystemExit("Test41 holster haptics or reload-separation marker missing: " + repr(marker))
+                if b"reload and other haptics still follow the global" not in controls_guide:
+                    raise SystemExit("Test41 guide does not explain holster/reload haptics separation")
+            if candidate_at_least(args.label, 37):
                 for marker in [b"Browse multiplayer servers", b"Browse campaign co-op servers",
                                b"Network: All networks", b"unavailable; protocol not included"]:
                     if marker not in dex:
@@ -359,10 +721,11 @@ def main():
             if candidate_at_least(args.label, 36):
                 # Paragraph wrapping is presentation, not missing guidance.
                 guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt"))
-                for marker in [b"1.0.17-test36", b"OpenCE Build 157 / network 24",
-                               b"Two-hand aim centering diagnostics",
-                               b"Scope, aim, turret and vehicle behavior remain unchanged",
-                               b"A Halo-inspired launcher font is selectable"]:
+                for marker in ([] if candidate_at_least(args.label, 38) else
+                               [b"1.0.17-test36", b"OpenCE Build 157 / network 24",
+                                b"Two-hand aim centering diagnostics",
+                                b"Scope, aim, turret and vehicle behavior remain unchanged",
+                                b"A Halo-inspired launcher font is selectable"]):
                     if marker not in guide:
                         raise SystemExit("Test36 offline guide marker missing: " + repr(marker))
                 if b"Orbitron Regular" not in archive.read("assets/guide/credits.txt"):
@@ -372,8 +735,8 @@ def main():
                                    b"mounted aim selection: role %s", b"turret/gunner aim %s"]:
                         if marker not in guest:
                             raise SystemExit("Test36 VR diagnostic marker missing: " + repr(marker))
-                for marker in [b"Recommended game image: the original Xbox Halo: Combat Evolved XISO",
-                               b"Rev 1 and Rev 2 images can be imported, but are not recommended",
+                for marker in [b"Use a complete original-Xbox Halo: Combat Evolved ISO/XISO",
+                               b"The tested USA Original, Rev 1 and Rev 2 images contain identical game maps",
                                b"Font: Halo (tap for normal)",
                                b"Font: normal (tap for Halo)",
                                b"Need help? DM @MeWhenINameMyself on Discord."]:
@@ -400,6 +763,17 @@ def main():
                         raise SystemExit("v1.0.18 offline guide is stale or missing: " + repr(marker))
                 if vr and b"HaloCE Quest 1.0.18 release code48" not in guest:
                     raise SystemExit("v1.0.18 VR release identity is missing")
+            if args.stable and args.label == "1.0.19":
+                guide = re.sub(rb"\s+", b" ", archive.read("assets/guide/player-guide.txt")).lower()
+                for marker in [b"halo ce quest vr + android 1.0.19",
+                               b"version code 63",
+                               b"parkour", b"ragdoll", b"grabbing enemies",
+                               b"not working", b"not recommended",
+                               b"crash fix", b"voice chat works"]:
+                    if marker not in guide:
+                        raise SystemExit("v1.0.19 offline guide is stale or missing: " + repr(marker))
+                if vr and b"HaloCE Quest v1.0.19 release code63" not in guest:
+                    raise SystemExit("v1.0.19 VR release identity is missing")
             if args.stable and args.label == "1.0.16":
                 if b"OpenCE build 148 (network 23)" not in dex:
                     raise SystemExit("v1.0.16 updater does not identify OpenCE Build 148 / network 23")
@@ -469,6 +843,23 @@ def main():
                 raise SystemExit("Negotiated avatar support missing")
             if vr and (b"HANDS ONLY" not in guest or b"NEXT PAGE (%ld/%ld)" not in guest):
                 raise SystemExit("Body modes or paged settings missing")
+            if vr and candidate_at_least(args.label, 41):
+                for marker in [b"SHAKE COOLING", b"HAPTICS", b"CUSTOM SCENERY",
+                               b"CUSTOM NPC RIGS", b"vr.cooldown_shake"]:
+                    if marker not in guest:
+                        raise SystemExit("Test41 VR option missing from guest: " + repr(marker))
+                if b"WEIGHT HAPTICS" in guest:
+                    raise SystemExit("Test41 still exposes a per-feature haptics toggle")
+            elif vr and candidate_at_least(args.label, 39):
+                for marker in [b"SHAKE COOLING", b"WEIGHT HAPTICS", b"CUSTOM SCENERY",
+                               b"CUSTOM NPC RIGS", b"vr.cooldown_shake", b"vr.weight_haptics"]:
+                    if marker not in guest:
+                        raise SystemExit("Test39 VR option missing from guest: " + repr(marker))
+            if vr and candidate_at_least(args.label, 40):
+                for marker in [b"NPC RESCUE", b"MAG DEBRIS", b"LIFT VEHICLES",
+                               b"vr.npc_rescue", b"vr.dropped_magazines", b"vr.vehicle_lift"]:
+                    if marker not in guest:
+                        raise SystemExit("Test40 VR option missing from guest: " + repr(marker))
             identity = ("HaloCE Quest " + args.label + (" release" if args.stable else " candidate")).encode("ascii")
             if (identity in guest) != vr:
                 raise SystemExit("VR/flat guest identity mismatch")
@@ -492,15 +883,21 @@ def main():
     source = output / f"HaloCE-Quest-{args.label}-source.zip"
     subprocess.run(["git", "archive", "--format=zip", "--prefix=halo-ce-quest/", "-o", str(source), commit], cwd=ROOT, check=True)
     manifest = {"candidate": args.label, "created_utc": datetime.now(timezone.utc).isoformat(),
-                "source_commit": commit, "runtime_source_commit": runtime_commit, "branch": branch, "runtime_accepted": False,
+                "source_commit": commit, "runtime_source_commit": runtime_commit, "branch": branch,
+                "runtime_accepted": bool(args.stable and args.label == "1.0.19"),
                 "publication": "owner-authorized public release" if args.stable else "held pending owner candidate testing and approval",
-                "prior_device_report": "Device acceptance for this exact APK pair is not recorded; publication authorization does not imply device acceptance",
+                "prior_device_report": ("Owner confirmed Quest server join no longer crashes and voice chat works; this does not certify every device/server/map/revision/player count"
+                                        if args.stable and args.label == "1.0.19" else
+                                        "Device acceptance for this exact APK pair is not recorded; publication authorization does not imply device acceptance"),
                 "certificate_sha256": CERTIFICATE, "apks": records,
                 "source_zip": {"file": source.name, "sha256": sha(source)},
                 "native_host_version": network_value("HALO_PORT_NETWORK_VERSION"), "accepted_host_versions": list(range(network_value("HALO_PORT_NETWORK_VERSION_MINIMUM"), network_value("HALO_PORT_NETWORK_VERSION_MAXIMUM")+1)),
-                "client_default_target": 24, "client_all_compatible_target": 0,
-                "campaign_minimum_host_version": 23, "custom_edition_minimum_host_version": 23,
-                "legacy_client_scope": "original Xbox-map PvP; device cross-play validation pending",
+                "client_default_target": client_default_target(args.label, runtime_commit), "client_all_compatible_target": 0,
+                "campaign_minimum_host_version": 15, "custom_edition_minimum_host_version": 23,
+                "legacy_client_scope": "original Xbox-map PvP11-24; campaign15-24 plus explicit legacy12-14 opt-in; device cross-play validation pending",
+                "legacy_campaign_opt_in_versions": [12, 13, 14],
+                "physical_interaction_protocol": 1,
+                "physical_interaction_host_permission_default": False,
                 "coop": "opence-native", "campaign_runtime_verified": False,
                 "avatar_protocol": 1, "avatar_message_ids": [37, 38], "avatar_prior_owner_report": "Owner confirmed earlier VR body movement was visible on flat Android; Test32 preserves avatar protocol v1 and native action handoff.",
                 "directory": "https://halo.milenko.org/v1/games.txt"}
@@ -516,12 +913,40 @@ def main():
         "editions": {record["package"]: {"apk": record["file"], "sha256": record["sha256"],
             "bytes": record["bytes"], "version_code": record["version_code"], "min_sdk": record["min_sdk"]} for record in records}}
     (output / "compatibility.json").write_text(json.dumps(compatibility, indent=2)+"\n")
-    edition_docs=["RELEASE-"+args.label+".md", "RELEASE-PROVENANCE-"+args.label+".md"] if args.stable else [args.label.upper()+"-DELIVERY.md", args.label.upper()+"-PROGRESS.md"]
+    edition_docs=( ["RELEASE-"+args.label+".md", "RELEASE-PROVENANCE-"+args.label+".md"] if args.stable else
+                   [] if candidate_at_least(args.label, 42) else
+                   [args.label.upper()+"-DELIVERY.md", args.label.upper()+"-PROGRESS.md"] )
     # a lettered candidate (test21b) ships its base candidate's notes too
     base_label = re.sub(r"[a-z]$", "", args.label)
     if not args.stable and base_label != args.label:
         edition_docs += [base_label.upper()+"-DELIVERY.md", base_label.upper()+"-PROGRESS.md"]
-    documents = edition_docs+["GAME-DATA-LIBRARY.md", "TEST15-DELIVERY.md", "TEST15-PROGRESS.md", "TEST15-UPSTREAM.md", "DATA-COMPATIBILITY.md", "CURRENT-STATE.md", "PLAYER-GUIDE.md", "CONTROLS-AND-OPTIONS.md", "COOP-COMPATIBILITY-AUDIT.md", "NETWORK-VR-AVATARS.md", "CAMPAIGN-PROTOCOL-WIP.md",
+    active_candidate_docs = (["TEST51-DELIVERY-STATUS.md", "TEST51-PLAYER-NOTES.md", "TEST51-FIELD-GUIDE.md", "TEST51-CRASH-ANALYSIS.md", "TEST51-DEVICE-CHECKLIST.md", "TEST50-DELIVERY-STATUS.md", "TEST50-PLAYER-NOTES.md", "TEST50-FIELD-GUIDE.md", "TEST50-VOICE-DIAGNOSTICS.md", "TEST50-DEVICE-CHECKLIST.md", "TEST49-DELIVERY-STATUS.md", "TEST49-PLAYER-NOTES.md", "TEST49-FIELD-GUIDE.md", "TEST49-REGRESSION-AUDIT.md", "TEST49-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
+                             if candidate_at_least(args.label, 51) else
+                             ["TEST50-DELIVERY-STATUS.md", "TEST50-PLAYER-NOTES.md", "TEST50-FIELD-GUIDE.md", "TEST50-VOICE-DIAGNOSTICS.md", "TEST50-DEVICE-CHECKLIST.md", "TEST49-DELIVERY-STATUS.md", "TEST49-PLAYER-NOTES.md", "TEST49-FIELD-GUIDE.md", "TEST49-REGRESSION-AUDIT.md", "TEST49-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
+                             if candidate_at_least(args.label, 50) else
+                             ["TEST49-DELIVERY-STATUS.md", "TEST49-PLAYER-NOTES.md", "TEST49-FIELD-GUIDE.md", "TEST49-REGRESSION-AUDIT.md", "TEST49-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
+                             if candidate_at_least(args.label, 49) else
+                             ["TEST48-DELIVERY-STATUS.md", "TEST48-PLAYER-NOTES.md", "TEST48-REGRESSION-AUDIT.md", "TEST48-DEVICE-CHECKLIST.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
+                             if candidate_at_least(args.label, 48) else
+                             ["TEST47-DELIVERY-STATUS.md", "TEST47-PLAYER-NOTES.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
+                             if candidate_at_least(args.label, 47) else
+                             ["TEST46-DELIVERY-STATUS.md", "TEST46-PLAYER-NOTES.md", "TEST46-REQUIREMENT-DISPOSITION.md"]
+                             if candidate_at_least(args.label, 46) else
+                             ["TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md"]
+                             if candidate_at_least(args.label, 45) else
+                             ["TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md"]
+                             if candidate_at_least(args.label, 44) else
+                             ["TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md"]
+                             if candidate_at_least(args.label, 43) else
+                             ["TEST42-DELIVERY-STATUS.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md"]
+                             if candidate_at_least(args.label, 42) else
+                             ["TEST41-DELIVERY-STATUS.md", "TEST41-PLAYER-NOTES.md", "TEST41-REQUIREMENT-DISPOSITION.md"]
+                             if candidate_at_least(args.label, 41) else
+                             ["TEST40-DELIVERY-STATUS.md", "TEST40-PLAYER-NOTES.md", "TEST40-REQUIREMENT-DISPOSITION.md"]
+                             if candidate_at_least(args.label, 40) else
+                             ["TEST39-DELIVERY-STATUS.md", "TEST39-PLAYER-NOTES.md", "TEST39-INTERACTION-NETWORK.md"])
+    active_candidate_docs = candidate_document_prefix(args.label) + active_candidate_docs
+    documents = edition_docs+active_candidate_docs+["TEST38-DELIVERY-STATUS.md", "TEST38-PLAYER-NOTES.md", "TEST38-DEVICE-CHECKLIST.md", "WORLD-INTERACTION-STATUS.md", "MANUAL-RELOAD.md", "VR-LOOSE-PROPS.md", "VR-PARKOUR.md", "TEST38-INTERACTION-NETWORK.md", "GAME-DATA-LIBRARY.md", "TEST15-DELIVERY.md", "TEST15-PROGRESS.md", "TEST15-UPSTREAM.md", "DATA-COMPATIBILITY.md", "CURRENT-STATE.md", "PLAYER-GUIDE.md", "CONTROLS-AND-OPTIONS.md", "COOP-COMPATIBILITY-AUDIT.md", "NETWORK-VR-AVATARS.md", "CAMPAIGN-PROTOCOL-WIP.md",
                  "ANDROID-TOUCH-CONTROLS.md", "ANDROID-GAMEPAD.md", "COOP-PLAYER-LIMITS.md", "MULTIPLAYER-BROWSER.md"]
     documents = list(dict.fromkeys(documents))
     if candidate_at_least(args.label, 31) and not args.stable:
@@ -541,6 +966,31 @@ def main():
         documents += ["TEST36-PLAYER-NOTES.md", "TEST36-UPSTREAM-INTEGRATION.md"]
     if candidate_at_least(args.label, 37) and not args.stable:
         documents += ["TEST37-PLAYER-NOTES.md", "TEST37-UPSTREAM-INTEGRATION.md"]
+    if candidate_at_least(args.label, 39) and not args.stable:
+        documents += ["TEST39-DEVICE-CHECKLIST.md", "TEST39-REQUIREMENT-DISPOSITION.md"]
+    if candidate_at_least(args.label, 49) and not args.stable:
+        documents += ["TEST49-DEVICE-CHECKLIST.md", "TEST49-REGRESSION-AUDIT.md", "TEST48-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-DELIVERY-STATUS.md", "TEST47-PLAYER-NOTES.md", "TEST47-DEVICE-CHECKLIST.md", "TEST47-OPENCE177-INTEGRATION.md", "TEST46-DEVICE-CHECKLIST.md", "TEST46-VOICE-CHAT.md", "TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md", "TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    elif candidate_at_least(args.label, 48) and not args.stable:
+        documents += ["TEST48-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-DELIVERY-STATUS.md", "TEST47-PLAYER-NOTES.md", "TEST47-DEVICE-CHECKLIST.md", "TEST47-OPENCE177-INTEGRATION.md", "TEST46-DEVICE-CHECKLIST.md", "TEST46-VOICE-CHAT.md", "TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md", "TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    elif candidate_at_least(args.label, 47) and not args.stable:
+        documents += ["TEST47-DEVICE-CHECKLIST.md", "TEST47-OPENCE177-INTEGRATION.md", "TEST46-DEVICE-CHECKLIST.md", "TEST46-VOICE-CHAT.md", "TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md", "TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    elif candidate_at_least(args.label, 46) and not args.stable:
+        documents += ["TEST46-DEVICE-CHECKLIST.md", "TEST46-VOICE-CHAT.md", "TEST45-DELIVERY-STATUS.md", "TEST45-PLAYER-NOTES.md", "TEST45-REQUIREMENT-DISPOSITION.md", "TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    elif candidate_at_least(args.label, 45) and not args.stable:
+        documents += ["TEST45-DEVICE-CHECKLIST.md", "TEST45-VOICE-CHAT.md", "TEST44-DELIVERY-STATUS.md", "TEST44-PLAYER-NOTES.md", "TEST44-REQUIREMENT-DISPOSITION.md", "TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    elif candidate_at_least(args.label, 44) and not args.stable:
+        documents += ["TEST44-DEVICE-CHECKLIST.md", "TEST43-DELIVERY-STATUS.md", "TEST43-PLAYER-NOTES.md", "TEST43-REQUIREMENT-DISPOSITION.md", "TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    elif candidate_at_least(args.label, 43) and not args.stable:
+        documents += ["TEST43-DEVICE-CHECKLIST.md", "TEST42-PLAYER-NOTES.md", "TEST42-REQUIREMENT-DISPOSITION.md", "TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    elif candidate_at_least(args.label, 42) and not args.stable:
+        documents += ["TEST42-DEVICE-CHECKLIST.md", "TEST42-OPENCE167-INTEGRATION.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    elif candidate_at_least(args.label, 41) and not args.stable:
+        documents += ["TEST41-DEVICE-CHECKLIST.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    elif candidate_at_least(args.label, 40) and not args.stable:
+        documents += ["TEST40-DEVICE-CHECKLIST.md", "TEST40-PROGRESS.md", "VR-INTERACTION-REQUIREMENTS.md"]
+    # Candidate-specific additions above may repeat a shared handoff document.
+    # Keep both the copied folder and build ZIP free of duplicate entries.
+    documents = list(dict.fromkeys(documents))
     for doc in documents:
         shutil.copy2(ROOT / "docs" / doc, output / doc)
     for notice in ["CREDITS.md", "THIRD-PARTY-NOTICES.txt", "LICENSE.md"]:

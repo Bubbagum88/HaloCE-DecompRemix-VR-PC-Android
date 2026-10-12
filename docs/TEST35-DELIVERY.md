@@ -10,7 +10,7 @@ published filenames and hashes.
 - Candidate: Test35, Android/Quest version **1.0.16**, version code **45**.
 - Upstream baseline: OpenCE Build 148, commit
   `ff47e47ad6f54bc533cee2a0fe57232c8f63d614`, network 23.
-- Package output: `D:\HaloQuest\builds\test35-20261007-build148\package-test35`.
+- Package output: `<artifacts>\test35-20261007-build148\package-test35`.
 - Public GitHub release: none. Preserve existing public releases.
 
 ## APKs

@@ -14,15 +14,18 @@ guest needs, when it needs it:
   thread stacks), reserved in free gaps below 4 GB as they fill up.
 
 This file also implements guest memory write tracking (the interface of
-port/linux/src/memory_watch.c): the renderer write-protects the pages behind
-the textures it caches, and the SIGSEGV handler here records the first
-write to each. Other faults are reported (with guest-relative addresses) and
-passed on to the previous handler.
+port/linux/src/memory_watch.c): the renderer tracks writes to pages behind
+cached textures. Most Android processes use page protection and this
+SIGSEGV handler records writes; an ARM-translated guest uses page hashes
+(host_watch_hash.c). Other faults are reported and passed to the previous
+handler.
 */
 
 #include "host.h"
+#include "host_watch_hash.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
@@ -125,46 +128,237 @@ use (present or swapped out, from /proc/self/pagemap): ART's other spaces
 corrupt it where failing to start is at least clear. */
 #define ART_LARGE_OBJECT_SPACE "[anon:dalvik-free list large object space]"
 
-/* whether no page from..to (page aligned) is present or swapped out; 0 if
-it cannot tell */
-static int range_unused(uint64_t from, uint64_t to)
+enum
 {
-	FILE *pagemap = fopen("/proc/self/pagemap", "rb");
+	_range_unused,
+	_range_in_use,
+	_range_unknown,
+};
+
+#ifdef HALO_MEMORY_RECLAIM_TEST
+/* Host-only tests force the same path as devices that deny pagemap access. */
+int host_memory_reclaim_test_no_pagemap = 1;
+int host_memory_reclaim_test_swap_kb = 0;
+#define PAGEMAP_DISABLED host_memory_reclaim_test_no_pagemap
+#else
+#define PAGEMAP_DISABLED 0
+#endif
+
+struct range_usage
+{
+	uint64_t pages_in_use;
+	uint64_t lowest_in_use, highest_in_use;
+	const char *method;
+};
+
+static void range_note_in_use(struct range_usage *usage, uint64_t address)
+{
+	if (!usage->pages_in_use++)
+		usage->lowest_in_use = address;
+	usage->highest_in_use = address;
+}
+
+/* /proc/self/pagemap: bit 63 is present and bit 62 is swapped out. UNKNOWN
+ * means the kernel or policy did not allow a complete read, so mincore and
+ * smaps can be tried without treating an unreadable page as free. */
+static int range_usage_pagemap(uint64_t from, uint64_t to, struct range_usage *usage)
+{
+	int descriptor = PAGEMAP_DISABLED ? -1 : open("/proc/self/pagemap", O_RDONLY | O_CLOEXEC);
 	uint64_t entries[512];
 	uint64_t page = from / PAGE;
-	int unused = 1;
 
-	if (!pagemap)
-		return 0;
-	if (fseeko(pagemap, (off_t)(page * sizeof(uint64_t)), SEEK_SET) != 0)
-		unused = 0;
-	while (unused && page < to / PAGE)
+	if (descriptor < 0)
+	{
+		if (PAGEMAP_DISABLED)
+			errno = EACCES;
+		host_logf(HOST_LOG_WARN, "ART memory check: cannot read /proc/self/pagemap (%s); trying mincore/smaps",
+			strerror(errno));
+		return _range_unknown;
+	}
+	usage->method = "pagemap";
+	while (page < to / PAGE)
 	{
 		size_t wanted = (size_t)(to / PAGE - page);
-		size_t count;
-		size_t index;
+		ssize_t bytes;
+		size_t count, index;
 
 		if (wanted > sizeof(entries) / sizeof(entries[0]))
 			wanted = sizeof(entries) / sizeof(entries[0]);
-		count = fread(entries, sizeof(entries[0]), wanted, pagemap);
-		if (count != wanted)
+		bytes = pread(descriptor, entries, wanted * sizeof(entries[0]), (off_t)(page * sizeof(entries[0])));
+		if (bytes <= 0 || bytes % (ssize_t)sizeof(entries[0]))
 		{
-			unused = 0;
-			break;
+			int error = errno;
+			close(descriptor);
+			host_logf(HOST_LOG_WARN, "ART memory check: incomplete pagemap read at %08llx (%s); trying mincore/smaps",
+				(unsigned long long)(page * PAGE), bytes == 0 ? "end of file" : strerror(error));
+			return _range_unknown;
 		}
-		/* (bit 63 present, bit 62 swapped) */
+		count = (size_t)bytes / sizeof(entries[0]);
 		for (index = 0; index < count; index++)
 		{
 			if (entries[index] & (3ULL << 62))
-			{
-				unused = 0;
-				break;
-			}
+				range_note_in_use(usage, (page + index) * PAGE);
 		}
 		page += count;
 	}
-	fclose(pagemap);
-	return unused;
+	close(descriptor);
+	return usage->pages_in_use ? _range_in_use : _range_unused;
+}
+
+/* The Swap: value from the smaps entry beginning at start, in kB. When end
+ * is nonzero the entry must end there too. dont_dump reports MADV_DONTDUMP. */
+static long mapping_swap_kb_ending(uint64_t start, uint64_t end, int *dont_dump)
+{
+	FILE *smaps = fopen("/proc/self/smaps", "r");
+	char line[512];
+	int inside = 0;
+	long result = -1;
+
+	if (dont_dump)
+		*dont_dump = 0;
+	if (!smaps)
+		return -1;
+	while (fgets(line, sizeof(line), smaps))
+	{
+		unsigned long long lo, hi;
+		long kb;
+
+		if (sscanf(line, "%llx-%llx ", &lo, &hi) == 2)
+		{
+			if (inside)
+				break;
+			inside = lo == start && (!end || hi == end);
+			continue;
+		}
+		if (!inside)
+			continue;
+		if (sscanf(line, "Swap: %ld kB", &kb) == 1)
+			result = kb;
+		else if (dont_dump && !strncmp(line, "VmFlags:", 8))
+			*dont_dump = strstr(line, " dd") != NULL;
+	}
+	fclose(smaps);
+	return result;
+}
+
+static long mapping_swap_kb(uint64_t start)
+{
+#ifdef HALO_MEMORY_RECLAIM_TEST
+	(void)start;
+	return host_memory_reclaim_test_swap_kb;
+#else
+	return mapping_swap_kb_ending(start, 0, NULL);
+#endif
+}
+
+/* smaps counts swap per mapping, not per range. Split only this page-aligned
+ * range temporarily to read its Swap count; do not alter an ART mapping
+ * already marked DONTDUMP. */
+static long range_swap_kb(uint64_t mapping_start, uint64_t from, uint64_t to)
+{
+	int dont_dump;
+	long kb;
+	long mapping_swap = mapping_swap_kb_ending(mapping_start, 0, &dont_dump);
+
+	if (mapping_swap < 0)
+	{
+		host_logf(HOST_LOG_WARN, "ART memory check: cannot inspect mapping %08llx in smaps; range remains mapped",
+			(unsigned long long)mapping_start);
+		return -1;
+	}
+	if (dont_dump)
+	{
+		host_logf(HOST_LOG_WARN, "ART memory check: mapping %08llx already has DONTDUMP; exact swap state is unknown",
+			(unsigned long long)mapping_start);
+		return -1;
+	}
+	if (madvise((void *)from, (size_t)(to - from), MADV_DONTDUMP) != 0)
+	{
+		host_logf(HOST_LOG_WARN, "ART memory check: cannot isolate swap for %08llx-%08llx (%s); range remains mapped",
+			(unsigned long long)from, (unsigned long long)to, strerror(errno));
+		return -1;
+	}
+	kb = mapping_swap_kb_ending(from, to, NULL);
+	if (madvise((void *)from, (size_t)(to - from), MADV_DODUMP) != 0)
+	{
+		host_logf(HOST_LOG_ERROR, "ART memory check: could not restore dump flag for %08llx-%08llx (%s); range remains mapped",
+			(unsigned long long)from, (unsigned long long)to, strerror(errno));
+		return -1;
+	}
+	if (kb < 0)
+		host_logf(HOST_LOG_WARN, "ART memory check: isolated range %08llx-%08llx has no readable smaps entry",
+			(unsigned long long)from, (unsigned long long)to);
+	return kb;
+}
+
+/* Fallback for kernels or policies that refuse pagemap. mincore reports
+ * resident pages; smaps supplies the range's own swapped-page count. */
+static int range_usage_mincore(uint64_t mapping_start, uint64_t from, uint64_t to,
+	struct range_usage *usage)
+{
+	unsigned char residency[4096];
+	uint64_t address = from;
+	long swapped = mapping_swap_kb(mapping_start);
+
+	usage->method = "mincore/smaps";
+	if (swapped < 0)
+	{
+		host_logf(HOST_LOG_WARN, "ART memory check: cannot read smaps for mapping %08llx; range remains mapped",
+			(unsigned long long)mapping_start);
+		return _range_unknown;
+	}
+	if (swapped > 0)
+	{
+		long range_swapped = range_swap_kb(mapping_start, from, to);
+
+		if (range_swapped < 0)
+			return _range_unknown;
+		if (range_swapped > 0)
+		{
+			usage->pages_in_use = ((uint64_t)range_swapped * 1024 + PAGE - 1) / PAGE;
+			usage->lowest_in_use = from;
+			usage->highest_in_use = to - PAGE;
+			usage->method = "range swap in smaps";
+			return _range_in_use;
+		}
+	}
+	while (address < to)
+	{
+		uint64_t length = to - address;
+		size_t index;
+
+		if (length > sizeof(residency) * PAGE)
+			length = sizeof(residency) * PAGE;
+		if (mincore((void *)address, (size_t)length, residency) != 0)
+		{
+			host_logf(HOST_LOG_WARN, "ART memory check: mincore failed at %08llx (%s); range remains mapped",
+				(unsigned long long)address, strerror(errno));
+			return _range_unknown;
+		}
+		for (index = 0; index < length / PAGE; index++)
+		{
+			if (residency[index] & 1)
+				range_note_in_use(usage, address + index * PAGE);
+		}
+		address += length;
+	}
+	return usage->pages_in_use ? _range_in_use : _range_unused;
+}
+
+/* Whether a page in the mapping range holds data. UNKNOWN always preserves
+ * the mapping instead of reclaiming it. */
+static int range_usage(uint64_t mapping_start, uint64_t from, uint64_t to, struct range_usage *usage)
+{
+	int result;
+
+	memset(usage, 0, sizeof(*usage));
+	result = range_usage_pagemap(from, to, usage);
+	if (result == _range_unknown)
+	{
+		memset(usage, 0, sizeof(*usage));
+		result = range_usage_mincore(mapping_start, from, to, usage);
+	}
+	return result;
 }
 
 static int reclaim_art_overlap(uint64_t address, uint64_t size)
@@ -179,6 +373,8 @@ static int reclaim_art_overlap(uint64_t address, uint64_t size)
 	{
 		unsigned long long lo, hi;
 		uint64_t from, to;
+		struct range_usage usage;
+		int usage_result;
 		char *name;
 		int name_offset = 0;
 
@@ -196,10 +392,14 @@ static int reclaim_art_overlap(uint64_t address, uint64_t size)
 				lo, hi, name[0] ? name : "unnamed");
 			continue;
 		}
-		if (!range_unused(from, to))
+		usage_result = range_usage(lo, from, to, &usage);
+		if (usage_result != _range_unused)
 		{
-			host_logf(HOST_LOG_ERROR, "ART's large object space over %08llx-%08llx is in use (or its pages cannot be read); left alone",
-				(unsigned long long)from, (unsigned long long)to);
+			host_logf(HOST_LOG_ERROR,
+				"ART's large object space over %08llx-%08llx %s (%llu pages, %s); left alone",
+				(unsigned long long)from, (unsigned long long)to,
+				usage_result == _range_in_use ? "is in use" : "could not be checked",
+				(unsigned long long)usage.pages_in_use, usage.method ? usage.method : "no readable page map");
 			continue;
 		}
 		if (munmap((void *)from, to - from) == 0)
@@ -519,6 +719,21 @@ static uint8_t page_protected[WATCH_PAGE_COUNT];
 static uint32_t page_generation[WATCH_PAGE_COUNT];
 static volatile uint32_t current_generation = 1;
 static int watch_active;
+static int watch_hashing;
+static uint8_t page_hash_watched[WATCH_PAGE_COUNT];
+static uint64_t page_hash[WATCH_PAGE_COUNT];
+static uint32_t page_hashed_frame[WATCH_PAGE_COUNT];
+static struct watch_hash page_hashes =
+{
+	.base = (const uint8_t *)(uintptr_t)HALO_GUEST_WINDOW_BASE,
+	.page_count = WATCH_PAGE_COUNT,
+	.watched = page_hash_watched,
+	.hash = page_hash,
+	.hashed_frame = page_hashed_frame,
+	.generation = page_generation,
+	.current_generation = &current_generation,
+	.frame = 1,
+};
 
 static int in_window(uint64_t address)
 {
@@ -642,6 +857,11 @@ void host_memory_watch_initialize(void)
 	watch_active = 1;
 }
 
+void host_memory_watch_use_hashes(void)
+{
+	watch_hashing = 1;
+}
+
 void host_memory_watch_protect(uint32_t address, uint32_t size)
 {
 	uint64_t first, last, page;
@@ -652,6 +872,11 @@ void host_memory_watch_protect(uint32_t address, uint32_t size)
 	last = watch_page((uint64_t)address + size - 1);
 	if (last >= WATCH_PAGE_COUNT)
 		last = WATCH_PAGE_COUNT - 1;
+	if (watch_hashing)
+	{
+		watch_hash_protect(&page_hashes, (uint32_t)first, (uint32_t)last);
+		return;
+	}
 	for (page = first; page <= last; page++)
 	{
 		if (!page_protected[page])
@@ -678,6 +903,8 @@ uint32_t host_memory_watch_generation(uint32_t address, uint32_t size)
 	last = watch_page((uint64_t)address + size - 1);
 	if (last >= WATCH_PAGE_COUNT)
 		last = WATCH_PAGE_COUNT - 1;
+	if (watch_hashing)
+		return watch_hash_generation(&page_hashes, (uint32_t)first, (uint32_t)last);
 	for (page = first; page <= last; page++)
 	{
 		if (page_generation[page] > newest)
@@ -690,7 +917,7 @@ void host_memory_watch_prepare_write(uint32_t address, uint32_t size)
 {
 	uint64_t start = address, first, last, page;
 
-	if (!watch_active || !size)
+	if (!watch_active || watch_hashing || !size)
 		return;
 	if (start + size <= HALO_GUEST_WINDOW_BASE || start >= (uint64_t)HALO_GUEST_WINDOW_BASE + HALO_GUEST_WINDOW_SIZE)
 		return;
@@ -707,6 +934,12 @@ void host_memory_watch_prepare_write(uint32_t address, uint32_t size)
 	}
 }
 
+void host_memory_watch_begin_frame(void)
+{
+	if (watch_hashing)
+		watch_hash_begin_frame(&page_hashes);
+}
+
 void host_memory_watch_forget(uint32_t address, uint32_t size)
 {
 	uint64_t first, last, page;
@@ -717,6 +950,11 @@ void host_memory_watch_forget(uint32_t address, uint32_t size)
 	last = watch_page((uint64_t)address + size - 1);
 	if (last >= WATCH_PAGE_COUNT)
 		last = WATCH_PAGE_COUNT - 1;
+	if (watch_hashing)
+	{
+		watch_hash_forget(&page_hashes, (uint32_t)first, (uint32_t)last);
+		return;
+	}
 	for (page = first; page <= last; page++)
 	{
 		page_protected[page] = 0;

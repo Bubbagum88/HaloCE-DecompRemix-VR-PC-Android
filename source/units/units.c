@@ -644,8 +644,13 @@ symbols in this file:
 /* ---------- headers */
 
 #include "cseries.h"
+#ifdef HALO_VR
+#include "vr_extra_interaction.h"
+#endif
 #include "units.h"
 #include "network_campaign.h"
+#include "vr_npc_interaction.h"
+#include "network_interaction.h"
 
 #include "bipeds.h"
 #include "biped_definitions.h"
@@ -2752,6 +2757,11 @@ void unit_died(
 	long equipment_index;
 
 	unit = unit_get(unit_index);
+#ifdef HALO_VR
+	/* (Test54: a player's body never becomes a death ragdoll; the player
+	index is cleared below, so note it now) */
+	boolean vr_player_body = unit->unit.player_index != NONE;
+#endif
 	if (!feigned)
 	{
 		unit->unit.feign_death_timer = 0;
@@ -2803,6 +2813,10 @@ void unit_died(
 
 		unit->unit.time_of_death = game_time_get();
 	}
+#ifdef HALO_VR
+	if (!feigned && !vr_player_body)
+		vr_npc_interaction_death(unit_index);
+#endif
 
 	unit->unit.flags &= ~(
 		FLAG(_unit_actively_controlled_bit) |
@@ -4193,6 +4207,33 @@ void unit_port_resurrect(
 	unit_scream(unit_index, _unit_scream_resurrection);
 }
 
+/* Use an authored get-up only when this exact live rig/seat/weapon class has
+ * one. Unlike resurrect, this never clears death or changes AI/seat labels. */
+boolean unit_interaction_recover(long unit_index, boolean on_front)
+{
+	struct unit_datum *unit=unit_try_and_get(unit_index);
+	struct animation_graph *graph;
+	struct animation_graph_unit_seat *seat;
+	struct animation_graph_weapon_class *weapon;
+	short slot=on_front?_unit_weapon_class_animation_resurrect_front:_unit_weapon_class_animation_resurrect_back;
+	long graph_index;
+	short animation_index;
+	if(!unit || unit->unit.player_index!=NONE || unit->object.parent_object_index!=NONE ||
+		TEST_FLAG(unit->object.damage_flags,_object_dead_bit) || unit_is_playing_custom_animation(unit_index) ||
+		unit->unit.animation.state>_unit_state_land_hard) return FALSE;
+	graph_index=unit_definition_get(unit->definition_index)->object.animation_graph.index;
+	if(graph_index==NONE) return FALSE;
+	graph=animation_graph_definition_get(graph_index);
+	if(!graph || unit->unit.animation.seat_index<0 || unit->unit.animation.seat_index>=graph->unit_seats.count) return FALSE;
+	seat=TAG_BLOCK_GET_ELEMENT(&graph->unit_seats,unit->unit.animation.seat_index,struct animation_graph_unit_seat);
+	if(unit->unit.animation.weapon_index<0 || unit->unit.animation.weapon_index>=seat->weapon_classes.count) return FALSE;
+	weapon=TAG_BLOCK_GET_ELEMENT(&seat->weapon_classes,unit->unit.animation.weapon_index,struct animation_graph_weapon_class);
+	if(unit->unit.animation.weapon_type_index<0 || unit->unit.animation.weapon_type_index>=weapon->weapon_types.count || slot>=weapon->animations.count) return FALSE;
+	animation_index=animation_graph_animation_index_get(&weapon->animations)[slot].animation_index;
+	if(animation_index<0 || animation_index>=graph->animations.count) return FALSE;
+	return unit_animation_set_state(unit_index,on_front?_unit_state_resurrect_front:_unit_state_resurrect_back);
+}
+
 /* how far into its own flinch or death animation a client's unit still
 switches to the host's pick */
 #define DAMAGE_ANIMATION_SWITCH_TICKS 10
@@ -4260,12 +4301,25 @@ void unit_port_play_user_animation(
 	object_compute_node_matrices_recursive(unit_index);
 }
 
+/* Test62: authoritative NPC grab restraint applies on VR and flat hosts.
+ * The optional fist stun adds its own VR-only, short-lived condition. */
+static boolean unit_interaction_melee_restrained(long unit_index)
+{
+    if (vr_npc_interaction_restrained(unit_index)) return TRUE;
+#ifdef HALO_VR
+    if (vr_combat_stunned(unit_index)) return TRUE;
+#endif
+    return FALSE;
+}
+
 boolean unit_melee_attack_begin(
 	long unit_index,
 	boolean continuous,
 	real_vector2d const *alignment_vector)
 {
 	struct unit_datum *unit = unit_get(unit_index);
+	/* Test62: A restrained or stunned actor cannot start a fresh swing. Native animation recovery stays in charge. */
+	if (unit_interaction_melee_restrained(unit_index)) return FALSE;
 	struct unit_definition *unit_definition =
 		unit_definition_get(unit->definition_index);
 	char previous_animation_state = unit->unit.animation.state;
@@ -4542,6 +4596,8 @@ void unit_impact_melee_damage(
 	struct location const *location)
 {
 	struct unit_datum *unit = unit_get(unit_index);
+	/* Test62: Contact attacks must be stopped before attachment can bypass the on-foot restraint checks. */
+	if (unit_interaction_melee_restrained(unit_index)) return;
 	struct unit_definition *unit_definition =
 		unit_definition_get(unit->definition_index);
 	struct object_datum *target_object = object_get(target_object_index);
@@ -5540,6 +5596,10 @@ boolean unit_update(
 			}
 		}
 
+		vr_npc_interaction_controls(unit_index);
+#ifdef HALO_VR
+        vr_combat_controls(unit_index);
+#endif
 		/*
 		* Jetpack cheat combo:
 		* Press the following keys while the jetpack cheat is active
@@ -6300,6 +6360,13 @@ void unit_record_damage(
 	short preserved_attacker_index;
 	short best_new_attacker_index;
 	boolean found_attacker;
+	struct player_datum *attacker_player = attacker_player_index != NONE ?
+		player_try_and_get(attacker_player_index) : NULL;
+
+	/* port: damage can outlive its player (an older checkpoint's): a handle
+	that is no player's now is neither recorded nor read */
+	if (!attacker_player)
+		attacker_player_index = NONE;
 
 	unit = unit_get(unit_index);
 	found_attacker = FALSE;
@@ -6380,9 +6447,10 @@ void unit_record_damage(
 	if (notify_ai && attacker_team != NONE &&
 		game_team_is_enemy(unit->object.owner_team_index, attacker_team))
 	{
-		if (attacker_player_index != NONE)
+		/* port: (the player looked up above) */
+		if (attacker_player)
 		{
-			player_unit_index = player_get(attacker_player_index)->unit_index;
+			player_unit_index = attacker_player->unit_index;
 			if (player_unit_index != NONE)
 			{
 				attacker_unit_index = player_unit_index;
@@ -7875,6 +7943,59 @@ static void unit_throw_grenade_move_to_hand(
 	return;
 }
 
+#ifdef HALO_VR
+/* Physical throws use the same projectile, owner, ammo and cheat rules as
+ * unit_throw_grenade_move_to_hand. No live projectile/fuse exists while held. */
+boolean unit_vr_throw_grenade(long unit_index,short type,real_point3d const *point,real_vector3d const *velocity)
+{
+    struct unit_datum *unit=unit_try_and_get(unit_index);
+    struct game_globals *globals=scenario_get_game_globals();
+    struct object_placement_data placement;
+    struct game_globals_grenade *grenade;
+    real_point3d camera,safe=*point;
+    real_vector3d ray,direction=*velocity;
+    struct collision_result hit;
+    long object_index;
+    short local=local_player_get_next(NONE);
+    long player=local!=NONE?local_player_get_player_index(local):NONE;
+    if(!unit||player==NONE||player_get(player)->unit_index!=unit_index||
+        !(game_connection()==_game_connection_local||
+          (game_connection()==_game_connection_network_server&&network_coop_active()&&network_interaction_host_ready()))||
+        !globals||type<0||type>=NUMBER_OF_UNIT_GRENADE_TYPES||type>=globals->grenades.count||
+        unit->unit.player_index==NONE||unit->object.parent_object_index!=NONE||
+        TEST_FLAG(unit->object.damage_flags,_object_dead_bit)||
+        unit->unit.grenade_throw_state!=_unit_grenade_throw_idle||
+        unit_get_grenade_count(unit_index,type)<=0||!valid_real_point3d(point)||!valid_real_vector3d(velocity))return FALSE;
+    grenade=TAG_BLOCK_GET_ELEMENT(&globals->grenades,type,struct game_globals_grenade);
+    if(grenade->projectile.index==NONE)return FALSE;
+    unit_get_camera_position(unit_index,&camera);
+    vector_from_points3d(&camera,point,&ray);
+    if(magnitude3d(&ray)>2.0f)return FALSE;
+    if(collision_test_vector(_collision_test_for_projectiles_flags,&camera,&ray,unit_index,&hit)){
+        if(!(hit.t>=0&&hit.t<=1))return FALSE;
+        point_from_line3d(&camera,&ray,MAX(0,hit.t-.05f),&safe);
+    }
+    object_placement_data_new(&placement,grenade->projectile.index,unit_index);
+    SET_FLAG(placement.flags,_new_object_never_automatically_delete_bit,TRUE);
+    placement.position=safe;
+    if(normalize3d(&direction)<.001f)direction=unit->unit.aiming_vector;
+    placement.forward=direction;normalize3d(perpendicular3d(&direction,&placement.up));
+    object_index=object_new(&placement);
+    if(object_index==NONE)return FALSE;
+    if(!object_force_inside_bsp(object_index,&camera)){object_delete(object_index);return FALSE;}
+    {
+        real_vector3d acceleration;
+        subtract_vectors3d(velocity,&object_get(object_index)->object.translational_velocity,&acceleration);
+        projectile_accelerate(object_index,&acceleration);
+    }
+    if(!cheat.infinite_ammo&&!game_engine_infinite_grenades(unit->unit.player_index))
+        --unit->unit.grenade_counts[type];
+    network_damage_note_grenade(unit_index,type);
+    player_control_unzoom(unit_index);
+    return TRUE;
+}
+#endif
+
 static boolean unit_animation_overlay_action_loops(
 	struct unit_animation *animation)
 {
@@ -8396,9 +8517,28 @@ boolean unit_add_weapon_to_inventory(
 				break;
 
 			case _unit_add_weapon_starting:
-				if (!TEST_FLAG(unit->unit.control_flags, _unit_control_weapon_primary_trigger_bit))
+				/* port (OpenCE network 28): a second weapon, into the empty
+				slot of a one-weapon loadout, is the one in hand. While the
+				trigger was down this left the choice on the weapon already
+				held, and the next action put that choice back, so the new
+				one stayed holstered. */
 				{
-					player_control_set_desired_weapon(unit_index, inventory_index);
+					boolean holding_another = FALSE;
+					short slot;
+
+					for (slot = 0; slot < MAXIMUM_WEAPONS_PER_UNIT; slot++)
+					{
+						if (slot != inventory_index &&
+							unit->unit.weapon_object_indices[slot] != NONE)
+						{
+							holding_another = TRUE;
+						}
+					}
+					if (holding_another ||
+						!TEST_FLAG(unit->unit.control_flags, _unit_control_weapon_primary_trigger_bit))
+					{
+						player_control_set_desired_weapon(unit_index, inventory_index);
+					}
 				}
 
 			case _unit_add_weapon_replace:
@@ -8775,6 +8915,12 @@ void unit_cause_melee_damage(
 	real_vector3d const *object_normal)
 {
 	struct unit_datum *unit = unit_get(unit_index);
+	/* Test62: An animation already in progress can reach its hit keyframe while restrained or stunned. Consume the pending hit just as native completion does. */
+	if (unit_interaction_melee_restrained(unit_index))
+	{
+		unit->unit.melee_attack_state = 0;
+		return;
+	}
 	struct unit_definition *unit_definition =
 		unit_definition_get(unit->definition_index);
 
@@ -9349,6 +9495,20 @@ boolean unit_vr_impact_melee(
 	if (melee_damage_effect_index == NONE)
 		melee_damage_effect_index = unit_definition->unit.melee_damage.index;
 
+	/* An empty-handed Chief has no tag melee damage; use the same authored
+	 * unarmed weapon fallback as ordinary melee and physical slams. */
+	if (melee_damage_effect_index == NONE)
+		melee_damage_effect_index = unit_unarmed_melee_damage(unit_index);
+	/* Campaign globals have no unarmed weapon. This fallback belongs only
+     * to the opt-in assisted fists, never an online client's damage table. */
+    if (melee_damage_effect_index == NONE && !weapon_hand && vr_combat_enabled())
+    {
+        melee_damage_effect_index = damage_globals_impact_effect();
+        scale *= 0.25f; /* a fist, not the globals' full terminal fall */
+    }
+	if (melee_damage_effect_index != NONE && hit_object_index != NONE)
+		scale *= vr_combat_hit(unit_index, hit_object_index, &collision.point, weapon_hand);
+
 	if (hit_object_index != NONE && object_get(hit_object_index)->object.type == _object_type_vehicle)
 	{
 		struct object_definition *vehicle_definition =
@@ -9392,7 +9552,7 @@ boolean unit_vr_impact_melee(
 
 			if (object_get(hit_object_index)->object.type == _object_type_machine)
 				machine_try_to_open_with_damage(hit_object_index);
-			object_cause_damage(
+			object_cause_contact_damage(
 				&damage_data,
 				hit_object_index,
 				struck_itself ? collision.node_index : NONE,
@@ -11371,6 +11531,10 @@ void unit_postprocess_node_matrices(
 	long ik_element_index;
 	boolean weapon_ik_active;
 
+	/* Held NPC limbs already own the collision palette; stock weapon IK would
+	 * pull those limbs back after their children have been positioned. */
+	if (vr_npc_interaction_owned(unit_index) || network_interaction_palette_owned(unit_index)) return;
+
 	if (!TEST_FLAG(unit_definition->unit.flags, _unit_simple_creature_bit) &&
 		unit->unit.animation.seat_index!=NONE)
 	{
@@ -11835,6 +11999,8 @@ static void unit_cause_continuous_melee_damage(
 	long unit_index)
 {
 	struct unit_datum *unit = unit_get(unit_index);
+	/* Test62: Pause attached continuous damage only; keep its native state/timer so normal updates resume after the restraint ends. */
+	if (unit_interaction_melee_restrained(unit_index)) return;
 	struct unit_definition *unit_definition = unit_definition_get(unit->definition_index);
 
 	if (unit->unit.melee_attack_state==4 &&

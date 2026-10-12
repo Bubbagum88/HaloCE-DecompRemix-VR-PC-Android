@@ -1,18 +1,42 @@
 # Game files & versions
 
-Open **Game files & versions** in either launcher, including before first import.
+From the main launcher, tap **Selected game data: … — Change** to switch among
+installed sets. Open **Game files & versions** in either launcher for the full
+manager, including before first import.
 
 1. **Import ISO / XISO** accepts one or more locally supplied Xbox disc images.
 2. **Import / scan a folder** uses Android's folder picker. Select a maps folder,
    an extracted game's root, or a parent containing extracted game roots/images.
 3. Alternatively put images or folders containing `maps` in the displayed
    `game-versions/inbox` folder, then choose **Scan inbox**. Scanning is shallow;
-   a `maps` folder directly in the inbox also works. Source files are retained.
-4. Select **Use** beside a detected set. **Selected** identifies the active set.
-   **Rename** changes a personal label; it does not change detected identity.
+   a `maps` folder directly in the inbox also works. The launcher keeps inbox
+   files until you delete them from the inbox list.
+4. Choose **Use this set** beside a detected set. The active set is marked
+   **Currently selected**; the main launcher also shows the active label and
+   total number of installed sets. **Rename** changes a personal label; it does
+   not change detected identity.
+5. **Delete imported copy** removes an inactive managed set and its maps,
+   config and set-specific saves. The currently selected set must first be
+   switched to another valid set. Existing/base game data cannot be deleted
+   from this control. A confirmation names the set and fingerprint.
+6. ISO/XISO files copied into `game-versions/inbox` can be deleted from the
+   inbox list after import to reclaim that image copy. Images selected directly
+   from Android's file picker are imported as maps only: the launcher does not
+   retain or delete the original ISO/XISO, which stays in its original location.
+   Use Android Files to delete the source image. Extracted source folders are
+   also left untouched.
+
+The first-run picker imports supported maps into the base data root, displayed
+as **Existing game data**. That base set is protected and is not a managed
+profile. If it is the only row, the disabled **Currently selected** row is
+expected; it is a status indicator, not a delete or import control. Use **Import
+ISO / XISO** or **Scan inbox** in **Game files & versions** to add separately
+selectable managed sets. Identical managed sets deduplicate with one another;
+the Existing game data base row remains separate.
 
 Selection applies at the next game launch. Quit to the launcher before switching.
-Existing data remains selectable as **Existing game data**. There is no need to
+Existing data remains selectable as **Existing game data** and is protected from
+deletion. There is no need to
 move, overwrite or re-import the original installation. Each new set uses its
 own maps, saves and config; current settings are copied once at import. Existing
 progress remains with its original set. Switching back restores access to it.
@@ -23,18 +47,28 @@ app storage unless the VR installation already uses its supported shared root.
 
 Imports read actual Xbox v5 cache headers: PAL `01.01.14.2342` and NTSC
 `01.10.12.2276` / `01.08.15.1749`. The set lists detected region/build(s), hashes
-every map and computes a combined SHA-256 fingerprint at import. Equal sets
-deduplicate. Mods or manual file edits can change those bytes afterward; use
+every map and computes a combined SHA-256 fingerprint at import. Equal managed
+sets deduplicate with one another; the first-run Existing game data base row is
+kept separate. Mods or manual file edits can change those bytes afterward; use
 Game data & compatibility to read current headers and recompute fingerprints.
 UI must be a recognized menu cache; unsupported cache builds/types are rejected
 for managed imports. Resource files (bitmaps/sounds/loc) are hashed separately.
 Unknown custom content remains the existing experimental content path.
 
-Header recognition is not authentication of the complete map or a full-disc
-integrity check. There is no verified Original/Rev1/Rev2 hash database in this
-project; those disc labels remain **unverified**, even if a filename says Rev2.
-You can add your own label while retaining the detected build/fingerprint.
-PAL normalization is automatic in the existing engine.
+Header recognition is not authentication of a full disc. The exact owner-
+supplied USA Original, Rev 1 and Rev 2 XISOs have been fully compared: each
+contains the same 24 map paths, sizes and bytes and imports to the same managed
+fingerprint. See [USA image comparison](USA-IMAGE-COMPARISON.md) for the image
+hashes and limits. The original XISO remains the recommended baseline; the
+tested Rev 1 and Rev 2 images are not known to be incompatible, and this
+recommendation does not claim their map data differ. Other regions, repacks,
+modified images and gameplay on every device remain unverified. A filename does
+not authenticate a disc label. Identical map bytes intentionally share one
+profile, so importing the verified Original/Rev 1/Rev 2 images does not create
+three selectable runtime sets. Sets with different content fingerprints remain
+independently selectable. You can add your own label while retaining the
+detected build/fingerprint. PAL normalization is automatic in the existing
+engine.
 
 ## Multiplayer assistance and limits
 

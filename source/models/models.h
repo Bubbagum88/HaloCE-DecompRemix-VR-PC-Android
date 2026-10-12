@@ -86,6 +86,13 @@ void render_model(
 	unsigned long flags);
 boolean model_data_report_once(
 	void const *data);
+#ifdef HALO_VR
+/* Gameplay-time bounded scan of renderer vertices, in the named node's bind space. */
+boolean model_rigid_node_bounds(long model_index, short root,
+    union real_point3d *minimum, union real_point3d *maximum);
+boolean model_rigid_component_bounds(long model_index, short root, unsigned long long nodes,
+    union real_point3d *minimum, union real_point3d *maximum);
+#endif
 
 /* ---------- globals */
 

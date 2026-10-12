@@ -1,12 +1,14 @@
 # Halo CE Quest VR + Android player guide
 
-This guide describes the unpublished **test37 candidate / 1.0.18-test37 / OpenCE Build 157 / network 24**. It is provided for testing, not as a public release. For the current public build see [v1.0.16 release notes](RELEASE-1.0.16.md).
+This guide describes the published **Halo CE Quest VR + Android v1.0.19 /
+OpenCE Build 157 base / network 24**. See [v1.0.19 release notes](RELEASE-1.0.19.md)
+for the important unfinished VR interaction toggles and full compatibility details.
 
 ## Install and update
 
 Use the Android APK for a phone/tablet and the Quest APK for standalone VR. On Quest, enable Developer Mode and sideload with SideQuest or ADB. Install over the existing project app so imported game data, saves and settings remain. Do not uninstall or clear app data. Supply your own supported Xbox Halo CE game files; none are included.
 
-Open the launcher’s **Game files & versions** to import an ISO/XISO or extracted game folder, inspect the recognized cache build and select an installed set. You can import multiple sets and switch between them without replacing the original. The **Versions & updates** page checks the project's compatible releases and provides official upstream downloads separately. Upstream files are not applied blindly to the integrated VR/network runtime.
+The main launcher shows the selected game-data label and how many distinct sets are installed; tap it to switch. **Game files & versions** opens the full manager, where you can import an ISO/XISO or extracted game folder, inspect the recognized cache build and select or rename a set. You can delete an inactive imported copy there; deletion removes that set's maps, config and local saves, while the active set and existing/base game data are protected. Deleting a copied ISO/XISO from the import inbox is a separate action. Images selected through Android's file picker are imported as maps only: the launcher does not retain or delete the original ISO/XISO, which remains at its original location. Use Android Files to delete that source image. The initial setup image appears as protected **Existing game data**; use the manager's **Import ISO / XISO** or **Scan inbox** controls to add separately selectable managed sets. Exact byte-identical managed map sets share one profile, while the Existing game data base row remains separate; labels alone do not create separate runtime revisions. The **Versions & updates** page checks the project's compatible releases and provides official upstream downloads separately. Upstream files are not applied blindly to the integrated VR/network runtime.
 
 ## Browse, join and host in game
 
@@ -61,8 +63,13 @@ Open the pause menu and choose **VR Settings**. Use Next Page and Back to move b
 
 Settings include body/hand modes, fingers, hand/gun calibration, weapon grip and support grip, controls, gestures, HUD/wrist HUD, scopes, vehicles/seats, comfort, graphics, display and controller tracking corrections. Optical finger tracking is not used; fingers follow controller sensors. See [controls and options](CONTROLS-AND-OPTIONS.md) for exact defaults and the full menu inventory.
 
+**HAPTICS** is the single vibration control for every controller effect,
+including shots, contact, reloads, movement and interaction feedback. Set it to
+0% to disable all vibration, or raise it to adjust strength. Load feedback is
+part of this same setting; it has no separate on/off toggle.
+
 ## Revisions, logs and support
 
-For the best compatibility, use the original Xbox Halo: Combat Evolved XISO. Rev 1 and Rev 2 images can be imported, but are not recommended; different revisions may contain different game or map files and can prevent players from matching. The launcher recognizes supported Xbox cache format/build identifiers, but cannot determine every disc label from a filename or promise full-disc integrity. The server browser cannot automatically prove which ISO revision a host uses. SPV1 is experimental and unverified; file sizes fitting the current reader limits do not establish protected-map/resource/campaign support.
+The original Xbox Halo: Combat Evolved XISO remains the recommended baseline. The exact USA Original, Rev 1 and Rev 2 images compared for this project all import successfully and contain byte-identical copies of the same 24 maps; their other disc files differ. This does not cover other regions, repacks or modified images. The launcher detects supported cache builds and fingerprints map files, but a filename does not authenticate a disc label, and the server browser cannot determine a remote host's ISO from its listing. See [the full USA comparison](USA-IMAGE-COMPARISON.md). SPV1 is experimental and unverified; file sizes fitting the current reader limits do not establish protected-map/resource/campaign support.
 
 Each launch writes a detailed log under **Download/HaloCE** when Android allows; app-private storage is used as fallback. For crashes, failed joins or desyncs, share logs from each peer and include device/model, OS, app/network version, game-data set, map/mission, network type and reproduction steps. Contact **@MeWhenINameMyself** or the [Halo CE Decomp Discord](https://discord.gg/S9uSCKxKx). Remove private invite/device details before sharing.

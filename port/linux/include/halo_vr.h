@@ -20,8 +20,15 @@ eye only.
 #ifdef HALO_VR
 boolean vr_render_script_message(char const *message);
 void vr_render_reset_vehicle_view(void);
+void vr_render_reset_contacts(void);
+/* Exact current-pose, collision/action-adjusted palm for a held grenade.
+ * Returns zero for hidden/missing/stale hands; both stereo eyes share it. */
+int vr_render_palm_point(int hand, long unit, float point[3]);
 union real_point3d;
 boolean vr_script_can_see_point(long unit_index, const union real_point3d *point, real field_of_view, boolean *result);
+/* A10 calibration ray: 1=fresh hand reticle, 0=head mode/non-A10, -1=hand
+ * mode but ray unavailable, so calibration must wait rather than use the head. */
+int vr_script_calibration_reticle_ray(float origin[3], float direction[3]);
 /* Head-only tutorial directions: up/down/left/right bits 0/1/2/3. */
 unsigned int vr_head_look_actions(void);
 void vr_head_look_reset(void);
@@ -95,6 +102,7 @@ union real_point3d;
 union real_vector3d;
 void vr_render_shot_diagnostic(long weapon_index, long player_index, union real_point3d const *origin,
 	union real_vector3d const *aimed, union real_vector3d const *shot, int from_hand);
+boolean vr_render_mounted_direct_fire(long player_index);
 /* first_person_weapon_build_node_matrices: the arms of the first-person
 weapon posed for the hand that aims (vr.arms) */
 struct real_matrix4x3;
@@ -110,6 +118,15 @@ int vr_render_first_person_vehicles(void);
 seat */
 int vr_render_hide_first_person_weapon(void);
 int vr_render_first_person_gun_hidden(void);
+/* Test55: a driver holding immersive vehicle controls sees the first-person
+hands (finger poses) rather than the seat's third-person arms */
+int vr_render_vehicle_first_person_hands(void);
+/* Test59: the stowed weapon whose first-person rig gives a driver holding
+immersive vehicle controls tracked arms and fingers (NONE otherwise) */
+long vr_render_vehicle_hands_weapon(long unit_index);
+/* Test63: the seated driver's Warthog drawn with its own wheel where the
+virtual wheel is (vr_vehicle_handles.h); the stock matrices otherwise */
+struct real_matrix4x3 *vr_vehicle_controls_matrices(long object_index, struct real_matrix4x3 *stock);
 int vr_render_immersive_cutscene(void);
 int vr_render_grab_point(long unit_index, union real_point3d *point);
 /* handle_one_player_input: what the headset's gestures ask of the first
@@ -131,6 +148,15 @@ real vr_render_units_per_metre(void);
 /* render_objects.c: the player's own biped drawn in first person (vr.body
 "full"), and the bones it is drawn with (posed to the headset; the game's
 own are left as they are) */
+boolean vr_render_vehicle_controls(void);
+/* Test56 (vr_vehicle_handles.h): with IMMERSIVE VEHICLE controls held, the
+driver's facing (the steering) comes from them while the aiming stays with
+the head (players.c); split: whether this machine runs the player's unit */
+int vr_vehicle_steering_split(void);
+void vr_vehicle_handles_facing(long unit_index, float facing[3]);
+/* Test59: a tank's immersive drive stick pushed forward or pulled back sets
+the throttle (when it is pushed further than the thumbstick) */
+void vr_vehicle_handles_throttle(long unit_index, float throttle[3]);
 boolean vr_render_full_body(long object_index);
 boolean vr_render_hands_only(void);
 struct real_matrix4x3 *vr_render_body_matrices(long object_index);

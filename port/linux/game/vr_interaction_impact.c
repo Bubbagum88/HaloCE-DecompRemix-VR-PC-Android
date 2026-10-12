@@ -1,0 +1,176 @@
+#include "cseries.h"
+#include "game/game.h"
+#include "objects/objects.h"
+#include "objects/damage.h"
+#include "units/units.h"
+#include "units/unit_definitions.h"
+#include "units/bipeds.h"
+#include "units/vehicles.h"
+#include "objects/object_definitions.h"
+#include "vr_npc_interaction.h"
+#include "physics/collisions.h"
+#include "network_coop.h"
+#include "network_interaction.h"
+#include "../src/port_config.h"
+#include "vr_interaction_impact.h"
+#include "vr_interaction_impact_math.h"
+#include <string.h>
+void platform_log(char const *format, ...);
+/* Fixed storage, refreshed by held objects; expired thrown entries are reused. */
+static struct impact_entry {
+    long object, owner, expiry, last_tick, last_target;
+    float mobility, units;
+    int active;
+} entries[64];
+static struct { long object; struct collision_result hit; real_vector3d velocity; } pending[64];
+static int pending_count;
+static boolean authority(void)
+{
+    return game_connection() == _game_connection_local ||
+        (game_connection() == _game_connection_network_server && network_coop_active() && network_interaction_host_ready());
+}
+void vr_interaction_impact_reset(void) { memset(entries, 0, sizeof(entries)); pending_count=0; }
+void vr_interaction_impact_track(long object, long owner_unit, float mobility, float units)
+{
+    int i, slot = -1;
+    long tick = game_time_get();
+    if (!authority() || !config_boolean("vr.interaction_damage") ||
+        !object_try_and_get(object) || !unit_try_and_get(owner_unit) ||
+        !isfinite(mobility) || mobility <= 0 || !isfinite(units) || units <= 0) return;
+    for (i=0; i<64; ++i) {
+        if (entries[i].active && entries[i].object == object) { slot=i; break; }
+        if (!entries[i].active || entries[i].expiry < tick) slot=i;
+    }
+    if (slot < 0) return;
+    if (!entries[slot].active || entries[slot].object != object) {
+        memset(&entries[slot],0,sizeof(entries[slot]));
+        entries[slot].last_tick = -100;
+        entries[slot].last_target = NONE;
+    }
+    entries[slot].active=TRUE; entries[slot].object=object;
+    entries[slot].owner=owner_unit; entries[slot].mobility=mobility;
+    entries[slot].units=units; entries[slot].expiry=tick+90;
+}
+/* Test56: the blow carries: a living body or a vehicle struck by a thrown
+ * body or prop takes part of its momentum (vr_interaction_impact_share, as
+ * the native damage push scaled by the struck object's acceleration scale:
+ * a Hunter barely moves), so a Grunt thrown into an Elite staggers it. It is
+ * given before the damage, so a body the blow kills carries it into its
+ * ragdoll. Not for a body the NPC hands or a ragdoll already move. */
+static void impact_shove(long target, struct object_datum *victim, real_vector3d const *velocity,
+    float mobility, float units)
+{
+    real_vector3d shove;
+    real share=vr_interaction_impact_share(mobility),scale,speed;
+    struct object_definition *definition=object_definition_get(victim->definition_index);
+    if(!definition || !(share>0) || !(units>0) || vr_npc_interaction_owned(target)) return;
+    scale=definition->object.acceleration_scale;
+    if(!isfinite(scale) || !(scale>0)) return;
+    scale_vector3d(velocity,share*fminf(scale,1.0f),&shove);
+    speed=magnitude3d(&shove);
+    if(!isfinite(speed) || !(speed>0)) return;
+    if(speed>VR_IMPACT_SHOVE_MAXIMUM*units/30.0f) scale_vector3d(&shove,VR_IMPACT_SHOVE_MAXIMUM*units/30.0f/speed,&shove);
+    if(victim->object.type==_object_type_biped) biped_accelerate(target,&shove);
+    else if(victim->object.type==_object_type_vehicle) vehicle_accelerate(target,&shove);
+}
+static void apply_collision(long index, struct collision_result const *hit,
+    real_vector3d const *velocity)
+{
+    int i;
+    long tick=game_time_get(), target;
+    struct unit_datum *owner;
+    struct object_datum *source, *victim;
+    struct damage_data damage;
+    long blow;
+    float scale, units;
+    if (!authority() || !config_boolean("vr.interaction_damage") || !hit || !velocity ||
+        !(source=object_try_and_get(index))) return;
+    if(game_connection()==_game_connection_local &&
+        !config_boolean(source->object.type==_object_type_biped?"vr.npc_interaction":"vr.world_interaction")) return;
+    for(i=0;i<64;++i) if(entries[i].active && entries[i].object==index) break;
+    if(i==64 || tick>entries[i].expiry || tick<entries[i].last_tick) return;
+    /* NPCs can injure themselves against real world surfaces; props only
+     * damage the struck object. No radius/AOE or client-declared hit. */
+    if(hit->type!=_collision_result_object && hit->type!=_collision_result_structure) return;
+    target=hit->type==_collision_result_object ? hit->object_index :
+        (source->object.type==_object_type_biped ? index : NONE);
+    if(target==NONE || target==entries[i].owner ||
+        !(victim=object_try_and_get(target)) ||
+        TEST_FLAG(victim->object.damage_flags,_object_dead_bit) ||
+        (entries[i].last_target==target && tick-entries[i].last_tick<10) ||
+        !(owner=unit_try_and_get(entries[i].owner))) return;
+    /* Test61: the blow is the player's unarmed melee, found as the engine
+     * finds it (unit_unarmed_melee_damage: the unit's own, else the unarmed
+     * melee weapon's). The Master Chief's unit has none of its own, and
+     * Test38 to Test60 read only that: every impact on every NPC and prop
+     * returned here unseen (no "VR impact" line in the owner's Test59 and
+     * Test60 logs, marines thrown at 24 m/s). Test62: in the campaign there
+     * is no unarmed melee weapon either (the owner's Test61 log: "no melee
+     * damage ... impacts cannot hurt"): the globals' falling damage (or
+     * vehicle collision damage), which every map has. */
+    blow=unit_unarmed_melee_damage(entries[i].owner);
+    if(blow==NONE) blow=damage_globals_impact_effect();
+    if(blow==NONE) {
+        static int logged;
+        if(!logged) platform_log("VR impact: no melee damage for owner=%08lx; impacts cannot hurt",entries[i].owner);
+        logged=1;
+        return;
+    }
+    units=entries[i].units;
+    scale=vr_interaction_impact_scale(-dot_product3d(velocity,&hit->plane.n),units,
+        entries[i].mobility,config_real("vr.impact_threshold"),config_real("vr.impact_damage_cap"));
+    if(scale<=0) return;
+    entries[i].last_tick=tick; entries[i].last_target=target;
+    damage_data_new(&damage,blow);
+    damage.owner_object_index=entries[i].owner;
+    damage.owner_player_index=owner->unit.player_index;
+    /* Test60: a blow, not friendly fire: no team, so an ally takes it in full
+     * (credited to the player all the same). With the player's team the
+     * engine applied allies' friendly-damage resistance and a slammed marine
+     * barely felt it. */
+    damage.owner_team_index=NONE;
+    damage.location=hit->location; damage.origin=hit->point; damage.epicenter=hit->point;
+    damage.direction=*velocity; normalize3d(&damage.direction); damage.scale=scale;
+    if(hit->type==_collision_result_object && target!=index &&
+       (victim->object.type==_object_type_biped || victim->object.type==_object_type_vehicle))
+        impact_shove(target,victim,velocity,entries[i].mobility,units);
+    object_cause_contact_damage(&damage,target,hit->type==_collision_result_object?hit->node_index:NONE,
+        hit->type==_collision_result_object?hit->region_index:NONE,
+        hit->type==_collision_result_object?hit->material_index:NONE,&hit->plane.n);
+    platform_log("VR impact: object=%08lx target=%08lx owner=%08lx scale=%.3f",index,target,entries[i].owner,scale);
+    /* Test55: a thrown body that hits another body hurts itself too (a Grunt
+     * thrown into an Elite takes the same blow it deals). The struck body is
+     * not the thrown one, so this is the thrown body's only damage from it. */
+    if(target!=index && (source=object_try_and_get(index)) &&
+       (victim=object_try_and_get(target)) && source->object.type==_object_type_biped &&
+       victim->object.type==_object_type_biped &&
+       !TEST_FLAG(source->object.damage_flags,_object_dead_bit)) {
+        damage_data_new(&damage,blow);
+        damage.owner_object_index=entries[i].owner;
+        damage.owner_player_index=owner->unit.player_index;
+        damage.owner_team_index=NONE;
+        damage.location=hit->location; damage.origin=hit->point; damage.epicenter=hit->point;
+        damage.direction=*velocity; scale_vector3d(&damage.direction,-1.0f,&damage.direction);
+        normalize3d(&damage.direction); damage.scale=scale;
+        object_cause_contact_damage(&damage,index,NONE,NONE,NONE,&hit->plane.n);
+        platform_log("VR impact: object=%08lx target=%08lx owner=%08lx scale=%.3f (the thrown body itself)",
+            index,index,entries[i].owner,scale);
+    }
+}
+
+void vr_interaction_impact_collision(long object, struct collision_result const *hit,
+    real_vector3d const *velocity)
+{
+    int i;
+    if(!authority() || !hit || !velocity || pending_count>=64) return;
+    for(i=0;i<64;++i) if(entries[i].active && entries[i].object==object) break;
+    if(i==64) return;
+    pending[pending_count].object=object; pending[pending_count].hit=*hit;
+    pending[pending_count++].velocity=*velocity;
+}
+void vr_interaction_impact_flush(void)
+{
+    int count=pending_count, i;
+    pending_count=0;
+    for(i=0;i<count;++i) apply_collision(pending[i].object,&pending[i].hit,&pending[i].velocity);
+}

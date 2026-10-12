@@ -20,7 +20,8 @@ from typing import Any, Dict, List, Optional
 
 from .linux_build import (LINUX_PROFILE, MINIUPNPC_DIR, OPTIMISATION, WINDOWS_PROFILE, XDK_INCLUDE, lto_mode,
                           march_flag, miniupnpc_sources, pgo_mode, compile_launcher, game_defines_and_includes,
-                          game_sources, musl_math_cflags, musl_math_sources, pgo_profile, profile_use_flags,
+                          game_sources, musl_math_cflags, musl_math_sources, opus_cflags, opus_sources, OPUS_DIR,
+                          pgo_profile, profile_use_flags,
                           xdk_headers)
 from .embed_assets import hud_assets_build, hud_configure_inputs
 from .ninja_syntax import Writer
@@ -373,6 +374,7 @@ def generate_windows_build(n: Writer, sln: Any) -> None:
             "-Isource -Isource/cseries",
             f"-I{_quote(sdl_include)}",
             f"-I{XDK_INCLUDE}",
+            *(f"-I{OPUS_DIR / name}" for name in ("include", "celt", "silk", "silk/float")),
         ])
         win32_cflags = " ".join([
             abi,
@@ -407,6 +409,9 @@ def generate_windows_build(n: Writer, sln: Any) -> None:
         add_object(TOML_DIR / "tomlc17.c", " ".join([abi, "-std=gnu11", "-w"]))
         # internet play's reliable streams (port/third_party/kcp; p2p.c)
         add_object(KCP_DIR / "ikcp.c", " ".join([abi, "-std=gnu11", "-w"]))
+        # voice chat's codec (port/third_party/opus)
+        for source in opus_sources():
+            add_object(source, opus_cflags(abi))
         for name in ("monocypher.c", "monocypher-ed25519.c"):
             add_object(Path("port/third_party/monocypher") / name, " ".join([abi, "-std=gnu11", "-w"]))
         # the game's sin, pow and the rest, the same on every port

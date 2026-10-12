@@ -154,6 +154,8 @@ c.write_text(r'''
 #include <stdio.h>
 #include <string.h>
 typedef int boolean;
+static int legacy_consent;
+static int config_boolean(char const *key) { return legacy_consent; }
 typedef unsigned short word;
 #define NONE (-1)
 #define TRUE 1
@@ -203,7 +205,7 @@ int main(void) {
     assert(!network_game_client_advertised_game_compatible(&client,&client.available_games[0],1)); /* current CE checksum also needs v23 */
     client.available_games[0].map.version = 0;
     client.available_games[0].engine_type = game_engine_none;
-    assert(!network_game_client_advertised_game_compatible(&client,&client.available_games[0],1)); /* campaign needs v23 */
+    assert(network_game_client_advertised_game_compatible(&client,&client.available_games[0],1)); /* campaign supports this v22 host */
     /* test27: this app's own co-op before 1.0.9 (CE01, CE02) is retired: never joined, whatever its flags */
     for (int version = 0xCE01; version <= 0xCE02; version++) for (int flags=0;flags<4;flags++) {
         network_game_client_advertised_versions[0].version = version;
@@ -215,7 +217,7 @@ int main(void) {
     assert(!network_game_client_advertised_game_compatible(&client,&client.available_games[0],1)); /* unknown always rejected */
     assert(!network_game_client_advertised_game_compatible(NULL, NULL, 0));
     assert(!network_game_client_advertised_game_compatible(&client, &client.available_games[4], 0));
-    printf("PASS: native exact/all-compatible target filters; PvP 11..24, campaign and CE 23+, unknown/lockstep/retired CE01/CE02, bad client/slot guards\n");
+    printf("PASS: native exact/all-compatible target filters; PvP 11..24, campaign15+ and CE23+, unknown/lockstep/retired CE01/CE02, bad client/slot guards\n");
 }
 ''')
 subprocess.run(["clang", "-fsanitize=address,undefined", str(c), "-o", str(OUT / "compatibility")], check=True)

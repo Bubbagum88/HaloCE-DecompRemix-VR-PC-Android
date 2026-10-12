@@ -200,12 +200,14 @@ int main(void){
   vr_point_minus(&t0,&before,&d);real original=vr_length(&d);
   if(original<=reach*0.97f&&original>=(fabsf(0.28f-0.25f)*1.05f+0.01f)*units)assert(vr_length(&moved)==0);
  }
- assert(0.97f<0.996f); /* the arm solver keeps reachable targets exactly (its clamp starts at 0.996) */
  puts("PASS: Hands Only (body IK or floating) gathers arms 3.5 cm behind each wrist, hands/fingers/gun untouched; IK and floating with arms unchanged");
  puts("PASS: 5000 floating-arm shoulders keep every controller target within reach without moving it");
 }
 ''')
-assert '(history ? 0.996f : 0.999f)' in fn(render,'vr_solve_arm')
+arm_solver = fn(render,'vr_solve_arm')
+assert "vr_arm_ik_reach_bounds(upper_length, fore_length, history != NULL" in arm_solver
+assert "vr_arm_ik_clamp_distance(distance, minimum, maximum)" in arm_solver
+assert "upper_length *= " not in arm_solver and "fore_length *= " not in arm_solver
 
 gl=(ROOT/'port/linux/src/d3d8_gl.c').read_text(encoding='utf-8')
 assert '#define STREAM_BUFFER_SIZE (safe_geometry ? 32 * 1024 * 1024 : 16 * 1024 * 1024)' in gl, 'Safe stream slots hold a 15.6 MB Autumn frame'

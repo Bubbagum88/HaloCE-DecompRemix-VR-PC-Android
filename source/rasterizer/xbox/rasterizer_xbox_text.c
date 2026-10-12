@@ -117,14 +117,15 @@ void rasterizer_error(
 void rasterizer_set_framebuffer_blend_function(
 	short function);
 
-void rasterizer_set_texture_bitmap_data(
+/* (rasterizer_xbox.c's, with their exact types) */
+boolean rasterizer_set_texture_bitmap_data(
 	short stage,
 	struct bitmap_data const *bitmap);
 
 void rasterizer_set_vertex_shader_permutation(
+	short vertex_shader_index,
 	short vertex_type,
-	short permutation,
-	boolean one_node);
+	short permutation_index);
 
 void rasterizer_set_pixel_shader(
 	struct pixel_shader_definition const *pixel_shader_definition);

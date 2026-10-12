@@ -8,8 +8,10 @@ calls them from PC_MENU_FUNCTION_BASE on):
 - "port quit game" (and the PC version's "main menu quit game") quits, as
   closing the window does;
 - the PC version's "profile set edit begin" begins editing the first player
-  profile, as its settings screens need, and fails with none (its handlers
-  then open the screens that make one);
+  profile, as its settings screens need, and fails with none: the main
+  menu's then asks for a new one's name, as the menu's other items do, and
+  its handlers open the screens that make the profile ("new campaign
+  decision", after which Settings' is the one being edited);
 - "gamespy screen init" hides the server browser's error and filter panels,
   and the title of the mode "mp type set mode" did not choose (Internet or
   LAN);
@@ -68,6 +70,7 @@ their handlers open opens.
 #include "input/input.h"
 #include "interface/event_manager.h"
 #include "interface/player_ui.h"
+#include "interface/ui_widget_event_handler_functions.h"
 #include "interface/ui_widget.h"
 #include "interface/virtual_keyboard.h"
 #include "main/main.h"
@@ -80,6 +83,8 @@ their handlers open opens.
 #include "halo_menus.h"
 #include "custom_edition_cache.h"
 #include "custom_edition_maps.h"
+#include "network_voice.h"
+#include "text/draw_string.h"
 /* (internet play's server browser: the platform layer's) */
 #include "../src/p2p.h"
 
@@ -103,6 +108,8 @@ void platform_binding_capture_begin(void);
 int platform_binding_capture_poll(int *input);
 void halo_input_name(int input, char *name, unsigned int size);
 short pc_menu_string_index(long definition_index);
+/* cseries_windows.c's */
+unsigned long system_milliseconds(void);
 
 /* the game's (port) */
 boolean ui_widget_port_dispatch_event(struct widget_instance *widget, short event_type, short controller_index,
@@ -110,6 +117,7 @@ boolean ui_widget_port_dispatch_event(struct widget_instance *widget, short even
 void ui_widget_port_go_back(struct widget_instance *widget);
 short ui_widget_port_list_index(struct widget_instance *list_widget);
 boolean ui_widget_port_saved_game(char const **map_name, short *level, short *difficulty);
+char const *ui_widget_event_handler_function_name(long function_index);
 short main_get_solo_level_from_name(char const *name);
 boolean player_name_clean(wchar_t *name, long count);
 short players_port_local_player_count(void);
@@ -511,6 +519,53 @@ boolean pc_menu_profile_edit_begin(void)
 		return FALSE;
 	player_ui_begin_editing_profile(player_ui_get_active_player_profile_index(0));
 	return TRUE;
+}
+
+/* the game's own function of the name (as its tags name it), run for the
+widget: for ours of a name of the game's, which do more than it */
+static boolean game_function(char const *name, struct widget_instance *widget, struct event_record *event,
+	boolean *widget_deleted)
+{
+	char const *function;
+	long index;
+
+	for (index = 0; (function = ui_widget_event_handler_function_name(index)) != NULL; index++)
+	{
+		if (!strcmp(function, name))
+			return ui_widget_event_handler_function_invoke(widget, event, (word)index, widget_deleted);
+	}
+	return FALSE;
+}
+
+/* "profile set edit begin": Settings, the main menu's and a game's pause
+menu's. With no profile, the main menu's asks for a new one's name, as the
+menu's other items do ("new game if no plyr profiles"), and fails: the
+screens its handler then opens make the profile and edit it
+(new_profile_decision). Without the name asked, they made none, and showed
+"new campaign decision" as failed. The pause menu's has no such screens,
+and only fails. */
+static boolean profile_edit_begin(struct widget_instance *widget, struct event_record *event,
+	boolean *widget_deleted)
+{
+	if (pc_menu_profile_edit_begin())
+		return TRUE;
+	/* (a press: the profile is made on its controller) */
+	if (main_menu_is_active() && event && event->controller_index >= 0 && event->controller_index < 4)
+		game_function("new campaign chosen", widget, event, widget_deleted);
+	return FALSE;
+}
+
+/* "new campaign decision" (the screen after a new profile's name, each of
+the main menu's items having its own): the game's makes the profile, if the
+name was entered. Settings' then begins editing it: the PC version's screens
+open Settings with nothing more run, and its screen closes at once with no
+profile being edited ("close if not editing profile"). */
+static boolean new_profile_decision(struct widget_instance *widget, struct event_record *event,
+	boolean *widget_deleted)
+{
+	if (!game_function("new campaign decision", widget, event, widget_deleted))
+		return FALSE;
+	return strcmp(widget->name, "settings_creating_profile") || pc_menu_profile_edit_begin();
 }
 
 /* ---------- the campaign */
@@ -1909,6 +1964,7 @@ static struct
 	{ "controls.flashlight", L"FLASHLIGHT", 2 },
 	{ "controls.scoreboard", L"SHOW SCORES", 2 },
 	{ "controls.pause", L"PAUSE MENU", 2 },
+	{ "controls.push_to_talk", L"PUSH TO TALK", 2 },
 };
 
 static struct
@@ -3029,6 +3085,14 @@ static void server_settings_update(struct widget_instance *list)
 		/* ... and its PLAYER COLLISIONS, below them: ON or OFF, its help its
 		choice's */
 		visible_set(named(list, "op_player_collisions", 0), cooperative);
+		visible_set(named(list, "op_physical_interactions", 0), cooperative);
+        visible_set(named(list,"op_host_vr_actions",0),cooperative);
+        if(cooperative && list->parameters.list.extended_description &&
+            list->focused_child==named(list,"op_host_vr_actions",0))
+            list->parameters.list.extended_description->parameters.text_box.string_list_index=25;
+        if(cooperative && list->parameters.list.extended_description &&
+            list->focused_child == named(list, "op_physical_interactions", 0))
+            list->parameters.list.extended_description->parameters.text_box.string_list_index = 24;
 		if (cooperative && (spinner = named(list, "player_collisions_spinner", 0)) != NULL)
 		{
 			short choice = (short)PIN(spinner->parameters.list.selected_index, 0, 1);
@@ -4481,6 +4545,58 @@ static void lobby_map_show(struct widget_instance *description, char const *map_
 		widget->parameters.text_box.string_list_index = level;
 }
 
+/* the lobby's rows' texts as last updated, and their players' machines,
+for their speaker icons (menu_functions_text_box_drawn); and when */
+static struct
+{
+	struct widget_instance *texts[LOBBY_ROWS];
+	long machines[LOBBY_ROWS];
+	short count;
+	unsigned long updated_at;
+} lobby_icons;
+
+/* ui_widget.c's: a text box drawn, at the bounds its text was drawn in
+(its font and justification still set): a lobby row's player talking in
+voice chat (or muted) has a speaker just left of their name
+(port/linux/game/network_voice.c) */
+void menu_functions_text_box_drawn(struct widget_instance *widget, rectangle2d const *bounds)
+{
+	short row;
+
+	/* (as the lobby last updated them: the rows' widgets go with it) */
+	if (!lobby_icons.count || system_milliseconds() - lobby_icons.updated_at > 250)
+		return;
+	for (row = 0; row < lobby_icons.count; row++)
+	{
+		long machine_index = lobby_icons.machines[row];
+		rectangle2d icon;
+		short size;
+
+		if (lobby_icons.texts[row] != widget)
+			continue;
+		if (!network_voice_machine_speaking(machine_index) && !network_voice_machine_muted(machine_index))
+			return;
+		size = (short)MIN(14, bounds->y1 - bounds->y0);
+		icon.x1 = (short)(bounds->x1 - 4);
+		icon.y0 = (short)((bounds->y0 + bounds->y1 - size) / 2);
+		/* (the name's ink: the icon just left of it) */
+		if (widget->parameters.text_box.text && widget->parameters.text_box.text[0])
+		{
+			rectangle2d text;
+			rectangle2d cursor;
+
+			draw_unicode_string_compute_bounds(bounds, widget->parameters.text_box.text, &text, &cursor);
+			if (text.x0 - size - 6 >= bounds->x0)
+				icon.x1 = (short)(text.x0 - 6);
+			icon.y0 = (short)((text.y0 + text.y1 - size) / 2);
+		}
+		icon.x0 = (short)(icon.x1 - size);
+		icon.y1 = (short)(icon.y0 + size);
+		network_voice_draw_icon(&icon, network_voice_machine_muted(machine_index), 1.0f);
+		return;
+	}
+}
+
 /* "port lobby update" */
 static void lobby_update(struct widget_instance *list)
 {
@@ -4501,6 +4617,21 @@ static void lobby_update(struct widget_instance *list)
 	if (multiplayer.lobby_first > MAX(0, lobby_player_count - LOBBY_ROWS))
 		multiplayer.lobby_first = (short)MAX(0, lobby_player_count - LOBBY_ROWS);
 	rows_update(list, (short)MIN(lobby_player_count, LOBBY_ROWS), lobby_row_text);
+	/* (the rows' players, for their speaker icons) */
+	{
+		struct widget_instance *row = list->child;
+
+		lobby_icons.count = 0;
+		for (index = 0; row && index < MIN(lobby_player_count, LOBBY_ROWS); row = row->next, index++)
+		{
+			if (strncmp(row->name, "list_item_", 10))
+				break;
+			lobby_icons.texts[index] = named(row, "list_item_text", 0);
+			lobby_icons.machines[index] = lobby_players[multiplayer.lobby_first + index]->machine_index;
+			lobby_icons.count = (short)(index + 1);
+		}
+		lobby_icons.updated_at = system_milliseconds();
+	}
 	lobby_join_help(list);
 	visible_set(named(list, "lobby_button_team", 0), game && game->variant.universal_variant.teams);
 	/* (the buttons' focus, off Switch Team when it is hidden) */
@@ -4735,7 +4866,8 @@ enum
 	_option_health,		/* the variant's health, tenths */
 	_option_short,		/* a short of the options */
 	_option_option_byte,	/* a byte of the options */
-	_option_radar		/* the options' radar players, and the variant's flag */
+	_option_radar,		/* the options' radar players, and the variant's flag */
+	_option_setting		/* the host's own (config.toml): Server Setup's copy only */
 };
 
 struct gametype_option
@@ -4746,6 +4878,9 @@ struct gametype_option
 	unsigned long argument;
 	short count;
 	long values[16];
+	/* (_option_setting: the setting, and its values' text) */
+	char const *setting;
+	char const *setting_values[16];
 };
 
 #define VARIANT_FIELD(field) (short)offsetof(struct game_variant, field)
@@ -4837,10 +4972,37 @@ static struct gametype_option const gametype_options[] =
 		{ _friendly_fire_off, _friendly_fire_on, _friendly_fire_shields_only, _friendly_fire_explosives_only } },
 	{ "friendly_fire_penalty_spinner", _option_short, OPTIONS_FIELD(friendly_fire_penalty), 0, 4, { 0, 5, 10, 15 } },
 	{ "autobalance_spinner", _option_option_byte, OPTIONS_FIELD(auto_team_balance), 0, 2, { 0, 1 } },
+	/* (the host's voice chat, below them: port/linux/game/network_voice.c;
+	tools/port_settings.py's VOICE_ROWS) */
+	{ "voice_mode_spinner", _option_setting, 0, 0, 5, { 0 }, "network.voice_mode",
+		{ "off", "team_proximity", "team_enemy_proximity", "team_global", "team_global_enemy_proximity" } },
+	{ "voice_lobby_spinner", _option_setting, 0, 0, 2, { 0 }, "network.voice_lobby", { "true", "false" } },
+	{ "voice_kbps_spinner", _option_setting, 0, 0, 7, { 0 }, "network.voice_kbps",
+		{ "8", "12", "16", "24", "32", "48", "64" } },
+	{ "voice_proximity_spinner", _option_setting, 0, 0, 6, { 0 }, "network.voice_proximity",
+		{ "5", "10", "15", "20", "30", "50" } },
 	/* vehicle options (the side's set and counts: vehicles_update) */
 	{ "vehicles_respawn_spinner", _option_short, OPTIONS_FIELD(vehicle_respawn_time), 0, 7,
 		{ 0, 30, 60, 90, 120, 180, 300 } },
 };
+
+/* an option of the host's own setting: the value shown for it (the one
+set, else the nearest) */
+static short gametype_option_setting_index(struct gametype_option const *option)
+{
+	struct pc_menu_setting setting;
+	char text[64];
+	short index;
+
+	csmemset(&setting, 0, sizeof(setting));
+	setting.setting = option->setting;
+	setting.value_count = option->count;
+	for (index = 0; index < option->count; index++)
+		setting.values[index] = option->setting_values[index];
+	if (!setting_text(option->setting, text, sizeof(text), FALSE))
+		return 0;
+	return setting_value_index(&setting, text);
+}
 
 /* (an instance's name is its definition's cut to 31 characters:
 "item_options_infinite_grenades_") */
@@ -4947,6 +5109,25 @@ static void gametype_options_each(struct widget_instance *list, boolean save)
 
 			if (!option)
 				continue;
+			/* (the host's own settings: Server Setup's alone, their rows
+			hidden in Edit Gametypes', which edits a gametype for any game;
+			written on OK, as the gametype's are kept) */
+			if (option->kind == _option_setting)
+			{
+				short index = (short)PIN(spinner->parameters.list.selected_index, 0, option->count - 1);
+
+				visible_set(row, gametype_edit.setup);
+				if (!gametype_edit.setup)
+					continue;
+				if (!save)
+					spinner->parameters.list.selected_index = gametype_option_setting_index(option);
+				else if (index != gametype_option_setting_index(option) &&
+					!setting_write(option->setting, option->setting_values[index]))
+				{
+					platform_log("menus: could not set %s", option->setting);
+				}
+				continue;
+			}
 			if (save)
 			{
 				short index = (short)PIN(spinner->parameters.list.selected_index, 0, option->count - 1);
@@ -5402,7 +5583,11 @@ boolean pc_menu_event_function_invoke(
 		}
 		else if (!strcmp(name, "profile set edit begin"))
 		{
-			return pc_menu_profile_edit_begin();
+			return profile_edit_begin(widget, event, widget_deleted);
+		}
+		else if (!strcmp(name, "new campaign decision"))
+		{
+			return new_profile_decision(widget, event, widget_deleted);
 		}
 		/* (the press posted is the controller's that chose the button: a
 		split screen player's LEAVE is theirs) */
