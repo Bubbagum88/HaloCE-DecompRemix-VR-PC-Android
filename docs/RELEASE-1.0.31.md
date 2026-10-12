@@ -26,7 +26,7 @@ For a new installation, open **Game files & versions** and import your own compl
 This release collects the work across many private tests, not just Test64's final fix:
 
 - **Physical interaction systems:** manual reloading, shoulder/hip ammo pouches, optional discarded magazines, NPC/ally/enemy and object grabbing, two-handed heavy handling, throwing/slam damage, ragdolls and body-retention controls. These remain WIP.
-- **Button sprint and movement options:** optional left-stick-click sprint, Hold or Toggle operation, adjustable 1.0?1.5? offline speed, and physical arm-running with adjustable effort. See the dedicated sprint guide below for setup and binding changes.
+- **Button sprint and movement options:** optional left-stick-click sprint, Hold or Toggle operation, adjustable 1.0–1.5? offline speed, and physical arm-running with adjustable effort. See the dedicated sprint guide below for setup and binding changes.
 - **Movement and combat:** optional climbing, wall running/jumping, arm-powered launches, sprint toggle, shake-to-cool, enemy-focused fist assistance and physically thrown chest grenades. Session permissions restrict gameplay-changing features online.
 - **Immersive vehicles:** optional grab-based steering with vehicle-specific wheel/bar/stick models, adjustable placement and reach, highlights, feedback and a live blue calibration preview. Ordinary controller vehicle controls remain available.
 - **Aiming, hands and feedback:** shared aim steadying, per-weapon scope positioning, updated scope attachment, mounted vehicle/turret shot-reticle alignment, reload grip/charging feedback, and fixes to weapon release, holsters, contact haptics and unwanted animation interactions.
@@ -67,13 +67,13 @@ Point at menu items and press the trigger; thumbstick/D-pad navigation is also a
 
 ### Sprint button and physical running (Quest VR)
 
-Open **VR Settings ? Locomotion**:
+Open **VR Settings → Locomotion**:
 
 | Option | What it does |
 | --- | --- |
 | **BUTTON SPRINT** | Enable to use **left-stick click** for sprint while moving. Off by default on a fresh configuration. |
-| **SPRINT TOGGLE ? HOLD** | Hold left-stick click to sprint; release it to stop. This is the default mode. |
-| **SPRINT TOGGLE ? TOGGLE** | Click once to enable sprint, then click again to stop?no need to keep the stick pressed. Selecting Toggle also enables Button Sprint. Movement still uses the movement stick; this is not auto-walk. |
+| **SPRINT TOGGLE → HOLD** | Hold left-stick click to sprint; release it to stop. This is the default mode. |
+| **SPRINT TOGGLE → TOGGLE** | Click once to enable sprint, then click again to stop—no need to keep the stick pressed. Selecting Toggle also enables Button Sprint. Movement still uses the movement stick; this is not auto-walk. |
 | **SPRINT SPEED** | Choose **1.0X?1.5X**, in 0.1 steps; fresh default **1.5X**. At 1.0X there is no speed increase. |
 | **ARM RUN / ARM EFFORT** | Optional physical running from arm pumping, with adjustable motion sensitivity. Arm Run starts off. Sprint Speed sets the maximum speed boost separately from arm effort. Deliberate stick movement takes priority. |
 
