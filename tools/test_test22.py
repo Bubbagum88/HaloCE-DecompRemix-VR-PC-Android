@@ -93,6 +93,7 @@ assert 'render_interpolation_object_node_matrices(vr_render.seat.vehicle_index)'
 assert 'real seat_heading = vr_seat_frame_heading();' in fn(render, 'view_heading')
 assert 'real seat_heading = vr_seat_frame_heading();' in fn(render, 'vr_vehicle_adjust_anchor')
 assert re.search(r'unit_get_camera_position\(vr_render\.seat\.unit_index, anchor\);\n\t\tvr_seat_steady_anchor\(anchor\);\n'
+                 r'\t\tvr_vehicle_hatch_lift\(anchor\);\n'  # Test58: TANK HATCH (off by default)
                  r'\t\tvr_vehicle_adjust_anchor\(anchor\);', fn(render, 'view_anchor'))
 assert 'heading = vr_render.seat.heading;' in fn(render, 'vr_player_control_facing') or \
     'real heading = vr_render.seat.heading;' in fn(render, 'vr_player_control_facing'), 'the aim keeps the tick heading'

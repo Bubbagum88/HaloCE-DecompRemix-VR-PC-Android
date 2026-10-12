@@ -51,6 +51,7 @@ static void unit_get_camera_position(long id,real_point3d *p){assert(id==unit_id
 static void vr_vehicle_adjust_anchor(real_point3d *p){(void)p;}
 /* test22: the steadied seat anchor (tested in test_test22) */
 static void vr_seat_steady_anchor(real_point3d *p){(void)p;}
+static void vr_vehicle_hatch_lift(real_point3d *p){(void)p;} /* Test58: TANK HATCH, off by default */
 ''' + fn(source,'void vr_render_reset_vehicle_view(')+fn(source,'static boolean vr_seat_view(')+fn(source,'static void view_anchor(')+r'''
 static void seat(void){
  pool.valid=1;object_header_data=&pool;unit_id=100;vehicle_id=200;unit.object.parent_object_index=200;unit.unit.parent_seat_index=2;
