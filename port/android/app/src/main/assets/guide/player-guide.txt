@@ -1,3 +1,66 @@
+# Test61 private candidate: 1.0.28-test61
+
+## Test61: the wheel stays in your hands, impacts that hurt, more ragdolls
+
+This private test build answers your Test60 sessions (the 07:58 and 08:09
+logs and the 08:03 video). It installs over Test60 and earlier (same package
+names and signing key, Android version code 72 before, 73 now) and keeps your
+settings, profiles, saves and imported game data.
+
+### Immersive vehicles
+
+- **The Warthog's wheel stays in your hands.** With HORIZON on LEVEL your
+  view stays level while the Warthog pitches and rolls. The wheel was fixed to
+  the Warthog's body, so it rolled under your still hands: the roll read as
+  steering and your grip slid off. Your view also swayed with the driver's
+  steering animation, which moved your hands on the wheel. Now, while
+  IMMERSIVE VEHICLE is on, the seat holds your view still (the vehicle's own
+  bumps and turns still carry you), and the controls sit where your hands
+  are tracked: they turn with the vehicle but don't tip and roll under you.
+  This is the same for the Ghost's handlebar, the Scorpion's stick and the
+  Banshee's bar.
+- The Warthog's wheel no longer jumps between the dashboard and your chest
+  (its spot was right on the old one-metre limit). Where the controls sit is
+  decided once when you get in.
+- Turning on **IMMERSIVE VEHICLE** now also sets VIEW to **FIRST PERSON**
+  (the controls only exist in first person), and choosing THIRD PERSON
+  turns IMMERSIVE VEHICLE off. **TANK HATCH** and **HOG GLASS** also bring
+  FIRST PERSON with them.
+
+### Impacts, ragdolls and bodies
+
+- **Slams and throws now really hurt.** The blow was set up from the Master
+  Chief's own melee damage, and he has none of his own (the game uses his
+  unarmed punch instead), so every impact was quietly dropped: your logs
+  never had a single one. It now uses that same unarmed blow. Each impact
+  writes a `VR impact:` line to the log.
+- **More ragdolls at once: NPC RIG SLOTS now goes up to 24** (and starts at
+  24). Explosions killing a group while the last fight's bodies were still
+  settling used to run out of slots, so some enemies played the old death
+  animation. If all 24 are ever busy, the body that has lain longest is
+  handed to the game's own corpse physics to make room. A death that still
+  doesn't ragdoll writes `death ragdoll skipped` with the reason to the log.
+- **Dead Elites and Hunters lift with one hand.** Two hands are only needed
+  while they're alive and fighting back.
+- **NPC GRAB** now also turns on **CUSTOM NPC RIGS**, and **WORLD GRAB**
+  turns on **CUSTOM SCENERY**, so every NPC and every piece of scenery can be
+  taken. You can still turn either off yourself.
+
+### Other settings that come on together
+
+- **SHOULDER POUCH** and **HIP POUCH** turn on MANUAL RELOAD, and **SPRINT
+  TOGGLE** turns on BUTTON SPRINT.
+
+### The gun that stopped firing
+
+- In your 08:09 log a menu was closed with the button still held, and 27 ms
+  later that held button counted as a reload press: it ejected the magazine
+  with 24 rounds left, and the gun can't fire until a reload finishes. A
+  button still held from a menu no longer counts as a reload until you let
+  go of it.
+
+---
+
 # Test60 private candidate: 1.0.27-test60
 
 ## Test60: impacts for every NPC, settings that come on together
