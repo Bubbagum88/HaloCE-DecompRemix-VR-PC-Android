@@ -1,6 +1,21 @@
 # Agent and contributor continuation
 
-## Active private Test59 candidate (2026-10-12)
+## Active private Test60 candidate (2026-10-12)
+
+Continue on `test39-interaction-completion`; private `1.0.27-test60`, Android
+code72 (docs/TEST60-DELIVERY-STATUS.md; docs/TEST60-CHECKLIST.md,
+TEST60-DEVICE-CHECKLIST.md). Impacts for every NPC: a ragdoll joint's sphere
+contact is probed into the face it met, fast joints are tested against
+bodies and vehicles (the dead-biped sweep passes through them) and stop at
+them, and a blow carries no team so allies take it in full
+(vr_articulated_native.c, vr_interaction_impact.c). DEATH RAGDOLLS turns on
+NPC GRAB, NPC RESCUE and IMPACT DAMAGE; grabs turn on IMPACT DAMAGE; vehicle
+refinements turn on IMMERSIVE VEHICLE (soft rows in vr_menu_dependency_table;
+a feature turned on automatically pulls its own soft requirements). Owner:
+settings a feature plays best with come on with it, no redundant toggles;
+regress nothing.
+
+## Previous private Test59 candidate (2026-10-12)
 
 Continue on `test39-interaction-completion`; private `1.0.26-test59`, Android
 code71 (docs/TEST59-DELIVERY-STATUS.md; docs/TEST59-CHECKLIST.md,

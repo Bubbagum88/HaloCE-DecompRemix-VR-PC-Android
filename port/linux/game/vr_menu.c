@@ -726,6 +726,24 @@ static struct vr_menu_dependency
 	{ "vr.world_interaction", "vr.melee_requires_fist", TRUE },
 	{ "vr.parkour_climb", "vr.melee_requires_fist", TRUE },
 	{ "vr.vehicle_lift", "vr.melee_requires_fist", TRUE },
+	/* Test60: what the bodies and grabs play best with comes on with them
+	(the owner's Test59 session: DEATH RAGDOLLS on left NPC RESCUE off).
+	Soft: turned on with the feature, and the player may still turn it off. */
+	{ "vr.death_ragdolls", "vr.npc_interaction", TRUE },
+	{ "vr.death_ragdolls", "vr.npc_rescue", TRUE },
+	{ "vr.death_ragdolls", "vr.interaction_damage", TRUE },
+	{ "vr.npc_interaction", "vr.npc_rescue", TRUE },
+	{ "vr.npc_interaction", "vr.interaction_damage", TRUE },
+	{ "vr.world_interaction", "vr.interaction_damage", TRUE },
+	{ "vr.vehicle_lift", "vr.interaction_damage", TRUE },
+	{ "vr.holster_haptics", "vr.holsters", TRUE },
+	/* the immersive vehicle controls' own refinements turn the controls on */
+	{ "vr.vehicle_wheel_visible", "vr.vehicle_handles", TRUE },
+	{ "vr.vehicle_control_glow", "vr.vehicle_handles", TRUE },
+	{ "vr.vehicle_steer_haptics", "vr.vehicle_handles", TRUE },
+	{ "vr.vehicle_comfort_reach", "vr.vehicle_handles", TRUE },
+	{ "vr.vehicle_tank_drive", "vr.vehicle_handles", TRUE },
+	{ "vr.vehicle_banshee_slide", "vr.vehicle_handles", TRUE },
 };
 
 static boolean vr_menu_auto_has(char const *list, char const *key)
@@ -815,8 +833,13 @@ static boolean vr_menu_dependencies(struct vr_menu_setting const *setting, char 
 				}
 				continue;
 			}
-			if (!vr_menu_choice_writes(setting, value, dependency->feature) && dependency->soft)
-				continue; /* a soft requirement turned off earlier stays off */
+			/* a soft requirement turned off earlier stays off, unless its
+			feature was just turned on: by this choice, or (Test60) by another
+			feature this choice turned on (DEATH RAGDOLLS turns on NPC GRAB,
+			and so what NPC GRAB plays best with) */
+			if (dependency->soft && !vr_menu_choice_writes(setting, value, dependency->feature) &&
+				!(vr_menu_auto_has(automatic, dependency->feature) && !vr_menu_auto_has(before, dependency->feature)))
+				continue;
 			config_write_boolean(dependency->requires, TRUE);
 			changed = TRUE;
 			vr_menu_auto_set(automatic, sizeof(automatic), dependency->requires, TRUE);

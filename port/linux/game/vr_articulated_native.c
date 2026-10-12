@@ -83,6 +83,13 @@ int vr_articulated_native_capture(long unit_index,struct vr_articulated_native *
     *rig=result;
     return TRUE;
 }
+/* Test60: what a moving joint's impact is tested against: the line of sight's
+ * surfaces (structure, scenery, machines, vehicles) and bodies, back faces
+ * too; and, for the body-to-body test, bodies and vehicles alone */
+#define VR_IMPACT_TEST_FLAGS (_collision_test_for_line_of_sight_flags|FLAG(_collision_test_back_facing_surfaces_bit)| \
+    FLAG(_collision_test_objects_bipeds_bit))
+#define VR_IMPACT_BODY_TEST_FLAGS (FLAG(_collision_test_front_facing_surfaces_bit)|FLAG(_collision_test_objects_bit)| \
+    FLAG(_collision_test_objects_bipeds_bit)|FLAG(_collision_test_objects_vehicles_bit))
 int vr_articulated_native_sweep(void *context,float const old[3],float radius,float next[3])
 {
     struct vr_articulated_native *rig=context;
@@ -113,18 +120,57 @@ int vr_articulated_native_sweep(void *context,float const old[3],float radius,fl
             }
         }
     }
-    if(collisions>0 && rig->impact_enabled && rig->impact_units>0 && magnitude3d(&delta)>rig->impact_units*(2.f/30.f)) {
+    if(rig->impact_enabled && rig->impact_units>0 && magnitude3d(&delta)>rig->impact_units*(2.f/30.f)) {
         struct collision_result hit;
-        /* Only a confirmed native hit can submit damage. Grazing sphere-only
-         * contacts without a center ray hit remain physical, not damaging.
-         * Test55: a floor counts too, but only for a violent landing (over 6
-         * m/s): a hard Spartan throw into the ground hurts; ordinary falls stay
-         * with native falling damage. */
-        if(collision_test_vector(_collision_test_for_line_of_sight_flags|FLAG(_collision_test_back_facing_surfaces_bit),
-                &from,&delta,rig->unit_index,&hit) &&
-           (hit.type==_collision_result_structure || hit.type==_collision_result_object) &&
-           (hit.plane.n.k<.65f || magnitude3d(&delta)>rig->impact_units*(6.f/30.f)))
-            vr_interaction_impact_collision(rig->unit_index,&hit,&delta);
+        int found=FALSE;
+        if(collisions>0) {
+            /* Only a confirmed native hit can submit damage. Test55: a floor
+             * counts too, but only for a violent landing (over 6 m/s): a hard
+             * Spartan throw into the ground hurts; ordinary falls stay with
+             * native falling damage (the damage itself is by the speed into
+             * the surface, vr_interaction_impact_scale). Test60: a joint whose
+             * sphere met a surface its centre's path missed (a body slammed
+             * flat onto the floor, glancing off a wall: the Test59 log had no
+             * impact at all) is probed straight into the face it met. */
+            found=collision_test_vector(VR_IMPACT_TEST_FLAGS,&from,&delta,rig->unit_index,&hit);
+            if(!found) {
+                int p,best=0;
+                real_vector3d into;
+                real depth;
+                for(p=1;p<collisions&&p<4;++p)
+                    if(dot_product3d(&planes[p].plane.n,&delta)<dot_product3d(&planes[best].plane.n,&delta)) best=p;
+                depth=radius*1.5f+MAX(-dot_product3d(&planes[best].plane.n,&delta),0.0f);
+                scale_vector3d(&planes[best].plane.n,-depth,&into);
+                if(valid_real_vector3d(&into))
+                    found=collision_test_vector(VR_IMPACT_TEST_FLAGS,&from,&into,rig->unit_index,&hit);
+            }
+            if(found && !((hit.type==_collision_result_structure || hit.type==_collision_result_object) &&
+               (hit.plane.n.k<.65f || magnitude3d(&delta)>rig->impact_units*(6.f/30.f))))
+                found=FALSE;
+        }
+        if(!found) {
+            /* Test60: another body (an ally or an enemy) or a vehicle in the
+             * way. The ragdoll's own sweep passes through living bodies (the
+             * engine's dead-body collision), so a thrown or slammed body never
+             * struck one: a fast joint now meets it, stops at it and hurts it.
+             * Not a player (the hands holding it). */
+            real_vector3d reach=delta;
+            real length=magnitude3d(&delta);
+            struct unit_datum *struck;
+            if(length>0.000001f) scale_vector3d(&reach,(length+radius)/length,&reach);
+            if(collision_test_vector(VR_IMPACT_BODY_TEST_FLAGS,&from,&reach,rig->unit_index,&hit) &&
+               hit.type==_collision_result_object && hit.object_index!=NONE && hit.object_index!=rig->unit_index &&
+               (!(struck=(struct unit_datum *)object_try_and_get_and_verify_type(hit.object_index,_object_mask_unit)) ||
+                struck->unit.player_index==NONE)) {
+                real stop=MAX(hit.t*magnitude3d(&reach)-radius,0.0f);
+                real_vector3d moved;
+                found=TRUE;
+                vector_from_points3d(&from,&to,&moved);
+                if(length>0.000001f && stop<dot_product3d(&moved,&delta)/length)
+                    for(int axis=0;axis<3;++axis) to.n[axis]=from.n[axis]+delta.n[axis]*stop/length;
+            }
+        }
+        if(found) vr_interaction_impact_collision(rig->unit_index,&hit,&delta);
     }
     memcpy(next,to.n,sizeof(to.n));
     return TRUE;

@@ -1,6 +1,18 @@
 # Current development state
 
-## Active private candidate: Test59 (2026-10-12)
+## Active private candidate: Test60 (2026-10-12)
+
+**1.0.27-test60 / Android code72**, branch `test39-interaction-completion`,
+for the owner's Quest and phone tests (not a release). Impact damage works
+on every NPC: slams onto floors and walls count, thrown and slammed bodies
+strike other bodies and vehicles, and allies take the blow in full; DEATH
+RAGDOLLS turns on NPC GRAB, NPC RESCUE and IMPACT DAMAGE, and the other
+features turn on what they play best with. Item outcomes:
+[TEST60-CHECKLIST.md](TEST60-CHECKLIST.md); APKs and hashes:
+[TEST60-DELIVERY-STATUS.md](TEST60-DELIVERY-STATUS.md). Device acceptance
+pending.
+
+## Previous private candidate: Test59 (2026-10-12)
 
 **1.0.26-test59 / Android code71**, branch `test39-interaction-completion`,
 for the owner's Quest and phone tests (not a release). Real first-person

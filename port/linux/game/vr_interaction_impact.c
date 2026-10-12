@@ -109,7 +109,11 @@ static void apply_collision(long index, struct collision_result const *hit,
     damage_data_new(&damage,definition->unit.melee_damage.index);
     damage.owner_object_index=entries[i].owner;
     damage.owner_player_index=owner->unit.player_index;
-    damage.owner_team_index=owner->object.owner_team_index;
+    /* Test60: a blow, not friendly fire: no team, so an ally takes it in full
+     * (credited to the player all the same). With the player's team the
+     * engine applied allies' friendly-damage resistance and a slammed marine
+     * barely felt it. */
+    damage.owner_team_index=NONE;
     damage.location=hit->location; damage.origin=hit->point; damage.epicenter=hit->point;
     damage.direction=*velocity; normalize3d(&damage.direction); damage.scale=scale;
     if(hit->type==_collision_result_object && target!=index &&
@@ -128,7 +132,7 @@ static void apply_collision(long index, struct collision_result const *hit,
         damage_data_new(&damage,definition->unit.melee_damage.index);
         damage.owner_object_index=entries[i].owner;
         damage.owner_player_index=owner->unit.player_index;
-        damage.owner_team_index=owner->object.owner_team_index;
+        damage.owner_team_index=NONE;
         damage.location=hit->location; damage.origin=hit->point; damage.epicenter=hit->point;
         damage.direction=*velocity; scale_vector3d(&damage.direction,-1.0f,&damage.direction);
         normalize3d(&damage.direction); damage.scale=scale;

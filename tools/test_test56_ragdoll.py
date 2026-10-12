@@ -37,7 +37,7 @@ assert "int vr_articulated_native_prepare(struct vr_articulated_native *rig);" i
 for field in ("joint_kind", "group", "joint_low", "joint_high", "rest_parent", "rest_in_parent",
               "rest_group", "relative", "self_mask"):
     assert re.search(r"\b%s\[VR_ARTICULATED_NODES\]" % field, header), field
-solver = native[native.index("int vr_articulated_native_sweep("):]
+solver = native[native.index("/* Test60: what a moving joint's impact is tested against"):]
 
 ENGINE = r'''
 #include <math.h>
@@ -58,11 +58,17 @@ typedef union { real n[3]; struct { real i, j, k; }; } real_vector3d;
 typedef struct { real scale; union { real n[4][3]; struct { real_vector3d forward, left, up; real_point3d position; }; }; } real_matrix4x3;
 typedef struct { real_vector3d n; real d; } real_plane3d;
 struct collision_plane { real_plane3d plane; };
-struct collision_result { int type; real_plane3d plane; real_point3d point; };
+struct collision_result { int type; real t; real_plane3d plane; real_point3d point; long object_index; };
 enum { _collision_result_none, _collision_result_structure, _collision_result_object };
-#define _collision_test_for_bipeds_dead_flags 0
-#define _collision_test_for_line_of_sight_flags 0
-#define _collision_test_back_facing_surfaces_bit 0
+/* source/physics/collisions.h */
+enum { _collision_test_front_facing_surfaces_bit = 0, _collision_test_back_facing_surfaces_bit = 1,
+    _collision_test_structure_bit = 5, _collision_test_objects_bit = 7, _collision_test_objects_bipeds_bit = 8,
+    _collision_test_objects_vehicles_bit = 9 };
+#define _collision_test_for_bipeds_dead_flags 0xC0A0
+#define _collision_test_for_line_of_sight_flags 0xC2AD
+#define NONE (-1)
+struct unit_datum { struct { long player_index; } unit; };
+#define _object_mask_unit 1
 static inline real dot_product3d(real_vector3d const *a, real_vector3d const *b) { return a->i*b->i + a->j*b->j + a->k*b->k; }
 static inline real magnitude3d(real_vector3d const *v) { return sqrtf(dot_product3d(v, v)); }
 static inline real_vector3d *cross_product3d(real_vector3d const *a, real_vector3d const *b, real_vector3d *r)
@@ -96,10 +102,38 @@ static inline short collision_move_sphere(int flags, real_point3d const *from, r
     if (world_has_wall && to->x > world_wall_x - radius) { to->x = world_wall_x - radius; planes[count].plane.n.i = -1; planes[count].plane.n.j = 0; planes[count].plane.n.k = 0; planes[count].plane.d = -world_wall_x; ++count; }
     return count;
 }
+/* the world's rays: the floor and the wall (structure) and, for the body
+ * tests, another body: a face across x = body_x (bipeds) */
+static int body_present; static real body_x; static struct unit_datum body_unit;
 static inline int collision_test_vector(int flags, real_point3d const *from, real_vector3d const *delta, long ignore, struct collision_result *hit)
-{ (void)flags; (void)from; (void)delta; (void)ignore; (void)hit; return FALSE; }
+{
+    real best = 2; (void)ignore;
+    if (flags & (1u << _collision_test_structure_bit)) {
+        if (from->z >= 0 && from->z + delta->k < 0 && delta->k < 0) {
+            real t = from->z / -delta->k;
+            if (t < best) { best = t; hit->type = _collision_result_structure; hit->object_index = NONE;
+                hit->plane.n.i = 0; hit->plane.n.j = 0; hit->plane.n.k = 1; hit->plane.d = 0; }
+        }
+        if (world_has_wall && from->x <= world_wall_x && from->x + delta->i > world_wall_x) {
+            real t = (world_wall_x - from->x) / delta->i;
+            if (t < best) { best = t; hit->type = _collision_result_structure; hit->object_index = NONE;
+                hit->plane.n.i = -1; hit->plane.n.j = 0; hit->plane.n.k = 0; hit->plane.d = -world_wall_x; }
+        }
+    }
+    if (body_present && (flags & (1u << _collision_test_objects_bipeds_bit)) && from->x <= body_x && from->x + delta->i > body_x) {
+        real t = (body_x - from->x) / delta->i;
+        if (t < best) { best = t; hit->type = _collision_result_object; hit->object_index = 77;
+            hit->plane.n.i = -1; hit->plane.n.j = 0; hit->plane.n.k = 0; hit->plane.d = -body_x; }
+    }
+    if (best > 1) return FALSE;
+    hit->t = best;
+    hit->point.x = from->x + delta->i * best; hit->point.y = from->y + delta->j * best; hit->point.z = from->z + delta->k * best;
+    return TRUE;
+}
+static inline void *object_try_and_get_and_verify_type(long index, int mask) { (void)mask; return index == 77 ? &body_unit : 0; }
+static int impacts; static struct collision_result last_impact;
 static inline void vr_interaction_impact_collision(long unit, struct collision_result const *hit, real_vector3d const *delta)
-{ (void)unit; (void)hit; (void)delta; }
+{ (void)unit; (void)delta; ++impacts; last_impact = *hit; }
 '''
 
 CHECK = r'''
@@ -272,9 +306,40 @@ int main(void)
         copy = rig; assert(vr_articulated_native_step(&copy, 1.f/30.f, 3.2f, &pin, 1));
         for (a = 0; a < 3; ++a) assert(copy.body.nodes[5].position[a] == pin.position[a]);
     }
+    /* Test60: impacts (the Test59 log had none). A joint skidding fast and
+     * flat onto the floor met it with its sphere, not its centre: probed into
+     * the floor it counts; slow, it does not; a body in the way is struck and
+     * the joint stops at it; a player's body (the hands holding it) is not. */
+    {
+        struct vr_articulated_native hit_rig;
+        float from[3], next[3];
+        real radius = 0.03f;
+        memset(&hit_rig, 0, sizeof(hit_rig));
+        hit_rig.unit_index = 5; hit_rig.impact_enabled = 1; hit_rig.impact_units = UNITS; hit_rig.body.count = 1;
+        world_has_wall = 0; body_present = 0;
+        from[0] = 0; from[1] = 0; from[2] = radius + 0.001f;
+        next[0] = 0.3f; next[1] = 0; next[2] = radius - 0.01f; /* 27 m/s, slightly down */
+        impacts = 0; assert(vr_articulated_native_sweep(&hit_rig, from, radius, next));
+        assert(impacts == 1 && last_impact.type == _collision_result_structure && last_impact.plane.n.k == 1);
+        next[0] = 0.01f; next[1] = 0; next[2] = radius - 0.01f;             /* about 1 m/s */
+        impacts = 0; assert(vr_articulated_native_sweep(&hit_rig, from, radius, next) && impacts == 0);
+        body_present = 1; body_x = 0.5f; body_unit.unit.player_index = NONE;
+        from[0] = 0.4f; from[1] = 0; from[2] = 1;
+        next[0] = 0.6f; next[1] = 0; next[2] = 1;                           /* through the other body */
+        impacts = 0; assert(vr_articulated_native_sweep(&hit_rig, from, radius, next));
+        assert(impacts == 1 && last_impact.type == _collision_result_object && last_impact.object_index == 77);
+        assert(fabsf(next[0] - (0.5f - radius)) < 1e-4f);
+        body_unit.unit.player_index = 0;                                    /* a player */
+        next[0] = 0.6f; next[1] = 0; next[2] = 1;
+        impacts = 0; assert(vr_articulated_native_sweep(&hit_rig, from, radius, next) && impacts == 0 && next[0] > 0.59f);
+        hit_rig.impact_enabled = 0; body_unit.unit.player_index = NONE;     /* not thrown: no impacts */
+        next[0] = 0.6f; next[1] = 0; next[2] = 1;
+        impacts = 0; assert(vr_articulated_native_sweep(&hit_rig, from, radius, next) && impacts == 0 && next[0] > 0.59f);
+        body_present = 0;
+    }
     /* prepare refuses a broken graph */
     copy = rig; copy.body.nodes[3].parent = 7; assert(!vr_articulated_native_prepare(&copy));
-    printf("PASS: Test56 ragdolls (%d stock skeletons x 9 falls, Test59 DEATH FORCE throws included, settle, keep bones and joint limits)\n", SKEL_COUNT);
+    printf("PASS: Test56 ragdolls (%d stock skeletons x 9 falls, Test59 DEATH FORCE throws included, settle, keep bones and joint limits; Test60 impacts: floor slams, bodies struck, players never)\n", SKEL_COUNT);
     return 0;
 }
 '''
