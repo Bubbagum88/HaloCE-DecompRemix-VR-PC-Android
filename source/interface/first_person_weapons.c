@@ -452,6 +452,18 @@ void first_person_weapons_dispose_from_old_map(
 	return;
 }
 
+#ifdef HALO_VR
+/* Test59: the weapon whose first-person rig is loaded for a local player
+(NONE without one): a driver's immersive vehicle hands need it loaded */
+long first_person_weapon_vr_weapon(
+	short local_player_index)
+{
+	if (local_player_index<0 || local_player_index>=MAXIMUM_NUMBER_OF_LOCAL_PLAYERS)
+		return NONE;
+	return first_person_weapon_get(local_player_index)->weapon_index;
+}
+#endif
+
 long first_person_weapon_get_local_index(
 	long weapon_index)
 {
@@ -660,6 +672,10 @@ void first_person_weapon_render_update(
 			/* put away driving or on a turret (port/linux/game/vr_render.c) */
 			if (vr_render_hide_first_person_weapon())
 				visible= FALSE;
+			/* Test59: the hands on immersive vehicle controls are drawn though
+			the game's own camera for a seat is not first person */
+			if (vr_render_vehicle_first_person_hands())
+				visible= TRUE;
 #endif
 
 			first_person_weapon_set_visibility(render.local_player_index, visible);
@@ -1703,6 +1719,14 @@ static void first_person_weapon_switch_weapons(
 			first_person_weapon->unit_index,
 			unit->unit.current_weapon_index);
 
+#ifdef HALO_VR
+		/* Test59: a driver's weapon is stowed, so there were no first-person
+		arms in a vehicle; holding immersive vehicle controls, the weapon
+		carried lends its first-person rig (its gun hidden: vr_render.c,
+		vr_vehicle_handles.h) */
+		if (weapon_index==NONE)
+			weapon_index= vr_render_vehicle_hands_weapon(first_person_weapon->unit_index);
+#endif
 		if (weapon_index!=NONE)
 		{
 			struct weapon_datum *weapon= weapon_get(weapon_index);

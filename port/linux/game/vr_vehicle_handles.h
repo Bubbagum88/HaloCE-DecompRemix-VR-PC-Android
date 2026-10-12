@@ -38,6 +38,13 @@ static struct {
     int glow, steer_haptics, slide;
     /* Test57b: where the controls were placed and how far from the eyes */
     real head_gap; char const *anchored;
+    /* Test59: the player's offsets (HOG/GHOST/TANK/BANSH REACH, LEFT,
+     * HEIGHT) in the vehicle's frame; controls placed from the eyes each
+     * frame (the stick, the bar, a vehicle without markers); COMFORT REACH;
+     * a control found over a metre from the eyes this frame (and logged) */
+    real user[3]; int head_anchored, comfort, far, far_logged;
+    /* Test59: TANK DRIVE: the drive stick's push (forward +) as throttle */
+    int drive; float throttle;
 } vr_wheel;
 static char const *const vr_wheel_keys[]={"warthog","ghost","scorpion","banshee"};
 /* Test57: each vehicle's own controls. The stock Warthog gets a drawn wheel
@@ -49,7 +56,7 @@ static char const *const vr_wheel_keys[]={"warthog","ghost","scorpion","banshee"
 static struct {char const *name;int kind;} const vr_wheel_names[]=
     {{"warthog",0},{"ghost",1},{"scorpion",2},{"wraith",2},{"banshee",3}};
 static struct {char const *control;real extra;} const vr_wheel_profiles[]=
-    {{"steering wheel",0.08f},{"handlebar",0.04f},{"drive stick",0.05f},{"flight bar",0.04f}};
+    {{"steering wheel",0.08f},{"handlebar",0.06f},{"drive stick",0.05f},{"flight bar",0.05f}};
 /* Test57: the drive stick's length and the sideways travel that is full lock
  * for the stick and the flight bar */
 #define VR_STICK_LENGTH 0.16f
@@ -60,6 +67,7 @@ static void vr_vehicle_handles_clear(void)
     vr_wheel.valid=0; vr_wheel.unit=vr_wheel.vehicle=NONE; vr_wheel.pitch=0; vr_wheel.steering_logged=0;
     vr_wheel.drawn_valid=0; vr_wheel.steered=0; vr_wheel.steer_valid=0;
     for(int side_hand=0;side_hand<2;side_hand++) { vr_wheel.near[side_hand]=0; vr_wheel.side[side_hand]=0; }
+    vr_wheel.far=vr_wheel.far_logged=0; vr_wheel.throttle=0;
 }
 static int vr_vehicle_handles_enabled(long unit)
 {
@@ -87,11 +95,33 @@ static int vr_wheel_valid_frame(real_matrix4x3 const *m)
         !isfinite(m->left.n[i]) || !isfinite(m->up.n[i])) return 0;
     return 1;
 }
+/* Test59: in front of the chest: 35 cm ahead of and 40 cm below the eyes,
+ * in the vehicle's frame */
+#define VR_CHEST_AHEAD 0.35f
+#define VR_CHEST_BELOW 0.40f
+/* Test59: COMFORT REACH: no control farther than this from the eyes */
+#define VR_COMFORT_REACH 0.55f
 static void vr_wheel_place(real_matrix4x3 const *root)
 {
+    real units=vr_units_per_metre();
+    real_point3d head=vr_render.game_camera_position;
+    int head_ok=valid_real_point3d(&head);
     vr_wheel.root=*root;
-    vr_wheel.center=root->position;
-    for(int axis=0;axis<3;axis++)vr_wheel.center.n[axis]+=root->forward.n[axis]*vr_wheel.anchor[0]+root->left.n[axis]*vr_wheel.anchor[1]+root->up.n[axis]*vr_wheel.anchor[2];
+    vr_wheel.far=0;
+    /* Test59: the stick and the bar (and a control without markers) are
+     * placed from the eyes as they are now, each frame: Test58 took the eyes
+     * once, half a second after boarding, while the Scorpion's boarding
+     * animation still had the driver climbing in, and its stick stayed 2.2 m
+     * from where the driver ended up (the owner's log) */
+    if(vr_wheel.head_anchored && head_ok) {
+        vr_wheel.center=head;
+        for(int axis=0;axis<3;axis++)vr_wheel.center.n[axis]+=root->forward.n[axis]*(VR_CHEST_AHEAD*units+vr_wheel.user[0])+
+            root->left.n[axis]*vr_wheel.user[1]+root->up.n[axis]*(vr_wheel.user[2]-VR_CHEST_BELOW*units);
+    } else {
+        vr_wheel.center=root->position;
+        for(int axis=0;axis<3;axis++)vr_wheel.center.n[axis]+=root->forward.n[axis]*(vr_wheel.local[0]+vr_wheel.user[0])+
+            root->left.n[axis]*(vr_wheel.local[1]+vr_wheel.user[1])+root->up.n[axis]*(vr_wheel.local[2]+vr_wheel.user[2]);
+    }
     {
         real along;
         for(int n=0;n<3;n++)vr_wheel.normal.n[n]=root->forward.n[n]*vr_wheel.axis[0]+root->left.n[n]*vr_wheel.axis[1]+root->up.n[n]*vr_wheel.axis[2];
@@ -104,8 +134,27 @@ static void vr_wheel_place(real_matrix4x3 const *root)
     /* Test57: the Warthog's drawn wheel sits 2.5 cm in front of the model's
      * own (toward the driver), so it is seen and taken whole; hidden
      * (VIRTUAL WHEEL), it is taken on the model's own wheel */
-    if(vr_wheel.kind==0 && vr_wheel.wheel_front)
-        for(int front=0;front<3;front++)vr_wheel.center.n[front]+=vr_wheel.normal.n[front]*0.025f*vr_units_per_metre();
+    if(vr_wheel.kind==0 && vr_wheel.wheel_front && !vr_wheel.head_anchored)
+        for(int front=0;front<3;front++)vr_wheel.center.n[front]+=vr_wheel.normal.n[front]*0.025f*units;
+    /* Test59: a control on the vehicle's own place that is out of reach of
+     * the eyes this frame: over a metre, it is put in front of the chest;
+     * past COMFORT REACH (55 cm), it comes in toward the eyes along the same
+     * line (the Warthog's wheel was 74 to 97 cm from the eyes and the
+     * Ghost's bar 71 cm in the owner's log: arms stretched, grabs missed).
+     * A hidden Warthog wheel stays on the model's wheel. */
+    if(head_ok && !vr_wheel.head_anchored) {
+        real_vector3d to;real gap;
+        vector_from_points3d(&head,&vr_wheel.center,&to);
+        gap=magnitude3d(&to);
+        if(!(gap<=1.0f*units)) {
+            vr_wheel.far=1;
+            vr_wheel.center=head;
+            for(int axis=0;axis<3;axis++)vr_wheel.center.n[axis]+=root->forward.n[axis]*(VR_CHEST_AHEAD*units+vr_wheel.user[0])+
+                root->left.n[axis]*vr_wheel.user[1]+root->up.n[axis]*(vr_wheel.user[2]-VR_CHEST_BELOW*units);
+        } else if(vr_wheel.comfort && !(vr_wheel.kind==0 && !vr_wheel.wheel_front) && gap>VR_COMFORT_REACH*units) {
+            for(int axis=0;axis<3;axis++)vr_wheel.center.n[axis]=head.n[axis]+to.n[axis]*(VR_COMFORT_REACH*units/gap);
+        }
+    }
     for(int h=0;h<2;h++) {
         real sign=h?-1:1,angle=vr_wheel.angle;
         vr_wheel.target[h]=vr_wheel_point(0,sign*vr_wheel.radius*vr_wheel.scale*cosf(angle),sign*vr_wheel.radius*vr_wheel.scale*sinf(angle));
@@ -114,7 +163,9 @@ static void vr_wheel_place(real_matrix4x3 const *root)
      * about its pivot below it (a turn right leans it right) */
     if(vr_wheel.kind==2) {
         real length=VR_STICK_LENGTH*vr_units_per_metre()*vr_wheel.scale;
-        vr_wheel.target[0]=vr_wheel_point(0,-length*sinf(vr_wheel.angle),length*(cosf(vr_wheel.angle)-1.0f));
+        /* Test59: and leaning forward or back with TANK DRIVE's throttle */
+        real tilt=PIN(vr_wheel.throttle,-1.0f,1.0f)*0.45f;
+        vr_wheel.target[0]=vr_wheel_point(length*sinf(tilt)*cosf(vr_wheel.angle),-length*sinf(vr_wheel.angle),length*(cosf(vr_wheel.angle)*cosf(tilt)-1.0f));
         vr_wheel.target[1]=vr_wheel.target[0];
     }
 }
@@ -195,28 +246,27 @@ static int vr_vehicle_handles_prepare(long unit_index)
         if(!valid_real_point3d(&head) || !(magnitude3d(&delta)<=5.0f*units)) return 0;
         /* Test57b: the Scorpion's stick and the Banshee's bar sit in front of
          * the driver's chest, 35 cm ahead of and 40 cm below the eyes (their
-         * drivers' hands are inside the hull, 2 m off in the owner's log);
-         * and any control farther than a metre from the eyes is put there too,
-         * so no control can ever be out of reach */
-        vector_from_points3d(&head,&center,&delta);
-        head_gap=magnitude3d(&delta)/units;
-        if(kind==2 || kind==3 || !contacts || !(head_gap<=1.0f)) {
-            if(kind!=2 && kind!=3 && !contacts)
-                platform_log("vr: immersive %s %s: no authored contacts; placed in front of the chest",
-                    vr_wheel_keys[kind],vr_wheel_profiles[kind].control);
-            else if(kind!=2 && kind!=3)
-                platform_log("vr: immersive %s %s: its authored place was %.0f cm from the eyes; placed in front of the chest",
-                    vr_wheel_keys[kind],vr_wheel_profiles[kind].control,(double)(head_gap*100.0f));
+         * drivers' hands are inside the hull, 2 m off in the owner's log), as
+         * does a control without markers. Test59: placed from the eyes each
+         * frame (vr_wheel_place), not from where the eyes were at boarding;
+         * any other control farther than a metre from the eyes in a frame is
+         * put there too, and past COMFORT REACH comes in toward the eyes */
+        vr_wheel.head_anchored=kind==2 || kind==3 || !contacts;
+        if(kind!=2 && kind!=3 && !contacts)
+            platform_log("vr: immersive %s %s: no authored contacts; placed in front of the chest",
+                vr_wheel_keys[kind],vr_wheel_profiles[kind].control);
+        if(vr_wheel.head_anchored) {
             for(int i=0;i<3;i++)
-                center.n[i]=head.n[i]+nodes[0].forward.n[i]*0.35f*units-nodes[0].up.n[i]*0.40f*units;
+                center.n[i]=head.n[i]+nodes[0].forward.n[i]*VR_CHEST_AHEAD*units-nodes[0].up.n[i]*VR_CHEST_BELOW*units;
             normal.i=-nodes[0].forward.i;normal.j=-nodes[0].forward.j;normal.k=-nodes[0].forward.k;
             if(kind!=0 || !contacts) vr_wheel.radius=(kind==0?0.17f:0.20f)*units;
-            anchored="in front of the chest";
+            anchored="in front of the chest, from the eyes each frame";
         }
         vr_wheel.radius=PIN(vr_wheel.radius,0.10f*units,0.30f*units);
         if(!(normalize3d(&normal)>0.0f)) return 0;
         vector_from_points3d(&head,&center,&delta);
-        vr_wheel.head_gap=magnitude3d(&delta)/units;vr_wheel.anchored=anchored;
+        head_gap=magnitude3d(&delta)/units;
+        vr_wheel.head_gap=head_gap;vr_wheel.anchored=anchored;
         vector_from_points3d(&nodes[0].position,&center,&delta);
         vr_wheel.local[0]=dot_product3d(&delta,&nodes[0].forward);
         vr_wheel.local[1]=dot_product3d(&delta,&nodes[0].left);
@@ -233,8 +283,11 @@ static int vr_vehicle_handles_prepare(long unit_index)
         static char const *parts[]={"forward","left","up"};char key[80];
         for(int i=0;i<3;i++) {
             double value;snprintf(key,sizeof(key),"vr.handle_%s_%s",vr_wheel_keys[kind],parts[i]);value=config_real(key);
-            vr_wheel.anchor[i]=vr_wheel.local[i]+(isfinite(value)?PIN(value,-0.5,0.5):0)*vr_units_per_metre();
+            vr_wheel.user[i]=(isfinite(value)?PIN(value,-0.5,0.5):0)*vr_units_per_metre();
+            vr_wheel.anchor[i]=vr_wheel.local[i]+vr_wheel.user[i];
         }
+        vr_wheel.comfort=config_boolean("vr.vehicle_comfort_reach");
+        vr_wheel.drive=config_boolean("vr.vehicle_tank_drive");
         snprintf(key,sizeof(key),"vr.handle_%s_size",vr_wheel_keys[kind]);
         double scale=config_real(key);vr_wheel.scale=isfinite(scale)?PIN(scale,0.5,2.0):1.0;
         vr_wheel.wheel_front=config_boolean("vr.vehicle_wheel_visible");
@@ -283,7 +336,9 @@ static real vr_wheel_grip_distance(int h,real_point3d const *hand)
         for(int i=0;i<3;i++)a.n[i]=(vr_wheel.center.n[i]+vr_wheel.target[h].n[i])*0.5f;
         vector_from_points3d(&a,&vr_wheel.target[h],&ab);vector_from_points3d(&a,hand,&ap);
         length2=dot_product3d(&ab,&ab);
-        t=length2>1e-12f?PIN(dot_product3d(&ap,&ab)/length2,0.0f,1.0f):0.0f;
+        /* Test59: from a quarter of the way out to just past the end (the
+         * Ghost's grips were hard to take: misses of 8 to 17 cm) */
+        t=length2>1e-12f?PIN(dot_product3d(&ap,&ab)/length2,-0.5f,1.15f):0.0f;
         for(int k=0;k<3;k++)d.n[k]=ap.n[k]-ab.n[k]*t;
         return magnitude3d(&d);
     }
@@ -306,6 +361,11 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
     if(vr_wheel.log_pending) {
         platform_log("vr: immersive %s %s anchored at %s, %.0f cm from the eyes; grip to steer, stick throttle retained, controller steering off",vr_wheel_keys[vr_wheel.kind],vr_wheel_profiles[vr_wheel.kind].control,vr_wheel.anchored?vr_wheel.anchored:"native contacts",(double)(vr_wheel.head_gap*100.0f));
         vr_wheel.log_pending=0;
+    }
+    if(vr_wheel.far && !vr_wheel.far_logged) {
+        platform_log("vr: immersive %s %s: its place on the vehicle is over a metre from the eyes; placed in front of the chest",
+            vr_wheel_keys[vr_wheel.kind],vr_wheel_profiles[vr_wheel.kind].control);
+        vr_wheel.far_logged=1;
     }
     for(int h=0;h<2;h++) {
         real_point3d hand;real_vector3d f,u,d;int press=0,release=0;
@@ -373,6 +433,13 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
         vr_wheel.steered=now;
         if(count) {
             vr_wheel.angle=total/count;
+            /* Test59: TANK DRIVE: the drive stick pushed forward drives on,
+             * pulled back reverses (10 cm is full; 1.5 cm dead) */
+            if(vr_wheel.kind==2) {
+                real travel=push/count/(0.10f*vr_units_per_metre());
+                travel=fabsf(travel)<0.15f?0.0f:(travel-copysignf(0.15f,travel))/0.85f;
+                vr_wheel.throttle=vr_wheel.drive?(travel<-1?-1:travel>1?1:travel):0.0f;
+            }
             /* Banshee: the yoke pushed forward dives, pulled back climbs (12 cm full) */
             if(vr_wheel.kind==3) {
                 real travel=push/count/(0.12f*vr_units_per_metre());
@@ -382,6 +449,7 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
             real keep=(real)exp(-seconds/0.17);
             vr_wheel.angle*=keep;
             vr_wheel.pitch*=keep;
+            vr_wheel.throttle=0.0f;
         }
     }
     if(!isfinite(vr_wheel.angle))vr_wheel.angle=0;
@@ -436,6 +504,16 @@ static int vr_vehicle_handles_head_aims(void)
 {
     return vr_wheel.valid && vr_wheel.unit!=NONE && vr_vehicle_steering_split() &&
         vr_vehicle_handles_enabled(vr_wheel.unit);
+}
+/* Test59: TANK DRIVE: the throttle from the drive stick while a hand holds
+ * it, where it is pushed further than the thumbstick (forward and back; the
+ * thumbstick's strafe untouched). Only where this machine runs the vehicle. */
+void vr_vehicle_handles_throttle(long unit_index,float throttle[3])
+{
+    if(!throttle || unit_index==NONE || !vr_wheel.valid || vr_wheel.unit!=unit_index || vr_wheel.kind!=2 ||
+       !vr_wheel.drive || !(vr_wheel.grip[0].held || vr_wheel.grip[1].held) || !isfinite(vr_wheel.throttle) ||
+       !isfinite(throttle[0]) || !vr_vehicle_steering_split() || !vr_vehicle_handles_enabled(unit_index)) return;
+    if(fabsf(vr_wheel.throttle)>fabsf(throttle[0])) throttle[0]=vr_wheel.throttle;
 }
 void vr_vehicle_handles_facing(long unit_index,float facing[3])
 {
@@ -598,12 +676,33 @@ boolean vr_render_vehicle_controls(void)
 /* Test55: drivers holding immersive controls see the first-person arms and
  * hands (with finger poses) instead of the third-person body's arms, which
  * have no finger bones; the unit needs a weapon for the first-person rig. */
+/* Test59: the first-person arms come with a weapon (its first-person
+ * animations and the hands model), and a driver's weapon is stowed
+ * (current_weapon_index NONE, the owner's log: "active_weapon=-1"): Test55's
+ * check never passed, so the body's fingerless hands held the controls, moved
+ * by the driver's steering animation (the free hand turned with the wheel).
+ * While the immersive controls steer, the weapon carried lends its
+ * first-person rig (first_person_weapons.c), the gun hidden
+ * (vr_render_first_person_gun_hidden): tracked arms and fingers, gripping the
+ * controls they hold. The body's arms fold only once that rig is loaded. */
+long first_person_weapon_vr_weapon(short local_player_index);
+long vr_render_vehicle_hands_weapon(long unit_index)
+{
+    if(unit_index==NONE || !vr_wheel.valid || vr_wheel.unit!=unit_index || !vr_vehicle_handles_enabled(unit_index) ||
+       !unit_try_and_get(unit_index)) return NONE;
+    for(short slot=0;slot<MAXIMUM_WEAPONS_PER_UNIT;slot++) {
+        long weapon=unit_inventory_get_weapon(unit_index,slot);
+        if(weapon!=NONE && weapon_try_and_get(weapon)) return weapon;
+    }
+    return NONE;
+}
 int vr_render_vehicle_first_person_hands(void)
 {
-    struct unit_datum *unit;
+    long weapon;
     if(!vr_render.stereo || vr_render.cinematic_view || !vr_wheel.valid || !vr_vehicle_handles_enabled(vr_wheel.unit) ||
-       !(unit=unit_try_and_get(vr_wheel.unit)) || unit->unit.current_weapon_index==NONE)return 0;
-    return unit_inventory_get_weapon(vr_wheel.unit,unit->unit.current_weapon_index)!=NONE;
+       !unit_try_and_get(vr_wheel.unit))return 0;
+    weapon=first_person_weapon_vr_weapon(0);
+    return weapon!=NONE && weapon_try_and_get(weapon)!=NULL;
 }
 static real_matrix4x3 *vr_vehicle_handles_body(struct animation_graph *graph,real_matrix4x3 *m,short count)
 {

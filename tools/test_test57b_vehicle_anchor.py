@@ -35,6 +35,8 @@ def fn(name):
 
 state = s[s.index('static struct {\n    long unit, vehicle;'):s.index('} vr_wheel;') + len('} vr_wheel;')] + '\n'
 tables = s[s.index('static char const *const vr_wheel_keys'):s.index('#define VR_BAR_SLIDE 0.12f') + len('#define VR_BAR_SLIDE 0.12f')] + '\n'
+# Test59: the chest place and COMFORT REACH distances
+tables += s[s.index('#define VR_CHEST_AHEAD'):s.index('#define VR_COMFORT_REACH 0.55f') + len('#define VR_COMFORT_REACH 0.55f')] + '\n'
 
 code = r'''
 #include <assert.h>
@@ -69,7 +71,8 @@ static int vr_settings_generation(void){return 1;}
 static double clock_now;static double vr_pose_time(void){return clock_now;}
 static int vr_vehicle_handles_enabled(long u){(void)u;return 1;}
 static float config_real(char const*k){if(!strcmp(k,"vr.interaction_reach"))return .04f;if(strstr(k,"_size"))return 1;return 0;}
-static int config_boolean(char const*k){(void)k;return 1;}
+static int cfg_comfort=1,cfg_visible=1;
+static int config_boolean(char const*k){if(!strcmp(k,"vr.vehicle_comfort_reach"))return cfg_comfort;if(!strcmp(k,"vr.vehicle_wheel_visible"))return cfg_visible;return 1;}
 static real_matrix4x3 *render_interpolation_object_node_matrices(long o){(void)o;return NULL;}
 /* the world: the player's unit (1) in a vehicle (2) */
 static struct unit_datum unit;static struct object_datum vehicle;
@@ -151,10 +154,14 @@ int main(void){
    check("Warthog wheel radius ~15 cm",fabsf(vr_wheel.radius/UNITS-.15f)<.03f);
   }
   if(kind==1){
-   /* the Ghost: between the driver's hands on its bars (unchanged) */
-   real_point3d l,r,mid;transform_point(&nodes[7],&markers_defined[2].local,&l);transform_point(&nodes[7],&markers_defined[3].local,&r);
+   /* the Ghost: between the driver's hands on its bars; Test59: this
+    * fixture's 90 cm comes in to 55 cm from the eyes on the same line
+    * (COMFORT REACH) */
+   real_point3d l,r,mid,expected;transform_point(&nodes[7],&markers_defined[2].local,&l);transform_point(&nodes[7],&markers_defined[3].local,&r);
    for(int k=0;k<3;k++)mid.n[k]=(l.n[k]+r.n[k])/2;
-   check("Ghost bar between its hand contacts",cm(mid,vr_wheel.center)<0.5f);
+   {real_vector3d to;vector_from_points3d(&head,&mid,&to);float g=magnitude3d(&to);
+    for(int k=0;k<3;k++)expected.n[k]=head.n[k]+to.n[k]*(g>.55f*UNITS?.55f*UNITS/g:1.0f);}
+   check("Ghost bar on the line to its hand contacts, within comfort reach",cm(expected,vr_wheel.center)<0.5f&&gap<55.5f);
   }
   if(kind>=2){
    /* stick and bar: 35 cm ahead of and 40 cm below the eyes */
@@ -177,10 +184,40 @@ int main(void){
    float bf=dot_product3d(&before,&vr_wheel.root.forward),bl=dot_product3d(&before,&vr_wheel.root.left),bu=dot_product3d(&before,&vr_wheel.root.up);
    real_matrix4x3 moved=frame(v->position.x+13,v->position.y-6,v->position.z+1,1.1f,.1f,0);
    real_matrix4x3 root=moved;root.position=to_model(&moved,(real_point3d){{0,0,.42f}});
+   vr_render.game_camera_position=to_model(&moved,(real_point3d){{.007f,.168f,.626f}}); /* the eyes ride along */
    vr_wheel_place(&root);
    real_vector3d after;vector_from_points3d(&root.position,&vr_wheel.center,&after);
    check("controls move with the vehicle",fabsf(dot_product3d(&after,&root.forward)-bf)<1e-4f&&fabsf(dot_product3d(&after,&root.left)-bl)<1e-4f&&fabsf(dot_product3d(&after,&root.up)-bu)<1e-4f);}
  }
+ /* Test59: the Scorpion's boarding animation: the eyes end 2 m from where
+  * they were half a second in (the owner's log: every squeeze 2.2 m off);
+  * the stick follows the eyes, in reach, and takes a hand */
+ for(int kind=2;kind<4;kind++){real_matrix4x3 v=frame(98.493f,-157.639f,1.705f,1.328f,0,0);enter(kind,&v);
+  real_matrix4x3 root=nodes[0];
+  for(int k=0;k<3;k++)vr_render.game_camera_position.n[k]+=root.left.n[k]*2.0f*UNITS-root.up.n[k]*.6f*UNITS;
+  vr_wheel_place(&root);
+  check("stick/bar follows the eyes after boarding",fabsf(cm(vr_render.game_camera_position,vr_wheel.center)-53.15f)<1.0f);
+  {real_point3d hand=vr_wheel.target[0];check("stick/bar after boarding takes a hand",vr_wheel_grip_distance(0,&hand)/UNITS*100<=1.0f);}}
+ /* Test59: a Warthog wheel 97 cm from the eyes (the owner's log) comes in
+  * to 55 cm along the same line; hidden (VIRTUAL WHEEL), it stays on the
+  * model's wheel; COMFORT REACH off, it stays on the vehicle's place */
+ {real_matrix4x3 v=frame(98.493f,-157.639f,1.705f,1.328f,0,0);enter(0,&v);
+  real_matrix4x3 root=nodes[0];real_point3d model_wheel;
+  for(int k=0;k<3;k++)vr_render.game_camera_position.n[k]+=-root.forward.n[k]*.42f*UNITS+root.up.n[k]*.12f*UNITS;
+  vr_wheel_place(&root);
+  model_wheel=nodes[6].position;for(int k=0;k<3;k++)model_wheel.n[k]+=nodes[6].up.n[k]*.025f*UNITS;
+  {float far_gap=cm(vr_render.game_camera_position,model_wheel);
+   printf("Warthog wheel %.0f cm from the eyes: comes in to %.1f cm\n",far_gap,cm(vr_render.game_camera_position,vr_wheel.center));
+   check("Warthog wheel past 55 cm (test setup)",far_gap>80&&far_gap<100);}
+  check("Warthog wheel comes in to 55 cm",fabsf(cm(vr_render.game_camera_position,vr_wheel.center)-55)<0.5f);
+  {real_vector3d a,b;vector_from_points3d(&vr_render.game_camera_position,&model_wheel,&a);vector_from_points3d(&vr_render.game_camera_position,&vr_wheel.center,&b);
+   normalize3d(&a);normalize3d(&b);check("on the same line from the eyes",dot_product3d(&a,&b)>.9999f);}
+  {real_point3d hand=vr_wheel.target[0];check("the near wheel takes a hand",vr_wheel_grip_distance(0,&hand)/UNITS*100<=1.0f);}
+  cfg_visible=0;assert(vr_vehicle_handles_prepare(1));vr_wheel_place(&root);
+  check("hidden wheel stays on the model's wheel",cm(nodes[6].position,vr_wheel.center)<0.5f);
+  cfg_visible=1;cfg_comfort=0;assert(vr_vehicle_handles_prepare(1));vr_wheel_place(&root);
+  check("COMFORT REACH off: the vehicle's place",cm(model_wheel,vr_wheel.center)<0.5f);
+  cfg_comfort=1;}
  /* a control whose authored place is wrong is put in front of the chest */
  {real_matrix4x3 v=frame(98.493f,-157.639f,1.705f,1.328f,0,0);enter(1,&v);
   markers_defined[2].local=(real_point3d){{-400,500,10}};markers_defined[3].local=(real_point3d){{-400,500,10}};
@@ -197,7 +234,7 @@ int main(void){
   memset(&vr_wheel,0,sizeof vr_wheel);vr_vehicle_handles_clear();vr_render.game_camera_position=(real_point3d){{0,0,0}};clock_now=10;assert(!vr_vehicle_handles_prepare(1));clock_now+=1;
   check("no controls placed from a head outside the vehicle",!vr_vehicle_handles_prepare(1)&&!vr_wheel.valid);}
  if(failures){printf("%d failures\n",failures);return 1;}
- puts("PASS: Test57b immersive controls on the vehicle (stock Warthog wheel node, Ghost contacts, Scorpion/Banshee in front of the chest) at 5 places/headings/tilts, every control in reach, rim and spokes taken, moving with the vehicle, far places falling back, never placed from a head outside the vehicle");
+ puts("PASS: Test57b immersive controls on the vehicle (stock Warthog wheel node, Ghost contacts, Scorpion/Banshee in front of the chest) at 5 places/headings/tilts, every control in reach, rim and spokes taken, moving with the vehicle, far places falling back, never placed from a head outside the vehicle; Test59: stick/bar from the eyes each frame (boarding), comfort reach 55 cm, hidden wheel on the model, comfort off");
  return 0;}
 '''
 with tempfile.TemporaryDirectory(prefix='test57b-') as d:

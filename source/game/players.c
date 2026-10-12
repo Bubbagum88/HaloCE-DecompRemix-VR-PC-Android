@@ -5112,6 +5112,11 @@ void players_update_before_game(
 					control_data.throttle.i = action->throttle.i;
 					control_data.throttle.j = action->throttle.j;
 					control_data.throttle.k = 0.f;
+#ifdef HALO_VR
+					/* Test59: a tank's immersive drive stick pushed or pulled
+					drives (port/linux/game/vr_vehicle_handles.h) */
+					vr_vehicle_handles_throttle(player->unit_index, control_data.throttle.n);
+#endif
 					control_data.primary_trigger = action->primary_trigger;
 					control_data.animation_state = _unit_animation_state_in_combat;
 					control_data.weapon_index = action->desired_weapon_index;

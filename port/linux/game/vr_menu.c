@@ -435,6 +435,10 @@ static struct vr_menu_setting const vr_menu_vehicles[] =
     { "CONTROL GLOW", "vr.vehicle_control_glow", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     { "STEER HAPTICS", "vr.vehicle_steer_haptics", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     { "BANSH SLIDE", "vr.vehicle_banshee_slide", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    /* Test59: controls past 55 cm from the eyes come in toward them */
+    { "COMFORT REACH", "vr.vehicle_comfort_reach", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    /* Test59: the tank's drive stick pushed or pulled drives */
+    { "TANK DRIVE", "vr.vehicle_tank_drive", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     /* Test57b: a tank's first-person eyes over its hull, as from an open hatch */
     { "TANK HATCH", "vr.vehicle_tank_hatch", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     { "HOG REACH", "vr.handle_warthog_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },

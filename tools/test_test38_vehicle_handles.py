@@ -43,7 +43,7 @@ typedef struct {real_vector3d forward,left,up;real_point3d position;}real_matrix
 #define PIN(x,l,h) ((x)<(l)?(l):((x)>(h)?(h):(x)))
 static struct {long unit;int kind,valid,log_pending,down[2],steering_logged;real_matrix4x3 root;real_point3d center,target[2];float radius,angle,pitch,grip_phase[2],push_start[2];struct vr_wheel_grip grip[2];
  float anchor[3],scale;double steered;int at_limit[2];float felt[2];real_vector3d normal,plane_left,plane_up,simulated_forward,steer;int steer_valid;
- float side_start[2];int near[2],side[2],wheel_front,glow,steer_haptics,slide;}vr_wheel;
+ float side_start[2];int near[2],side[2],wheel_front,glow,steer_haptics,slide,far,far_logged,drive;float throttle;}vr_wheel;
 static double clock_now;static double vr_pose_time(void){return clock_now+=1.0/72.0;}
 static void vr_wheel_drawn_refresh(void){}
 static struct {real_point3d game_camera_position;}vr_render;
@@ -141,6 +141,14 @@ int main(void){
  pose[0]=(real_point3d){{0,0,.02f}};held[0]=pressed[0]=1;vr_vehicle_handles_update(1,&f);pressed[0]=0;assert(owner[0]==2&&vr_wheel.grip[0].held);
  pose[0].y=-.05f;vr_vehicle_handles_update(1,&f);assert(atan2f(f.j,f.i)<-.2f&&fabsf(vr_wheel.angle-atan2f(.05f,.16f))<1e-4);
  pose[0].y=.05f;vr_vehicle_handles_update(1,&f);assert(atan2f(f.j,f.i)>.2f);
+ /* Test59: TANK DRIVE: pushed 10 cm drives on full, pulled 6 cm reverses,
+  * 1 cm is nothing; off, the stick only steers */
+ vr_wheel.drive=1;pose[0].y=0;
+ pose[0].x=.10f;vr_vehicle_handles_update(1,&f);assert(fabsf(vr_wheel.throttle-1.0f)<1e-4f);
+ pose[0].x=-.06f;vr_vehicle_handles_update(1,&f);assert(vr_wheel.throttle<-.4f&&vr_wheel.throttle>-.6f);
+ pose[0].x=.01f;vr_vehicle_handles_update(1,&f);assert(vr_wheel.throttle==0.0f);
+ vr_wheel.drive=0;pose[0].x=.10f;vr_vehicle_handles_update(1,&f);assert(vr_wheel.throttle==0.0f);
+ pose[0].x=0;
  /* haptics: a firm buzz at full lock, a light one on release */
  /* STEER HAPTICS off: no turning ticks or full-lock buzz */
  {int before=buzz;vr_wheel.steer_haptics=0;pose[0].y=-.4f;vr_vehicle_handles_update(1,&f);assert(buzz==before);pose[0].y=.05f;vr_vehicle_handles_update(1,&f);vr_wheel.steer_haptics=1;}
@@ -198,7 +206,7 @@ assert 'config_boolean("vr.vehicle_wheel_visible");' in controls and 'vr_wheel.k
 assert 'Warthog: a rubber rim, three metal spokes' in controls and 'one drive stick on a base plate' in controls
 assert 'Scorpion: two control sticks' not in controls
 assert '&& vr_wheel.glow' in controls
-assert '{"wraith",2}' in s and '{"steering wheel",0.08f},{"handlebar",0.04f}' in s
+assert '{"wraith",2}' in s and '{"steering wheel",0.08f},{"handlebar",0.06f}' in s
 assert 'accent' not in controls, 'no cyan accent block'
 assert 'vr.vehicle_wheel_visible' not in fn('vr_vehicle_handles_update')
 assert 'vr_first_person_vehicles()' in fn('vr_vehicle_handles_enabled') and 'vr_render.seat.driver' in fn('vr_vehicle_handles_enabled')

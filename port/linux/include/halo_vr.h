@@ -118,6 +118,9 @@ int vr_render_first_person_gun_hidden(void);
 /* Test55: a driver holding immersive vehicle controls sees the first-person
 hands (finger poses) rather than the seat's third-person arms */
 int vr_render_vehicle_first_person_hands(void);
+/* Test59: the stowed weapon whose first-person rig gives a driver holding
+immersive vehicle controls tracked arms and fingers (NONE otherwise) */
+long vr_render_vehicle_hands_weapon(long unit_index);
 int vr_render_immersive_cutscene(void);
 int vr_render_grab_point(long unit_index, union real_point3d *point);
 /* handle_one_player_input: what the headset's gestures ask of the first
@@ -145,6 +148,9 @@ driver's facing (the steering) comes from them while the aiming stays with
 the head (players.c); split: whether this machine runs the player's unit */
 int vr_vehicle_steering_split(void);
 void vr_vehicle_handles_facing(long unit_index, float facing[3]);
+/* Test59: a tank's immersive drive stick pushed forward or pulled back sets
+the throttle (when it is pushed further than the thumbstick) */
+void vr_vehicle_handles_throttle(long unit_index, float throttle[3]);
 boolean vr_render_full_body(long object_index);
 boolean vr_render_hands_only(void);
 struct real_matrix4x3 *vr_render_body_matrices(long object_index);
