@@ -43,6 +43,10 @@ WALL SPEED 1.5X, WALL LEAP 1.5X, THROW POWER 1.5X (CLIMB LAUNCH 1X, WALL TIME
 2 S unchanged). A category of 3+ screens opens an index of its sections
 (`VR_MENU_INDEX_FROM`). No protocol or voice change.
 
+Full suite (127 suites), both native builds, ABI lint and package
+verification passed. APK source is `e2849e9b4effc9b1dab195bda0217e3aeabaf30e`;
+delivery is `D:\HaloQuestuilds	est63-20261012-v1.0.30-test63`.
+
 Read `docs/TEST63-CHECKLIST.md`, `docs/TEST63-FIELD-GUIDE.md`,
 `docs/TEST63-DEVICE-CHECKLIST.md`, `docs/TEST63-DELIVERY-STATUS.md`.
 Saved settings stay; new defaults reach fresh installs. Automated checks are
