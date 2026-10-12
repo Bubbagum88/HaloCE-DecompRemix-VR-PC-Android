@@ -41,6 +41,9 @@ static struct unit_datum owner={0,{2},{10}};
 static struct unit_definition definition={{{NONE}}};
 static long unarmed_weapon_melee=9,damage_tag=NONE;
 static long unit_unarmed_melee_damage(long i){(void)i;return definition.unit.melee_damage.index!=NONE?definition.unit.melee_damage.index:unarmed_weapon_melee;}
+/* Test62: the globals' falling damage (12 here), every map's */
+static long globals_impact=12;
+long damage_globals_impact_effect(void){return globals_impact;}
 static struct object_datum* object_try_and_get(long i){return i>=0&&i<5?&objects[i]:0;}
 static struct unit_datum* unit_try_and_get(long i){return i==0?&owner:0;}
 static int game_connection(void){return connection;}
@@ -107,10 +110,13 @@ int main(void) {
  /* Test61: a unit's own melee damage is used first; with no blow at all
   * nothing is damaged (and nothing crashes) */
  definition.unit.melee_damage.index=7;tick+=10;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_tag==7);
- {int before=damage_calls;definition.unit.melee_damage.index=NONE;unarmed_weapon_melee=NONE;tick+=10;
-  vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_calls==before);unarmed_weapon_melee=9;}
+ /* Test62: no unarmed melee weapon (the campaign): the globals' falling damage */
+ definition.unit.melee_damage.index=NONE;unarmed_weapon_melee=NONE;tick+=10;
+ vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_tag==12);
+ {int before=damage_calls;globals_impact=NONE;tick+=10;
+  vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_calls==before);unarmed_weapon_melee=9;globals_impact=12;}
  enabled=0;vr_interaction_impact_track(1,0,1,1);assert(!entries[0].active);
- puts("PASS: production impact authority, deferred collision damage, native attribution, kinetic weights/cap, expiry/debounce, world/self hits, reset and finite guards; Test56 struck bodies shoved by the blow; Test61 the unarmed melee blow when the unit has none of its own (the Master Chief)");
+ puts("PASS: production impact authority, deferred collision damage, native attribution, kinetic weights/cap, expiry/debounce, world/self hits, reset and finite guards; Test56 struck bodies shoved by the blow; Test61 the unarmed melee blow when the unit has none of its own (the Master Chief); Test62 the globals' falling damage where there is no unarmed melee weapon (the campaign)");
 }
 '''
 c=out/'impact.c'; c.write_text(stub+production+tests)

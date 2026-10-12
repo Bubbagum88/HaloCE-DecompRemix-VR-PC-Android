@@ -2800,6 +2800,26 @@ void damage_get_network_state(
 	state->recent_shield_damage = object->object.recent_shield_damage;
 }
 
+/* port (VR, Test62): the damage effect a body thrown or slammed by a hand
+takes from what it hits: the globals' falling damage (a body slammed into the
+ground falls onto it), else their vehicle collision damage; NONE without
+either (port/linux/game/vr_interaction_impact.c) */
+long damage_globals_impact_effect(
+	void)
+{
+	struct game_globals_falling_damage *falling_damage;
+
+	if (!scenario_get_game_globals() || scenario_get_game_globals()->falling_damage.count < 1)
+		return NONE;
+	falling_damage = TAG_BLOCK_GET_ELEMENT(
+		&scenario_get_game_globals()->falling_damage,
+		0,
+		struct game_globals_falling_damage);
+	if (falling_damage->falling_damage.index != NONE)
+		return falling_damage->falling_damage.index;
+	return falling_damage->vehicle_collision_damage.index;
+}
+
 /* the automated network tests (port/linux/game/network_test.c): kills the
 object as falling damage does (an act of god), but credited to a player, so
 that the kill counts in the game's scores */

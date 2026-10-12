@@ -16,6 +16,7 @@
 #include "vr_interaction_impact_math.h"
 #include <string.h>
 void platform_log(char const *format, ...);
+long damage_globals_impact_effect(void); /* objects/damage.c */
 /* Fixed storage, refreshed by held objects; expired thrown entries are reused. */
 static struct impact_entry {
     long object, owner, expiry, last_tick, last_target;
@@ -104,8 +105,12 @@ static void apply_collision(long index, struct collision_result const *hit,
      * melee weapon's). The Master Chief's unit has none of its own, and
      * Test38 to Test60 read only that: every impact on every NPC and prop
      * returned here unseen (no "VR impact" line in the owner's Test59 and
-     * Test60 logs, marines thrown at 24 m/s). */
+     * Test60 logs, marines thrown at 24 m/s). Test62: in the campaign there
+     * is no unarmed melee weapon either (the owner's Test61 log: "no melee
+     * damage ... impacts cannot hurt"): the globals' falling damage (or
+     * vehicle collision damage), which every map has. */
     blow=unit_unarmed_melee_damage(entries[i].owner);
+    if(blow==NONE) blow=damage_globals_impact_effect();
     if(blow==NONE) {
         static int logged;
         if(!logged) platform_log("VR impact: no melee damage for owner=%08lx; impacts cannot hurt",entries[i].owner);
