@@ -15,8 +15,15 @@ class CandidateMetadataTests(unittest.TestCase):
     def test_current_handoff_prefix(self):
         expected = ["TEST62-DELIVERY-STATUS.md", "TEST62-CHECKLIST.md",
                     "TEST62-FIELD-GUIDE.md", "TEST62-DEVICE-CHECKLIST.md"]
-        for label in ("test62", "test62b", "test63"):
+        for label in ("test62", "test62b"):
             self.assertEqual(package.candidate_document_prefix(label), expected)
+        # Test63: its own handoff first, then Test62's
+        current = ["TEST63-DELIVERY-STATUS.md", "TEST63-CHECKLIST.md",
+                   "TEST63-FIELD-GUIDE.md", "TEST63-DEVICE-CHECKLIST.md"]
+        for label in ("test63", "test64"):
+            self.assertEqual(package.candidate_document_prefix(label), current + expected)
+        for name in current:
+            self.assertTrue((ROOT / "docs" / name).is_file())
         for name in expected:
             self.assertTrue((ROOT / "docs" / name).is_file())
         for label in ("test51", "test61", "1.0.19"):

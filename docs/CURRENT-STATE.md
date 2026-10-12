@@ -15,10 +15,42 @@ The older v1.0.19 "current public" claim below is superseded: that release
 attempt was withdrawn/cancelled in the conversation and is not the current
 latest release. No local v1.0.19 tag exists. Preserve its notes as history,
 but do not use them as a live release pointer or instruction to check it out.
-Continue private Test62 on its stated branch. Public v1.0.18 and all earlier
+Continue private Test63 on its stated branch. Public v1.0.18 and all earlier
 release assets remain unchanged; no publication is authorized.
 
-## Active private Test62 candidate (2026-10-12)
+## Active private Test63 candidate (2026-10-12)
+
+Private **1.0.30-test63 / Android code75**, branch `test39-interaction-completion`,
+continuing Test62 (APK source `ed60571f`, kept whole). From the owner's
+fresh-install Test62 session (12:06 log and video, reviewed completely):
+BUTTON SPRINT owns the left stick's click and a reticle whose toggle has no
+button is shown (`vr_reload_settings`; the Buttons menu skips L STICK under
+sprint); X with an action on offer never drops the magazine
+(`player->action_result`); chest grenades sit in a torso frame
+(`vr_torso_place`, follows past 35 degrees, holds while looking down), use the
+game's frag/plasma projectile models (`vr_extra_models_render`, world model
+pass) and are taken at the drawn palm within 12 cm with a hover tick; the
+fist assist acquires (FIST REACH 1-3 m, 2.5 default; 45-degree gaze cone;
+hooks count; step up to 5 m/s; target slowed x.35, not frozen; a grab or
+climb ends it; miss diagnostics); world contact tests the nearest bounds
+first and skips objects over 4 units (b30's purple c_storage crate was
+starved by trees and the crashed Pelican); the Warthog's own model wheel is
+drawn at the virtual wheel and turned (`vr_vehicle_controls_matrices`), the
+Ghost/Scorpion/Banshee controls are redesigned shaded parts, and the
+`vr.handle_*` rows show a live blue calibration preview. New ONE-HAND
+HEAVIES (`vr.npc_one_hand_heavy`, off, requires NPC GRAB). Owner defaults:
+WALL SPEED 1.5X, WALL LEAP 1.5X, THROW POWER 1.5X (CLIMB LAUNCH 1X, WALL TIME
+2 S unchanged). A category of 3+ screens opens an index of its sections
+(`VR_MENU_INDEX_FROM`). No protocol or voice change.
+
+Read `docs/TEST63-CHECKLIST.md`, `docs/TEST63-FIELD-GUIDE.md`,
+`docs/TEST63-DEVICE-CHECKLIST.md`, `docs/TEST63-DELIVERY-STATUS.md`.
+Saved settings stay; new defaults reach fresh installs. Automated checks are
+not device evidence: device acceptance is pending for all of Test63.
+Local commits only; no push/publish/install/launch. PC/Steam Frame deferred.
+Every local commit message ends with the requested Claude co-author trailer.
+
+## Previous private Test62 candidate (2026-10-12)
 
 Private **1.0.29-test62 / Android code74**, branch `test39-interaction-completion`.
 Original four requests: settled-eye immersive control anchors (3 s cap),
