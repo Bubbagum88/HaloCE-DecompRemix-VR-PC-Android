@@ -418,15 +418,15 @@ Hosting: proximity voice range in world units (5 to 100).
 network.legacy_coop [boolean]
 Default: false
 Opt in to legacy network12-14 campaign clients. Old hosts omit scripted team allegiance; marine reticles/team behavior may be wrong.
-Uses old native presentation behavior without invented allegiance. Prefer network15-26. Hosting stays26.
+Uses old native presentation behavior without invented allegiance. Prefer network15-28. Hosting stays28.
 
 network.protocol_version [integer]
 Default: 0
 Client protocol target: 0 (the default) lists/joins all compatible PvP
-versions 11-26; 11-26 selects one exact server version. This build always
-hosts as 26. Campaign needs15+, or consented legacy12-14; Custom Edition
+versions 11-28; 11-28 selects one exact server version. This build always
+hosts as 28. Campaign needs15+, or consented legacy12-14; Custom Edition
 needs23+. This is read once when the game starts; restart after changing
-it. Invalid values fall back to the build's own version, 26.
+it. Invalid values fall back to the build's own version, 28.
 
 network.join_from_clipboard [boolean]
 Default: true
@@ -1204,6 +1204,14 @@ vr.vehicle_steer_haptics [boolean]
 Default: true
 STEER HAPTICS: light ticks as the immersive vehicle controls turn, a tick crossing the centre and a firmer buzz at full lock (the grab and let-go pulses stay; HAPTICS scales all).
 
+vr.vehicle_comfort_reach [boolean]
+Default: true
+COMFORT REACH: an immersive vehicle control on the vehicle's own place that is more than 55 cm from the eyes (the Warthog's wheel, the Ghost's handlebar) comes in toward them along the same line, so the arms do not stretch; off, every control stays on the vehicle's own place (a hidden Warthog wheel always does). Over a metre away, a control is put in front of the chest either way.
+
+vr.vehicle_tank_drive [boolean]
+Default: true
+TANK DRIVE: a tank's immersive drive stick (Scorpion, Wraith) drives as well as steers: pushed forward it drives on, pulled back it reverses (10 cm is full), leaned left or right it turns; the left thumbstick still drives, and the one pushed further wins. Off, the stick only steers.
+
 vr.vehicle_tank_hatch [boolean]
 Default: false
 TANK HATCH (off by default): in a tank's first-person driver seat (Scorpion, Wraith) the eyes rise over the hull above the driver's head, as from an open hatch (measured on the vehicle itself; 12 cm over it); off, the view stays at the driver's head inside the hull. TANK UP/FWD/RIGHT still adjust it.
@@ -1371,6 +1379,10 @@ Written by VR Settings: the settings it turned on only because an immersion feat
 vr.death_ragdolls [boolean]
 Default: false
 Solo (and co-op host): NPCs killed nearby fall as physical ragdolls carrying their momentum, then rest as grabbable corpses. Uses the NPC RIG SLOTS pool.
+
+vr.death_force [string]
+Default: "strong"
+DEATH RAGDOLLS: how hard a killing burst or blast throws the body: classic (Test56's: shot bodies crumple where they stand), strong (the default: back along the shots, away from explosions with lift) or huge.
 
 vr.npc_recovery [real]
 Default: 1.0

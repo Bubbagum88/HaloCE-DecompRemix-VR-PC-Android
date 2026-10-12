@@ -1,3 +1,91 @@
+# Test59 private candidate: 1.0.26-test59
+
+## Test59: real hands in vehicles, the latest network, magazines back in
+
+This private test build answers your Test58 sessions (the 05:18 vehicle log
+and video, the 05:36 log and the 05:48 video). It installs over Test58 and
+earlier (same package names and signing key, Android version code 71) and
+keeps your settings, profiles, saves and imported game data.
+
+### Vehicles (only with IMMERSIVE VEHICLE on)
+
+- **Real hands.** In a vehicle your hands were the body's flat, fingerless
+  hands, steered by the driver's animation, which is why your free hand
+  turned with the wheel. The game puts a driver's gun away, and with the gun
+  away there were no first-person arms at all. Now, while the immersive
+  controls steer, your carried weapon lends its first-person arms (the gun
+  itself stays hidden), so you get the tracked hands with finger gestures.
+  Each hand moves only with your own hand. The rest of your body in the
+  vehicle is as before.
+- **Controls where you can reach them.** Your Test58 log had the Warthog's
+  wheel 74-97 cm from your eyes (arms stretched) and the Scorpion's stick
+  2.2 m away: it was placed once, half a second after getting in, while the
+  driver was still climbing in. The stick and the Banshee's bar are now
+  placed from your eyes every frame. **COMFORT REACH** (VEHICLES page, on)
+  brings any control further than 55 cm in toward you on the same line.
+  If you hid the Warthog's wheel to line it up with the model's, it stays on
+  the model's wheel.
+- **Ghost.** Its grips take your hand 2 cm sooner and along more of each
+  grip.
+- **Tank.** **TANK DRIVE** (VEHICLES page, on): push the drive stick forward
+  to drive, pull it back to reverse; tilt it to turn as before. The stick
+  leans as you push. The thumbstick still works, whichever is pushed
+  further wins. It drives where your machine runs the tank (solo or as the
+  host).
+
+### OpenCE Build 201 and the network
+
+- This build hosts on **network 28**, OpenCE's latest (Build 201), and joins
+  hosts of networks 11 to 28. **All compatible networks** is still the
+  launcher's default, and the selector lists every network one by one,
+  **network 27** included.
+- Network 27 added map sharing: an OpenCE player missing a Custom Edition
+  map asks the host for it. This app doesn't share maps, so its host answers
+  "the host does not share its maps" straight away instead of leaving the
+  player waiting.
+- Network 28's rules are in: a multiplayer map's first scripted BSP is kept,
+  lights and the flashlight stay on in big matches with many players or
+  vehicles, and a second weapon you pick up while firing is readied.
+- Also from Build 201: the overshield's slow drain no longer flashes your
+  shield meter and plays the hit sound on clients, bodies the host moves
+  are no longer drawn floating or in walls on clients (never a body your VR
+  hands or ragdolls are holding), and big co-op fights draw more effects
+  before running out of room.
+
+### Manual reload
+
+- **Your magazine goes back in.** In your video you pulled a magazine out
+  and held it at the gun for three seconds, and it wouldn't go back. Now
+  bring it back to the well (lined up, as a fresh one) and it locks in,
+  whether you're still squeezing or let go right there. If you dropped it,
+  squeeze it where it lies (DROPPED MAGS shows it) and put it back. The gun
+  keeps exactly the rounds it had and fires again. A magazine from a pouch
+  works as before.
+- **No more jitter while walking.** The gun was drawn from your view each
+  frame, but the hand on the magazine came from the game's 30-per-second
+  step, so while you walked they slid apart and snapped back. Both now
+  come from the same view.
+
+### Ragdolls
+
+- **DEATH FORCE** (VR Settings > IMMERSION, the new RAGDOLLS screen, with
+  DEATH RAGDOLLS; STRONG by default).
+  Shot dead, a body now goes back along your shots as hard as the burst that
+  killed it: an assault rifle burst throws it back about 2.5-3.7 m/s with a
+  little lift (Test58 gave it 0.04 m/s, so it dropped where it stood), a
+  sniper round about 4.7 m/s. Explosions throw bodies about twice as hard,
+  with more lift, and a body right at a blast keeps more of the blast's own
+  throw (Test58 clipped every one to 9 m/s). **CLASSIC** is Test58's feel;
+  **HUGE** throws further still.
+- Living NPCs you drop or throw still get up within 1 second.
+
+### Checked here, and what to try
+
+Every change has an automated check, and the full regression suite passed.
+Nothing here has been tried in the headset yet. See TEST59-DEVICE-CHECKLIST.md.
+
+---
+
 # Test58 private candidate: 1.0.25-test58
 
 ## Test58: vehicle controls where your hands are
