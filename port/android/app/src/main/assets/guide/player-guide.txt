@@ -1,3 +1,122 @@
+# Test63 private candidate: 1.0.30-test63
+
+## Test63: your Test62 session, fixed
+
+This private build answers your fresh-install Test62 session (the 12:06 log
+and the 12:06:42 video) and the requests that came with it. It installs over
+Test62 (same package names and signing key, Android version code 75) and
+keeps your settings, saves and imported game data. Everything that worked in
+Test62 (impacts, reload and its haptics, magazines, charging, grabbing,
+climbing, wall running, ragdolls, vehicles, holsters, scopes, co-op, voice)
+is unchanged unless listed here. None of this has been tried in the headset
+yet.
+
+### The reticle and BUTTON SPRINT
+
+Your log shows what happened: the left stick's click hid the reticle
+(12:10:53), then you turned BUTTON SPRINT on (12:11:04), which takes that
+click. The reticle stayed hidden and no button could bring it back.
+
+- While BUTTON SPRINT is on, the left stick's click only sprints. Anything
+  else on that click waits, and comes back when you turn sprint off (as
+  before).
+- If the reticle's toggle has no button, a hidden reticle is shown again.
+- The Buttons menu skips L STICK while BUTTON SPRINT is on, so two things
+  can't end up on one click.
+
+### X: get in, or drop the magazine
+
+Pressing X to drive the Warthog also dropped your pistol's magazine
+(12:09:37). Now, when X has an action on offer (get in a vehicle, swap or
+pick up a weapon, press a switch), it does that action and never drops the
+magazine.
+
+### Chest grenades
+
+- **They stay on your chest.** The slots followed your head, so they moved
+  every time you looked around. They now sit in a chest frame that turns
+  with your body. It only follows your head once you've turned more than
+  35 degrees, and it holds still while you look down at it, so your hand
+  learns where they are.
+- **They're the real grenades.** The green and blue balls were stand-ins.
+  The slots and your hand now show the game's own frag and plasma grenade
+  models.
+- **Grabbing works.** In your video your hand closed right on the slot and
+  never took it: the test used the controller's grip point, not the palm you
+  see. It now uses the palm drawn on screen, with 12 cm of reach. You feel
+  a light tick when your hand reaches a slot, and a near miss is logged
+  with the distance.
+- THROW POWER is now 1.5X by default (your setting).
+
+### Fist assist (FIST COMBAT)
+
+Your log has no "acquired" line: not one punch picked a target. Now:
+
+- **FIST REACH** is 2.5 m by default (1 to 3 m). A deliberate punch (closed
+  fist, above MELEE SPEED) picks the enemy you're looking at, within about
+  45 degrees of your gaze, in sight, and not behind the punch. Hooks count.
+- If it's a step or two away, you get a short Spartan step toward it (up to
+  5 m/s), stopping at striking range.
+- The target is slowed (not frozen) during the step and for half a second
+  after a hit, and its AI keeps running. The next punch prefers the same
+  enemy, so combos chain.
+- The moment a hand grabs or climbs, the assist lets go: punch, then grab
+  and slam.
+- When a punch takes nothing, the log says why: how far away the nearest
+  enemy was, at what angle, and whether it was in sight.
+- With FIST COMBAT off, physical melee is exactly as before.
+
+### Grabbing that purple Covenant crate
+
+The crates on the beach were grabbable, but the hand never got to test
+them: the beach's trees and the crashed Pelican (17 m across) used up the
+hand's 32 contact tests first. The hand now tests the nearest objects first
+and skips anything too big to lift. A miss now names the nearest object in
+the log.
+
+### Vehicles (IMMERSIVE VEHICLE on)
+
+- **The Warthog's wheel is the Warthog's own.** The model's steering wheel
+  is drawn where your virtual wheel is, and your hands turn it: one wheel,
+  the real one. With VIRTUAL WHEEL hidden, nothing changes (you grab the
+  model's wheel where it sits).
+- **The Ghost, Scorpion and Banshee controls are redesigned** after the
+  vehicles: rounded, shaded parts in their own materials. The Ghost has a
+  violet Covenant handlebar with blue-lit pods, the Scorpion a UNSC drive
+  stick with a rubber boot and a grip, and the Banshee a violet flight yoke.
+- **A live calibration preview.** Sit in a vehicle and open the VEHICLES
+  offset rows (CTRL REACH / LEFT / HEIGHT, HOG, GHOST, TANK, BANSH): the
+  controls show in blue where your hands will actually take them, with the
+  grab reach and which way they face, and they move as you change a value.
+
+### ONE-HAND HEAVIES
+
+New in GRAB + NPCS, off by default: with it on, one hand lifts a living
+Elite or Hunter (normally one hand holds it in place and the second
+lifts). It turns NPC GRAB on.
+
+### Your parkour defaults
+
+WALL SPEED 1.5X and WALL LEAP 1.5X are the new defaults (what you set in
+the video). CLIMB LAUNCH stays 1X and WALL TIME 2 S, as you left them. If
+you've already saved other values, yours stay.
+
+### Settings: jump to a section
+
+A category with three or more screens now opens a list of its sections.
+IMMERSION lists its topics (FIST COMBAT, GRENADES, RELOAD, MOVEMENT...),
+and long categories like VEHICLES list their pages by their first setting.
+Pick one and you're there. B takes you back to the list in one press. NEXT
+still pages on as before.
+
+### Checked here, and what to try
+
+Every change has an automated check, and the full regression suite runs
+before each build. Nothing here has been tried in the headset yet. See
+TEST63-DEVICE-CHECKLIST.md.
+
+---
+
 # Test62 private candidate: 1.0.29-test62
 
 ## Test62: settled controls, easier grabs and campaign impacts

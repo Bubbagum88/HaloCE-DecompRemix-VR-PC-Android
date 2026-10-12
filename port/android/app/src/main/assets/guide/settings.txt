@@ -834,8 +834,8 @@ Default: true
 Highlight a locked enemy head/chest and show stun/impact feedback with assisted combat.
 
 vr.combat_reach [real]
-Default: 1.5
-Maximum fist-combat acquisition distance in metres, 0.75..2.0.
+Default: 2.5
+How far from the eyes a punch picks an enemy (metres, 0.75..3); short of striking range a short step closes the gap.
 
 vr.physical_grenades [boolean]
 Default: false
@@ -854,7 +854,7 @@ Default: 0.14
 Chest grenade half spacing in metres, 0.06..0.3. Frag left, plasma right.
 
 vr.grenade_throw_scale [real]
-Default: 1.0
+Default: 1.5
 Physical grenade hand momentum multiplier, 0.5..2.0; final speed capped at 15 m/s.
 
 net.host_vr_actions [boolean]
@@ -1205,7 +1205,7 @@ Default: false
 Optional offline grip climbing. Touch a solid vertical world surface with a free tracked hand, then squeeze Grip; pull to climb and release to launch. HAND CONTACT controls the palm collision radius, not reach; native collision remains authoritative.
 
 vr.wallrun_speed [real]
-Default: 1.25
+Default: 1.5
 Wallrun speed multiplier, 1..2.
 
 vr.wallrun_duration [real]
@@ -1213,7 +1213,7 @@ Default: 2.0
 Maximum wallrun duration in seconds, 0.5..3.
 
 vr.walljump_scale [real]
-Default: 1.0
+Default: 1.5
 Walljump impulse multiplier, 0.5..1.5.
 
 vr.climb_launch_scale [real]
@@ -1411,6 +1411,10 @@ Optional solo VR physical reload for supported weapons. The USE/RELOAD action dr
 vr.npc_grab_assist [real]
 Default: 0.05
 Extra reach in metres (0 to 0.15) added to an NPC's body volumes when grabbing it. Default 0.05 adds 5 cm; 0 keeps the closer touch setting. Existing saved choices are preserved.
+
+vr.npc_one_hand_heavy [boolean]
+Default: false
+ONE-HAND HEAVIES: a living Elite or Hunter lifts with one hand (off: one hand holds it in place, the second lifts). Needs NPC GRAB.
 
 vr.npc_hold_strength [real]
 Default: 1.5
