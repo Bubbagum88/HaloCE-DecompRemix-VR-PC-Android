@@ -37,13 +37,13 @@ for part in ("state->death", "!state->is_remote", "!state->held[0] && !state->he
              "biped_start_limp_body_physics(index);", "reset_one();"):
     assert part in corpse, part
 assert 'if(!(state=free_state()) && !(state=npc_corpse_slot())) {npc_death_skipped(index,"every-rig-slot-busy");return;}' in npc
-assert 'npc_death_skipped(index,"farther-than-40m")' in npc and '"unsupported-species"' in npc
+assert 'npc_death_skipped(index,"outside-ragdoll-range")' in npc and '"unsupported-species"' in npc
 
 # dead bodies lift with one hand
 profile = npc[npc.index("static int interaction_profile("):]
 profile = profile[:profile.index("\n}\n")]
 assert "TEST_FLAG(unit->object.damage_flags,_object_dead_bit)) *hands=1;" in profile
-assert "npc.recovery=0;npc.minimum_hands=1;}" in npc
+assert "npc.recovery=0;npc.minimum_hands=1;" in npc
 
 # a button held as a menu closes is not a reload until let go
 action = frame[frame.index("int vr_manual_reload_action_down(void)"):]

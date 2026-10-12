@@ -10,6 +10,7 @@ void vr_npc_interaction_controls(long index);
 void vr_npc_interaction_velocity(long index, float velocity[3]);
 void vr_npc_interaction_palette(long index);
 int vr_npc_interaction_owned(long index);
+int vr_npc_interaction_restrained(long index);
 int vr_npc_interaction_hand(int hand,float point[3]);
 long vr_npc_interaction_object(int hand);
 int vr_npc_interaction_remote(long player_index,int hand,int held,const float world[3]);

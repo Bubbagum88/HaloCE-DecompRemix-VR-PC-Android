@@ -69,7 +69,7 @@ enum {_actor_elite,_actor_jackal,_actor_grunt,_actor_hunter,_actor_engineer,_act
 enum {_race_player=1,_race_human=2,_race_covenant=4,_race_floodcombat=8,_race_floodcarrier=16,_race_floodinfection=32,_race_sentinel=64};
 enum {_actor_definition_flying_bit=21,_actor_definition_swarm_actor_bit=26,_biped_flying_bit=2};
 enum {_game_connection_local=0};static int connection;static int game_connection(void){return connection;}
-static struct npc_state {int active,recovery,settling,minimum_hands,started,is_remote,getting_up,species_type,was_garbage,settle_stuck_logged,recovery_blocked_logged,torso_node,death,root_follow;float mobility;long index,tick,player;int held[2],edge[2],node[2],strain_logged[2];real_vector3d target[2],offset[2],root_anchor[2],velocity[2],root_offset,last_delta[2];float history[2][VR_WORLD_THROW_HISTORY][3];int history_count[2],history_next[2];struct{struct vr_articulated_body body;real_matrix4x3 captured[64];}rig;} npc_pool[NPC_POOL_SIZE],*npc_current=&npc_pool[0];
+static struct npc_state {int active,recovery,settling,minimum_hands,started,is_remote,getting_up,species_type,was_garbage,settle_stuck_logged,recovery_blocked_logged,torso_node,death,root_follow;float mobility;long index,tick,player;int held[2],edge[2],node[2],strain_logged[2];real_vector3d target[2],offset[2],root_anchor[2],velocity[2],root_offset,last_delta[2],restraint_root;float history[2][VR_WORLD_THROW_HISTORY][3];int history_count[2],history_next[2];struct{struct vr_articulated_body body;real_matrix4x3 captured[64];}rig;} npc_pool[NPC_POOL_SIZE],*npc_current=&npc_pool[0];
 #define npc (*npc_current)
 static struct remote_state {long player,candidate[2];int valid,held[2],seen[2],edge[2];real_vector3d point[2];} remote_pool[128];
 static struct {long definition;short type;int valid;} species_cache[64];
@@ -120,7 +120,7 @@ static void cancel_one(void);
 '''
 c=c.replace('#define VR_NPC_INTERACTION_POOL_SIZE {POOL_SIZE}',
             f'#define VR_NPC_INTERACTION_POOL_SIZE {POOL_SIZE}')
-for sig in ['static int species(', 'static int custom_rig_graph_valid(', 'static int custom_humanoid_rig(', 'static int interaction_profile(', 'static int npc_contact_node(', 'static struct npc_state *free_state(', 'static struct npc_state *state_for_object(', 'static int select_owner(', 'static short unit_species(', 'static struct unit_datum *eligible(', 'static struct unit_datum *continuable(', 'static real npc_setting(', 'static void npc_begin_root_follow(', 'static void reset_one(', 'static void cancel_one(', 'void vr_npc_interaction_reset(', 'void vr_npc_interaction_cancel(', 'static void release(', 'void vr_npc_interaction_velocity(', 'int vr_npc_interaction_snapshot(', 'int vr_npc_interaction_remote_contact(']:
+for sig in ['static int species(', 'static int custom_rig_graph_valid(', 'static int custom_humanoid_rig(', 'static int interaction_profile(', 'static int npc_contact_node(', 'static int npc_body_touch(', 'static struct npc_state *free_state(', 'static struct npc_state *state_for_object(', 'static int select_owner(', 'static short unit_species(', 'static struct unit_datum *eligible(', 'static struct unit_datum *continuable(', 'static real npc_setting(', 'static void npc_begin_root_follow(', 'static void reset_one(', 'static void cancel_one(', 'void vr_npc_interaction_reset(', 'void vr_npc_interaction_cancel(', 'static void release(', 'void vr_npc_interaction_velocity(', 'int vr_npc_interaction_snapshot(', 'int vr_npc_interaction_remote_contact(']:
     c+=function(sig)+'\n'
 c+=r'''
 int main(void){
@@ -137,6 +137,17 @@ int main(void){
  assert(!species(_actor_sentinel,&hands,&mobility)&&!species(_actor_infection_form,&hands,&mobility));
  /* A broad root/NONE collision result can still attach to a real articulated
     joint. The other hand may never pin the same joint. */
+ /* Test62: the slightly wider default is still a local capsule touch:
+    near misses are accepted, a remote hand is rejected, second grip must
+    contact a distinct bone, and malformed poses fail safely. */
+ {struct vr_articulated_native body={0};real_point3d palm={{.14f,0,.5f}};
+  body.body.count=2;body.body.nodes[1].parent=0;body.body.nodes[1].position[2]=1;body.body.nodes[1].length=1;
+  assert(npc_body_touch(&body,&palm,.11f,1,NONE)==NONE);
+  assert(npc_body_touch(&body,&palm,.16f,1,NONE)==1);
+  assert(npc_body_touch(&body,&palm,.16f,1,1)==NONE);
+  palm.n[0]=.3f;assert(npc_body_touch(&body,&palm,.16f,1,NONE)==NONE);
+  palm.n[0]=NAN;assert(npc_body_touch(&body,&palm,.16f,1,NONE)==NONE);
+ }
  struct vr_articulated_native contact_rig={0};contact_rig.body.count=4;
  contact_rig.body.nodes[1].position[0]=0;contact_rig.body.nodes[1].position[1]=0;contact_rig.body.nodes[1].radius=.03f;
  contact_rig.body.nodes[2].position[0]=.10f;contact_rig.body.nodes[2].position[1]=0;contact_rig.body.nodes[2].radius=.03f;
@@ -318,6 +329,25 @@ int main(void){
  npc.recovery=2;float before[3]={.1f,.2f,.3f};memcpy(v,before,sizeof v);
  vr_npc_interaction_velocity(7,v);assert(!memcmp(v,before,sizeof v));
  npc.recovery=0;vr_npc_interaction_velocity(8,v);assert(!memcmp(v,before,sizeof v));
+ /* Test62: a one-hand living Elite/Hunter support latch freezes horizontal
+    root travel, even when the hand pulls a metre away and native AI/animation
+    supplies movement. Gravity is preserved; the second hand enables lift. */
+ npc.started=0;npc.minimum_hands=2;npc.held[0]=1;npc.held[1]=0;
+ memset(&unit.object.position,0,sizeof unit.object.position);
+ memset(&npc.restraint_root,0,sizeof npc.restraint_root);
+ npc.target[0].n[0]=1;npc.target[0].n[2]=1.6f;
+ for(int species_test=0;species_test<2;++species_test) {
+  npc.mobility=species_test?.12f:.25f;v[0]=.1f;v[1]=-.2f;v[2]=-.03f;
+  vr_npc_interaction_velocity(7,v);assert(v[0]==0&&v[1]==0&&v[2]==-.03f);
+  unit.object.position.n[0]=.02f;vr_npc_interaction_velocity(7,v);
+  assert(v[0]<0&&v[0]>=-.8f/30.f&&v[2]==-.03f);
+  unit.object.position.n[0]=0;
+ }
+ npc.started=1;npc.held[1]=1;npc.target[1]=npc.target[0];npc.root_anchor[1]=npc.root_anchor[0];npc.offset[1]=npc.offset[0];
+ memset(v,0,sizeof v);vr_npc_interaction_velocity(7,v);assert(v[0]>0&&v[2]>0);
+ /* Releasing a latch restores normal ownership; it never launches the NPC. */
+ npc.started=0;npc.held[1]=0;npc.settling=0;release(0,1,"test62-latch-release");assert(!npc.active);
+
  vr_npc_interaction_reset();
  maximum=24;
  for(int i=0;i<24;i++){struct npc_state *slot=free_state();assert(slot==&npc_pool[i]);slot->active=1;}

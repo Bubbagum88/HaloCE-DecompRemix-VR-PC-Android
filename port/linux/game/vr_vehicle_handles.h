@@ -5,7 +5,8 @@
 #include "vr_vehicle_controls_math.h"
 static struct {
     long unit, vehicle; short seat; int valid, kind, generation, log_pending, down[2], steering_logged;
-    double since; real local[3]; real radius;
+    double since, settled_since; real settle_head[3]; int settle_sampled;
+    real local[3]; real radius;
     struct vr_wheel_grip grip[2];
     /* Test55: where each hand took hold: its phase on the Warthog's rim and
      * its forward offset (the Banshee yoke's push/pull) */
@@ -76,7 +77,7 @@ static int vr_vehicle_handles_enabled(long unit)
         !vr_render.cinematic_view;
 }
 /* Test61: the seat's eyes held still while the immersive controls are up
- * (a second after boarding, once the controls are placed): the driver's
+ * (once the eyes settle and the controls are placed): the driver's
  * head marker leans with the steering animation and the bumps, and the eyes,
  * the hands placed from them, eased after it (vr_render.c
  * vr_seat_steady_anchor) while the controls stayed on the vehicle: turning
@@ -85,7 +86,7 @@ static int vr_vehicle_handles_enabled(long unit)
 static int vr_vehicle_handles_steady(void)
 {
     return vr_wheel.valid && vr_wheel.unit!=NONE && vr_wheel.vehicle==vr_render.seat.vehicle_index &&
-        vr_wheel.seat==vr_render.seat.seat_index && vr_pose_time()-vr_wheel.since>1.0 &&
+        vr_wheel.seat==vr_render.seat.seat_index &&
         vr_vehicle_handles_enabled(vr_wheel.unit);
 }
 static real_point3d vr_wheel_point(real x,real y,real z)
@@ -226,15 +227,37 @@ static int vr_vehicle_handles_prepare(long unit_index)
         vr_wheel.seat!=vr_render.seat.seat_index || vr_wheel.generation!=vr_settings_generation()) {
         vr_vehicle_handles_clear();vr_wheel.unit=unit_index;vr_wheel.vehicle=vr_render.seat.vehicle_index;
         vr_wheel.seat=vr_render.seat.seat_index;vr_wheel.kind=kind;vr_wheel.generation=vr_settings_generation();
-        vr_wheel.since=now;vr_wheel.angle=0;vr_wheel.pitch=0;
+        vr_wheel.since=now;vr_wheel.settled_since=now;vr_wheel.settle_sampled=0;
+        vr_wheel.angle=0;vr_wheel.pitch=0;
     }
     vr_wheel.root=nodes[0];
     if(!vr_wheel_valid_frame(&nodes[0])) {vr_vehicle_handles_clear();return 0;}
     vr_wheel.simulated_forward=nodes[0].forward;
     if(!vr_wheel.valid) {
         real_point3d center; real_vector3d delta;
-        /* Wait for entry animation before reading authored driver contacts. */
-        if(now-vr_wheel.since<0.5)return 0;
+        /* Test62: entry animations outlast a fixed half second. Measure the
+         * seat eye in the vehicle frame so driving does not restart settling.
+         * Require 350 ms within 1.5 cm, at least 500 ms after entry; cap at 3 s.
+         * Lock the seat only when these same eyes measure the controls. */
+        {
+            real_vector3d relative;
+            real local_eye[3], moved2=0, tolerance=.015f*vr_units_per_metre();
+            if(!valid_real_point3d(&vr_render.game_camera_position)) return 0;
+            vector_from_points3d(&nodes[0].position,&vr_render.game_camera_position,&relative);
+            if(!(magnitude3d(&relative)<=5.0f*vr_units_per_metre())) return 0;
+            local_eye[0]=dot_product3d(&relative,&nodes[0].forward);
+            local_eye[1]=dot_product3d(&relative,&nodes[0].left);
+            local_eye[2]=dot_product3d(&relative,&nodes[0].up);
+            for(int axis=0;axis<3;axis++) {
+                real movement=local_eye[axis]-vr_wheel.settle_head[axis];
+                moved2+=movement*movement;
+            }
+            if(!vr_wheel.settle_sampled || moved2>tolerance*tolerance || now<vr_wheel.settled_since) {
+                memcpy(vr_wheel.settle_head,local_eye,sizeof(local_eye));
+                vr_wheel.settled_since=now;vr_wheel.settle_sampled=1;
+            }
+            if(now-vr_wheel.since<.5 || (now-vr_wheel.settled_since<.35 && now-vr_wheel.since<3.0)) return 0;
+        }
         /* Test57b: a vehicle (or driver) without these markers still gets
          * its controls, in front of the chest (below) */
         int contacts=kind==0?
@@ -319,7 +342,10 @@ static int vr_vehicle_handles_prepare(long unit_index)
         static char const *parts[]={"forward","left","up"};char key[80];
         for(int i=0;i<3;i++) {
             double value;snprintf(key,sizeof(key),"vr.handle_%s_%s",vr_wheel_keys[kind],parts[i]);value=config_real(key);
-            vr_wheel.user[i]=(isfinite(value)?PIN(value,-0.5,0.5):0)*vr_units_per_metre();
+            double all;
+            snprintf(key,sizeof(key),"vr.handle_all_%s",parts[i]);all=config_real(key);
+            value=(isfinite(value)?value:0)+(isfinite(all)?all:0);
+            vr_wheel.user[i]=PIN(value,-0.5,0.5)*vr_units_per_metre();
             vr_wheel.anchor[i]=vr_wheel.local[i]+vr_wheel.user[i];
         }
         vr_wheel.comfort=config_boolean("vr.vehicle_comfort_reach");
@@ -616,9 +642,10 @@ boolean vr_render_vehicle_controls(void)
      * VIRTUAL WHEEL hides them */
     int controls=VR_RENDER_EYE() && vr_wheel.valid && vr_vehicle_handles_enabled(vr_wheel.unit) &&
         config_boolean("vr.vehicle_wheel_visible");
-    if(!markers && !controls)return FALSE;
     boolean saved_debug=rasterizer_debug_options.draw_debug_geometry;
     rasterizer_debug_options.draw_debug_geometry=TRUE;
+    int extras=VR_RENDER_EYE()?vr_extra_render(vr_render.game_camera_position.n):0;
+    if(!markers && !controls && !extras){rasterizer_debug_options.draw_debug_geometry=saved_debug;return FALSE;}
     {
         real_argb_color blue={0.35f,0.15f,0.45f,1.0f};
         for(int m=0;m<markers;m++) {

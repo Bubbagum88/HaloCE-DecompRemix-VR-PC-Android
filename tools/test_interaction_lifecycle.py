@@ -1,5 +1,6 @@
 """Compile the actual shared grip-owner API and exercise cross-feature lifecycle."""
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 
@@ -8,6 +9,8 @@ source = (ROOT / 'port/linux/src/vr_frame.c').read_text()
 start = source.index('int vr_interaction_owner(')
 end = source.index('static void update_gestures', start)
 api = source[start:end]
+owner_header = (ROOT / 'port/linux/src/vr.h').read_text()
+owner_enum = re.search(r'enum \{ VR_INTERACTION_NONE[^}]+\};', owner_header).group(0)
 fixture = r'''
 #include <assert.h>
 #include <stddef.h>
@@ -25,6 +28,8 @@ static struct { int active,menus_active,grip_pressed[2],grip_released[2],grip_he
 static int interaction_owner[2];
 static int interaction_trigger_held[2];
 '''
+# Exercise every actual owner, including future additions, rather than a stale fixture enum.
+fixture = re.sub(r'enum \{ VR_INTERACTION_NONE[^}]+\};', owner_enum, fixture)
 cases = r'''
 int main(void) {
  vr.active=1;vr.frame.flags=HALO_XR_FRAME_FOCUSED;
@@ -94,3 +99,14 @@ with tempfile.TemporaryDirectory() as tmp:
                     '-fsanitize=address,undefined',str(c),'-o',str(exe)],check=True)
     subprocess.run([str(exe)],check=True)
 print('shared interaction lifecycle: passed (production API, ASan/UBSan)')
+
+# A new map does not call checkpoint-load callbacks. Reset transient extra
+# handles before any object identities can be invalidated or reused.
+objects=(ROOT/'source/objects/objects.c').read_text()
+for name,boundary in [('objects_initialize_for_new_map','damage_initialize_for_new_map();'),
+                      ('objects_dispose_from_old_map','damage_dispose_from_old_map();')]:
+ begin=objects.index('void '+name+'(');end=objects.index('\nvoid ',begin+1)
+ body=objects[begin:end]
+ assert body.index('vr_extra_reset();') < body.index(boundary)
+ assert re.search(r'#ifdef HALO_VR[^#]*vr_extra_reset\(\);[^#]*#endif',body)
+print('new-map/dispose interaction reset ordering: passed')

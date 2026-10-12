@@ -61,6 +61,7 @@ OBJECTS.C
 #include "vr_world_props.h"
 #ifdef HALO_VR
 #include "vr_manual_reload.h"
+#include "vr_extra_interaction.h"
 #endif
 #ifdef HALO_VR
 #include "halo_vr.h"
@@ -1086,6 +1087,7 @@ void objects_initialize_for_new_map(
 #ifdef HALO_VR
 	/* Detached magazine render instances hold map-local model and weapon IDs. */
 	vr_manual_reload_debris_reset();
+	vr_extra_reset(); /* held grenades/combat handles never survive map identity reuse */
 	vr_render_reset_contacts();
 #endif
 	damage_initialize_for_new_map();
@@ -1122,6 +1124,7 @@ void objects_dispose_from_old_map(
 #ifdef HALO_VR
 	/* Drop map-local model/object references before the old cache is torn down. */
 	vr_manual_reload_debris_reset();
+	vr_extra_reset(); /* held grenades/combat handles never survive map identity reuse */
 	vr_render_reset_contacts();
 #endif
 	damage_dispose_from_old_map();

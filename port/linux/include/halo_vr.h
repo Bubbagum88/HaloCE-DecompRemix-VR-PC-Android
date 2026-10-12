@@ -21,6 +21,9 @@ eye only.
 boolean vr_render_script_message(char const *message);
 void vr_render_reset_vehicle_view(void);
 void vr_render_reset_contacts(void);
+/* Exact current-pose, collision/action-adjusted palm for a held grenade.
+ * Returns zero for hidden/missing/stale hands; both stereo eyes share it. */
+int vr_render_palm_point(int hand, long unit, float point[3]);
 union real_point3d;
 boolean vr_script_can_see_point(long unit_index, const union real_point3d *point, real field_of_view, boolean *result);
 /* A10 calibration ray: 1=fresh hand reticle, 0=head mode/non-A10, -1=hand

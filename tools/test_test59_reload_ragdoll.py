@@ -30,7 +30,7 @@ reload = read("port/linux/game/vr_manual_reload.c")
 update = reload[reload.index("unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)"):]
 update = update[:update.index("\n}\n")]
 assert "if (!vr_render_drawn_camera(camera.n)) unit_get_camera_position(unit_index, &camera);" in update
-assert update.index("vr_render_drawn_camera(camera.n)") < update.index("vr_hand_world(hand_index, camera.n, hand.n, forward.n, up.n)")
+assert update.index("vr_render_drawn_camera(camera.n)") < update.index("vr_hand_pose(hand_index, camera.n, hand.n, forward.n, up.n)")
 model = reload[reload.index("void vr_manual_reload_model(long weapon_index, long model_index, real_matrix4x3 *matrices)"):]
 assert model.index("if (vr_render_drawn_camera(drawn.n)) reload.camera = drawn;") < model.index("reload_refresh_held_pose();")
 render = read("port/linux/game/vr_render.c")

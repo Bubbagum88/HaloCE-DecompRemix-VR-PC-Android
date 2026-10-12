@@ -1,6 +1,59 @@
 # Agent and contributor continuation
 
-## Active private Test61 candidate (2026-10-12)
+## Verified current public baseline: v1.0.18 (2026-10-12)
+
+A live check on 2026-10-12 of
+[GitHub releases/latest](https://github.com/moistman42069/HaloCE-Quest-VR/releases/latest)
+resolved to [v1.0.18](https://github.com/moistman42069/HaloCE-Quest-VR/releases/tag/v1.0.18),
+**OpenCE network24 / Android code48**. The public release points at commit
+`3867cd0ed565e8da97f3e9c62c27e316e30a4b73`; the local annotated
+`v1.0.18^{}` resolves to that same commit. The APK runtime source is
+`2680beaa42d9b53098a21198200f79c76aa3b308`, as recorded in the 1.0.18
+release provenance.
+
+The older v1.0.19 "current public" claim below is superseded: that release
+attempt was withdrawn/cancelled in the conversation and is not the current
+latest release. No local v1.0.19 tag exists. Preserve its notes as history,
+but do not use them as a live release pointer or instruction to check it out.
+Continue private Test62 on its stated branch. Public v1.0.18 and all earlier
+release assets remain unchanged; no publication is authorized.
+
+## Active private Test62 candidate (2026-10-12)
+
+Private **1.0.29-test62 / Android code74**, branch `test39-interaction-completion`.
+Original four requests: settled-eye immersive control anchors (3 s cap),
+all-vehicle CTRL offsets; 5 cm default body grab assist; stationary first-hand
+heavy restraint/two-hand lift; native impact fallback/configured floor-slam
+threshold, 60 m death range and guarded parent-relative solver.
+
+Expanded scope: adjusted-palm manual reload and event-haptic priority; parkour
+defaults (14 cm climb contact, 2 s wallrun); optional experimental enemy-only
+FIST COMBAT (gaze/punch approach, combo restraint, brief stun/rear strike,
+highlights and native hurt feedback); adjustable chest PHYS GRENADES with
+native counts/projectiles; shared AIM STEADY and fresh final-wrist scope
+origin, including zero-offset frames. Slams/physical melee use a native
+contact-damage wrapper: real shield depletion and body-hit art only after
+body vitality loss, with a loaded material-response fallback and diagnostic
+vitality logs. Both flavor regression/build gates passed; final package verification is recorded in the delivery record.
+
+HOST VR ACTIONS is an opt-in co-op Server Setup permission for the host's new
+fist/grenade actions, requiring existing VR INTERACTIONS/all-peer handshake.
+PvP and guests retain native actions; manual reload/custom-rig/debris local
+restrictions remain. Existing NPC pose sync supports four remote machines,
+not unlimited peers. Protocol and voice implementations are unchanged.
+Euphoria-style active control/better solver replacement was assessed and not
+added; keep the tested solver and <=1 s living-NPC recovery.
+
+Both native builds and automated regression gates passed. Final packaging is pending in this source snapshot; device acceptance remains pending. Read
+`docs/TEST62-CHECKLIST.md`, `docs/TEST62-FIELD-GUIDE.md`,
+`docs/TEST62-DEVICE-CHECKLIST.md`, `docs/TEST62-DELIVERY-STATUS.md`.
+Saved settings stay; new defaults do not overwrite a user's stored choices.
+Do not treat historical guide claims as fresh runtime evidence.
+Local commits only; no push/publish/install/launch. PC/Steam Frame deferred.
+Every local commit message ends with the requested Claude co-author trailer.
+
+
+## Previous private Test61 candidate (2026-10-12)
 
 Continue on `test39-interaction-completion`; private `1.0.28-test61`, Android
 code73 (docs/TEST61-DELIVERY-STATUS.md; docs/TEST61-CHECKLIST.md,
@@ -163,7 +216,11 @@ run under WSL1); same debug key 53d416f7…2aa4. Run Python that writes repo
 files inside WSL (Windows Python rewrites LF as CRLF). Device acceptance of
 everything above is pending.
 
-## Current public release: v1.0.19 (2026-10-10)
+## Superseded/withdrawn release attempt: v1.0.19 (2026-10-10)
+
+Historical text follows. Its former publication/tag assertions and next-step
+instructions are superseded by the verified v1.0.18 pointer at the top; this
+section is retained to explain Test51-53's reported failures and fixes.
 
 The published v1.0.19 source/tag is based on the Test51 runtime, merged with
 the current main landing-page/logo commit. The owner confirmed Quest server

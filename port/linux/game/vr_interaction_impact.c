@@ -16,7 +16,6 @@
 #include "vr_interaction_impact_math.h"
 #include <string.h>
 void platform_log(char const *format, ...);
-long damage_globals_impact_effect(void); /* objects/damage.c */
 /* Fixed storage, refreshed by held objects; expired thrown entries are reused. */
 static struct impact_entry {
     long object, owner, expiry, last_tick, last_target;
@@ -135,14 +134,15 @@ static void apply_collision(long index, struct collision_result const *hit,
     if(hit->type==_collision_result_object && target!=index &&
        (victim->object.type==_object_type_biped || victim->object.type==_object_type_vehicle))
         impact_shove(target,victim,velocity,entries[i].mobility,units);
-    object_cause_damage(&damage,target,hit->type==_collision_result_object?hit->node_index:NONE,
+    object_cause_contact_damage(&damage,target,hit->type==_collision_result_object?hit->node_index:NONE,
         hit->type==_collision_result_object?hit->region_index:NONE,
         hit->type==_collision_result_object?hit->material_index:NONE,&hit->plane.n);
     platform_log("VR impact: object=%08lx target=%08lx owner=%08lx scale=%.3f",index,target,entries[i].owner,scale);
     /* Test55: a thrown body that hits another body hurts itself too (a Grunt
      * thrown into an Elite takes the same blow it deals). The struck body is
      * not the thrown one, so this is the thrown body's only damage from it. */
-    if(target!=index && source->object.type==_object_type_biped &&
+    if(target!=index && (source=object_try_and_get(index)) &&
+       (victim=object_try_and_get(target)) && source->object.type==_object_type_biped &&
        victim->object.type==_object_type_biped &&
        !TEST_FLAG(source->object.damage_flags,_object_dead_bit)) {
         damage_data_new(&damage,blow);
@@ -152,7 +152,7 @@ static void apply_collision(long index, struct collision_result const *hit,
         damage.location=hit->location; damage.origin=hit->point; damage.epicenter=hit->point;
         damage.direction=*velocity; scale_vector3d(&damage.direction,-1.0f,&damage.direction);
         normalize3d(&damage.direction); damage.scale=scale;
-        object_cause_damage(&damage,index,NONE,NONE,NONE,&hit->plane.n);
+        object_cause_contact_damage(&damage,index,NONE,NONE,NONE,&hit->plane.n);
         platform_log("VR impact: object=%08lx target=%08lx owner=%08lx scale=%.3f (the thrown body itself)",
             index,index,entries[i].owner,scale);
     }

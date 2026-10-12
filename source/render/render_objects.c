@@ -115,6 +115,7 @@ symbols in this file:
 #ifdef HALO_VR
 #include "halo_vr.h"
 #include "vr_manual_reload.h"
+#include "vr_extra_interaction.h"
 #endif
 #include "network_vr_pose.h"
 
@@ -621,8 +622,10 @@ static void render_object_list(
 						level_of_detail_pixels,
 #ifdef HALO_VR
 						vr_body ? vr_render_body_matrices(object_index) :
-#endif
+                        vr_combat_render(object_index,network_vr_pose_render(object_index, object_get_node_matrices(object_index))),
+#else
 						network_vr_pose_render(object_index, object_get_node_matrices(object_index)),
+#endif
 						object->object.region_permutations,
 						object->object.outgoing_change_colors,
 						object->object.outgoing_function_values,

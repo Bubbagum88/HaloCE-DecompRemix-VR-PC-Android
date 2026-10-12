@@ -106,6 +106,9 @@ static void reload_log_gate(long weapon_index, char const *reason)
 	}
 }
 
+/* Test62: free-hand transforms use vr_hand_pose, the same adjusted rotation
+ * as the visible hand. Raw vr_hand_world ignored HAND ANGLE adjustments,
+ * leaving a replacement magazine rotated away from the fingers. */
 /* A replacement magazine starts at the free palm, not at the old weapon
  * socket. Capturing this hand-relative transform is required for both the
  * normal pull-out path and the contextual button-eject path. */
@@ -418,24 +421,43 @@ void vr_manual_reload_note_weapon(long weapon_index)
 /* Test54: each physical step has its own feel (VR HAPTICS scales them all):
  * the free hand feels grabbing, pulling free, the pouch, the well and the
  * slide; the gun hand feels the magazine leave, lock and the gun come ready. */
+/* Test62: OpenXR replaces an active vibration when another is requested.
+ * Keep render contact buzz from overwriting the insert/charge click before
+ * it is felt. This window is only the event duration, per hand; it never
+ * sends or repeats feedback by itself and master HAPTICS still owns output. */
+static double reload_feedback_start[2],reload_feedback_until[2];
+static void reload_pulse(int hand,float amplitude,float seconds)
+{
+    double now=vr_pose_time();
+    if(hand<0 || hand>1 || !isfinite(now) || !(seconds>0.0f && seconds<=.1f)) return;
+    reload_feedback_start[hand]=now;
+    reload_feedback_until[hand]=now+seconds;
+    vr_haptic(hand,amplitude,seconds);
+}
+int vr_manual_reload_feedback_active(int hand)
+{
+    double now=vr_pose_time();
+    return hand>=0 && hand<2 && isfinite(now) && now>=reload_feedback_start[hand] &&
+        now<reload_feedback_until[hand];
+}
 static void reload_event_haptic(int event, int free_hand)
 {
     int gun_hand = vr_weapon_hand();
     switch (event) {
-    case VR_MR_BEGIN: vr_haptic(free_hand, 0.30f, 0.035f); break;
-    case VR_MR_PULLED: vr_haptic(free_hand, 0.45f, 0.040f); vr_haptic(gun_hand, 0.25f, 0.030f); break;
-    case VR_MR_EJECT: vr_haptic(gun_hand, 0.50f, 0.050f); break;
-    case VR_MR_DISCARD: vr_haptic(free_hand, 0.15f, 0.020f); break;
-    case VR_MR_PICKUP: vr_haptic(free_hand, 0.40f, 0.040f); break;
-    case VR_MR_INSERT: vr_haptic(free_hand, 0.55f, 0.045f); vr_haptic(gun_hand, 0.40f, 0.040f); break;
-    case VR_MR_SEATED: vr_haptic(free_hand, 0.35f, 0.030f); vr_haptic(gun_hand, 0.70f, 0.050f); break;
-    case VR_MR_CHARGE: vr_haptic(free_hand, 0.30f, 0.030f); break;
-    case VR_MR_RACKED: vr_haptic(free_hand, 0.60f, 0.045f); vr_haptic(gun_hand, 0.35f, 0.035f); break;
-    case VR_MR_COMMIT: vr_haptic(free_hand, 0.50f, 0.040f); vr_haptic(gun_hand, 0.80f, 0.060f); break;
-    case VR_MR_CANCEL: vr_haptic(free_hand, 0.10f, 0.020f); break;
+    case VR_MR_BEGIN: reload_pulse(free_hand, 0.30f, 0.035f); break;
+    case VR_MR_PULLED: reload_pulse(free_hand, 0.45f, 0.040f); reload_pulse(gun_hand, 0.25f, 0.030f); break;
+    case VR_MR_EJECT: reload_pulse(gun_hand, 0.50f, 0.050f); break;
+    case VR_MR_DISCARD: reload_pulse(free_hand, 0.15f, 0.020f); break;
+    case VR_MR_PICKUP: reload_pulse(free_hand, 0.40f, 0.040f); break;
+    case VR_MR_INSERT: reload_pulse(free_hand, 0.55f, 0.045f); reload_pulse(gun_hand, 0.40f, 0.040f); break;
+    case VR_MR_SEATED: reload_pulse(free_hand, 0.35f, 0.030f); reload_pulse(gun_hand, 0.70f, 0.050f); break;
+    case VR_MR_CHARGE: reload_pulse(free_hand, 0.30f, 0.030f); break;
+    case VR_MR_RACKED: reload_pulse(free_hand, 0.60f, 0.045f); reload_pulse(gun_hand, 0.35f, 0.035f); break;
+    case VR_MR_COMMIT: reload_pulse(free_hand, 0.50f, 0.040f); reload_pulse(gun_hand, 0.80f, 0.060f); break;
+    case VR_MR_CANCEL: reload_pulse(free_hand, 0.10f, 0.020f); break;
     /* Test59: the gun's own magazine taken back up, and locked back in */
-    case VR_MR_RECOVER: vr_haptic(free_hand, 0.40f, 0.040f); break;
-    case VR_MR_RESEAT: vr_haptic(free_hand, 0.45f, 0.040f); vr_haptic(gun_hand, 0.75f, 0.055f); break;
+    case VR_MR_RECOVER: reload_pulse(free_hand, 0.40f, 0.040f); break;
+    case VR_MR_RESEAT: reload_pulse(free_hand, 0.45f, 0.040f); reload_pulse(gun_hand, 0.75f, 0.055f); break;
     default: break;
     }
 }
@@ -528,7 +550,7 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     if (!vr_render_drawn_camera(camera.n)) unit_get_camera_position(unit_index, &camera);
     reload.camera=camera;
     if (!vr_hand_world(vr_weapon_hand(), camera.n, weapon_hand.n, gun_forward.n, gun_up.n) ||
-        !vr_hand_world(hand_index, camera.n, hand.n, forward.n, up.n)) {
+        !vr_hand_pose(hand_index, camera.n, hand.n, forward.n, up.n)) {
         vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
     }
     matrix4x3_from_point_and_vectors(&hand_matrix, &hand, &forward, &up);
@@ -857,7 +879,7 @@ static void reload_refresh_held_pose(void)
      * detached component at the 30 Hz gameplay tick pose. No state/ammo writes. */
     if(reload.have_attachment && (reload.state.phase==VR_MR_OLD_HELD || reload.state.phase==VR_MR_NEW_HELD)) {
         real_point3d hand;real_vector3d forward,up;real_matrix4x3 matrix;
-        if(vr_hand_world(reload.hand,reload.camera.n,hand.n,forward.n,up.n)) {
+        if(vr_hand_pose(reload.hand,reload.camera.n,hand.n,forward.n,up.n)) {
             matrix4x3_from_point_and_vectors(&matrix,&hand,&forward,&up);
             if(reload_matrix_valid(&matrix))matrix4x3_multiply(&matrix,&reload.attachment,&reload.held);
         }

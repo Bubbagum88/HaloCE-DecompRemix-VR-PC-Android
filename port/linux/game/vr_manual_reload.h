@@ -15,6 +15,8 @@ void vr_manual_reload_model(long weapon_index, long model_index, struct real_mat
 int vr_manual_reload_trace(float const from[3], float const vector[3], float radius,
     struct collision_result *result);
 int vr_manual_reload_hand(int hand, float position[3]);
+/* A brief reload click currently owns that hand's surface feedback. */
+int vr_manual_reload_feedback_active(int hand);
 /* Test59: vr_render.c's: the camera the latest frame's gun and hands were
  * drawn from (0 if none recent) */
 int vr_render_drawn_camera(float position[3]);

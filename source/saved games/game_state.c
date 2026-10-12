@@ -114,6 +114,7 @@ symbols in this file:
 #include "vr_manual_reload.h"
 #include "vr_npc_rescue.h"
 #include "vr_parkour.h"
+#include "vr_extra_interaction.h"
 #include "halo_vr.h"
 #endif
 #include "game_sound.h"
@@ -264,6 +265,7 @@ static void game_state_call_before_load_procs(
 	vr_manual_reload_debris_prepare_for_state_restore();
 	vr_npc_rescue_reset();
 	vr_parkour_reset();
+	vr_extra_reset();
 	vr_world_interaction_reset();
 	vr_render_reset_vehicle_view();
 	vr_render_reset_contacts();
@@ -293,6 +295,7 @@ static void game_state_call_after_load_procs(
 	vr_manual_reload_reset();
 	vr_npc_rescue_reset();
 	vr_parkour_reset();
+	vr_extra_reset();
 #endif
 	for (i =NUMBEROF(after_load_procs); i>0; i--, proc++)
 	{

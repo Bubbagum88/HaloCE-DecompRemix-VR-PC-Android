@@ -77,7 +77,7 @@ static struct npc_state {
     int history_count[2],history_next[2];
     real_vector3d offset[2],root_anchor[2],velocity[2];
     real_vector3d body_forward_local;
-    real_point3d target[2],previous[2],root;
+    real_point3d target[2],previous[2],root,restraint_root;
 } npc_pool[NPC_POOL_SIZE],*npc_current=&npc_pool[0];
 #define npc (*npc_current)
 static struct remote_state {long player,candidate[2];int valid,held[2],seen[2],edge[2];real_point3d point[2];} remote_pool[NPC_REMOTE_PLAYERS],*remote_current=&remote_pool[0];
@@ -131,8 +131,11 @@ static int feature_enabled(void)
 }
 static int authority(void)
 {
+    /* Readiness also means a client may send requests/render host poses;
+     * only the server owns the local body simulation and native AI state. */
     return game_connection()==_game_connection_local ||
-        (config_boolean("net.physical_interactions") && network_interaction_npc_ready());
+        (game_connection()==_game_connection_network_server &&
+         config_boolean("net.physical_interactions") && network_interaction_npc_ready());
 }
 int vr_npc_interaction_remote(long player_index,int hand,int held,const float world[3])
 {
@@ -621,6 +624,17 @@ static int owns(long index)
     return TRUE;
 }
 int vr_npc_interaction_owned(long index) {return owns(index)&&npc.started;}
+/* Pre-lift heavy restraint must suppress attacks too. Keep palette ownership
+ * (started only) separate from the existing controls restraint rule. */
+int vr_npc_interaction_restrained(long index)
+{
+    struct npc_state *previous=npc_current;
+    int restrained=owns(index)&&(npc.started||npc.held[0]||npc.held[1]);
+    /* Native attack callbacks can run within another body's damage update.
+     * This query must not redirect its caller's currently simulated rig. */
+    npc_current=previous;
+    return restrained;
+}
 int vr_npc_interaction_hand(int hand,float point[3])
 {
     real_vector3d offset;
@@ -653,7 +667,7 @@ void vr_npc_interaction_controls(long index)
     struct unit_datum *u;
     /* Test55: a heavy body restrained by one hand (held, not yet lifted) is
      * held still too: it neither walks off nor fires while restrained. */
-    if(!owns(index) || !(npc.started || npc.held[0] || npc.held[1])) return;
+    if(!vr_npc_interaction_restrained(index)) return;
     u=unit_get(index);
     u->unit.control_flags=0;u->unit.primary_trigger=0;u->unit.throttle=*global_zero_vector3d;
     /* Timers, actor target, perception, team, inventory and command state stay
@@ -691,6 +705,15 @@ void vr_npc_interaction_velocity(long index,float velocity[3])
     if(!count) return;
     for(k=0;k<3;++k) error.n[k]/=count;
     if(count<npc.minimum_hands) {
+        /* Test62: the first grip holds a living heavy NPC where it was
+         * caught. A hand tug must not walk the root away from the second
+         * hand; native animation translation must not move it either.
+         * Correction goes through the normal collision sweep; gravity stays.
+         * After a two-hand lift, keep the existing one-hand lowering/drag. */
+        if(!npc.started) {
+            struct unit_datum *u=unit_get(index);
+            for(k=0;k<3;++k) error.n[k]=npc.restraint_root.n[k]-u->object.position.n[k];
+        }
         /* Test55: fewer hands than the body needs (one on an Elite or Hunter)
          * restrain and drag it along the ground, slowly, but never lift it:
          * the root keeps its native vertical motion. */
@@ -806,7 +829,7 @@ static void tick_player(int use_remote,long player)
             struct collision_model_instance model;
             short model_node;
             int budget=0,budget_exhausted=0,scanned=0,eligible_count=0,surface_hits=0,body_hits=0;
-            real body_reach=contact_radius+npc_setting("vr.npc_grab_assist",0.0f,0.0f,0.15f)*units+.07f*units;
+            real body_reach=contact_radius+npc_setting("vr.npc_grab_assist",0.05f,0.0f,0.15f)*units+.07f*units;
             int graph_rejects=0,node_rejects=0,capacity_rejects=0,acquired=0;
             object_iterator_new(&it,_object_mask_biped,0);
             while((candidate=object_iterator_next(&it))!=NULL) {
@@ -830,7 +853,7 @@ static void tick_player(int use_remote,long player)
                      * geometry) first; otherwise the live pose's bone capsules,
                      * so a palm on a Marine's back, a Grunt's arm or a corpse
                      * lying on the floor grabs it. NPC GRAB ASSIST widens only
-                     * the capsules; natural touch is the default. */
+                     * the capsules; the default adds a modest 5 cm. */
                     int captured=FALSE;
                     contact=point;
                     if(!collision_model_instance_new(&model,it.index) ||
@@ -868,6 +891,7 @@ static void tick_player(int use_remote,long player)
                 npc.active=1;npc.index=it.index;npc.node[h]=node;npc.held[h]=1;npc.root=candidate->object.position;
                 object_activate(it.index);object_set_garbage(it.index,FALSE);
                 if(!existing) {
+                    npc.restraint_root=candidate->object.position;
                     real_matrix4x3 inverse;
                     int torso=biped_definition_get(candidate->definition_index)->biped.runtime_pelvis_node_index;
                     npc.torso_node=torso>=0&&torso<npc.rig.body.count?torso:0;
@@ -943,7 +967,11 @@ void vr_npc_interaction_palette(long index)
         if(owner) vr_interaction_impact_track(index,owner->unit_index,npc.mobility,interaction_units());
     }
     /* Test61: killed in the hands: one hand holds the body up now */
-    if(TEST_FLAG(unit_get(index)->object.damage_flags,_object_dead_bit)) {npc.getting_up=0;npc.recovery=0;npc.minimum_hands=1;}
+    if(TEST_FLAG(unit_get(index)->object.damage_flags,_object_dead_bit)) {
+        npc.getting_up=0;npc.recovery=0;npc.minimum_hands=1;
+        /* Killed while restrained with one hand: it can now lift the corpse. */
+        if(npc.held[0] || npc.held[1]) npc.started=1;
+    }
     npc.rig.impact_enabled=npc.started&&!npc.recovery;
     npc.rig.impact_units=interaction_units();
     u=unit_get(index);native=object_get_node_matrices(index);
@@ -1282,9 +1310,9 @@ void vr_npc_interaction_death(long index)
         real_vector3d between;
         if(!body)continue;
         vector_from_points3d(&body->object.position,&u->object.position,&between);
-        if(magnitude3d(&between)<=40.0f*units){near=TRUE;break;}
+        if(magnitude3d(&between)<=npc_setting("vr.death_ragdoll_range",60.0f,20.0f,80.0f)*units){near=TRUE;break;}
     }
-    if(!near) {npc_death_skipped(index,"farther-than-40m");return;}
+    if(!near) {npc_death_skipped(index,"outside-ragdoll-range");return;}
     if(!(state=free_state()) && !(state=npc_corpse_slot())) {npc_death_skipped(index,"every-rig-slot-busy");return;}
     /* A death can come in the middle of another hold's tick (a thrown body's
      * impact kills an NPC): keep that hold's state current afterwards. */

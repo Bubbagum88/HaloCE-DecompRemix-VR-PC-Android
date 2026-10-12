@@ -278,6 +278,7 @@ symbols in this file:
 #ifdef HALO_VR
 #include "halo_vr.h"
 #include "vr_parkour.h"
+#include "vr_extra_interaction.h"
 #endif
 #include "vr_npc_interaction.h"
 #include "network_coop.h" /* port: port/linux/game/network_coop.c */
@@ -2614,6 +2615,7 @@ static void biped_update_physics(
 #ifdef HALO_VR
 	/* Optional locomotion modifies the proposed velocity before the unchanged
 	 * native capsule sweeps resolve walls, ceilings, floors and other bodies. */
+	vr_combat_velocity(physics->biped_index,&physics->position,&physics->new_velocity);
 	vr_parkour_velocity(physics->biped_index, &physics->position,
 		physics->height, physics->width, &physics->new_velocity);
 #endif

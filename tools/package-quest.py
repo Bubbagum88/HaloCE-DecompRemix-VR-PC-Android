@@ -103,6 +103,7 @@ VR_BUILD_IDENTITIES = {
     b"vr: HaloCE Quest test59 candidate 1.0.26-test59 code71 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; real hands in vehicles, controls from the eyes, comfort reach, tank drive; the gun's own magazine back in, reload steady while walking; DEATH FORCE ragdoll throws; test58: immersive vehicles placed on the vehicle, steady mounted reticle, TANK HATCH option; test57: Warthog virtual wheel, Scorpion drive stick, Banshee flight bar slide, Ghost handlebar; test56: parent-relative ragdoll joints, NPCs up within 1 s; device acceptance pending)",
     b"vr: HaloCE Quest test60 candidate 1.0.27-test60 code72 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; impacts for every NPC: slammed and thrown bodies strike other bodies, floors and walls, allies take the blow; DEATH RAGDOLLS turns on NPC RESCUE, NPC GRAB and IMPACT DAMAGE; test59: real hands in vehicles, controls from the eyes, comfort reach, tank drive, the gun's own magazine back in, DEATH FORCE ragdoll throws; test58: immersive vehicles placed on the vehicle, steady mounted reticle; test57: Warthog virtual wheel, Scorpion drive stick, Banshee flight bar, Ghost handlebar; test56: parent-relative ragdoll joints, NPCs up within 1 s; device acceptance pending)",
     b"vr: HaloCE Quest test61 candidate 1.0.28-test61 code73 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; immersive controls held under the hands (steady seat, the hands' level frame); IMMERSIVE VEHICLE turns on FIRST PERSON; impacts hurt with the unarmed blow; 24 rig slots; dead Elites and Hunters one-handed; test60: impacts for every NPC, DEATH RAGDOLLS turns on NPC RESCUE, NPC GRAB and IMPACT DAMAGE; test59: real hands in vehicles, controls from the eyes, comfort reach, tank drive, the gun's own magazine back in, DEATH FORCE ragdoll throws; test58: immersive vehicles placed on the vehicle, steady mounted reticle; test57: Warthog virtual wheel, Scorpion drive stick, Banshee flight bar, Ghost handlebar; test56: parent-relative ragdoll joints, NPCs up within 1 s; device acceptance pending)",
+    b"vr: HaloCE Quest test62 candidate 1.0.29-test62 code74 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; seat settles before immersive controls lock (3 s cap); all-vehicle control offsets; easier body contact; one-hand heavy restraint, two-hand lift; campaign impact fallback and configured floor slam threshold; 60 m death ragdoll range, 24 rig slots, guarded parent-relative solver; native shield/body slam effects; optional assisted fists and chest grenade throws (local/authorized host); native capsule approach and contact ownership; wrist-anchored scopes and optional aim steady; reload palm/feedback polish; parkour defaults; prior hands, holsters, native animation handoff and recovery retained; device acceptance pending)",
     b"vr: HaloCE Quest v1.0.19 release code63 (OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176 and reticle assets from177; Build175 old-kernel mapping guard retained; not a full Build177 rebase; network unchanged; signed weapon release/drop/holster fix; v1.0.18 collision-gated contact haptics retained; mounted vehicle/turret shots follow selected reticle ray without camera aim assist; optional toggle sprint; Build167 host-relayed voice with integer-only config diagnostics; owner-confirmed multiplayer join and voice; unfinished VR interaction toggles documented in release notes)"
 }
 
@@ -113,6 +114,34 @@ def candidate_at_least(label, number, letter=""):
     if not match:
         return False
     return (int(match.group(1)), match.group(2)) >= (number, letter)
+
+
+
+def candidate_document_prefix(label):
+    """Current private handoff must be inside the build ZIP, before history."""
+    if candidate_at_least(label, 62):
+        return ["TEST62-DELIVERY-STATUS.md", "TEST62-CHECKLIST.md",
+                "TEST62-FIELD-GUIDE.md", "TEST62-DEVICE-CHECKLIST.md"]
+    return []
+
+
+def client_default_target(label, runtime_commit):
+    """Read the exact runtime source's default for All-compatible candidates.
+
+    Earlier candidates/stable releases retain their historical metadata path.
+    Never guess 24 when current source cannot prove its configured default.
+    """
+    if not candidate_at_least(label, 53):
+        return 24
+    source = subprocess.check_output(
+        ["git", "show", runtime_commit + ":port/linux/src/port_config.c"],
+        cwd=ROOT, text=True)
+    matches = re.findall(
+        r'^\s*\{\s*"network\.protocol_version"\s*,\s*_config_integer\s*,\s*"(\d+)"\s*,',
+        source, re.M)
+    if len(matches) != 1:
+        raise SystemExit("Cannot prove unique native network.protocol_version default")
+    return int(matches[0])
 
 
 def printable_strings(data):
@@ -249,9 +278,9 @@ def main():
         if f"versionName='{version_name}'" not in badging:
             raise SystemExit("Wrong candidate version: " + str(path))
         version_code = re.search(r"versionCode='(\d+)'", badging)
-        required_candidate_code = 73 if candidate_at_least(args.label, 61) else 72 if candidate_at_least(args.label, 60) else 71 if candidate_at_least(args.label, 59) else 70 if candidate_at_least(args.label, 58) else 69 if candidate_at_least(args.label, 57) else 68 if candidate_at_least(args.label, 56) else 67 if candidate_at_least(args.label, 55) else 66 if candidate_at_least(args.label, 54) else 65 if candidate_at_least(args.label, 53) else 64 if candidate_at_least(args.label, 52) else 62 if candidate_at_least(args.label, 51) else 61 if candidate_at_least(args.label, 50) else 60 if candidate_at_least(args.label, 49) else 59 if candidate_at_least(args.label, 48) else 58 if candidate_at_least(args.label, 47) else 57 if candidate_at_least(args.label, 46) else 56 if candidate_at_least(args.label, 45) else 55 if candidate_at_least(args.label, 44) else 54 if candidate_at_least(args.label, 43) else 53 if candidate_at_least(args.label, 42) else 52 if candidate_at_least(args.label, 41) else 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
+        required_candidate_code = 74 if candidate_at_least(args.label, 62) else 73 if candidate_at_least(args.label, 61) else 72 if candidate_at_least(args.label, 60) else 71 if candidate_at_least(args.label, 59) else 70 if candidate_at_least(args.label, 58) else 69 if candidate_at_least(args.label, 57) else 68 if candidate_at_least(args.label, 56) else 67 if candidate_at_least(args.label, 55) else 66 if candidate_at_least(args.label, 54) else 65 if candidate_at_least(args.label, 53) else 64 if candidate_at_least(args.label, 52) else 62 if candidate_at_least(args.label, 51) else 61 if candidate_at_least(args.label, 50) else 60 if candidate_at_least(args.label, 49) else 59 if candidate_at_least(args.label, 48) else 58 if candidate_at_least(args.label, 47) else 57 if candidate_at_least(args.label, 46) else 56 if candidate_at_least(args.label, 45) else 55 if candidate_at_least(args.label, 44) else 54 if candidate_at_least(args.label, 43) else 53 if candidate_at_least(args.label, 42) else 52 if candidate_at_least(args.label, 41) else 51 if candidate_at_least(args.label, 40) else 50 if candidate_at_least(args.label, 39) else 49 if candidate_at_least(args.label, 38) else 47 if candidate_at_least(args.label, 37) else 46
         if candidate_at_least(args.label, 36) and (version_code is None or int(version_code[1]) < required_candidate_code):
-            raise SystemExit("Test" + ("61" if required_candidate_code == 73 else "60" if required_candidate_code == 72 else "59" if required_candidate_code == 71 else "58" if required_candidate_code == 70 else "57" if required_candidate_code == 69 else "56" if required_candidate_code == 68 else "55" if required_candidate_code == 67 else "54" if required_candidate_code == 66 else "53" if required_candidate_code == 65 else "52" if required_candidate_code == 64 else "51" if required_candidate_code == 62 else "50" if required_candidate_code == 61 else "49" if required_candidate_code == 60 else "48" if required_candidate_code == 59 else "47" if required_candidate_code == 58 else "46" if required_candidate_code == 57 else "45" if required_candidate_code == 56 else "44" if required_candidate_code == 55 else "43" if required_candidate_code == 54 else "42" if required_candidate_code == 53 else "41" if required_candidate_code == 52 else "40" if required_candidate_code == 51 else "39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
+            raise SystemExit("Test" + ("62" if required_candidate_code == 74 else "61" if required_candidate_code == 73 else "60" if required_candidate_code == 72 else "59" if required_candidate_code == 71 else "58" if required_candidate_code == 70 else "57" if required_candidate_code == 69 else "56" if required_candidate_code == 68 else "55" if required_candidate_code == 67 else "54" if required_candidate_code == 66 else "53" if required_candidate_code == 65 else "52" if required_candidate_code == 64 else "51" if required_candidate_code == 62 else "50" if required_candidate_code == 61 else "49" if required_candidate_code == 60 else "48" if required_candidate_code == 59 else "47" if required_candidate_code == 58 else "46" if required_candidate_code == 57 else "45" if required_candidate_code == 56 else "44" if required_candidate_code == 55 else "43" if required_candidate_code == 54 else "42" if required_candidate_code == 53 else "41" if required_candidate_code == 52 else "40" if required_candidate_code == 51 else "39" if required_candidate_code == 50 else "38" if required_candidate_code == 49 else "37" if required_candidate_code == 47 else "36")
                              + " Android version code must be at least " + str(required_candidate_code) + ": " + str(path))
         if args.stable and args.label == "1.0.16" and "versionCode='45'" not in badging:
             raise SystemExit("Wrong v1.0.16 Android version code: " + str(path))
@@ -377,6 +406,9 @@ def main():
             if candidate_at_least(args.label, 34):
                 if vr:
                     current_upstream_markers = ([b"OpenCE Build157 base / network28", b"network27 map-sharing answer",
+                                                 b"seat settles before immersive controls lock", b"one-hand heavy restraint",
+                                                 b"test62 candidate 1.0.29-test62 code74"]
+                        if candidate_at_least(args.label, 62) else [b"OpenCE Build157 base / network28", b"network27 map-sharing answer",
                                                  b"immersive controls held under the hands", b"IMMERSIVE VEHICLE turns on FIRST PERSON",
                                                  b"test61 candidate 1.0.28-test61 code73"]
                         if candidate_at_least(args.label, 61) else
@@ -578,6 +610,9 @@ def main():
                 if candidate_at_least(args.label, 51) and not candidate_at_least(args.label, 52):
                     guide_markers.extend([b"test51: network-join crash and voice-config fix",
                                           b"host voice settings accepted before diagnostics"])
+                if candidate_at_least(args.label, 62):
+                    guide_markers.extend([b"test62: settled controls, easier grabs and campaign impacts",
+                                          b"ctrl reach", b"ragdoll range", b"5 cm", b"three seconds"])
                 if candidate_at_least(args.label, 61):
                     guide_markers.extend([b"test61: the wheel stays in your hands, impacts that hurt, more ragdolls",
                                           b"first person", b"24", b"one hand"])
@@ -830,7 +865,7 @@ def main():
                 "certificate_sha256": CERTIFICATE, "apks": records,
                 "source_zip": {"file": source.name, "sha256": sha(source)},
                 "native_host_version": network_value("HALO_PORT_NETWORK_VERSION"), "accepted_host_versions": list(range(network_value("HALO_PORT_NETWORK_VERSION_MINIMUM"), network_value("HALO_PORT_NETWORK_VERSION_MAXIMUM")+1)),
-                "client_default_target": 24, "client_all_compatible_target": 0,
+                "client_default_target": client_default_target(args.label, runtime_commit), "client_all_compatible_target": 0,
                 "campaign_minimum_host_version": 15, "custom_edition_minimum_host_version": 23,
                 "legacy_client_scope": "original Xbox-map PvP11-24; campaign15-24 plus explicit legacy12-14 opt-in; device cross-play validation pending",
                 "legacy_campaign_opt_in_versions": [12, 13, 14],
@@ -883,6 +918,7 @@ def main():
                              ["TEST40-DELIVERY-STATUS.md", "TEST40-PLAYER-NOTES.md", "TEST40-REQUIREMENT-DISPOSITION.md"]
                              if candidate_at_least(args.label, 40) else
                              ["TEST39-DELIVERY-STATUS.md", "TEST39-PLAYER-NOTES.md", "TEST39-INTERACTION-NETWORK.md"])
+    active_candidate_docs = candidate_document_prefix(args.label) + active_candidate_docs
     documents = edition_docs+active_candidate_docs+["TEST38-DELIVERY-STATUS.md", "TEST38-PLAYER-NOTES.md", "TEST38-DEVICE-CHECKLIST.md", "WORLD-INTERACTION-STATUS.md", "MANUAL-RELOAD.md", "VR-LOOSE-PROPS.md", "VR-PARKOUR.md", "TEST38-INTERACTION-NETWORK.md", "GAME-DATA-LIBRARY.md", "TEST15-DELIVERY.md", "TEST15-PROGRESS.md", "TEST15-UPSTREAM.md", "DATA-COMPATIBILITY.md", "CURRENT-STATE.md", "PLAYER-GUIDE.md", "CONTROLS-AND-OPTIONS.md", "COOP-COMPATIBILITY-AUDIT.md", "NETWORK-VR-AVATARS.md", "CAMPAIGN-PROTOCOL-WIP.md",
                  "ANDROID-TOUCH-CONTROLS.md", "ANDROID-GAMEPAD.md", "COOP-PLAYER-LIMITS.md", "MULTIPLAYER-BROWSER.md"]
     documents = list(dict.fromkeys(documents))

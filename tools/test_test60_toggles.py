@@ -52,6 +52,9 @@ code = r'''
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <math.h>
+typedef float real;
 typedef int boolean;
 enum { FALSE, TRUE };
 #define NUMBEROF(a) (sizeof(a) / sizeof((a)[0]))
@@ -65,8 +68,10 @@ static struct { char const *key; int on; } store[] = {
     {"vr.vehicle_control_glow",1},{"vr.vehicle_steer_haptics",1},{"vr.vehicle_comfort_reach",1},
     {"vr.vehicle_tank_drive",1},{"vr.vehicle_banshee_slide",1},{"vr.vehicle_tank_hatch",0},
     {"vr.vehicle_warthog_hide_glass",0},{"vr.reload_shoulder",0},{"vr.reload_hip",0},
-    {"vr.button_sprint_toggle",0},{"vr.button_sprint",0}};
-static char automatic_store[256], view_store[32] = "chase";
+    {"vr.button_sprint_toggle",0},{"vr.button_sprint",0},{"vr.assisted_combat",0},{"vr.close_contact",0}};
+static char automatic_store[256], view_store[32] = "chase", melee_store[32] = "swing";
+static real speed_store;
+static real config_real(char const *key){assert(!strcmp(key,"vr.melee_speed"));return speed_store;}
 static int sprint_setter_calls;
 static int *slot(char const *key)
 { for (unsigned i = 0; i < NUMBEROF(store); i++) if (!strcmp(store[i].key, key)) return &store[i].on; assert(0); return 0; }
@@ -75,8 +80,8 @@ static void config_write_boolean(char const *key, boolean on) { *slot(key) = on;
 static char const *config_string(char const *key) { assert(!strcmp(key, "vr.immersion_auto")); return automatic_store; }
 static void config_write_string(char const *key, char const *value) { (void)key; snprintf(automatic_store, sizeof automatic_store, "%s", value); }
 static void platform_log(char const *f, ...) { (void)f; }
-static int config_matches(char const *key, char const *text) { assert(!strcmp(key, "vr.vehicle_view")); return !strcmp(view_store, text); }
-static int config_write_text(char const *key, char const *text) { assert(!strcmp(key, "vr.vehicle_view")); snprintf(view_store, sizeof view_store, "%s", text); return 1; }
+static int config_matches(char const *key, char const *text) { if(!strcmp(key,"vr.melee"))return !strcmp(melee_store,text); assert(!strcmp(key, "vr.vehicle_view")); return !strcmp(view_store, text); }
+static int config_write_text(char const *key, char const *text) { if(!strcmp(key,"vr.melee_speed")){speed_store=atof(text);return 1;} if(!strcmp(key,"vr.melee")){snprintf(melee_store,sizeof melee_store,"%s",text);return 1;} assert(!strcmp(key, "vr.vehicle_view")); snprintf(view_store, sizeof view_store, "%s", text); return 1; }
 ''' + resolver + r'''
 static boolean vr_menu_button_sprint_set(boolean enabled) { sprint_setter_calls++; config_write_boolean("vr.button_sprint", enabled); return TRUE; }
 ''' + r'''
@@ -94,8 +99,34 @@ static void choose_view(char const *view)
     config_write_text("vr.vehicle_view", view);
     vr_menu_dependencies(&row, view);
 }
+static void choose_melee(char const *mode)
+{
+    struct vr_menu_setting row = { "MELEE", "vr.melee", _vr_setting_multi };
+    char value[80];
+    config_write_text("vr.melee", mode);
+    snprintf(value,sizeof(value),"vr.melee=%s;vr.melee_multiplayer=false",mode);
+    vr_menu_dependencies(&row,value);
+}
+static void choose_speed(char const *speed)
+{
+    struct vr_menu_setting row = { "MELEE SPEED", "vr.melee_speed", 2 };
+    config_write_text("vr.melee_speed",speed);
+    vr_menu_dependencies(&row,speed);
+}
 int main(void)
 {
+    choose("vr.assisted_combat",1);
+    assert(config_boolean("vr.melee_requires_fist")&&config_boolean("vr.close_contact")&&config_boolean("vr.npc_interaction"));
+    assert(!strcmp(melee_store,"impact")&&speed_store==2.0f);
+    choose("vr.melee_requires_fist",0);assert(!config_boolean("vr.assisted_combat"));
+    speed_store=1.4f;choose("vr.assisted_combat",1);assert(speed_store==1.4f);
+    choose_melee("swing");assert(!config_boolean("vr.assisted_combat")&&!strcmp(melee_store,"swing"));
+    choose("vr.assisted_combat",1);assert(!strcmp(melee_store,"impact")&&speed_store==1.4f);
+    choose_speed("0");assert(!config_boolean("vr.assisted_combat")&&speed_store==0.0f);
+    choose("vr.assisted_combat",1);assert(speed_store==2.0f);
+    choose_speed("1.4");assert(config_boolean("vr.assisted_combat"));
+    choose("vr.assisted_combat",0);assert(speed_store==1.4f);
+    choose("vr.melee_requires_fist",0);
     /* DEATH RAGDOLLS turns on NPC GRAB, NPC RESCUE and IMPACT DAMAGE, and NPC
      * GRAB in turn FIST REQUIRED */
     choose("vr.death_ragdolls", 1);

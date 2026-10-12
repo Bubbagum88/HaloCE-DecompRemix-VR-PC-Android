@@ -296,6 +296,19 @@ int main(void)
     capture(&skeletons[1], &rig);
     copy = rig; copy.prepared = 0; assert(!vr_articulated_native_step(&copy, 1.f/30.f, 3.2f, NULL, 0));
     copy = rig; assert(!vr_articulated_native_step(&copy, 0.5f, 3.2f, NULL, 0));
+    /* Test62: invalid transient topology cannot index outside the solver;
+     * refusal leaves the entire rig unchanged. */
+    for(int bad=0;bad<5;++bad) {
+        struct vr_articulated_native before;
+        copy=rig;
+        if(bad==0)copy.group[1]=-1;
+        if(bad==1)copy.group[1]=VR_ARTICULATED_NODES;
+        if(bad==2)copy.body.nodes[1].parent=1;
+        if(bad==3)copy.body.nodes[1].inverse_mass=NAN;
+        if(bad==4)copy.body.nodes[1].radius=-1;
+        before=copy;assert(!vr_articulated_native_step(&copy,1.f/30.f,3.2f,NULL,0));
+        assert(!memcmp(&before,&copy,sizeof(copy)));
+    }
     {
         struct vr_articulated_pin pin = { 5, { 0, 0, 0 } };
         memcpy(pin.position, rig.body.nodes[5].position, sizeof(pin.position));
@@ -323,6 +336,12 @@ int main(void)
         assert(impacts == 1 && last_impact.type == _collision_result_structure && last_impact.plane.n.k == 1);
         next[0] = 0.01f; next[1] = 0; next[2] = radius - 0.01f;             /* about 1 m/s */
         impacts = 0; assert(vr_articulated_native_sweep(&hit_rig, from, radius, next) && impacts == 0);
+        /* Test62: a 5 m/s downward slam is submitted (old fixed 6 m/s
+         * cutoff lost it). Actual damage uses the chosen IMPACT SPEED. */
+        from[0]=0;from[1]=0;from[2]=radius+.001f;
+        next[0]=0;next[1]=0;next[2]=from[2]-5.0f*UNITS/30.0f;
+        impacts=0;assert(vr_articulated_native_sweep(&hit_rig,from,radius,next));
+        assert(impacts==1 && last_impact.plane.n.k==1);
         body_present = 1; body_x = 0.5f; body_unit.unit.player_index = NONE;
         from[0] = 0.4f; from[1] = 0; from[2] = 1;
         next[0] = 0.6f; next[1] = 0; next[2] = 1;                           /* through the other body */

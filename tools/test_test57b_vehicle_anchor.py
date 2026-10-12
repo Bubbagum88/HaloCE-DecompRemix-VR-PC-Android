@@ -72,7 +72,8 @@ static struct {struct {long vehicle_index;short seat_index;} seat;real_point3d g
 static int vr_settings_generation(void){return 1;}
 static double clock_now;static double vr_pose_time(void){return clock_now;}
 static int vr_vehicle_handles_enabled(long u){(void)u;return 1;}
-static float config_real(char const*k){if(!strcmp(k,"vr.interaction_reach"))return .04f;if(strstr(k,"_size"))return 1;return 0;}
+static float cfg_all[3],cfg_vehicle[3];
+static float config_real(char const*k){if(strstr(k,"vr.handle_")&&!strstr(k,"_size")){int i=strstr(k,"_forward")?0:strstr(k,"_left")?1:2;return strstr(k,"_all_")?cfg_all[i]:cfg_vehicle[i];}if(!strcmp(k,"vr.interaction_reach"))return .04f;if(strstr(k,"_size"))return 1;return 0;}
 static int cfg_comfort=1,cfg_visible=1;
 static int config_boolean(char const*k){if(!strcmp(k,"vr.vehicle_comfort_reach"))return cfg_comfort;if(!strcmp(k,"vr.vehicle_wheel_visible"))return cfg_visible;return 1;}
 static real_matrix4x3 *render_interpolation_object_node_matrices(long o){(void)o;return NULL;}
@@ -216,7 +217,8 @@ int main(void){
   real_matrix4x3 root=nodes[0];real_point3d model_wheel;
   for(int k=0;k<3;k++)vr_render.game_camera_position.n[k]+=-root.forward.n[k]*.42f*UNITS+root.up.n[k]*.12f*UNITS;
   /* Test61: measured from the eyes on boarding: board with them there */
-  vr_wheel.valid=0;clock_now+=1;assert(vr_vehicle_handles_prepare(1));
+  vr_wheel.valid=0;vr_wheel.settle_sampled=0;clock_now+=1;assert(!vr_vehicle_handles_prepare(1));
+  clock_now+=.36;assert(vr_vehicle_handles_prepare(1));
   model_wheel=nodes[6].position;for(int k=0;k<3;k++)model_wheel.n[k]+=nodes[6].up.n[k]*.025f*UNITS;
   {float far_gap=cm(vr_render.game_camera_position,model_wheel);
    printf("Warthog wheel %.0f cm from the eyes: comes in to %.1f cm\n",far_gap,cm(vr_render.game_camera_position,vr_wheel.center));
@@ -245,6 +247,25 @@ int main(void){
  {real_matrix4x3 v=frame(98.493f,-157.639f,1.705f,1.328f,0,0);enter(0,&v);
   memset(&vr_wheel,0,sizeof vr_wheel);vr_vehicle_handles_clear();vr_render.game_camera_position=(real_point3d){{0,0,0}};clock_now=10;assert(!vr_vehicle_handles_prepare(1));clock_now+=1;
   check("no controls placed from a head outside the vehicle",!vr_vehicle_handles_prepare(1)&&!vr_wheel.valid);}
+ /* Test62: moving boarding eyes cannot lock early; moving the entire
+  * vehicle with the eyes does not restart settling. */
+ {real_matrix4x3 v=frame(0,0,0,0,0,0);enter(0,&v);
+  vr_vehicle_handles_clear();clock_now=20;assert(!vr_vehicle_handles_prepare(1));
+  for(int t=1;t<=9;t++){clock_now=20+t*.2;vr_render.game_camera_position.z+=.02f*UNITS;assert(!vr_vehicle_handles_prepare(1));}
+  clock_now=22.0;nodes[0].position.x+=1;vr_render.game_camera_position.x+=1;assert(!vr_vehicle_handles_prepare(1));
+  clock_now=22.16;assert(vr_vehicle_handles_prepare(1)&&vr_wheel.valid);}
+ /* Persistent idle motion still gets controls at the 3 second cap. */
+ {real_matrix4x3 v=frame(0,0,0,0,0,0);enter(2,&v);
+  vr_vehicle_handles_clear();clock_now=30;assert(!vr_vehicle_handles_prepare(1));
+  for(int t=1;t<15;t++){clock_now=30+t*.2;vr_render.game_camera_position.z+=.016f*UNITS;assert(!vr_vehicle_handles_prepare(1));}
+  clock_now=33;vr_render.game_camera_position.z+=.016f*UNITS;assert(vr_vehicle_handles_prepare(1));}
+ /* All-control offsets combine with each vehicle's own offsets; zero is
+  * unchanged, and corrupt/nonfinite settings cannot move controls to NaN. */
+ for(int kind=0;kind<4;kind++){real_matrix4x3 v=frame(0,0,0,0,0,0);enter(kind,&v);
+  cfg_all[0]=.1f;cfg_vehicle[0]=.05f;cfg_all[1]=.45f;cfg_vehicle[1]=.4f;cfg_all[2]=NAN;cfg_vehicle[2]=.02f;
+  assert(vr_vehicle_handles_prepare(1));assert(fabsf(vr_wheel.user[0]/UNITS-.15f)<1e-5f);
+  assert(fabsf(vr_wheel.user[1]/UNITS-.5f)<1e-5f&&fabsf(vr_wheel.user[2]/UNITS-.02f)<1e-5f);
+  memset(cfg_all,0,sizeof cfg_all);memset(cfg_vehicle,0,sizeof cfg_vehicle);}
  if(failures){printf("%d failures\n",failures);return 1;}
  puts("PASS: Test57b immersive controls on the vehicle (stock Warthog wheel node, Ghost contacts, Scorpion/Banshee in front of the chest) at 5 places/headings/tilts, every control in reach, rim and spokes taken, moving with the vehicle's place and heading (Test61: in the hands' level frame), far places falling back, never placed from a head outside the vehicle; Test59: stick/bar from the eyes each frame (boarding), comfort reach 55 cm, hidden wheel on the model, comfort off");
  return 0;}

@@ -232,6 +232,9 @@ static struct { int weapon_hand, scope_shape, zoom_level, two_handed, gun_class,
  float scope_size, scope_adjust[VR_SCOPE_PROFILE_COUNT][4]; struct halo_xr_pose aim_pose, shot_pose;
  struct { struct halo_xr_pose head; unsigned hand_valid[2]; } frame; } vr;
 static void platform_log(const char *format,...){ (void)format; }
+static float scope_wrist_origin[3];static double scope_wrist_time=-1;static int scope_anchor_enabled;
+static int config_boolean(char const*k){(void)k;return scope_anchor_enabled;}
+static double vr_pose_time(void){return 5;}
 ''' + fn(frame, 'rotate') + fn(frame, 'tracked_hand_origin') + fn(frame, 'place_scope') + r'''
 static const float usual[3][3]={{-0.10f,0.00f,0.15f},{-0.15f,0.00f,0.15f},{0.10f,0.20f,0.10f}};
 int main(void){
@@ -248,6 +251,16 @@ int main(void){
   local[0]=hand ? -o[1] : o[1]; local[1]=o[2]; local[2]=-o[0]; rotate(vr.aim_pose.orientation, local, t);
   for(int a=0;a<3;a++) assert(fabsf(l.scope_pose.position[a]-(vr.aim_pose.position[a]+t[a]))<1e-6f);
   assert(l.scope_size[0]==0.06f && !memcmp(l.scope_pose.orientation, vr.shot_pose.orientation, sizeof(float[4])));
+ }
+ /* A fresh actual wrist anchor replaces ONLY the origin; per-gun offsets stay rigid. */
+ {struct halo_xr_layers original={0},anchored={0},stale={0};
+  place_scope(&original);scope_anchor_enabled=1;scope_wrist_time=5;
+  for(int k=0;k<3;k++)scope_wrist_origin[k]=vr.aim_pose.position[k]+.1f*(k+1);
+  place_scope(&anchored);
+  for(int k=0;k<3;k++)assert(fabsf(anchored.scope_pose.position[k]-original.scope_pose.position[k]-.1f*(k+1))<1e-5f);
+  assert(!memcmp(anchored.scope_pose.orientation,original.scope_pose.orientation,sizeof(float[4])));
+  scope_wrist_time=4;place_scope(&stale);assert(!memcmp(stale.scope_pose.position,original.scope_pose.position,sizeof(float[3])));
+  scope_anchor_enabled=0;
  }
  /* the sniper rifle's 5 cm right, 2 cm up, 3 cm forward, 150%: right is the player's right in either hand */
  vr.scope_adjust[1][0]=0.03f; vr.scope_adjust[1][1]=0.02f; vr.scope_adjust[1][2]=0.05f; vr.scope_adjust[1][3]=1.5f;
@@ -313,5 +326,56 @@ int main(void){
 #undef GUN_VALUE
  puts("PASS: baseline scope placement holds for both hands; calibrated scope plane matches the shot view while its center stays on the gun; "
       "extended hands use the 90 cm reach clamp; pistol and sniper adjustments and sizes stay independent");
+}
+''')
+
+# Test62: execute both sides of the guest-to-host final-wrist bridge. A zero
+# anchoring correction is still a drawn gun and must publish its scope anchor.
+run('scope_wrist_bridge', r'''
+#include <assert.h>
+#include <math.h>
+#include <string.h>
+#include <stdio.h>
+#include "port/linux/game/vr_gun_anchor.h"
+typedef float real;
+typedef union {float n[3];struct {float x,y,z;};struct {float i,j,k;};} real_point3d,real_vector3d;
+typedef struct {real_point3d position;real_vector3d forward,left,up;} real_matrix4x3;
+struct animation_graph {struct {int count;}nodes;};
+#define MAXIMUM_NODES_PER_ANIMATION 64
+static struct {int heading_valid;float heading,units_per_metre;struct {struct {float position[3];}head;}frame;}vr;
+static struct {int weapon_camera_valid;struct {real_vector3d forward,up;}weapon_camera;real_point3d game_camera_position;real_vector3d weapon_pullback;}vr_render;
+static float offset_now[3],scope_wrist_origin[3];static double scope_wrist_time=-1,time_now=10;
+static real_point3d palm;static real_vector3d palm_f;static int hand_now,hand_empty;
+static double vr_pose_time(void){return time_now;}
+static void head_offset(float out[3]){memcpy(out,offset_now,sizeof offset_now);}
+static float vr_units_per_metre(void){return vr.units_per_metre;}
+static int vr_weapon_hand(void){return hand_now;}
+static int vr_hand_empty(void){return hand_empty;}
+static int vr_hand_pose(int hand,float const camera[3],float p[3],float f[3],float u[3]){(void)hand;(void)camera;memcpy(p,palm.n,sizeof palm.n);memcpy(f,palm_f.n,sizeof palm_f.n);u[0]=u[1]=0;u[2]=1;return 1;}
+static int vr_unit_vector(real_vector3d*v){float length=sqrtf(v->i*v->i+v->j*v->j+v->k*v->k);if(!isfinite(length)||length<1e-6f)return 0;for(int k=0;k<3;k++)v->n[k]/=length;return 1;}
+static void cross_product3d(real_vector3d const*a,real_vector3d const*b,real_vector3d*out){*out=(real_vector3d){{a->j*b->k-a->k*b->j,a->k*b->i-a->i*b->k,a->i*b->j-a->j*b->i}};}
+''' + fn(frame,'vr_scope_wrist_anchor') + fn(render,'vr_anchor_gun') + r'''
+int main(void){
+ struct animation_graph graph={.nodes={.count=1}};real_matrix4x3 m={0};float adjustment[3]={0};
+ vr.heading_valid=vr_render.weapon_camera_valid=1;vr.units_per_metre=.32808399f;
+ vr_render.weapon_camera.forward=(real_vector3d){{1,0,0}};vr_render.weapon_camera.up=(real_vector3d){{0,0,1}};palm_f=vr_render.weapon_camera.forward;
+ vr_render.game_camera_position=(real_point3d){{100,-50,2}};palm=(real_point3d){{100.1f,-49.9f,2.1f}};
+ for(hand_now=0;hand_now<2;hand_now++)for(int trial=0;trial<12;trial++){
+  vr.heading=-3.0f+trial*.5f;vr.frame.head.position[0]=.3f;vr.frame.head.position[1]=1.6f;vr.frame.head.position[2]=-.2f;
+  offset_now[0]=.02f*trial;offset_now[1]=.15f;offset_now[2]=-.01f*trial;
+  /* The existing rendered wrist already exactly matches the requested wrist. */
+  for(int k=0;k<3;k++)m.position.n[k]=palm.n[k]-palm_f.n[k]*.075f*vr.units_per_metre;
+  time_now+=1;scope_wrist_time=-1;vr_anchor_gun(&m,&graph,0,0,adjustment);
+  assert(scope_wrist_time==time_now);
+  float local[3],world[3];for(int k=0;k<3;k++)local[k]=scope_wrist_origin[k]-vr.frame.head.position[k]+offset_now[k];
+  world[0]=vr_render.game_camera_position.x+(local[0]*sinf(vr.heading)-local[2]*cosf(vr.heading))*vr.units_per_metre;
+  world[1]=vr_render.game_camera_position.y+(-local[0]*cosf(vr.heading)-local[2]*sinf(vr.heading))*vr.units_per_metre;
+  world[2]=vr_render.game_camera_position.z+local[1]*vr.units_per_metre;
+  for(int k=0;k<3;k++)assert(fabsf(world[k]-(m.position.n[k]+.075f*vr.units_per_metre*vr_render.weapon_camera.forward.n[k]))<2e-5f);
+ }
+ /* Invalid camera and empty-hand paths cannot publish a fresh anchor. */
+ time_now++;vr_render.weapon_camera_valid=0;vr_anchor_gun(&m,&graph,0,0,adjustment);assert(scope_wrist_time!=time_now);
+ vr_render.weapon_camera_valid=1;hand_empty=1;vr_anchor_gun(&m,&graph,0,0,adjustment);assert(scope_wrist_time!=time_now);
+ puts("PASS: actual final-wrist bridge, zero translation publication, both hands, heading/roomscale inverse, invalid draw guards");
 }
 ''')

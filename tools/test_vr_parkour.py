@@ -111,6 +111,20 @@ static real_vector3d tick(float x,float y,float z){
  vr_parkour_velocity(42,&body.object.position,1.2f,.2f,&velocity);return velocity;
 }
 int main(void){
+ /* Execute the real through-wall fallback on both sides of a real plane:
+    only a hand within the configured contact radius may latch the crossing. */
+ real_point3d contact_camera={.n={.3f,0,1}},contact_hand={.n={.1f,0,1}};
+ struct collision_result through_hit;
+ assert(parkour_grab_through(42,&contact_camera,&contact_hand,.14f,.5f,&through_hit));
+ assert(through_hit.object_index==NONE&&through_hit.point.x==0);
+ contact_hand.x=-.1f;assert(parkour_grab_through(42,&contact_camera,&contact_hand,.14f,.5f,&through_hit));
+ contact_hand.x=-.141f;assert(!parkour_grab_through(42,&contact_camera,&contact_hand,.14f,.5f,&through_hit));
+ contact_hand.x=-.8f;assert(!parkour_grab_through(42,&contact_camera,&contact_hand,.14f,.5f,&through_hit));
+ contact_hand.x=.15f;assert(!parkour_grab_through(42,&contact_camera,&contact_hand,.14f,.5f,&through_hit));
+ contact_hand.x=-.03f;assert(parkour_grab_through(42,&contact_camera,&contact_hand,.04f,.5f,&through_hit));
+ assert(!parkour_grab_through(42,&contact_camera,&contact_hand,0,.5f,&through_hit));
+ assert(!parkour_grab_through(42,&contact_camera,&contact_hand,NAN,.5f,&through_hit));
+ queries=0;
  body.object.parent_object_index=NONE;body.object.position.x=.22f;body.object.forward.i=1;
  vr_parkour_reset();
  /* Contact acquisition asks the collision volume at the actual hand point.

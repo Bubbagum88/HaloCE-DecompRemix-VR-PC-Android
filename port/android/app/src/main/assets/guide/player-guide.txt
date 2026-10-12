@@ -1,3 +1,234 @@
+# Test62 private candidate: 1.0.29-test62
+
+## Test62: settled controls, easier grabs and campaign impacts
+
+Private owner-test build, Android version code 74. Install the matching APK
+as an update over Test61; package names and signing identity are retained.
+Keep the app installed to preserve game data, profiles, settings and saves.
+This candidate also adds experimental fist-combat assistance and physical
+grenades. Automated checks do not establish headset comfort or multiplayer
+acceptance; the device checklist covers those remaining checks.
+
+### Immersive vehicles
+
+- Controls wait for the seat eye to settle before measuring and locking:
+  at least half a second after entry, then 350 ms within 1.5 cm. Moving the
+  whole vehicle does not reset that check. A three seconds maximum prevents
+  an idle animation from leaving the controls unavailable indefinitely.
+- The seat locks when that measurement completes, replacing the separate
+  half-second and one-second timers during the boarding animation.
+- VEHICLES adds **CTRL REACH**, **CTRL LEFT**, **CTRL HEIGHT** for all immersive
+  controls. These add to HOG/GHOST/TANK/BANSH adjustments; combined offsets
+  stay within 50 cm. COMFORT REACH still limits final reach. Adjust while
+  ungripped. Wraith uses the tank profile if a map provides a drivable seat.
+- IMMERSIVE VEHICLE still brings FIRST PERSON with it. Its changes apply
+  only while enabled. The existing wheel visibility, grip choices, steering,
+  hand frame, third-person controls and vehicle reticles remain available.
+
+### NPC grabs, impacts and ragdolls
+
+- New settings default **GRAB ASSIST to 5 CM**: NPC body contact reach becomes
+  16 cm with default HAND CONTACT, previously 11 cm. Saved choices stay:
+  choose 5 CM in IMMERSION > GRAB + NPCS if yours still says TOUCH.
+  This affects body capsules only; world and prop grabs remain contact based.
+- The first hand on a living Elite or Hunter restrains its horizontal root
+  where it was caught; a second distinct body contact enables the lift.
+  Gravity and native world collision remain active. Releasing one hand after
+  lifting retains the existing lowering/drag behavior. Allies are still
+  grabbable under the existing rules. Corpses use one hand; a heavy NPC killed
+  during the first grip changes to a one-hand lift. A restrained NPC cannot
+  start a melee attack or deal an already queued/contact/continuous melee hit
+  while the restraint is active; its native recovery remains in charge.
+- Campaign impact damage falls back to the map's falling-damage effect, then
+  vehicle collision effect, when the unit/unarmed weapon supplies no melee
+  effect. Test61's claim that the unarmed lookup alone fixed campaign slams
+  was incorrect: the owner's 08:58 log still showed no damage effect.
+- Floor slams honor **IMPACT SPEED**, just like wall slams. The separate 6 m/s
+  floor gate is removed. Damage depends on speed into the surface; grazing
+  along it is not a full slam. The same-target repeated-hit guard remains.
+- Slams and physical melee use the native damage result for shield and body
+  feedback. Shields break only when their actual vitality is depleted. Blood
+  or body-hit art appears only when body vitality drops, using the target's
+  authored effect. If it has none (as with stock Elites), a currently loaded
+  assault-rifle projectile can provide that body's material response. Missing
+  effect art is skipped; nothing is loaded during the hit. This preserves
+  Halo's species/material differences instead of showing blood on shields.
+- Logs record the damage tag/scale, material, and before/after shield and body
+  vitality. Include these **VR contact damage** lines when reporting a slam
+  that looks or feels wrong.
+- **RAGDOLL RANGE** offers 20 / 40 / **60** / 80 metres; 60 is the new default.
+  **NPC RIG SLOTS** stays at 24; the existing settling, slot reuse and recovery
+  limits remain. Use a shorter range if a busy scene costs performance.
+- The parent-relative joint solver is retained, with invalid transient
+  topology rejected before indexed work. Living-NPC recovery remains capped
+  at one second. This is not Euphoria or GTA IV's active-balance system.
+
+### Manual reload and hand feedback
+
+- The existing manual reload sequence and ammo rules are retained. A loose
+  magazine now follows the same adjusted palm rotation as the visible hand,
+  including HAND ANGLE and either handedness.
+- Insertion, seating, charging and ready pulses already existed. Brief reload
+  pulses now take priority over subsequent finger/surface contact buzz on the
+  same hand, including the central wall-contact feedback path, so contact
+  requests cannot immediately replace the pulse.
+- Master **HAPTICS** still scales all feedback; the existing **HOLSTER HAPTICS**
+  exception remains. No separate reload-haptics setting is added.
+- Magazine insertion tolerances, charge travel, pouch choices and bindings
+  remain the same. **USE/RELOAD** ejects while MANUAL RELOAD is active; the
+  normal reload path remains for disabled/unsupported cases. Manual reload
+  remains local-play only. Check tactical and empty reloads, both hands,
+  holsters, release-grip drop, firing feedback and native animation handoff.
+
+### Experimental assisted fist combat
+
+Enable **VR Settings > IMMERSION > FIST COMBAT > FIST COMBAT**. It starts OFF.
+The same controls are also available on CONTROLS.
+
+- Turning it on requires **FIST REQUIRED** and impact **MELEE**, and also
+  turns on NPC GRAB and CLOSE CONTACT through the existing dependency system.
+  These settings support a closed-fist interaction without an open hand swinging
+  into accidental melee. If MELEE SPEED was OFF, enabling FIST COMBAT restores
+  the positive default threshold; an existing positive threshold is preserved.
+  Choosing MELEE SPEED OFF afterward visibly turns FIST COMBAT off. Changing
+  MELEE to SWING also turns FIST COMBAT off. The runtime requires impact mode
+  and closed fists even when assistance was enabled by editing config; it cannot combine a
+  native swing with assisted direct-hit damage. Review automatically changed
+  rows before playing.
+- Look at an enemy and throw a qualifying forward punch with a free fist.
+  **FIST REACH** selects the acquisition distance: 0.75 / 1 / **1.5** / 2 m.
+  It uses actual enemy allegiance, active NPC state and line of sight;
+  players and allies are not targets.
+- The approach uses the normal collision sweep and the two characters'
+  native capsule widths to stop outside body contact, while preserving gravity.
+  It does not teleport through scenery. Pulling backward, strongly strafing,
+  being airborne or climbing cancels approach.
+- Repeated punches maintain one target rather than jumping between enemies.
+  Its horizontal movement is restrained during the short combo lock. The
+  lock expires after two seconds without a qualifying punch/hit, or earlier
+  if it dies, becomes obstructed, gets too far away or you look well away.
+  This holds the same opponent for the exchange; it does not rotate your
+  camera or move the enemy to stay magnetically attached to your gaze.
+- **HIT HIGHLIGHTS** marks head/chest in cyan and changes to amber during a
+  brief stun. A head contact or a three-hit sequence can stun for 0.9 seconds.
+  New, queued, contact-attachment and continuous native melee attacks are
+  suppressed during that bounded stun. A rear hit during the window uses
+  increased native melee damage; existing protected-actor rules still apply. NPC grabbing/slamming remains available.
+  An empty campaign fist with no available melee effect uses a reduced native
+  impact fallback only while this assist is enabled; ordinary weapon melee
+  keeps its authored damage.
+- A small additive spine reaction and impact flash accompany the exchange.
+  Existing Halo hurt sounds and damage behavior provide audio feedback.
+  Death/ragdoll poses and held NPCs keep their own animation path. This is a
+  bounded assist inspired by Arkham Shadow, not that game's assets or combat
+  engine. The custom animation is the hit/stun reaction; the rear strike
+  uses native damage rather than a choreographed finisher. Comfort, spacing
+  and species-specific results need headset tests.
+
+### Experimental physical grenade throwing
+
+Enable **IMMERSION > GRENADES > PHYS GRENADES** (OFF by default).
+
+- Available frag grenades appear at the left chest and plasma grenades at
+  the right. Use an empty/free hand, touch the grenade, then press **Grip**.
+  **Release Grip to throw**. The grenade is not cooking in your hand; its
+  native fuse/behavior begins on release.
+- **CHEST FWD**, **CHEST DOWN** and **CHEST SPACING** move the slots. Defaults
+  are 16 cm forward from the head, 30 cm below and 14 cm to either side.
+  Slots follow the horizontal head-facing chest frame. They are adjustable,
+  not dependent on the visible torso mode.
+- **THROW POWER** ranges from 0.5X to 2X, default 1X. Recent hand movement,
+  including rotation at the palm, determines throw direction and momentum;
+  final speed is limited to 15 m/s.
+- Native grenade counts are charged only after the projectile is successfully
+  placed. Invalid tracking, a large tracking jump, recenter, lost hand
+  ownership, death, pause/state reset or rejected placement cancels a held
+  throw without losing its grenade. New-map/disposal hooks also clear grenade
+  and combat state before map-local object identities can be reused.
+  After cancellation, release and squeeze Grip again to pick up another one. There is no magazine-style persistent
+  grenade object while held.
+- A held grenade follows the fresh final visible palm after hand collision
+  and action blending. Hidden/unsupported hand rigs use a tracked fallback
+  clamped away from world obstructions; an old hand pose is not reused.
+- Grab/release feedback uses master HAPTICS. Its short event pulses get
+  priority over continuous wall/fingertip feedback on that hand, without
+  changing other haptic settings. Grenades respect hand ownership
+  for reload, holsters/weapon use, climbing, vehicle controls and NPC/world
+  grabbing. Standard grenade buttons remain available; a button throw is
+  suppressed while a chest grenade is held and on its release tick to avoid
+  spending two grenades.
+
+### Parkour, aiming and scopes
+
+- Optional parkour keeps its existing collision/state rules. New defaults
+  give **CLIMB GRAB 14 CM** and **WALL TIME 2 S**, previously 10 cm and 1.5 s.
+  Saved choices stay. These are reach/time refinements, not auto-enabling
+  parkour or disabling its collision checks. The eye-to-hand fallback now
+  requires the hand itself to be within the configured contact radius of the
+  wall, so a deeply penetrating hand cannot latch a distant crossed surface.
+- **AIM STEADY** is on IMMERSION > FIST COMBAT and HUD + RETICLE:
+  OFF / LIGHT / MEDIUM / STRONG / MAX. OFF preserves existing scoped smoothing. Higher choices add
+  angular steadying to the shared gun/shot/scope aim, rather than smoothing
+  only a cosmetic reticle that could disagree with the bullet direction.
+  Recenter and invalid frame timing reset the filter.
+- The scope lens origin follows the final drawn gun wrist when gun anchoring
+  is active. This includes gun offsets, visible hand adjustment and wall
+  pullback; a stale frame's anchor is never reused. The fresh wrist is
+  published even when its translation is zero, preventing that normal case
+  from falling back to a different scope origin. Scope orientation and weapon
+  aiming stay on their shared pose.
+- Existing per-weapon scope position/size adjustments remain for all supported
+  weapon profiles. This does not substitute a universal scope offset for
+  each gun. Check one/two hands, left/right handedness, gun offsets, movement
+  and close walls; the automated geometry cases cannot prove eye comfort.
+
+### Co-op, multiplayer and Android
+
+Use the actual in-game **Server Setup**, not a separate launcher host form.
+
+- **HOST VR ACTIONS** is a new OFF-by-default co-op option. To let the VR host
+  use fist assistance or chest grenades, enable it and **VR INTERACTIONS**,
+  then enable the relevant VR feature. Every connected peer must complete the
+  existing physical-interaction capability handshake. A mixed/older peer or
+  missing permission disables these new actions.
+- This permission applies to the host's new actions. Remote clients retain
+  native grenade/melee inputs, and PvP does not enable these combat assists.
+  No new protocol or capability version is introduced. Resulting projectiles,
+  damage and movement use existing host-authoritative gameplay paths.
+- NPC physics authority is explicitly limited to local play or the permitted
+  server. A client completing the handshake still sends grips and displays
+  replicated poses through the existing path; readiness alone does not let
+  it drive the same NPC independently.
+- Existing NPC ragdoll synchronization remains limited to **four remote
+  machines**. This is not a four-player limit on ordinary campaign co-op.
+  Existing world interactions have their own guards. Custom NPC rig fallback,
+  manual reload and magazine debris retain their local-only restrictions;
+  parkour retains its existing local/co-op-host restriction.
+- Network and voice implementations are unchanged: hosting remains network 28,
+  with joining 11-28 under the existing compatibility rules. No new upstream
+  integration or universal server-compatibility claim is part of Test62.
+- Flat Android keeps its familiar touch/controller behavior and receives the
+  matching code74 package, guide and co-op host setup option. VR-only actions
+  do not become touchscreen gestures.
+
+### Validation and preserved work
+
+The targeted checks cover control anchoring, contact grabs, heavy restraint,
+native impact transactions, stock ragdoll skeletons, reload state/ammo/haptics,
+new grenade/combat state, setting dependencies, scopes and menu layout.
+The full-suite/build/package results belong in TEST62-DELIVERY-STATUS.md after
+completion. On-device interaction, comfort, performance and paired co-op still
+need the owner tests in TEST62-DEVICE-CHECKLIST.md.
+
+Changes remain local and private. Packaging does not install, launch, push or
+publish anything. PC/Steam Frame work stays deferred. Existing public releases
+and README presentation are not changed.
+
+The sections below are historical candidate notes. This Test62 status
+supersedes their earlier claims; those notes are not new device confirmations.
+
+---
+
 # Test61 private candidate: 1.0.28-test61
 
 ## Test61: the wheel stays in your hands, impacts that hurt, more ragdolls

@@ -117,6 +117,7 @@ first-person weapon is posed in the hand. */
 int vr_hand_aiming(void);
 /* the hand's aiming ray from where the game's camera is (`position`): its
 origin in the world and direction; 0 unless the hand aims */
+void vr_scope_wrist_anchor(float const camera[3],float const wrist[3],float const forward[3]);
 int vr_hand_ray(const float position[3], float out_origin[3], float out_direction[3]);
 /* the camera the first-person weapon's model is posed from, for it to sit
 in the right hand; 0 unless the hand aims */
@@ -129,7 +130,7 @@ int vr_hand_pose(int hand, const float position[3], float out_position[3], float
 
 /* Exclusive grip consumers. World poses use vr_hand_world (uncalibrated grip)
  * or vr_hand_pose (visible-hand calibration), with the caller's camera anchor. */
-enum { VR_INTERACTION_NONE, VR_INTERACTION_RELOAD, VR_INTERACTION_VEHICLE, VR_INTERACTION_WORLD, VR_INTERACTION_PARKOUR, VR_INTERACTION_NPC, VR_INTERACTION_COUNT };
+enum { VR_INTERACTION_NONE, VR_INTERACTION_RELOAD, VR_INTERACTION_VEHICLE, VR_INTERACTION_WORLD, VR_INTERACTION_PARKOUR, VR_INTERACTION_NPC, VR_INTERACTION_GRENADE, VR_INTERACTION_COUNT };
 int vr_interaction_claim(int hand, int owner);
 /* Same exclusive owner semantics for features with an alternate configured
  * input (manual reload Grip/Trigger); does not alter normal grip consumers. */

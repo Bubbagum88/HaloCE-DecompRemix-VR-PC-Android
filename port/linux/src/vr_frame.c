@@ -999,7 +999,7 @@ void vr_initialize(void)
 		return;
 	vr.initialized = 1;
 	config_vr_vehicle_defaults();
-	platform_log("vr: HaloCE Quest test61 candidate 1.0.28-test61 code73 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; immersive controls held under the hands (steady seat, the hands' level frame); IMMERSIVE VEHICLE turns on FIRST PERSON; impacts hurt with the unarmed blow; 24 rig slots; dead Elites and Hunters one-handed; test60: impacts for every NPC, DEATH RAGDOLLS turns on NPC RESCUE, NPC GRAB and IMPACT DAMAGE; test59: real hands in vehicles, controls from the eyes, comfort reach, tank drive, the gun's own magazine back in, DEATH FORCE ragdoll throws; test58: immersive vehicles placed on the vehicle, steady mounted reticle; test57: Warthog virtual wheel, Scorpion drive stick, Banshee flight bar, Ghost handlebar; test56: parent-relative ragdoll joints, NPCs up within 1 s; device acceptance pending)");
+	platform_log("vr: HaloCE Quest test62 candidate 1.0.29-test62 code74 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; seat settles before immersive controls lock (3 s cap); all-vehicle control offsets; easier body contact; one-hand heavy restraint, two-hand lift; campaign impact fallback and configured floor slam threshold; 60 m death ragdoll range, 24 rig slots, guarded parent-relative solver; native shield/body slam effects; optional assisted fists and chest grenade throws (local/authorized host); native capsule approach and contact ownership; wrist-anchored scopes and optional aim steady; reload palm/feedback polish; parkour defaults; prior hands, holsters, native animation handoff and recovery retained; device acceptance pending)");
 	platform_log("vr: retained baseline history: HaloCE Quest test30 candidate 1.0.12 (the menus' face buttons as the Xbox's of the same letter: X deletes a profile; the co-op host's server name; test29: OpenCE build 144 netcode, network 21; the HUD head tap held by the temple, HUD and head tap on the HUD page, wrist HUD on the wrist and movable, moving with a hand while holding the gun in both, glasses FOV and resolution to 200%% (PR #1); test28: co-op games entered in progress keep their camera upright, release checks as OpenCE ships, co-op hosted for 2 to 128 players as OpenCE's Server Setup offers, gyro aim on phones as an option; test27: OpenCE build 138 netcode, network 20, with its co-op for up to 16 players; test26: co-op: death screams no longer stop the second player, cutscene characters placed and animated as on the first; HUD head tap, reticle toggle on the left stick click with crouch on the turning stick held down (or crouch kept on the click: Controls), optional wrist HUD, adjustable head taps; impact melee along the gun with a follow-through; fingers bend smoothly against walls; test25: vehicle seat and recentre diagnostics, first-person horizon option and seat glass, settings rows that fit, vehicle offset reset; test24b: comfort vignette, smooth speed and snap angle, SPV1 compatibility note; test24: co-op cutscenes animate for the second player; test23: remappable Quest buttons with the grenade on X; test22: co-op campaign host crash fixed, steady first-person vehicle view, left-hand ammo display, adjustable scopes, shot diagnostics; test21b: floating hands restored, torso-following arms, neck-pivot full body, auto two-hand lock, horn, online melee off, two-hand gun roll, pistol shots from the hand, reticle converges as shots do, per-gun aim, horn from either stick)");
 	if (!config_boolean("vr.enabled"))
 	{
@@ -1252,7 +1252,10 @@ int vr_physical_melee_hand_allowed(int hand)
 	if (!vr.active || hand < 0 || hand > 1 || !(vr.frame.hand_valid[hand] & 1) ||
 		vr_interaction_owner(hand) != VR_INTERACTION_NONE)
 		return 0;
-	return vr_melee_hand_permitted(vr.melee_requires_fist,
+	/* Assistance always means a deliberate fist, including configurations
+	 * loaded directly instead of through the menu's dependency resolver. The
+	 * shared helper preserves ordinary armed-gun melee and owner exclusion. */
+	return vr_melee_hand_permitted(vr.melee_requires_fist || config_boolean("vr.assisted_combat"),
 		config_boolean("vr.npc_interaction") || config_boolean("vr.world_interaction") ||
 			config_boolean("vr.parkour_climb") || config_boolean("vr.vehicle_lift"),
 		hand == vr.weapon_hand && !vr_hand_empty(),
@@ -2604,10 +2607,14 @@ static void steady_aim(void)
 {
 	static const float xr_forward[3] = { 0.0f, 0.0f, -1.0f }, xr_up[3] = { 0.0f, 1.0f, 0.0f };
 	float target[3], up[3], amount, half_life, t, length, seconds;
+	float extra = (float)config_real("vr.aim_steadying");
 	int axis;
 
 	rotate(vr.aim_pose.orientation, xr_forward, target);
 	amount = vr.zoom_level == 0 ? 0.4f : vr.zoom_level >= 1 ? 0.6f : 0.0f;
+	if (isfinite(extra) && extra > 0.0f) amount = fmaxf(amount, fminf(extra, 0.8f));
+	/* A discontinuity is a new pose, never a long catch-up across the view. */
+	if (vr.smoothed_valid && (vr.frame.flags & HALO_XR_FRAME_RECENTRED)) vr.smoothed_valid = 0;
 	if (amount <= 0.0f || !vr.smoothed_valid)
 	{
 		memcpy(vr.smoothed, target, sizeof(target));
@@ -2615,6 +2622,9 @@ static void steady_aim(void)
 		return;
 	}
 	seconds = (float)(vr.frame.predicted_display_period * 1e-9);
+	if (!isfinite(seconds) || seconds <= 0.0f || seconds > 0.1f) {
+		memcpy(vr.smoothed, target, sizeof(target)); return;
+	}
 	half_life = 90.0f * log2f(1.0f - expf(-20.0f * amount / 9.0f));
 	t = 1.0f - exp2f(seconds * half_life);
 	for (axis = 0; axis < 3; axis++)
@@ -4734,6 +4744,26 @@ int vr_scope_view(const float position[3], float out_position[3], float out_forw
 	return 1;
 }
 
+/* The lens follows the gun's final drawn wrist, including gun anchoring,
+ * hand-angle adjustments, left-hand mirroring, wall pullback and gun offsets.
+ * It is neither a separately filtered pose nor a previous frame's anchor. */
+static float scope_wrist_origin[3];
+static double scope_wrist_time = -1;
+void vr_scope_wrist_anchor(float const camera[3],float const wrist[3],float const forward[3])
+{
+    float relative[3],offset[3],local[3],c=cosf(vr.heading),s=sinf(vr.heading);
+    scope_wrist_time=-1;
+    if(!vr.heading_valid||!isfinite(vr.heading)||!(vr.units_per_metre>0))return;
+    for(int k=0;k<3;k++){
+        relative[k]=(wrist[k]-camera[k])/vr.units_per_metre+forward[k]*.075f;
+        if(!isfinite(relative[k]))return;
+    }
+    local[0]=relative[0]*s-relative[1]*c;local[1]=relative[2];local[2]=-(relative[0]*c+relative[1]*s);
+    head_offset(offset);
+    for(int k=0;k<3;k++)scope_wrist_origin[k]=vr.frame.head.position[k]+local[k]-offset[k];
+    scope_wrist_time=vr_pose_time();
+}
+
 static int scope_program_ready(void)
 {
 	if (!scope_program)
@@ -4833,6 +4863,10 @@ static void place_scope(struct halo_xr_layers *layers)
 		local[2] -= adjust[0];
 	}
 	tracked_hand_origin(&vr.aim_pose, origin);
+	if (config_boolean("vr.gun_anchor") && scope_wrist_time == vr_pose_time())
+	{
+		memcpy(origin, scope_wrist_origin, sizeof(origin));
+	}
 	rotate(vr.aim_pose.orientation, local, turned);
 	for (axis = 0; axis < 3; axis++)
 		layers->scope_pose.position[axis] = origin[axis] + turned[axis];

@@ -213,6 +213,15 @@ struct vr_menu_section
 /* Test53: the immersion features' rows, each defined once and shown both
 on its own page and on IMMERSION, which gathers them so they can be set in
 one place (the same setting either way: changing one shows on the other) */
+#define VR_IMMERSION_COMBAT { "FIST COMBAT", "vr.assisted_combat", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_COMBAT_LIGHTS { "HIT HIGHLIGHTS", "vr.combat_highlights", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_COMBAT_REACH { "FIST REACH", "vr.combat_reach", _vr_setting_real, 4, { { "0.75 M", "0.75" }, { "1 M", "1" }, { "1.5 M", "1.5" }, { "2 M", "2" } } }
+#define VR_IMMERSION_AIM_STEADY { "AIM STEADY", "vr.aim_steadying", _vr_setting_real, 5, { { "OFF", "0" }, { "LIGHT", "0.2" }, { "MEDIUM", "0.4" }, { "STRONG", "0.6" }, { "MAX", "0.8" } } }
+#define VR_IMMERSION_GRENADES { "PHYS GRENADES", "vr.physical_grenades", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_GRENADE_FWD { "CHEST FWD", "vr.grenade_chest_forward", _vr_setting_real, 7, { { "8 CM", "0.08" }, { "12 CM", "0.12" }, { "16 CM", "0.16" }, { "20 CM", "0.20" }, { "25 CM", "0.25" }, { "30 CM", "0.30" }, { "40 CM", "0.40" } } }
+#define VR_IMMERSION_GRENADE_DOWN { "CHEST DOWN", "vr.grenade_chest_down", _vr_setting_real, 7, { { "15 CM", "0.15" }, { "20 CM", "0.20" }, { "25 CM", "0.25" }, { "30 CM", "0.30" }, { "40 CM", "0.40" }, { "50 CM", "0.50" }, { "60 CM", "0.60" } } }
+#define VR_IMMERSION_GRENADE_SPREAD { "CHEST SPACING", "vr.grenade_chest_spread", _vr_setting_real, 6, { { "6 CM", "0.06" }, { "10 CM", "0.10" }, { "14 CM", "0.14" }, { "18 CM", "0.18" }, { "24 CM", "0.24" }, { "30 CM", "0.30" } } }
+#define VR_IMMERSION_GRENADE_POWER { "THROW POWER", "vr.grenade_throw_scale", _vr_setting_real, 5, { { "0.5X", "0.5" }, { "0.75X", "0.75" }, { "1X", "1" }, { "1.5X", "1.5" }, { "2X", "2" } } }
 #define VR_IMMERSION_WEAPONS { "WEAPONS", "vr.weapons", _vr_setting_multi, 3, { { "LOCKED", "vr.weapons=locked" }, { "PHYSICAL", "vr.weapons=physical;vr.physical_multiplayer=false" }, { "PHYSICAL + MP", "vr.weapons=physical;vr.physical_multiplayer=true" } } }
 #define VR_IMMERSION_HOLSTERS { "HOLSTERS", "vr.holsters", _vr_setting_multi, 7, { { "OFF", "vr.holsters=false" }, { "10 CM", "vr.holsters=true;vr.holster_size=0.1" }, { "15 CM", "vr.holsters=true;vr.holster_size=0.15" }, { "20 CM", "vr.holsters=true;vr.holster_size=0.2" }, { "25 CM", "vr.holsters=true;vr.holster_size=0.25" }, { "30 CM", "vr.holsters=true;vr.holster_size=0.3" }, { "40 CM", "vr.holsters=true;vr.holster_size=0.4" } } }
 #define VR_IMMERSION_HOLSTER_HAPTICS { "HOLSTER HAPTICS", "vr.holster_haptics", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
@@ -262,6 +271,7 @@ now for everything a hand lifts (NPCs, props, turrets, vehicles) */
 #define VR_IMMERSION_DEATH_RAGDOLLS { "DEATH RAGDOLLS", "vr.death_ragdolls", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 /* Test59: how hard a killing burst or blast throws a death ragdoll
 (vr_npc_impulse.h): CLASSIC is Test56's */
+#define VR_IMMERSION_RAGDOLL_RANGE { "RAGDOLL RANGE", "vr.death_ragdoll_range", _vr_setting_real, 4, { { "20 M", "20" }, { "40 M", "40" }, { "60 M", "60" }, { "80 M", "80" } } }
 #define VR_IMMERSION_DEATH_FORCE { "DEATH FORCE", "vr.death_force", _vr_setting_string, 3, { { "CLASSIC", "classic" }, { "STRONG", "strong" }, { "HUGE", "huge" } } }
 #define VR_IMMERSION_HAPTICS { "HAPTICS", "vr.haptics", _vr_setting_real, 11, { { "0%", "0.0" }, { "10%", "0.1" }, { "20%", "0.2" }, { "30%", "0.3" }, { "40%", "0.4" }, { "50%", "0.5" }, { "60%", "0.6" }, { "70%", "0.7" }, { "80%", "0.8" }, { "90%", "0.9" }, { "100%", "1.0" } } }
 #define VR_IMMERSION_SPRINT_SPEED { "SPRINT SPEED", "vr.sprint_speed", _vr_setting_real, 6, { { "1.0X", "1.0" }, { "1.1X", "1.1" }, { "1.2X", "1.2" }, { "1.3X", "1.3" }, { "1.4X", "1.4" }, { "1.5X", "1.5" } } }
@@ -310,6 +320,7 @@ static struct vr_menu_setting const vr_menu_controls[] =
     VR_IMMERSION_THROW_STRENGTH,
     VR_IMMERSION_DEATH_RAGDOLLS,
     VR_IMMERSION_DEATH_FORCE,
+    VR_IMMERSION_RAGDOLL_RANGE,
     VR_IMMERSION_NPC_RESCUE,
     VR_IMMERSION_NPC_RECOVERY,
     VR_IMMERSION_IMPACT_SPEED,
@@ -341,6 +352,14 @@ static struct vr_menu_setting const vr_menu_controls[] =
 	{ "CONTROLS", "vr.controls", _vr_setting_string, 2, { { "VR", "vr" }, { "XBOX", "pad" } } },
 	/* test26: the left stick's click: the reticle's toggle or crouch, as before */
 	{ "L STICK CLICK", "buttons", _vr_setting_crouch_click, 2, { { "RETICLE", "reticle" }, { "CROUCH", "crouch" } } },
+    VR_IMMERSION_COMBAT,
+    VR_IMMERSION_COMBAT_LIGHTS,
+    VR_IMMERSION_COMBAT_REACH,
+    VR_IMMERSION_GRENADES,
+    VR_IMMERSION_GRENADE_FWD,
+    VR_IMMERSION_GRENADE_DOWN,
+    VR_IMMERSION_GRENADE_SPREAD,
+    VR_IMMERSION_GRENADE_POWER,
 };
 
 static struct vr_menu_setting const vr_menu_body[] =
@@ -397,6 +416,7 @@ itself shown or hidden (as the head tap does) and the head tap's reach or
 off (as on HEAD GESTURES), first; the wrist HUD's place and size */
 static struct vr_menu_setting const vr_menu_hud[] =
 {
+    VR_IMMERSION_AIM_STEADY,
 	{ "HUD", "hud", _vr_setting_hud_shown, 2, { { "SHOWN", "true" }, { "HIDDEN", "false" } } },
 	{ "HEAD TAP", "vr.hud_tap_distance", _vr_setting_real, 6, { { "OFF", "0" }, { "6 CM", "0.06" }, { "8 CM", "0.08" }, { "10 CM", "0.1" }, { "12 CM", "0.12" }, { "15 CM", "0.15" } } },
 	{ "CROSSHAIR", "vr.crosshair", _vr_setting_string, 2, { { "NATIVE", "native" }, { "OFF", "off" } } },
@@ -445,6 +465,9 @@ static struct vr_menu_setting const vr_menu_vehicles[] =
     { "TANK DRIVE", "vr.vehicle_tank_drive", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     /* Test57b: a tank's first-person eyes over its hull, as from an open hatch */
     { "TANK HATCH", "vr.vehicle_tank_hatch", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    { "CTRL REACH", "vr.handle_all_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
+    { "CTRL LEFT", "vr.handle_all_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
+    { "CTRL HEIGHT", "vr.handle_all_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
     { "HOG REACH", "vr.handle_warthog_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
     { "HOG LEFT", "vr.handle_warthog_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
     { "HOG HEIGHT", "vr.handle_warthog_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
@@ -635,6 +658,17 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_FIST_REQUIRED,
 	VR_IMMERSION_SHAKE_COOLING,
 	VR_IMMERSION_PHYSICAL_HANDLES,
+	/* FIST COMBAT */
+	VR_IMMERSION_COMBAT,
+	VR_IMMERSION_COMBAT_LIGHTS,
+	VR_IMMERSION_COMBAT_REACH,
+	VR_IMMERSION_AIM_STEADY,
+	/* GRENADES */
+	VR_IMMERSION_GRENADES,
+	VR_IMMERSION_GRENADE_FWD,
+	VR_IMMERSION_GRENADE_DOWN,
+	VR_IMMERSION_GRENADE_SPREAD,
+	VR_IMMERSION_GRENADE_POWER,
 	/* RELOAD */
 	VR_IMMERSION_MANUAL_RELOAD,
 	VR_IMMERSION_RELOAD_INPUT,
@@ -686,6 +720,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	/* RAGDOLLS */
 	VR_IMMERSION_DEATH_RAGDOLLS,
 	VR_IMMERSION_DEATH_FORCE,
+	VR_IMMERSION_RAGDOLL_RANGE,
 	VR_IMMERSION_BODY_RETENTION,
 	/* ADVANCED */
 	VR_IMMERSION_IMPACT_DAMAGE,
@@ -700,8 +735,8 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
-	{ "WEAPONS", 8 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
-	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 6 }, { "RAGDOLLS", 3 }, { "ADVANCED", 8 },
+	{ "WEAPONS", 8 }, { "FIST COMBAT", 4 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
+	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 6 }, { "RAGDOLLS", 4 }, { "ADVANCED", 8 },
 };
 
 
@@ -719,6 +754,11 @@ static struct vr_menu_dependency
 	boolean soft;
 } const vr_menu_dependency_table[] =
 {
+	{ "vr.assisted_combat", "vr.melee_requires_fist", FALSE },
+	{ "vr.assisted_combat", "vr.melee", FALSE },
+	{ "vr.assisted_combat", "vr.melee_speed", FALSE },
+	{ "vr.assisted_combat", "vr.npc_interaction", TRUE },
+	{ "vr.assisted_combat", "vr.close_contact", TRUE },
 	{ "vr.dropped_magazines", "vr.manual_reload", FALSE },
 	{ "vr.custom_scenery_grab", "vr.world_interaction", FALSE },
 	{ "vr.custom_npc_rigs", "vr.npc_interaction", FALSE },
@@ -768,6 +808,8 @@ static boolean vr_menu_button_sprint_set(boolean enabled);
 (on) and the one it goes back to (off); NULL for a switch */
 static char const *vr_menu_requirement_value(char const *requires, boolean on)
 {
+	if (!strcmp(requires, "vr.melee")) return on ? "impact" : "swing";
+	if (!strcmp(requires, "vr.melee_speed")) return on ? "2.0" : "0";
 	if (!strcmp(requires, "vr.vehicle_view"))
 		return on ? "first_person" : "chase";
 	return NULL;
@@ -777,6 +819,10 @@ static char const *vr_menu_requirement_value(char const *requires, boolean on)
 static boolean vr_menu_requirement_met(struct vr_menu_dependency const *dependency)
 {
 	char const *value = vr_menu_requirement_value(dependency->requires, TRUE);
+	if (!strcmp(dependency->requires, "vr.melee_speed")) {
+		real speed = config_real("vr.melee_speed");
+		return isfinite(speed) && speed > 0.0f;
+	}
 	return value ? (boolean)config_matches(dependency->requires, value) : config_boolean(dependency->requires);
 }
 

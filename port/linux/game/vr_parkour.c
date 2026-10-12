@@ -128,7 +128,7 @@ static long parkour_hit_object(struct collision_result const *hit)
 static real parkour_grab_radius(real units)
 {
 	double metres=config_real("vr.climb_grab_radius");
-	return (real)(isfinite(metres)?PIN(metres,0.04,0.20):0.10)*units;
+	return (real)(isfinite(metres)?PIN(metres,0.04,0.20):0.14)*units;
 }
 /* Test54: a tracked hand is not stopped by walls: pushed into a rock face it
  * is inside the solid, where no surface lies within any radius of it. The
@@ -140,6 +140,7 @@ static boolean parkour_grab_through(long unit,real_point3d const *camera,real_po
 	real_vector3d ray;
 	real length;
 	struct collision_result hit;
+	if(!(radius>0.0f)||!isfinite(radius))return FALSE;
 	vector_from_points3d(camera,hand,&ray);
 	length=magnitude3d(&ray);
 	if(!(length>0.001f)||!isfinite(length))return FALSE;
@@ -147,6 +148,12 @@ static boolean parkour_grab_through(long unit,real_point3d const *camera,real_po
 	memset(&hit,0,sizeof(hit));hit.object_index=NONE;
 	if(!collision_test_vector(PARKOUR_WALL_FLAGS,camera,&ray,unit,&hit)||!(hit.t>=0.0f&&hit.t<=1.0f)||
 		!vr_pk_climbable(hit.plane.n.n,hit.point.z>=waist_z))return FALSE;
+	/* A head-to-hand obstruction is only a contact when the hand is close
+	 * to that face. A deeply penetrating tracked hand must not grab a remote
+	 * wall merely because the longer ray crossed it on the way. */
+	vector_from_points3d(hand,&hit.point,&ray);
+	length=magnitude3d(&ray);
+	if(!isfinite(length)||length>radius)return FALSE;
 	*best=hit;
 	if(best->type!=_collision_result_object)best->object_index=NONE;
 	best->t=0.0f;
@@ -385,7 +392,7 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
     if(config_boolean("vr.parkour_wallrun")&&airborne&&wall_found&&
         (parkour.running?TRUE:throttle>0.6f)&&
         (parkour.running||parkour.jump_age<=PARKOUR_WALLRUN_ENTRY_TICKS||parkour.walljump_age<=2*TICKS_PER_SECOND)&&
-        parkour.run_ticks<vr_pk_bound(config_real("vr.wallrun_duration"),1.5f,0.5f,3)*TICKS_PER_SECOND){
+        parkour.run_ticks<vr_pk_bound(config_real("vr.wallrun_duration"),2.0f,0.5f,3)*TICKS_PER_SECOND){
         real speed=sqrtf(velocity->i*velocity->i+velocity->j*velocity->j);
         real into;
         if(throttle>0.3f){
@@ -403,7 +410,7 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
             /* forward assist: at least the entry speed or 4 m/s, times
              * WALL SPEED, at most 9 m/s */
             real multiplier=vr_pk_bound(config_real("vr.wallrun_speed"),1.25f,1,2);
-            real limit=vr_pk_bound(config_real("vr.wallrun_duration"),1.5f,0.5f,3)*TICKS_PER_SECOND;
+            real limit=vr_pk_bound(config_real("vr.wallrun_duration"),2.0f,0.5f,3)*TICKS_PER_SECOND;
             real progress=PIN((real)parkour.run_ticks/limit,0.0f,1.0f);
             if(!parkour.running)parkour.run_speed=speed;
             speed=vr_pk_bound(fmaxf(parkour.run_speed,4.0f*per_second)*multiplier,4.0f*per_second,2.0f*per_second,9.0f*per_second);

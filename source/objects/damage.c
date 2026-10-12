@@ -119,6 +119,7 @@ symbols in this file:
 #include "interface/hud_unit.h"
 #include "items/items.h"
 #include "items/projectiles.h"
+#include "items/projectile_definitions.h"
 #include "main/console.h"
 #include "math/periodic_functions.h"
 #include "damage_effect_definitions.h"
@@ -2798,6 +2799,60 @@ void damage_get_network_state(
 	state->recent_body_damage = object->object.recent_body_damage;
 	state->current_shield_damage = object->object.current_shield_damage;
 	state->recent_shield_damage = object->object.recent_shield_damage;
+}
+
+
+/* Test62: slams/fists request the victim's own localized effect only after
+ * real body loss. Shield sparks/depletion already come from object_cause_damage.
+ * Stock Elites have no localized effect: borrow the loaded assault-rifle
+ * projectile's response for the BODY material (never a shield/dirt response).
+ * Missing optional art means no effect, never loading a tag during gameplay. */
+void object_cause_contact_damage(struct damage_data *damage, long object_index,
+    short node_index, short region_index, short material_index,
+    real_vector3d const *object_normal)
+{
+    struct object_datum *object=object_try_and_get(object_index);
+    struct object_definition const *definition;
+    struct collision_model const *model;
+    real before_body, before_shield;
+    long effect=NONE;
+    void platform_log(char const *format,...);
+    if(!object || !damage) return;
+    before_body=object->object.body_vitality;
+    before_shield=object->object.shield_vitality;
+    object_cause_damage(damage,object_index,node_index,region_index,material_index,object_normal);
+    object=object_try_and_get(object_index);
+    if(!object) return;
+    platform_log("VR contact damage: target=%08lx tag=%08lx scale=%.3f shield=%.3f->%.3f body=%.3f->%.3f material=%d",
+        object_index,damage->definition_index,(float)damage->scale,(float)before_shield,
+        (float)object->object.shield_vitality,(float)before_body,(float)object->object.body_vitality,damage->material_type);
+    if(object->object.type!=_object_type_biped ||
+        !(object->object.body_vitality<before_body) ||
+        TEST_FLAG(damage->flags,_damage_create_localized_effect_bit)) return;
+    definition=object_definition_get(object->definition_index);
+    if(definition->object.collision_model.index==NONE) return;
+    model=collision_model_definition_get(definition->object.collision_model.index);
+    effect=model->resistance.localized_damage_effect.index;
+    if(effect==NONE){
+        long projectile=tag_loaded(PROJECTILE_DEFINITION_TAG,"weapons\\assault rifle\\bullet");
+        short body_material=material_index;
+        if(!VALID_INDEX(body_material,model->resistance.materials.count))
+            body_material=model->resistance.indirect_damage_material_index;
+        if(projectile!=NONE && VALID_INDEX(body_material,model->resistance.materials.count)){
+            struct damage_resistance_material const *material=TAG_BLOCK_GET_ELEMENT(
+                &model->resistance.materials,body_material,struct damage_resistance_material);
+            struct projectile_definition const *bullet=projectile_definition_get(projectile);
+            if(VALID_INDEX(material->material_type,bullet->projectile.material_responses.count)){
+                struct projectile_material_response_definition const *response=TAG_BLOCK_GET_ELEMENT(
+                    &bullet->projectile.material_responses,material->material_type,struct projectile_material_response_definition);
+                effect=response->default_effect.index;
+            }
+        }
+    }
+    if(effect!=NONE){
+        if(!VALID_INDEX(node_index,model->nodes.count)) node_index=NONE;
+        damage_effect_new_at_location(effect,object_index,node_index,&damage->epicenter,&damage->direction,object_normal);
+    }
 }
 
 /* port (VR, Test62): the damage effect a body thrown or slammed by a hand

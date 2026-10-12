@@ -124,11 +124,12 @@ int vr_articulated_native_sweep(void *context,float const old[3],float radius,fl
         struct collision_result hit;
         int found=FALSE;
         if(collisions>0) {
-            /* Only a confirmed native hit can submit damage. Test55: a floor
-             * counts too, but only for a violent landing (over 6 m/s): a hard
-             * Spartan throw into the ground hurts; ordinary falls stay with
-             * native falling damage (the damage itself is by the speed into
-             * the surface, vr_interaction_impact_scale). Test60: a joint whose
+            /* Only a confirmed native hit can submit damage. Test62: floors
+             * use IMPACT SPEED just like walls; the old fixed 6 m/s cutoff
+             * rejected slams above the player's chosen 4 m/s threshold.
+             * The damage transaction checks speed INTO the surface, so
+             * glancing slides and resting contact cause no damage.
+             * Test60: a joint whose
              * sphere met a surface its centre's path missed (a body slammed
              * flat onto the floor, glancing off a wall: the Test59 log had no
              * impact at all) is probed straight into the face it met. */
@@ -144,8 +145,7 @@ int vr_articulated_native_sweep(void *context,float const old[3],float radius,fl
                 if(valid_real_vector3d(&into))
                     found=collision_test_vector(VR_IMPACT_TEST_FLAGS,&from,&into,rig->unit_index,&hit);
             }
-            if(found && !((hit.type==_collision_result_structure || hit.type==_collision_result_object) &&
-               (hit.plane.n.k<.65f || magnitude3d(&delta)>rig->impact_units*(6.f/30.f))))
+            if(found && hit.type!=_collision_result_structure && hit.type!=_collision_result_object)
                 found=FALSE;
         }
         if(!found) {
@@ -635,7 +635,17 @@ int vr_articulated_native_step(struct vr_articulated_native *rig,float dt,float 
     count=work.body.count;
     if(count<1 || count>VR_ARTICULATED_NODES) return FALSE;
     memset(pinned,0,sizeof(pinned));memset(members,0,sizeof(members));
-    for(n=0;n<count;++n) if(work.group[n]!=n) ++members[work.group[n]];
+    /* Test62: validate transient topology before any indexed constraint
+     * pass. Reject only this tick, leaving the caller's rig intact. */
+    for(n=0;n<count;++n) {
+        struct vr_articulated_node const *node=&work.body.nodes[n];
+        if(work.group[n]<0 || work.group[n]>n ||
+           (n?(node->parent<0 || node->parent>=n):node->parent!=-1) ||
+           !isfinite(node->inverse_mass) || node->inverse_mass<0 ||
+           !isfinite(node->radius) || node->radius<=0 || node->radius>.07f ||
+           !isfinite(node->length) || node->length<0) return FALSE;
+        if(work.group[n]!=n) ++members[work.group[n]];
+    }
     for(n=0;n<count;++n) {
         struct vr_articulated_node *p=&work.body.nodes[n];
         real velocity[3],speed;

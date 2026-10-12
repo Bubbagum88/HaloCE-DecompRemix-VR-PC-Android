@@ -64,7 +64,7 @@ assert 'npc_setting("vr.throw_strength",2.0f,0.75f,2.0f)' in npc and "isfinite(s
 assert "vr_world_throw_peak((float const (*)[3])npc.history[hand]" in npc
 assert "vr_world_throw_peak((float const (*)[3])held->history" in world
 collision = body(impact, "static void apply_collision(")
-assert collision.index("impact_shove(target,victim,velocity,entries[i].mobility,units);") < collision.index("object_cause_damage(&damage,target,")
+assert collision.index("impact_shove(target,victim,velocity,entries[i].mobility,units);") < collision.index("object_cause_contact_damage(&damage,target,")
 
 # Heavy holds: the "heavy hold one hand" line only on a real let-go (it
 # repeated ~100 times a test), the weight felt in the remaining hand, both

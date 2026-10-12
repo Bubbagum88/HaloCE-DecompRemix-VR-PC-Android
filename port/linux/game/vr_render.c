@@ -38,6 +38,7 @@ built from the game's camera and the headset's pose (port/linux/src/vr.h).
 #include "physics/collision_models.h"
 #include "physics/collision_bsp.h"
 #include "vr_parkour.h"
+#include "vr_extra_interaction.h"
 #include "vr_contact_math.h"
 #include "vr_world_interaction.h"
 #include "network_interaction.h"
@@ -1890,6 +1891,7 @@ unsigned long vr_render_actions(
 	vr_note_weapon(unit_index, weapon_index, inventory);
 	vr_manual_reload_note_weapon(weapon_index);
 	vr_parkour_note_unit(unit_index);
+	vr_extra_tick(unit_index);
 	vr_contact_diagnostics();
 	/* test21: the held gun's kind, for its aim adjustment (by its tag's
 	name, looked up when the weapon changes) */
@@ -2032,6 +2034,7 @@ void vr_render_impact_melee(
 	static real_point3d last[2][VR_MELEE_POINTS];
 	static real rest[2];
 	real units = vr_units_per_metre();
+	real melee_threshold = vr_melee_speed();
 	long player_index, unit_index;
 	real_point3d camera;
 	int hand;
@@ -2040,7 +2043,8 @@ void vr_render_impact_melee(
 		return;
 	player_index = local_player_get_player_index(local_player_index);
 	unit_index = player_index != NONE ? player_get(player_index)->unit_index : NONE;
-	if (unit_index == NONE || unit_index != last_unit || !vr_impact_melee() || !vr_aiming() ||
+	if (!isfinite(melee_threshold) || melee_threshold <= 0.0f ||
+		unit_index == NONE || unit_index != last_unit || (!vr_impact_melee() && !vr_combat_enabled()) || !vr_aiming() ||
 		cinematic_in_progress() || director_inhibited_input(local_player_index) ||
 		object_get(unit_index)->object.parent_object_index != NONE ||
 		TEST_FLAG(object_get(unit_index)->object.damage_flags, _object_dead_bit))
@@ -2096,14 +2100,14 @@ void vr_render_impact_melee(
 			point.x += forward.i * along[index] * units;
 			point.y += forward.j * along[index] * units;
 			point.z += forward.k * along[index] * units;
-			if (last_valid[hand][index] && rest[hand] <= 0.0f && speed >= vr_melee_speed())
+			if (last_valid[hand][index] && rest[hand] <= 0.0f && speed >= melee_threshold)
 			{
 				vector_from_points3d(&last[hand][index], &point, &sweep);
 				distance_squared = sweep.i * sweep.i + sweep.j * sweep.j + sweep.k * sweep.k;
 				/* Tracking recovery/teleports are not a punch across the level. */
 				if (isfinite(distance_squared) && distance_squared > 1e-8f && distance_squared < units * units)
 				{
-					real scale = speed / (2.0f * vr_melee_speed()) + 0.25f;
+					real scale = speed / (2.0f * melee_threshold) + 0.25f;
 					real length = (real)sqrt(distance_squared);
 					/* (the swing carried on: test26) */
 					real reach = speed * 0.05f;
@@ -2115,6 +2119,7 @@ void vr_render_impact_melee(
 					sweep.j *= extend;
 					sweep.k *= extend;
 					scale = scale < 0.5f ? 0.5f : scale > 1.5f ? 1.5f : scale;
+                    if (!armed) vr_combat_punch(unit_index,hand,&point,&sweep);
 					if (unit_vr_impact_melee(unit_index, &last[hand][index], &sweep, scale, armed,
 						(armed && index ? 0.05f : 0.035f) * units))
 					{
@@ -2695,7 +2700,10 @@ static void vr_pressure_buzz(
 {
 	real strength;
 
-	if (depth_metres <= 0.0f)
+	/* A gun pressed against geometry reaches this path outside free-hand
+	 * IK too. Preserve the brief reload event on either controller before
+	 * renewing lower-priority continuous surface feedback. */
+	if (depth_metres <= 0.0f || vr_manual_reload_feedback_active(hand) || vr_extra_feedback_active(hand))
 		return;
 	strength = 0.08f + 0.72f * (depth_metres / 0.12f);
 	vr_haptic(hand, strength > 0.8f ? 0.8f : strength, 0.03f);
@@ -3640,7 +3648,32 @@ static void vr_body_plant_feet(long unit, struct object_datum const *object,
 	}
 }
 
-static struct { real_point3d position, elbow; double time; real animated; long unit; boolean valid; } vr_avatar_hands[2];
+static struct { real_point3d position, elbow, palm; double time; real animated; long unit;
+    unsigned long epoch; boolean valid, palm_valid; } vr_avatar_hands[2];
+/* The final wrist is 7.5 cm behind the tracked palm. A held grenade is 3 cm
+ * forward of that palm, after collision and native action blending. */
+static void vr_avatar_palm_note(int hand, real_point3d const *wrist, real_point3d const *knuckle)
+{
+    real units = vr_units_per_metre(); real_vector3d forward;
+    if (hand < 0 || hand > 1) return;
+    vr_avatar_hands[hand].palm_valid = FALSE;
+    vr_avatar_hands[hand].epoch = vr_contact_epoch;
+    if (!knuckle || !(units > 0 && units < 10) || !valid_real_point3d(wrist) || !valid_real_point3d(knuckle)) return;
+    vector_from_points3d(wrist, knuckle, &forward);
+    if (normalize3d(&forward) < .0001f) return;
+    point_from_line3d(wrist, &forward, .105f * units, &vr_avatar_hands[hand].palm);
+    vr_avatar_hands[hand].palm_valid = valid_real_point3d(&vr_avatar_hands[hand].palm);
+}
+int vr_render_palm_point(int hand, long unit, float point[3])
+{
+    double now = vr_pose_time();
+    if (hand < 0 || hand > 1 || !point || unit == NONE || !isfinite(now) ||
+        !vr_avatar_hands[hand].valid || !vr_avatar_hands[hand].palm_valid ||
+        vr_avatar_hands[hand].unit != unit || vr_avatar_hands[hand].time != now ||
+        vr_avatar_hands[hand].epoch != vr_contact_epoch) return 0;
+    memcpy(point, vr_avatar_hands[hand].palm.n, sizeof(vr_avatar_hands[hand].palm.n));
+    return 1;
+}
 
 /* The observer palette keeps every body bone, before the local visibility
  * filter. The biped's own hierarchy/proportions are used, not FP bone indices. */
@@ -3840,15 +3873,18 @@ static void vr_anchor_gun(real_matrix4x3 *matrices, struct animation_graph *grap
 		axes[1][axis] = left.n[axis];
 		axes[2][axis] = up.n[axis];
 	}
-	if (!vr_gun_anchor_update(&anchor, graph, hand, axes, measured, (native_arms & 2) != 0,
+	/* Zero translation is a valid anchor too, not a missing gun. Publish
+	 * its final wrist on every valid draw so the scope never switches to
+	 * the raw controller origin as this correction passes through zero. */
+	if (vr_gun_anchor_update(&anchor, graph, hand, axes, measured, (native_arms & 2) != 0,
 		vr_pose_time(), 0.6f * units, move))
-		return;
-	for (n = 0; n < graph->nodes.count && n < MAXIMUM_NODES_PER_ANIMATION; n++)
-	{
-		matrices[n].position.x += move[0];
-		matrices[n].position.y += move[1];
-		matrices[n].position.z += move[2];
-	}
+		for (n = 0; n < graph->nodes.count && n < MAXIMUM_NODES_PER_ANIMATION; n++)
+		{
+			matrices[n].position.x += move[0];
+			matrices[n].position.y += move[1];
+			matrices[n].position.z += move[2];
+		}
+    vr_scope_wrist_anchor(vr_render.game_camera_position.n,matrices[wrist].position.n,forward.n);
 }
 
 real_matrix4x3 *vr_render_body_matrices(long object_index)
@@ -4519,7 +4555,7 @@ void vr_render_first_person_ik(
 						static float grip_blend[2];
 						static double grip_time[2];
 						int owner = vr_interaction_owner(controller);
-						int gripping = owner == VR_INTERACTION_RELOAD || owner == VR_INTERACTION_VEHICLE;
+						int gripping = owner == VR_INTERACTION_RELOAD || owner == VR_INTERACTION_VEHICLE || owner == VR_INTERACTION_GRENADE;
 						int tracked_fingers = vr_finger_pose(controller, curls);
 						double now = vr_pose_time();
 						real step = (real)(now - grip_time[controller]);
@@ -4543,8 +4579,10 @@ void vr_render_first_person_ik(
 					/* Keep surface haptics on the same collision/animation gate as
 					 * v1.0.18. The separate head-to-hand collision probe could report
 					 * obstruction away from the hand, then renew pressure buzz each frame. */
-					if (pressed && action.weight[side] == 0) vr_pressure_buzz(controller, depth);
-					else if (contacts && action.weight[side] == 0) vr_haptic(controller, 0.05f + 0.05f * contacts, 0.03f);
+					if (!vr_manual_reload_feedback_active(controller) && !vr_extra_feedback_active(controller)) {
+                        if (pressed && action.weight[side] == 0) vr_pressure_buzz(controller, depth);
+                        else if (contacts && action.weight[side] == 0) vr_haptic(controller, 0.05f + 0.05f * contacts, 0.03f);
+                    }
 				}
 				else if (tracking != 1) vr_distribute_arm_twist(matrices, chain, &old_fore, &old_hand, &vr_arm_history[controller]);
 
@@ -4563,6 +4601,11 @@ void vr_render_first_person_ik(
         vr_avatar_hands[controller].unit = unit;
         vr_avatar_hands[controller].time = vr_pose_time();
         vr_avatar_hands[controller].valid = TRUE;
+        short palm_joints[5][3];
+        vr_finger_nodes(graph, chain[2], side ? "r " : "l ", palm_joints);
+        short knuckle = palm_joints[2][0];
+        vr_avatar_palm_note(controller, &matrices[chain[2]].position,
+            knuckle >= 0 && knuckle < graph->nodes.count ? &matrices[knuckle].position : NULL);
     }
     vr_hide_forearms(matrices, graph, left, right);
 }

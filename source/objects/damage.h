@@ -123,6 +123,13 @@ void object_cause_damage(
 	short material_index,
 	real_vector3d const *object_normal);
 
+/* VR contact damage uses the native transaction and authored body effects.
+ * Shields, difficulty, invulnerability and ownership remain native. */
+long damage_globals_impact_effect(void);
+void object_cause_contact_damage(struct damage_data *damage, long object_index,
+    short node_index, short region_index, short material_index,
+    real_vector3d const *object_normal);
+
 /* ---------- globals */
 
 /* ---------- public code */

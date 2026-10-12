@@ -148,3 +148,21 @@ assert row.attrib['setting']=='net.physical_interactions' and row.attrib['values
 assert 'NI_MAGIC=0x56494e31' in s and 'VR_POSE_MAGIC = 0x56525031' in (R/'port/linux/game/network_vr_pose.c').read_text()
 assert '#ifdef HALO_VR' not in s
 print('PASS: separate magic, common flat/VR authority and appended host setting retain existing label indices')
+
+# Test62: the new permission is an appended native co-op setup row; preserve
+# original indices, mouse navigation, persistence and PvP visibility.
+assert labels[17].attrib['text']=='HOST VR ACTIONS'
+widgets={n.attrib['name'].rsplit('/',1)[-1]:n for n in xml.findall('widget')}
+row=widgets['host_vr_actions_spinner']
+assert row.attrib['setting']=='net.host_vr_actions' and row.attrib['values']=='false|true'
+assert {(n.attrib['event'],n.attrib['run']) for n in row.findall('on')} >= {
+    ('created','port setting load'),('deleted','port setting save'),
+    ('left_mouse','mouse spinner 1wide click')}
+assert widgets['host_vr_actions_label'].attrib['string_index']=='17'
+help_strings=next(n for n in xml.findall('strings') if n.attrib['name'].endswith('/help_strings'))
+assert len(help_strings)>25 and 'host' in help_strings[25].attrib['text'].lower()
+menu=(R/'port/linux/game/menu_functions.c').read_text()
+assert 'visible_set(named(list,"op_host_vr_actions",0),cooperative)' in menu
+assert 'list->focused_child==named(list,"op_host_vr_actions",0)' in menu
+assert 'string_list_index=25' in menu
+print('PASS: Test62 host permission native row, help, saved setting, mouse and co-op visibility wiring')

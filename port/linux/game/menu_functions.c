@@ -3086,6 +3086,10 @@ static void server_settings_update(struct widget_instance *list)
 		choice's */
 		visible_set(named(list, "op_player_collisions", 0), cooperative);
 		visible_set(named(list, "op_physical_interactions", 0), cooperative);
+        visible_set(named(list,"op_host_vr_actions",0),cooperative);
+        if(cooperative && list->parameters.list.extended_description &&
+            list->focused_child==named(list,"op_host_vr_actions",0))
+            list->parameters.list.extended_description->parameters.text_box.string_list_index=25;
         if(cooperative && list->parameters.list.extended_description &&
             list->focused_child == named(list, "op_physical_interactions", 0))
             list->parameters.list.extended_description->parameters.text_box.string_list_index = 24;

@@ -178,7 +178,7 @@ static void scale_vector3d(real_vector3d const *v,real s,real_vector3d *o){for(i
 static void cross_product3d(real_vector3d const*a,real_vector3d const*b,real_vector3d*o){real_vector3d r={{a->j*b->k-a->k*b->j,a->k*b->i-a->i*b->k,a->i*b->j-a->j*b->i}};*o=r;}
 '''
 run('anchor_render', common + types + '#include "port/linux/game/vr_gun_anchor.h"\n' + fn(render, 'vr_length') +
-    fn(render, 'vr_unit_vector') + fn(render, 'vr_anchor_gun') + r'''
+    fn(render, 'vr_unit_vector') + 'static void vr_scope_wrist_anchor(float const*c,float const*w,float const*f){(void)c;(void)w;(void)f;}\n' + fn(render, 'vr_anchor_gun') + r'''
 static unsigned seed=11;
 static float rnd(void){seed=seed*1664525u+1013904223u;return (float)((seed>>8)&0xffff)/65535.f;}
 static void pose(real_vector3d*f,real_vector3d*u){real_vector3d a={{rnd()-.5f,rnd()-.5f,rnd()-.5f}},b={{rnd()-.5f,rnd()-.5f,rnd()-.5f}};

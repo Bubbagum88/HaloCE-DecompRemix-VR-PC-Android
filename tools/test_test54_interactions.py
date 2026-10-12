@@ -25,7 +25,7 @@ config = read("port/linux/src/port_config.c")
 
 # NPC acquisition: authored collision model first, then live bone capsules.
 assert "model_node=(short)npc_body_touch(probe,&point,body_reach,units," in npc
-assert 'npc_setting("vr.npc_grab_assist",0.0f,0.0f,0.15f)' in npc
+assert 'npc_setting("vr.npc_grab_assist",0.05f,0.0f,0.15f)' in npc
 assert "body_capsule_hits=%d" in npc
 # Hold strength and throws.
 assert 'npc_setting("vr.npc_hold_strength",1.5f,0.75f,2.5f)' in npc
@@ -46,7 +46,7 @@ assert "inverse_mass=1.0f/(1.0f+0.35f*(real)below[n])" in native
 assert "parkour_grab_through(unit,&camera,&point,parkour_grab_radius(units),waist_z,&hit)" in parkour
 assert "parkour.hand[hand].grace=VR_PK_GRIP_GRACE_TICKS" in parkour
 # Melee: open hand never strikes with a grab/climb feature on.
-assert "vr_melee_hand_permitted(vr.melee_requires_fist," in frame
+assert "vr_melee_hand_permitted(vr.melee_requires_fist || config_boolean(\"vr.assisted_combat\")," in frame
 # Hands: controller authority and eased finger contact.
 assert "real_point3d tracked_hand = hand;" in render
 assert "real length, limit = (vehicle_grip ? 0.10f : 0.06f) * units;" in render

@@ -821,6 +821,46 @@ vr.crosshair_size [real]
 Default: 1.0
 Native crosshair size multiplier (0.25 to 3).
 
+vr.aim_steadying [real]
+Default: 0
+Extra shared gun/shot/scope aim steadying, 0..0.8. Zero preserves stock scope smoothing.
+
+vr.assisted_combat [boolean]
+Default: false
+Optional enemy-only gaze/punch combo assist, local play or a co-op host. Native collision and damage remain in use.
+
+vr.combat_highlights [boolean]
+Default: true
+Highlight a locked enemy head/chest and show stun/impact feedback with assisted combat.
+
+vr.combat_reach [real]
+Default: 1.5
+Maximum fist-combat acquisition distance in metres, 0.75..2.0.
+
+vr.physical_grenades [boolean]
+Default: false
+Grab a chest grenade with a free hand and release Grip to throw. Local play and co-op host only; buttons remain available.
+
+vr.grenade_chest_forward [real]
+Default: 0.16
+Grenade chest forward distance from the head in metres, 0.08..0.4.
+
+vr.grenade_chest_down [real]
+Default: 0.30
+Grenade chest distance below the head in metres, 0.15..0.6.
+
+vr.grenade_chest_spread [real]
+Default: 0.14
+Chest grenade half spacing in metres, 0.06..0.3. Frag left, plasma right.
+
+vr.grenade_throw_scale [real]
+Default: 1.0
+Physical grenade hand momentum multiplier, 0.5..2.0; final speed capped at 15 m/s.
+
+net.host_vr_actions [boolean]
+Default: false
+Co-op host permission for its optional fist assist and physical chest grenades. Requires Physical Interactions and all peers negotiated. Guests retain standard controls.
+
 vr.crosshair_opacity [real]
 Default: 1.0
 Native crosshair opacity (0 to 1). Does not change the menu pointer.
@@ -1169,7 +1209,7 @@ Default: 1.25
 Wallrun speed multiplier, 1..2.
 
 vr.wallrun_duration [real]
-Default: 1.5
+Default: 2.0
 Maximum wallrun duration in seconds, 0.5..3.
 
 vr.walljump_scale [real]
@@ -1219,6 +1259,18 @@ TANK HATCH (off by default): in a tank's first-person driver seat (Scorpion, Wra
 vr.vehicle_banshee_slide [boolean]
 Default: true
 BANSH SLIDE: the Banshee's immersive flight bar also turns when slid sideways (12 cm is full lock), as well as when rolled; off, rolling alone turns it.
+
+vr.handle_all_forward [real]
+Default: 0.0
+Moves all immersive vehicle controls forward, in metres. Added to each vehicle's own adjustment, combined limit -0.50 to 0.50 m. COMFORT REACH still limits final reach.
+
+vr.handle_all_left [real]
+Default: 0.0
+Moves all immersive vehicle controls left, in metres. Added to each vehicle's own adjustment, combined limit -0.50 to 0.50 m. COMFORT REACH still limits final reach.
+
+vr.handle_all_up [real]
+Default: 0.0
+Moves all immersive vehicle controls up, in metres. Added to each vehicle's own adjustment, combined limit -0.50 to 0.50 m. COMFORT REACH still limits final reach.
 
 vr.handle_warthog_forward [real]
 Default: 0.0
@@ -1357,8 +1409,8 @@ Default: false
 Optional solo VR physical reload for supported weapons. The USE/RELOAD action drops the magazine (it never reloads automatically while this is on); take a fresh one from a hip or shoulder pouch, push it into the well, and charge the gun only if the chamber was empty. Unsupported weapons keep the stock reload.
 
 vr.npc_grab_assist [real]
-Default: 0.0
-Extra reach in metres (0 to 0.15) added to an NPC's body volumes when grabbing it. 0 (natural) needs the hand to touch the body.
+Default: 0.05
+Extra reach in metres (0 to 0.15) added to an NPC's body volumes when grabbing it. Default 0.05 adds 5 cm; 0 keeps the closer touch setting. Existing saved choices are preserved.
 
 vr.npc_hold_strength [real]
 Default: 1.5
@@ -1369,7 +1421,7 @@ Default: 2.0
 Multiplier on the hand's release velocity for thrown props and NPCs (0.75 to 2.0; 2.0 by default).
 
 vr.climb_grab_radius [real]
-Default: 0.10
+Default: 0.14
 How far in metres (0.04 to 0.20) from a solid surface a squeezed free hand still grips it for climbing; a hand pushed into a wall grips its surface.
 
 vr.immersion_auto [string]
@@ -1379,6 +1431,10 @@ Written by VR Settings: the settings it turned on only because an immersion feat
 vr.death_ragdolls [boolean]
 Default: false
 Solo (and co-op host): NPCs killed nearby fall as physical ragdolls carrying their momentum, then rest as grabbable corpses. Uses the NPC RIG SLOTS pool.
+
+vr.death_ragdoll_range [real]
+Default: 60.0
+Death ragdoll distance from a local player in metres (20 to 80, default 60). The existing NPC RIG SLOTS and settling limits still apply; lower this on busy maps if needed.
 
 vr.death_force [string]
 Default: "strong"

@@ -56,7 +56,7 @@ static float dot_product3d(real_vector3d const*a,real_vector3d const*b){return a
 static void normalize3d(real_vector3d*v){float l=sqrtf(dot_product3d(v,v));if(l>0)for(int i=0;i<3;++i)v->n[i]/=l;}
 static void scale_vector3d(real_vector3d const*v,float s,real_vector3d*o){for(int i=0;i<3;++i)o->n[i]=v->n[i]*s;}
 static void damage_data_new(struct damage_data*d,long i){damage_tag=i;memset(d,0,sizeof(*d));}
-static void object_cause_damage(struct damage_data*d,long target,int node,int region,int material,real_vector3d const*n){(void)n;assert(node>=-1&&region>=-1&&material>=-1);damage_calls++;damaged=target;damage_owner=d->owner_object_index;damage_scale=d->scale;}
+static void object_cause_contact_damage(struct damage_data*d,long target,int node,int region,int material,real_vector3d const*n){(void)n;assert(node>=-1&&region>=-1&&material>=-1);damage_calls++;damaged=target;damage_owner=d->owner_object_index;damage_scale=d->scale;}
 void platform_log(char const*f,...){(void)f;}
 /* Test56: the struck body's shove (before its damage) */
 struct object_definition {struct {float acceleration_scale;} object;};
@@ -115,6 +115,15 @@ int main(void) {
  vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_tag==12);
  {int before=damage_calls;globals_impact=NONE;tick+=10;
   vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_calls==before);unarmed_weapon_melee=9;globals_impact=12;}
+ /* Test62: 5 m/s floor slam damages at IMPACT SPEED 4; a high-speed
+    sideways scrape with only 1 m/s into the floor does not. */
+ {int before=damage_calls;threshold=4;cap=1;tick+=10;
+  objects[1].object.type=_object_type_biped;hit.type=_collision_result_structure;
+  hit.plane.n.i=0;hit.plane.n.j=0;hit.plane.n.k=1;velocity.i=0;velocity.j=0;velocity.k=-5.f/30.f;
+  vr_interaction_impact_track(1,0,1,1);vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_calls==before+1);
+  tick+=10;velocity.i=20.f/30.f;velocity.k=-1.f/30.f;
+  vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_calls==before+1);
+ }
  enabled=0;vr_interaction_impact_track(1,0,1,1);assert(!entries[0].active);
  puts("PASS: production impact authority, deferred collision damage, native attribution, kinetic weights/cap, expiry/debounce, world/self hits, reset and finite guards; Test56 struck bodies shoved by the blow; Test61 the unarmed melee blow when the unit has none of its own (the Master Chief); Test62 the globals' falling damage where there is no unarmed melee weapon (the campaign)");
 }
