@@ -75,6 +75,19 @@ static int vr_vehicle_handles_enabled(long unit)
         vr_render.seat.seated && vr_render.seat.driver && vr_render.seat.unit_index==unit &&
         !vr_render.cinematic_view;
 }
+/* Test61: the seat's eyes held still while the immersive controls are up
+ * (a second after boarding, once the controls are placed): the driver's
+ * head marker leans with the steering animation and the bumps, and the eyes,
+ * the hands placed from them, eased after it (vr_render.c
+ * vr_seat_steady_anchor) while the controls stayed on the vehicle: turning
+ * the wheel leant the driver, which moved the hands on it. The vehicle's own
+ * motion is still followed whole. */
+static int vr_vehicle_handles_steady(void)
+{
+    return vr_wheel.valid && vr_wheel.unit!=NONE && vr_wheel.vehicle==vr_render.seat.vehicle_index &&
+        vr_wheel.seat==vr_render.seat.seat_index && vr_pose_time()-vr_wheel.since>1.0 &&
+        vr_vehicle_handles_enabled(vr_wheel.unit);
+}
 static real_point3d vr_wheel_point(real x,real y,real z)
 {
     real_point3d p=vr_wheel.center;
@@ -95,65 +108,81 @@ static int vr_wheel_valid_frame(real_matrix4x3 const *m)
         !isfinite(m->left.n[i]) || !isfinite(m->up.n[i])) return 0;
     return 1;
 }
-/* Test59: in front of the chest: 35 cm ahead of and 40 cm below the eyes,
- * in the vehicle's frame */
+/* Test59: in front of the chest: 35 cm ahead of and 40 cm below the eyes */
 #define VR_CHEST_AHEAD 0.35f
 #define VR_CHEST_BELOW 0.40f
 /* Test59: COMFORT REACH: no control farther than this from the eyes */
 #define VR_COMFORT_REACH 0.55f
+/* Test61: a control's own place farther than this from the eyes is a
+ * marker gone wrong (the Scorpion's 2.2 m in Test58): in front of the chest
+ * instead. Test59's metre sat on the Warthog's own wheel, 96 to 99 cm from
+ * the eyes in the owner's Test60 log, so the wheel jumped between there and
+ * the chest as the driver swayed. */
+#define VR_FAR_REACH 1.5f
+/* Test61: the controls are placed where the hands are tracked: from the
+ * seat's eyes (vr_render.game_camera_position, held still while they are
+ * up: vr_vehicle_handles_steady), in the hands' own level frame turned to
+ * the seat's heading (vr_frame.c hand_view). Test56 to Test60 placed them on
+ * the vehicle's body, which pitches and rolls under the hands (the owner's
+ * Test60 video, HORIZON LEVEL: the Warthog's wheel rolled under still hands,
+ * the roll read as steering and the grip slid), and the eyes they were
+ * measured from swayed with the driver's steering animation. Where they sit
+ * is decided once on boarding (vr_wheel.local, from the eyes, in this frame
+ * then: on the vehicle's own controls at that moment), so they never jump. */
+static void vr_wheel_hand_frame(real_matrix4x3 const *root,real_point3d const *head,real_matrix4x3 *frame)
+{
+    float heading[3];
+    *frame=*root;
+    if(vr_heading_forward(heading)) {frame->forward.i=heading[0];frame->forward.j=heading[1];}
+    frame->forward.k=0.0f;
+    if(!(normalize3d(&frame->forward)>0.0f)) frame->forward=root->forward;
+    frame->up.i=frame->up.j=0.0f;frame->up.k=1.0f;
+    cross_product3d(&frame->up,&frame->forward,&frame->left);
+    if(!(normalize3d(&frame->left)>0.0f)) frame->left=root->left;
+    frame->position=*head;
+}
 static void vr_wheel_place(real_matrix4x3 const *root)
 {
     real units=vr_units_per_metre();
     real_point3d head=vr_render.game_camera_position;
-    int head_ok=valid_real_point3d(&head);
-    vr_wheel.root=*root;
+    real_matrix4x3 frame;
+    real offset[3];
+    if(!valid_real_point3d(&head)) return;
+    vr_wheel_hand_frame(root,&head,&frame);
+    vr_wheel.root=frame;
+    for(int part=0;part<3;part++) offset[part]=vr_wheel.local[part]+vr_wheel.user[part];
     vr_wheel.far=0;
-    /* Test59: the stick and the bar (and a control without markers) are
-     * placed from the eyes as they are now, each frame: Test58 took the eyes
-     * once, half a second after boarding, while the Scorpion's boarding
-     * animation still had the driver climbing in, and its stick stayed 2.2 m
-     * from where the driver ended up (the owner's log) */
-    if(vr_wheel.head_anchored && head_ok) {
-        vr_wheel.center=head;
-        for(int axis=0;axis<3;axis++)vr_wheel.center.n[axis]+=root->forward.n[axis]*(VR_CHEST_AHEAD*units+vr_wheel.user[0])+
-            root->left.n[axis]*vr_wheel.user[1]+root->up.n[axis]*(vr_wheel.user[2]-VR_CHEST_BELOW*units);
-    } else {
-        vr_wheel.center=root->position;
-        for(int axis=0;axis<3;axis++)vr_wheel.center.n[axis]+=root->forward.n[axis]*(vr_wheel.local[0]+vr_wheel.user[0])+
-            root->left.n[axis]*(vr_wheel.local[1]+vr_wheel.user[1])+root->up.n[axis]*(vr_wheel.local[2]+vr_wheel.user[2]);
+    if(vr_wheel.head_anchored || !(sqrtf(offset[0]*offset[0]+offset[1]*offset[1]+offset[2]*offset[2])<=VR_FAR_REACH*units)) {
+        vr_wheel.far=!vr_wheel.head_anchored;
+        offset[0]=VR_CHEST_AHEAD*units+vr_wheel.user[0];
+        offset[1]=vr_wheel.user[1];
+        offset[2]=vr_wheel.user[2]-VR_CHEST_BELOW*units;
     }
+    vr_wheel.center=head;
+    for(int axis=0;axis<3;axis++)vr_wheel.center.n[axis]+=frame.forward.n[axis]*offset[0]+frame.left.n[axis]*offset[1]+frame.up.n[axis]*offset[2];
     {
         real along;
-        for(int n=0;n<3;n++)vr_wheel.normal.n[n]=root->forward.n[n]*vr_wheel.axis[0]+root->left.n[n]*vr_wheel.axis[1]+root->up.n[n]*vr_wheel.axis[2];
-        if(!(normalize3d(&vr_wheel.normal)>0.0f)) {vr_wheel.normal=root->forward;vr_wheel.normal.i=-vr_wheel.normal.i;vr_wheel.normal.j=-vr_wheel.normal.j;vr_wheel.normal.k=-vr_wheel.normal.k;}
-        along=dot_product3d(&root->left,&vr_wheel.normal);
-        for(int c=0;c<3;c++)vr_wheel.plane_left.n[c]=root->left.n[c]-vr_wheel.normal.n[c]*along;
-        if(!(normalize3d(&vr_wheel.plane_left)>0.0f)) vr_wheel.plane_left=root->left;
+        for(int n=0;n<3;n++)vr_wheel.normal.n[n]=frame.forward.n[n]*vr_wheel.axis[0]+frame.left.n[n]*vr_wheel.axis[1]+frame.up.n[n]*vr_wheel.axis[2];
+        if(!(normalize3d(&vr_wheel.normal)>0.0f)) {vr_wheel.normal=frame.forward;vr_wheel.normal.i=-vr_wheel.normal.i;vr_wheel.normal.j=-vr_wheel.normal.j;vr_wheel.normal.k=-vr_wheel.normal.k;}
+        along=dot_product3d(&frame.left,&vr_wheel.normal);
+        for(int c=0;c<3;c++)vr_wheel.plane_left.n[c]=frame.left.n[c]-vr_wheel.normal.n[c]*along;
+        if(!(normalize3d(&vr_wheel.plane_left)>0.0f)) vr_wheel.plane_left=frame.left;
         cross_product3d(&vr_wheel.plane_left,&vr_wheel.normal,&vr_wheel.plane_up);
     }
     /* Test57: the Warthog's drawn wheel sits 2.5 cm in front of the model's
-     * own (toward the driver), so it is seen and taken whole; hidden
-     * (VIRTUAL WHEEL), it is taken on the model's own wheel */
-    if(vr_wheel.kind==0 && vr_wheel.wheel_front && !vr_wheel.head_anchored)
+     * own (toward the driver), so it is seen and taken whole */
+    if(vr_wheel.kind==0 && vr_wheel.wheel_front && !vr_wheel.head_anchored && !vr_wheel.far)
         for(int front=0;front<3;front++)vr_wheel.center.n[front]+=vr_wheel.normal.n[front]*0.025f*units;
-    /* Test59: a control on the vehicle's own place that is out of reach of
-     * the eyes this frame: over a metre, it is put in front of the chest;
-     * past COMFORT REACH (55 cm), it comes in toward the eyes along the same
-     * line (the Warthog's wheel was 74 to 97 cm from the eyes and the
-     * Ghost's bar 71 cm in the owner's log: arms stretched, grabs missed).
-     * A hidden Warthog wheel stays on the model's wheel. */
-    if(head_ok && !vr_wheel.head_anchored) {
+    /* Test59: COMFORT REACH: past 55 cm from the eyes a control comes in
+     * toward them along the same line (the Warthog's wheel ~97 cm, the
+     * Ghost's bar 71 cm: arms stretched, grabs missed). A hidden Warthog
+     * wheel stays on the model's wheel. */
+    if(vr_wheel.comfort && !vr_wheel.head_anchored && !vr_wheel.far && !(vr_wheel.kind==0 && !vr_wheel.wheel_front)) {
         real_vector3d to;real gap;
         vector_from_points3d(&head,&vr_wheel.center,&to);
         gap=magnitude3d(&to);
-        if(!(gap<=1.0f*units)) {
-            vr_wheel.far=1;
-            vr_wheel.center=head;
-            for(int axis=0;axis<3;axis++)vr_wheel.center.n[axis]+=root->forward.n[axis]*(VR_CHEST_AHEAD*units+vr_wheel.user[0])+
-                root->left.n[axis]*vr_wheel.user[1]+root->up.n[axis]*(vr_wheel.user[2]-VR_CHEST_BELOW*units);
-        } else if(vr_wheel.comfort && !(vr_wheel.kind==0 && !vr_wheel.wheel_front) && gap>VR_COMFORT_REACH*units) {
+        if(gap>VR_COMFORT_REACH*units)
             for(int axis=0;axis<3;axis++)vr_wheel.center.n[axis]=head.n[axis]+to.n[axis]*(VR_COMFORT_REACH*units/gap);
-        }
     }
     for(int h=0;h<2;h++) {
         real sign=h?-1:1,angle=vr_wheel.angle;
@@ -249,16 +278,21 @@ static int vr_vehicle_handles_prepare(long unit_index)
          * drivers' hands are inside the hull, 2 m off in the owner's log), as
          * does a control without markers. Test59: placed from the eyes each
          * frame (vr_wheel_place), not from where the eyes were at boarding;
-         * any other control farther than a metre from the eyes in a frame is
-         * put there too, and past COMFORT REACH comes in toward the eyes */
+         * any other control farther than 1.5 m from the eyes (Test61; a
+         * metre before) is put there too, and past COMFORT REACH comes in
+         * toward the eyes */
         vr_wheel.head_anchored=kind==2 || kind==3 || !contacts;
         if(kind!=2 && kind!=3 && !contacts)
             platform_log("vr: immersive %s %s: no authored contacts; placed in front of the chest",
                 vr_wheel_keys[kind],vr_wheel_profiles[kind].control);
+        {
+        /* Test61: measured in the hands' frame (vr_wheel_place) */
+        real_matrix4x3 hands;
+        vr_wheel_hand_frame(&nodes[0],&head,&hands);
         if(vr_wheel.head_anchored) {
             for(int i=0;i<3;i++)
-                center.n[i]=head.n[i]+nodes[0].forward.n[i]*VR_CHEST_AHEAD*units-nodes[0].up.n[i]*VR_CHEST_BELOW*units;
-            normal.i=-nodes[0].forward.i;normal.j=-nodes[0].forward.j;normal.k=-nodes[0].forward.k;
+                center.n[i]=head.n[i]+hands.forward.n[i]*VR_CHEST_AHEAD*units-hands.up.n[i]*VR_CHEST_BELOW*units;
+            normal.i=-hands.forward.i;normal.j=-hands.forward.j;normal.k=-hands.forward.k;
             if(kind!=0 || !contacts) vr_wheel.radius=(kind==0?0.17f:0.20f)*units;
             anchored="in front of the chest, from the eyes each frame";
         }
@@ -267,13 +301,15 @@ static int vr_vehicle_handles_prepare(long unit_index)
         vector_from_points3d(&head,&center,&delta);
         head_gap=magnitude3d(&delta)/units;
         vr_wheel.head_gap=head_gap;vr_wheel.anchored=anchored;
-        vector_from_points3d(&nodes[0].position,&center,&delta);
-        vr_wheel.local[0]=dot_product3d(&delta,&nodes[0].forward);
-        vr_wheel.local[1]=dot_product3d(&delta,&nodes[0].left);
-        vr_wheel.local[2]=dot_product3d(&delta,&nodes[0].up);
-        vr_wheel.axis[0]=dot_product3d(&normal,&nodes[0].forward);
-        vr_wheel.axis[1]=dot_product3d(&normal,&nodes[0].left);
-        vr_wheel.axis[2]=dot_product3d(&normal,&nodes[0].up);
+        /* Test61: from the eyes, in the hands' frame as the vehicle is now
+         * (on its own controls), kept there (vr_wheel_place) */
+        vr_wheel.local[0]=dot_product3d(&delta,&hands.forward);
+        vr_wheel.local[1]=dot_product3d(&delta,&hands.left);
+        vr_wheel.local[2]=dot_product3d(&delta,&hands.up);
+        vr_wheel.axis[0]=dot_product3d(&normal,&hands.forward);
+        vr_wheel.axis[1]=dot_product3d(&normal,&hands.left);
+        vr_wheel.axis[2]=dot_product3d(&normal,&hands.up);
+        }
         if(!isfinite(vr_wheel.local[0])||!isfinite(vr_wheel.local[1])||!isfinite(vr_wheel.local[2])||!isfinite(vr_wheel.radius)||
            !isfinite(vr_wheel.axis[0])||!isfinite(vr_wheel.axis[1])||!isfinite(vr_wheel.axis[2]))return 0;
         vr_wheel.valid=1;
@@ -363,7 +399,7 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
         vr_wheel.log_pending=0;
     }
     if(vr_wheel.far && !vr_wheel.far_logged) {
-        platform_log("vr: immersive %s %s: its place on the vehicle is over a metre from the eyes; placed in front of the chest",
+        platform_log("vr: immersive %s %s: its place on the vehicle is over 1.5 m from the eyes; placed in front of the chest",
             vr_wheel_keys[vr_wheel.kind],vr_wheel_profiles[vr_wheel.kind].control);
         vr_wheel.far_logged=1;
     }

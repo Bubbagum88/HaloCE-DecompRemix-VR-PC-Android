@@ -1,7 +1,8 @@
 #ifndef HALO_VR_NPC_INTERACTION_H
 #define HALO_VR_NPC_INTERACTION_H
 #include "math/real_math.h"
-#define VR_NPC_INTERACTION_POOL_SIZE 16
+/* Test61: 24 (16 before): the owner asked for more bodies at once */
+#define VR_NPC_INTERACTION_POOL_SIZE 24
 void vr_npc_interaction_tick(void);
 void vr_npc_interaction_reset(void);
 void vr_npc_interaction_cancel(void);

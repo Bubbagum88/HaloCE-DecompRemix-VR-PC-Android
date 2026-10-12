@@ -982,7 +982,7 @@ static const struct config_setting config_settings[] =
 		"Solo-only fallback for otherwise-unprofiled human, Covenant, and combat-form actors with grounded native biped capsules and a valid authored joint graph. The VR menu also enables NPC GRAB. Existing species profiles are unchanged; flying, swarm, scripted, unsafe, and malformed rigs remain refused." },
 	{ "vr.npc_rescue", _config_boolean, "false", "HALO_VR_NPC_RESCUE", _environment_value, _platform_vr,
 		"Optional solo VR recovery for eligible live encounter NPCs falling unsupported for 10 seconds. Returns them to a clear last-grounded pose; does not respawn, revive, or override active scripts." },
-	{ "vr.npc_max_ragdolls", _config_integer, "8", "HALO_VR_NPC_MAX_RAGDOLLS", _environment_value, _platform_all | _platform_vr,
+	{ "vr.npc_max_ragdolls", _config_integer, "24", "HALO_VR_NPC_MAX_RAGDOLLS", _environment_value, _platform_all | _platform_vr,
 		"Maximum simultaneously active physical NPC interaction rigs (1-16), including settling/recovery. New configurations default to 8 for performance. This controls mod interaction rigs, separately from BODY RETENTION." },
 	{ "vr.ragdoll_retention", _config_integer, "75", "HALO_VR_RAGDOLL_RETENTION", _environment_value, _platform_vr,
 		"Solo campaign only: active-garbage cleanup trigger per 16 players. 75 (default) uses a 75 trigger / 45 target; 100 uses 100 / 60; 0 keeps OpenCE's 50 / 30. Corpses share this pool with other garbage, and memory/object pressure can still collect sooner. Multiplayer always uses native thresholds." },

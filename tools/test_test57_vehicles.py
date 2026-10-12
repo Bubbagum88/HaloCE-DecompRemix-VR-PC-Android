@@ -28,7 +28,7 @@ assert "contact_radius+=vr_wheel_profiles[vr_wheel.kind].extra-0.04f;" in handle
 assert '{"handlebar",0.06f}' in handles and 'PIN(dot_product3d(&ap,&ab)/length2,-0.5f,1.15f)' in handles
 
 # the Warthog's wheel: drawn 2.5 cm in front of the model's; hidden, on it
-assert "if(vr_wheel.kind==0 && vr_wheel.wheel_front && !vr_wheel.head_anchored)" in handles
+assert "if(vr_wheel.kind==0 && vr_wheel.wheel_front && !vr_wheel.head_anchored && !vr_wheel.far)" in handles
 assert 'vr_wheel.wheel_front=config_boolean("vr.vehicle_wheel_visible");' in handles
 assert "if(out>=0.4f*radius && out<=radius) return fabsf(along);" in handles, "the wheel's face takes a hand"
 
@@ -55,8 +55,11 @@ assert 'anchored at %s, %.0f cm from the eyes' in handles
 assert "vr_wheel.head_anchored=kind==2 || kind==3 || !contacts;" in handles
 place = handles[handles.index("static void vr_wheel_place("):]
 place = place[:place.index("\n}\n")]
-assert "if(vr_wheel.head_anchored && head_ok) {" in place and "if(!(gap<=1.0f*units)) {" in place
-assert "else if(vr_wheel.comfort && !(vr_wheel.kind==0 && !vr_wheel.wheel_front) && gap>VR_COMFORT_REACH*units) {" in place
+# Test61: from the seat's eyes in the hands' frame; a place past 1.5 m (a
+# metre before: the Warthog's own wheel sat on it) falls back to the chest
+assert "if(vr_wheel.head_anchored || !(sqrtf(offset[0]*offset[0]+offset[1]*offset[1]+offset[2]*offset[2])<=VR_FAR_REACH*units)) {" in place
+assert "if(vr_wheel.comfort && !vr_wheel.head_anchored && !vr_wheel.far && !(vr_wheel.kind==0 && !vr_wheel.wheel_front)) {" in place
+assert "if(gap>VR_COMFORT_REACH*units)" in place
 assert '{ "vr.vehicle_comfort_reach", _config_boolean, "true",' in config
 assert '{ "COMFORT REACH", "vr.vehicle_comfort_reach", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },' in menu
 # Test59: real first-person hands in vehicles: the stowed weapon lends its

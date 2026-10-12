@@ -27,7 +27,16 @@ for row in ('{ "vr.death_ragdolls", "vr.npc_interaction", TRUE }',
             '{ "vr.vehicle_lift", "vr.interaction_damage", TRUE }',
             '{ "vr.holster_haptics", "vr.holsters", TRUE }',
             '{ "vr.vehicle_steer_haptics", "vr.vehicle_handles", TRUE }',
-            '{ "vr.vehicle_tank_drive", "vr.vehicle_handles", TRUE }'):
+            '{ "vr.vehicle_tank_drive", "vr.vehicle_handles", TRUE }',
+            # Test61: the owner's Test60 session: IMMERSIVE VEHICLE on left VIEW in third person
+            '{ "vr.vehicle_handles", "vr.vehicle_view", FALSE }',
+            '{ "vr.vehicle_tank_hatch", "vr.vehicle_view", TRUE }',
+            '{ "vr.vehicle_warthog_hide_glass", "vr.vehicle_view", TRUE }',
+            '{ "vr.reload_shoulder", "vr.manual_reload", TRUE }',
+            '{ "vr.reload_hip", "vr.manual_reload", TRUE }',
+            '{ "vr.button_sprint_toggle", "vr.button_sprint", TRUE }',
+            '{ "vr.npc_interaction", "vr.custom_npc_rigs", TRUE }',
+            '{ "vr.world_interaction", "vr.custom_scenery_grab", TRUE }'):
     assert row in resolver, row
 
 # Impacts: a sphere contact is probed into the face it met; bodies and
@@ -54,8 +63,11 @@ static struct { char const *key; int on; } store[] = {
     {"vr.custom_npc_rigs",0},{"vr.custom_scenery_grab",0},{"vr.dropped_magazines",0},{"vr.manual_reload",0},
     {"vr.holster_haptics",1},{"vr.holsters",1},{"vr.vehicle_handles",0},{"vr.vehicle_wheel_visible",1},
     {"vr.vehicle_control_glow",1},{"vr.vehicle_steer_haptics",1},{"vr.vehicle_comfort_reach",1},
-    {"vr.vehicle_tank_drive",1},{"vr.vehicle_banshee_slide",1}};
-static char automatic_store[256];
+    {"vr.vehicle_tank_drive",1},{"vr.vehicle_banshee_slide",1},{"vr.vehicle_tank_hatch",0},
+    {"vr.vehicle_warthog_hide_glass",0},{"vr.reload_shoulder",0},{"vr.reload_hip",0},
+    {"vr.button_sprint_toggle",0},{"vr.button_sprint",0}};
+static char automatic_store[256], view_store[32] = "chase";
+static int sprint_setter_calls;
 static int *slot(char const *key)
 { for (unsigned i = 0; i < NUMBEROF(store); i++) if (!strcmp(store[i].key, key)) return &store[i].on; assert(0); return 0; }
 static boolean config_boolean(char const *key) { return *slot(key); }
@@ -63,13 +75,24 @@ static void config_write_boolean(char const *key, boolean on) { *slot(key) = on;
 static char const *config_string(char const *key) { assert(!strcmp(key, "vr.immersion_auto")); return automatic_store; }
 static void config_write_string(char const *key, char const *value) { (void)key; snprintf(automatic_store, sizeof automatic_store, "%s", value); }
 static void platform_log(char const *f, ...) { (void)f; }
+static int config_matches(char const *key, char const *text) { assert(!strcmp(key, "vr.vehicle_view")); return !strcmp(view_store, text); }
+static int config_write_text(char const *key, char const *text) { assert(!strcmp(key, "vr.vehicle_view")); snprintf(view_store, sizeof view_store, "%s", text); return 1; }
 ''' + resolver + r'''
+static boolean vr_menu_button_sprint_set(boolean enabled) { sprint_setter_calls++; config_write_boolean("vr.button_sprint", enabled); return TRUE; }
+''' + r'''
 /* a menu row turned on or off by hand: written, then the resolver */
 static void choose(char const *key, int on)
 {
     struct vr_menu_setting row = { "ROW", key, _vr_setting_boolean };
     config_write_boolean(key, on);
     vr_menu_dependencies(&row, on ? "true" : "false");
+}
+/* VIEW chosen by hand */
+static void choose_view(char const *view)
+{
+    struct vr_menu_setting row = { "VIEW", "vr.vehicle_view", 2 };
+    config_write_text("vr.vehicle_view", view);
+    vr_menu_dependencies(&row, view);
 }
 int main(void)
 {
@@ -78,6 +101,8 @@ int main(void)
     choose("vr.death_ragdolls", 1);
     assert(config_boolean("vr.npc_interaction") && config_boolean("vr.npc_rescue") &&
            config_boolean("vr.interaction_damage") && config_boolean("vr.melee_requires_fist"));
+    /* Test61: and, through NPC GRAB, CUSTOM NPC RIGS */
+    assert(config_boolean("vr.custom_npc_rigs"));
     /* the player may turn one off; it stays off */
     choose("vr.npc_rescue", 0);
     assert(!config_boolean("vr.npc_rescue") && config_boolean("vr.death_ragdolls"));
@@ -87,6 +112,8 @@ int main(void)
     choose("vr.death_ragdolls", 0);
     assert(!config_boolean("vr.npc_interaction") && !config_boolean("vr.interaction_damage") &&
            !config_boolean("vr.melee_requires_fist"));
+    /* Test61: CUSTOM NPC RIGS (which needs NPC GRAB) does not hold NPC GRAB on */
+    assert(!config_boolean("vr.custom_npc_rigs"));
     /* NPC GRAB alone: NPC RESCUE and IMPACT DAMAGE */
     choose("vr.npc_interaction", 1);
     assert(config_boolean("vr.npc_rescue") && config_boolean("vr.interaction_damage") && config_boolean("vr.melee_requires_fist"));
@@ -95,19 +122,65 @@ int main(void)
     /* WORLD GRAB: IMPACT DAMAGE; a requirement chosen by hand stays the player's */
     choose("vr.interaction_damage", 1);
     choose("vr.world_interaction", 1);
+    /* Test61: WORLD GRAB brings CUSTOM SCENERY; turned off by hand it stays off */
+    assert(config_boolean("vr.custom_scenery_grab"));
+    choose("vr.custom_scenery_grab", 0);
+    assert(!config_boolean("vr.custom_scenery_grab") && config_boolean("vr.world_interaction"));
     choose("vr.world_interaction", 0);
-    assert(config_boolean("vr.interaction_damage"));
+    assert(config_boolean("vr.interaction_damage") && !config_boolean("vr.custom_scenery_grab"));
+    choose("vr.world_interaction", 1);
+    assert(config_boolean("vr.custom_scenery_grab"));
+    choose("vr.world_interaction", 0);
+    assert(!config_boolean("vr.custom_scenery_grab") && !config_boolean("vr.world_interaction"));
     /* a vehicle refinement turned on turns IMMERSIVE VEHICLE on */
     choose("vr.vehicle_steer_haptics", 0);
     assert(!config_boolean("vr.vehicle_handles"));
     choose("vr.vehicle_steer_haptics", 1);
     assert(config_boolean("vr.vehicle_handles"));
-    /* hard requirements as before */
+    /* Test61: IMMERSIVE VEHICLE puts VIEW in FIRST PERSON (the refinement
+     * above turned it on, so it did already); THIRD PERSON chosen turns it
+     * off; on again, FIRST PERSON again; off, back to THIRD PERSON */
+    assert(!strcmp(view_store, "first_person"));
+    choose_view("chase");
+    assert(!config_boolean("vr.vehicle_handles") && !strcmp(view_store, "chase"));
+    choose("vr.vehicle_handles", 1);
+    assert(!strcmp(view_store, "first_person"));
+    choose("vr.vehicle_handles", 0);
+    assert(!strcmp(view_store, "chase"));
+    /* FIRST PERSON chosen by hand stays when the controls go off */
+    choose_view("first_person");
+    choose("vr.vehicle_handles", 1);
+    choose("vr.vehicle_handles", 0);
+    assert(!strcmp(view_store, "first_person"));
+    choose_view("chase");
+    /* TANK HATCH and HOG GLASS bring FIRST PERSON; may be left in third */
+    choose("vr.vehicle_tank_hatch", 1);
+    assert(!strcmp(view_store, "first_person"));
+    choose_view("chase");
+    assert(config_boolean("vr.vehicle_tank_hatch") && !strcmp(view_store, "chase"));
+    choose("vr.vehicle_tank_hatch", 0);
+    choose("vr.vehicle_warthog_hide_glass", 1);
+    assert(!strcmp(view_store, "first_person"));
+    choose("vr.vehicle_warthog_hide_glass", 0);
+    assert(!strcmp(view_store, "chase"));
+    /* a pouch brings MANUAL RELOAD, SPRINT TOGGLE BUTTON SPRINT (by its own setter) */
+    choose("vr.reload_hip", 1);
+    assert(config_boolean("vr.manual_reload"));
+    choose("vr.reload_hip", 0);
+    assert(!config_boolean("vr.manual_reload"));
+    choose("vr.button_sprint_toggle", 1);
+    assert(config_boolean("vr.button_sprint") && sprint_setter_calls == 1);
+    choose("vr.button_sprint_toggle", 0);
+    assert(!config_boolean("vr.button_sprint") && sprint_setter_calls == 2);
+    /* hard requirements as before: CUSTOM NPC RIGS chosen by hand brings NPC
+     * GRAB and keeps it; NPC GRAB off takes it off */
     choose("vr.custom_npc_rigs", 1);
     assert(config_boolean("vr.npc_interaction"));
+    choose("vr.vehicle_handles", 0);
+    assert(config_boolean("vr.npc_interaction") && config_boolean("vr.custom_npc_rigs"));
     choose("vr.npc_interaction", 0);
     assert(!config_boolean("vr.custom_npc_rigs"));
-    puts("PASS: Test60 toggles: DEATH RAGDOLLS turns on NPC GRAB, NPC RESCUE and IMPACT DAMAGE (and FIST REQUIRED through NPC GRAB); grabs turn on IMPACT DAMAGE; vehicle refinements turn on IMMERSIVE VEHICLE; turned off by hand stays off; released with their feature");
+    puts("PASS: Test60 toggles: DEATH RAGDOLLS turns on NPC GRAB, NPC RESCUE and IMPACT DAMAGE (and FIST REQUIRED through NPC GRAB); grabs turn on IMPACT DAMAGE; vehicle refinements turn on IMMERSIVE VEHICLE; turned off by hand stays off; released with their feature; Test61: IMMERSIVE VEHICLE puts VIEW in FIRST PERSON, TANK HATCH and HOG GLASS bring it, pouches MANUAL RELOAD, SPRINT TOGGLE BUTTON SPRINT, the grabs CUSTOM NPC RIGS and CUSTOM SCENERY");
     return 0;
 }
 '''

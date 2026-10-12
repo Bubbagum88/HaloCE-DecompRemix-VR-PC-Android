@@ -280,7 +280,11 @@ static int custom_humanoid_rig(short type,struct unit_datum *unit,long index,int
 }
 static int interaction_profile(short type,struct unit_datum *unit,long index,int *hands,real *mobility)
 {
-    return species(type,hands,mobility) || custom_humanoid_rig(type,unit,index,hands,mobility);
+    if(!species(type,hands,mobility) && !custom_humanoid_rig(type,unit,index,hands,mobility)) return FALSE;
+    /* Test61: two hands are for a living Elite or Hunter fighting back; its
+     * body lifts with one (the owner's Test60 request) */
+    if(unit && TEST_FLAG(unit->object.damage_flags,_object_dead_bit)) *hands=1;
+    return TRUE;
 }
 /* Collision models may report their root node (0) or NONE for broad body
  * contact. Neither identifies a limb that can be pinned by the articulated
@@ -938,7 +942,8 @@ void vr_npc_interaction_palette(long index)
         struct player_datum *owner=npc.player!=NONE?player_try_and_get(npc.player):NULL;
         if(owner) vr_interaction_impact_track(index,owner->unit_index,npc.mobility,interaction_units());
     }
-    if(TEST_FLAG(unit_get(index)->object.damage_flags,_object_dead_bit)) {npc.getting_up=0;npc.recovery=0;}
+    /* Test61: killed in the hands: one hand holds the body up now */
+    if(TEST_FLAG(unit_get(index)->object.damage_flags,_object_dead_bit)) {npc.getting_up=0;npc.recovery=0;npc.minimum_hands=1;}
     npc.rig.impact_enabled=npc.started&&!npc.recovery;
     npc.rig.impact_units=interaction_units();
     u=unit_get(index);native=object_get_node_matrices(index);
@@ -1203,6 +1208,50 @@ static int npc_recent_damage(long object,real_point3d *point,real_vector3d *dire
     return FALSE;
 }
 
+/* Test61: a death that finds every NPC RIG SLOT taken (a grenade killing a
+ * squad while the last fight's corpses still settle, each up to 5 s) takes
+ * the slot of the corpse that has settled longest (a second at least, not
+ * held): that corpse goes to native dead-body physics as it would at rest.
+ * Test54 to Test60 gave the new death the stock animation instead (the
+ * owner's Test60 report: some enemies did not ragdoll on explosions). */
+static struct npc_state *npc_corpse_slot(void)
+{
+    struct npc_state *saved=npc_current,*best=NULL;
+    int limit=PIN(config_integer("vr.npc_max_ragdolls"),1,NPC_POOL_SIZE);
+    for(int n=0;n<limit;++n) {
+        struct npc_state *state=&npc_pool[n];
+        if(state->active && state->death && !state->is_remote && !state->held[0] && !state->held[1] &&
+           state->settling>=30 && (!best || state->settling>best->settling)) best=state;
+    }
+    if(!best) return NULL;
+    npc_current=best;
+    {
+        long index=npc.index;
+        int restore_garbage=npc.was_garbage,count=npc.rig.body.count;
+        struct object_datum *body=object_try_and_get_and_verify_type(index,_object_mask_biped);
+        real_matrix4x3 *native=body?object_get_node_matrices(index):NULL;
+        if(native && count<=body->object.node_matrices.size/(long)sizeof(*native))
+            for(int n=0;n<count;++n) native[n]=npc.rig.captured[n];
+        reset_one();
+        if(body) {
+            if(restore_garbage) object_set_garbage(index,TRUE);
+            biped_start_limp_body_physics(index);
+        }
+        platform_log("VR NPC: corpse handed to native physics early actor=%08lx (its slot for a new death)",index);
+    }
+    npc_current=saved;
+    return best;
+}
+/* Test61: why a death did not ragdoll, once a second at most */
+static void npc_death_skipped(long index,char const *reason)
+{
+    static long last_tick=-1000;
+    long now=game_time_get();
+    if(now>=last_tick && now-last_tick<30) return;
+    last_tick=now;
+    platform_log("VR NPC: death ragdoll skipped actor=%08lx reason=%s",index,reason);
+}
+
 /* Test54: DEATH RAGDOLLS. A supported NPC killed where this machine owns the
  * simulation (solo, or a co-op host whose clients take its rig poses) falls
  * as the same articulated body a hand would hold: its last living pose, the
@@ -1220,7 +1269,7 @@ void vr_npc_interaction_death(long index)
     short local,species;
     int near=FALSE;
     if(!config_boolean("vr.death_ragdolls") || !vr_active() || !authority() || !(units>0.0f) ||
-       state_for_object(index) || !(state=free_state())) return;
+       state_for_object(index)) return;
     u=(struct unit_datum *)object_try_and_get_and_verify_type(index,_object_mask_biped);
     if(!u || u->unit.player_index!=NONE || !TEST_FLAG(u->object.damage_flags,_object_dead_bit) ||
        u->object.parent_object_index!=NONE ||
@@ -1235,7 +1284,8 @@ void vr_npc_interaction_death(long index)
         vector_from_points3d(&body->object.position,&u->object.position,&between);
         if(magnitude3d(&between)<=40.0f*units){near=TRUE;break;}
     }
-    if(!near)return;
+    if(!near) {npc_death_skipped(index,"farther-than-40m");return;}
+    if(!(state=free_state()) && !(state=npc_corpse_slot())) {npc_death_skipped(index,"every-rig-slot-busy");return;}
     /* A death can come in the middle of another hold's tick (a thrown body's
      * impact kills an NPC): keep that hold's state current afterwards. */
     saved=npc_current;
@@ -1247,7 +1297,11 @@ void vr_npc_interaction_death(long index)
      * still-settling Grunt corpse needed two hands to pick up. */
     species=unit_species(u,index);
     if(!interaction_profile(species,u,index,&hands,&mobility) ||
-       !vr_articulated_native_capture(index,&npc.rig)) {reset_one();npc_current=saved;return;}
+       !vr_articulated_native_capture(index,&npc.rig)) {
+        reset_one();npc_current=saved;
+        npc_death_skipped(index,interaction_profile(species,u,index,&hands,&mobility)?"rig-capture-failed":"unsupported-species");
+        return;
+    }
     {
         real_vector3d velocity=u->object.translational_velocity;
         int torso=biped_definition_get(u->definition_index)->biped.runtime_pelvis_node_index;

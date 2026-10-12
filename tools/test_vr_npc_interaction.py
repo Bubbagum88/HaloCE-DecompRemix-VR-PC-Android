@@ -8,7 +8,7 @@ header=(ROOT/'port/linux/game/vr_npc_interaction.h').read_text()
 pool_match=re.search(r'^#define\s+VR_NPC_INTERACTION_POOL_SIZE\s+(\d+)\s*$',header,re.M)
 assert pool_match, 'the production NPC rig pool must have a compile-time bound'
 POOL_SIZE=int(pool_match.group(1))
-assert POOL_SIZE==16, f'expected the raised 16-slot interaction-rig pool, got {POOL_SIZE}'
+assert POOL_SIZE==24, f'expected the Test61 24-slot interaction-rig pool, got {POOL_SIZE}'
 def function(signature):
     match=re.search(re.escape(signature)+r'[^;{]*\{',source)
     assert match,signature
@@ -319,9 +319,9 @@ int main(void){
  vr_npc_interaction_velocity(7,v);assert(!memcmp(v,before,sizeof v));
  npc.recovery=0;vr_npc_interaction_velocity(8,v);assert(!memcmp(v,before,sizeof v));
  vr_npc_interaction_reset();
- maximum=16;
- for(int i=0;i<16;i++){struct npc_state *slot=free_state();assert(slot==&npc_pool[i]);slot->active=1;}
- assert(free_state()==NULL); /* configured 16-slot ceiling is honored */
+ maximum=24;
+ for(int i=0;i<24;i++){struct npc_state *slot=free_state();assert(slot==&npc_pool[i]);slot->active=1;}
+ assert(free_state()==NULL); /* configured 24-slot ceiling is honored */
  vr_npc_interaction_reset();maximum=8;
  for(int i=0;i<8;i++){struct npc_state *slot=free_state();assert(slot==&npc_pool[i]);slot->active=1;}
  assert(free_state()==NULL); /* configured eight-slot ceiling is honored */

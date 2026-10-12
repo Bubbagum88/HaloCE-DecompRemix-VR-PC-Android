@@ -56,7 +56,7 @@ for key, kind, default in [('vr.gun_anchor', '_config_boolean', 'true'), ('vr.gu
                            ('vr.weapon_offset_right', '_config_real', '0.10'), ('vr.weapon_offset_up', '_config_real', '-0.12'),
                            ('vr.weapon_offset_back', '_config_real', '-0.20'), ('vr.weapon_pitch', '_config_real', '0.0')]:
     assert table.get(key) == (kind, default), (key, table.get(key))
-assert table.get('vr.npc_max_ragdolls') == ('_config_integer', '8')
+assert table.get('vr.npc_max_ragdolls') == ('_config_integer', '24')  # Test61 (8 before)
 assert table.get('vr.interaction_reach') == ('_config_real', '0.04')
 
 # --- static wiring
@@ -252,13 +252,13 @@ assert reach_values == [('2 CM', '0.02'), ('4 CM', '0.04'), ('6 CM', '0.06'),
 assert 'current = current < 0.02 ? 0.02 : current > 0.08 ? 0.08 : current;' in menu, 'legacy reach configs display their clamped contact radius'
 domains = {'vr.arms': {'ik', 'hidden', 'animated'}, 'vr.hand_tracking': {'ik', 'floating', 'floating_arms'},
            'vr.melee': {'impact', 'swing'},
-           'vr.weapons': {'locked', 'physical'}, 'vr.npc_max_ragdolls': {str(n) for n in (1,2,4,8,12,16)},
+           'vr.weapons': {'locked', 'physical'}, 'vr.npc_max_ragdolls': {str(n) for n in (4,8,12,16,20,24)},
            'vr.interaction_reach': {'0.02', '0.04', '0.06', '0.08'}}
 for label, count, values in rows:
     pairs = re.findall(r'\{ "([^"]+)", "([^"]+)" \}', values)
     assert len(pairs) == int(count) <= 12, label
     if label == "NPC RIG SLOTS":
-        assert pairs == [(str(n), "vr.npc_max_ragdolls=" + str(n)) for n in (1,2,4,8,12,16)]
+        assert pairs == [(str(n), "vr.npc_max_ragdolls=" + str(n)) for n in (4,8,12,16,20,24)]
     for _, value in pairs:
         for pair in value.split(';'):
             key, text = pair.split('=')

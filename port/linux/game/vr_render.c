@@ -609,6 +609,8 @@ static real vr_seat_frame_heading(
 	return isfinite(behind) && fabsf(behind) < 0.5f ? heading + behind : heading;
 }
 
+static int vr_vehicle_handles_steady(void);
+
 /* test22: the seat's anchor held to the vehicle as drawn. The player's head
 marker moves with the driver's animations (steering, bumps) as well as
 with the vehicle; in the vehicle's own frame (its drawn root node) it is
@@ -669,7 +671,8 @@ static void vr_seat_steady_anchor(
 		steady.seat_index = vr_render.seat.seat_index;
 		steady.valid = TRUE;
 	}
-	else if (now > steady.time)
+	/* Test61: held where it is while the immersive vehicle controls are up */
+	else if (now > steady.time && !vr_vehicle_handles_steady())
 	{
 		real ease = 1.0f - (real)exp(-(now - steady.time) / 0.25);
 

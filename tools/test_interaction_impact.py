@@ -35,10 +35,14 @@ static float threshold=2,cap=1,damage_scale;
 static long damaged,damage_owner;
 static struct object_datum objects[5];
 static struct unit_datum owner={0,{2},{10}};
-static struct unit_definition definition={{{7}}};
+/* Test61: the Master Chief's unit has no melee damage of its own (NONE);
+ * the engine's unit_unarmed_melee_damage falls back to the unarmed melee
+ * weapon's (9 here) */
+static struct unit_definition definition={{{NONE}}};
+static long unarmed_weapon_melee=9,damage_tag=NONE;
+static long unit_unarmed_melee_damage(long i){(void)i;return definition.unit.melee_damage.index!=NONE?definition.unit.melee_damage.index:unarmed_weapon_melee;}
 static struct object_datum* object_try_and_get(long i){return i>=0&&i<5?&objects[i]:0;}
 static struct unit_datum* unit_try_and_get(long i){return i==0?&owner:0;}
-static struct unit_definition* unit_definition_get(long i){(void)i;return &definition;}
 static int game_connection(void){return connection;}
 static int network_coop_active(void){return campaign;}
 static int network_interaction_host_ready(void){return campaign;}
@@ -48,7 +52,7 @@ static float config_real(char const*k){return !strcmp(k,"vr.impact_threshold")?t
 static float dot_product3d(real_vector3d const*a,real_vector3d const*b){return a->i*b->i+a->j*b->j+a->k*b->k;}
 static void normalize3d(real_vector3d*v){float l=sqrtf(dot_product3d(v,v));if(l>0)for(int i=0;i<3;++i)v->n[i]/=l;}
 static void scale_vector3d(real_vector3d const*v,float s,real_vector3d*o){for(int i=0;i<3;++i)o->n[i]=v->n[i]*s;}
-static void damage_data_new(struct damage_data*d,long i){(void)i;memset(d,0,sizeof(*d));}
+static void damage_data_new(struct damage_data*d,long i){damage_tag=i;memset(d,0,sizeof(*d));}
 static void object_cause_damage(struct damage_data*d,long target,int node,int region,int material,real_vector3d const*n){(void)n;assert(node>=-1&&region>=-1&&material>=-1);damage_calls++;damaged=target;damage_owner=d->owner_object_index;damage_scale=d->scale;}
 void platform_log(char const*f,...){(void)f;}
 /* Test56: the struck body's shove (before its damage) */
@@ -73,6 +77,8 @@ int main(void) {
  assert(vr_interaction_impact_scale(-.2f,1,1,2,1)==0);
  vr_interaction_impact_track(1,0,1,1);vr_interaction_impact_collision(1,&hit,&velocity);
  assert(damage_calls==0);vr_interaction_impact_flush();assert(damage_calls==1&&damaged==2&&damage_owner==0&&damage_scale<=cap);
+ /* Test61: the blow is the unarmed melee, though the unit has none of its own */
+ assert(damage_tag==9);
  vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_calls==1);
  tick=10;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_calls==2);
  tick=100;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_calls==2);
@@ -98,8 +104,13 @@ int main(void) {
  tick+=10;victim_definition.object.acceleration_scale=0;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(shoves==2);
  victim_definition.object.acceleration_scale=1;owned=1;tick+=10;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(shoves==2);owned=0;
  assert(vr_interaction_impact_share(.25f)>vr_interaction_impact_share(1)&&vr_interaction_impact_share(NAN)==0);
+ /* Test61: a unit's own melee damage is used first; with no blow at all
+  * nothing is damaged (and nothing crashes) */
+ definition.unit.melee_damage.index=7;tick+=10;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_tag==7);
+ {int before=damage_calls;definition.unit.melee_damage.index=NONE;unarmed_weapon_melee=NONE;tick+=10;
+  vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_calls==before);unarmed_weapon_melee=9;}
  enabled=0;vr_interaction_impact_track(1,0,1,1);assert(!entries[0].active);
- puts("PASS: production impact authority, deferred collision damage, native attribution, kinetic weights/cap, expiry/debounce, world/self hits, reset and finite guards; Test56 struck bodies shoved by the blow");
+ puts("PASS: production impact authority, deferred collision damage, native attribution, kinetic weights/cap, expiry/debounce, world/self hits, reset and finite guards; Test56 struck bodies shoved by the blow; Test61 the unarmed melee blow when the unit has none of its own (the Master Chief)");
 }
 '''
 c=out/'impact.c'; c.write_text(stub+production+tests)

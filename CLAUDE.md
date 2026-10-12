@@ -1,6 +1,21 @@
 # Agent and contributor continuation
 
-## Active private Test60 candidate (2026-10-12)
+## Active private Test61 candidate (2026-10-12)
+
+Continue on `test39-interaction-completion`; private `1.0.28-test61`, Android
+code73 (docs/TEST61-DELIVERY-STATUS.md; docs/TEST61-CHECKLIST.md,
+TEST61-DEVICE-CHECKLIST.md). Immersive vehicle controls are held under the
+hands: the seat's eyes stay still while they are up and the controls sit in
+the hands' level frame (vr_render.c steady anchor, vr_vehicle_handles.h);
+IMMERSIVE VEHICLE requires VIEW FIRST PERSON (value requirements in
+vr_menu.c). Impacts use the engine's unarmed melee blow (the Chief has no
+unit melee damage: every impact was dropped before); 24 NPC rig slots with a
+corpse's slot reclaimed for a new death; dead Elites/Hunters one-handed;
+NPC GRAB/WORLD GRAB bring CUSTOM NPC RIGS/CUSTOM SCENERY; a button held from
+a menu is no reload. Owner: settings a feature plays best with come on with
+it; regress nothing.
+
+## Previous private Test60 candidate (2026-10-12)
 
 Continue on `test39-interaction-completion`; private `1.0.27-test60`, Android
 code72 (docs/TEST60-DELIVERY-STATUS.md; docs/TEST60-CHECKLIST.md,

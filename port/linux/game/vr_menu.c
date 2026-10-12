@@ -237,7 +237,7 @@ one place (the same setting either way: changing one shows on the other) */
 #define VR_IMMERSION_LIFT_VEHICLES { "LIFT VEHICLES", "vr.vehicle_lift", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_CUSTOM_SCENERY { "CUSTOM SCENERY", "vr.custom_scenery_grab", _vr_setting_multi, 2, { { "OFF", "vr.custom_scenery_grab=false" }, { "ON", "vr.custom_scenery_grab=true;vr.world_interaction=true" } } }
 #define VR_IMMERSION_NPC_GRAB { "NPC GRAB", "vr.npc_interaction", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
-#define VR_IMMERSION_NPC_RIG_SLOTS { "NPC RIG SLOTS", "vr.npc_max_ragdolls", _vr_setting_multi, 6, { { "1", "vr.npc_max_ragdolls=1" }, { "2", "vr.npc_max_ragdolls=2" }, { "4", "vr.npc_max_ragdolls=4" }, { "8", "vr.npc_max_ragdolls=8" }, { "12", "vr.npc_max_ragdolls=12" }, { "16", "vr.npc_max_ragdolls=16" } } }
+#define VR_IMMERSION_NPC_RIG_SLOTS { "NPC RIG SLOTS", "vr.npc_max_ragdolls", _vr_setting_multi, 6, { { "4", "vr.npc_max_ragdolls=4" }, { "8", "vr.npc_max_ragdolls=8" }, { "12", "vr.npc_max_ragdolls=12" }, { "16", "vr.npc_max_ragdolls=16" }, { "20", "vr.npc_max_ragdolls=20" }, { "24", "vr.npc_max_ragdolls=24" } } }
 #define VR_IMMERSION_CUSTOM_NPC_RIGS { "CUSTOM NPC RIGS", "vr.custom_npc_rigs", _vr_setting_multi, 2, { { "OFF", "vr.custom_npc_rigs=false" }, { "ON", "vr.custom_npc_rigs=true;vr.npc_interaction=true" } } }
 #define VR_IMMERSION_NPC_RESCUE { "NPC RESCUE", "vr.npc_rescue", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 /* Test56: the longest a living NPC lies limp after a hand lets it go (never over 1 s) */
@@ -744,7 +744,52 @@ static struct vr_menu_dependency
 	{ "vr.vehicle_comfort_reach", "vr.vehicle_handles", TRUE },
 	{ "vr.vehicle_tank_drive", "vr.vehicle_handles", TRUE },
 	{ "vr.vehicle_banshee_slide", "vr.vehicle_handles", TRUE },
+	/* Test61: the immersive controls are only there in a first-person seat
+	(the owner's Test60 session: IMMERSIVE VEHICLE on left VIEW in third
+	person): VIEW goes to FIRST PERSON with them, and back to THIRD PERSON
+	choosing it turns them off. The seat-only refinements (TANK HATCH, HOG
+	GLASS) bring FIRST PERSON with them; the pouches MANUAL RELOAD; SPRINT
+	TOGGLE BUTTON SPRINT. */
+	{ "vr.vehicle_handles", "vr.vehicle_view", FALSE },
+	{ "vr.vehicle_tank_hatch", "vr.vehicle_view", TRUE },
+	{ "vr.vehicle_warthog_hide_glass", "vr.vehicle_view", TRUE },
+	{ "vr.reload_shoulder", "vr.manual_reload", TRUE },
+	{ "vr.reload_hip", "vr.manual_reload", TRUE },
+	{ "vr.button_sprint_toggle", "vr.button_sprint", TRUE },
+	/* Test61: the grabs take every NPC and every piece of scenery (the owner
+	turned CUSTOM NPC RIGS and CUSTOM SCENERY on by hand in Test60) */
+	{ "vr.npc_interaction", "vr.custom_npc_rigs", TRUE },
+	{ "vr.world_interaction", "vr.custom_scenery_grab", TRUE },
 };
+
+static boolean vr_menu_button_sprint_set(boolean enabled);
+
+/* Test61: a requirement that is a choice, not a switch: the value it needs
+(on) and the one it goes back to (off); NULL for a switch */
+static char const *vr_menu_requirement_value(char const *requires, boolean on)
+{
+	if (!strcmp(requires, "vr.vehicle_view"))
+		return on ? "first_person" : "chase";
+	return NULL;
+}
+
+/* Test61: whether a requirement holds, and setting it on or back off */
+static boolean vr_menu_requirement_met(struct vr_menu_dependency const *dependency)
+{
+	char const *value = vr_menu_requirement_value(dependency->requires, TRUE);
+	return value ? (boolean)config_matches(dependency->requires, value) : config_boolean(dependency->requires);
+}
+
+static void vr_menu_requirement_write(struct vr_menu_dependency const *dependency, boolean on)
+{
+	char const *value = vr_menu_requirement_value(dependency->requires, on);
+	if (value)
+		config_write_text(dependency->requires, value);
+	else if (!strcmp(dependency->requires, "vr.button_sprint"))
+		vr_menu_button_sprint_set(on); /* (it frees the left stick's click) */
+	else
+		config_write_boolean(dependency->requires, on);
+}
 
 static boolean vr_menu_auto_has(char const *list, char const *key)
 {
@@ -789,6 +834,20 @@ static void vr_menu_auto_set(char *list, size_t size, char const *key, boolean p
 	snprintf(list, size, "%s", result);
 }
 
+/* Test61: `feature` is on only because `requirement` turned it on (CUSTOM NPC
+RIGS by NPC GRAB): it does not keep `requirement` on in turn */
+static boolean vr_menu_turned_on_by(char const *automatic, char const *feature, char const *requirement)
+{
+	long index;
+	if (!vr_menu_auto_has(automatic, feature))
+		return FALSE;
+	for (index = 0; index < (long)NUMBEROF(vr_menu_dependency_table); index++)
+		if (vr_menu_dependency_table[index].soft && !strcmp(vr_menu_dependency_table[index].feature, requirement) &&
+			!strcmp(vr_menu_dependency_table[index].requires, feature))
+			return TRUE;
+	return FALSE;
+}
+
 /* whether this menu choice wrote `key` (the row's own key, or one a combined
 row's value sets) */
 static boolean vr_menu_choice_writes(struct vr_menu_setting const *setting, char const *value, char const *key)
@@ -820,7 +879,7 @@ static boolean vr_menu_dependencies(struct vr_menu_setting const *setting, char 
 		for (index = 0; index < (long)NUMBEROF(vr_menu_dependency_table); index++)
 		{
 			struct vr_menu_dependency const *dependency = &vr_menu_dependency_table[index];
-			if (!config_boolean(dependency->feature) || config_boolean(dependency->requires))
+			if (!config_boolean(dependency->feature) || vr_menu_requirement_met(dependency))
 				continue;
 			if (vr_menu_choice_writes(setting, value, dependency->requires))
 			{
@@ -840,7 +899,7 @@ static boolean vr_menu_dependencies(struct vr_menu_setting const *setting, char 
 			if (dependency->soft && !vr_menu_choice_writes(setting, value, dependency->feature) &&
 				!(vr_menu_auto_has(automatic, dependency->feature) && !vr_menu_auto_has(before, dependency->feature)))
 				continue;
-			config_write_boolean(dependency->requires, TRUE);
+			vr_menu_requirement_write(dependency, TRUE);
 			changed = TRUE;
 			vr_menu_auto_set(automatic, sizeof(automatic), dependency->requires, TRUE);
 			platform_log("vr: %s on (needed by %s)", dependency->requires, dependency->feature);
@@ -855,11 +914,12 @@ static boolean vr_menu_dependencies(struct vr_menu_setting const *setting, char 
 				continue;
 			for (other = 0; other < (long)NUMBEROF(vr_menu_dependency_table); other++)
 				if (!strcmp(vr_menu_dependency_table[other].requires, requirement) &&
-					config_boolean(vr_menu_dependency_table[other].feature))
+					config_boolean(vr_menu_dependency_table[other].feature) &&
+					!vr_menu_turned_on_by(automatic, vr_menu_dependency_table[other].feature, requirement))
 					needed = TRUE;
 			if (!needed)
 			{
-				config_write_boolean(requirement, FALSE);
+				vr_menu_requirement_write(&vr_menu_dependency_table[index], FALSE);
 				changed = TRUE;
 				vr_menu_auto_set(automatic, sizeof(automatic), requirement, FALSE);
 				platform_log("vr: %s off (no feature needs it now)", requirement);

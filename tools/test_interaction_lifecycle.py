@@ -20,6 +20,7 @@ enum { VR_ACTION_SWITCH_WEAPON=1, VR_ACTION_DROP_WEAPON=2, VR_ACTION_GRAB_WEAPON
 static struct { int active,menus_active,grip_pressed[2],grip_released[2],grip_held[2];
  struct { int flags,hand_valid[2]; } frame;
  int two_hand_held,two_handed,support_near,weapon_hand,actions; unsigned pad_buttons; float support_dwell;
+ int reload_held_from_menu;
 } vr;
 static int interaction_owner[2];
 static int interaction_trigger_held[2];
@@ -73,7 +74,13 @@ int main(void) {
  vr.frame.flags|=HALO_XR_FRAME_RECENTRED;assert(!vr_manual_reload_action_down());
  vr.frame.flags=HALO_XR_FRAME_FOCUSED;assert(vr_manual_reload_action_down());
  vr.frame.flags=0;assert(!vr_manual_reload_action_down());
- vr.frame.flags=HALO_XR_FRAME_FOCUSED;vr.pad_buttons=0;
+ vr.frame.flags=HALO_XR_FRAME_FOCUSED;
+ /* Test61: X still held from a menu (vr_ui_pointer latched it) is no reload
+  * until let go; the next press is */
+ vr.reload_held_from_menu=1;assert(!vr_manual_reload_action_down());assert(vr.reload_held_from_menu);
+ vr.pad_buttons=0;assert(!vr_manual_reload_action_down());assert(!vr.reload_held_from_menu);
+ vr.pad_buttons=HALO_XR_BUTTON_X;assert(vr_manual_reload_action_down());
+ vr.pad_buttons=0;
  vr.grip_held[0]=1;
  vr.active=0;assert(!vr_interaction_claim(0,1));
  return 0;

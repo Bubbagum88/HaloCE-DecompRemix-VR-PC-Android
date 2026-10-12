@@ -123,6 +123,8 @@ static void *object_header_block_get(long i, struct object_header_block_referenc
 static double vr_pose_time(void){return now_time;}
 static real vr_units_per_metre(void){return 3.2808f;}
 static real vr_yaw(real_vector3d const *v){return atan2f(v->j, v->i);}
+/* Test61: the immersive vehicle controls hold the seat's eyes still */
+static int steady_lock; static int vr_vehicle_handles_steady(void){return steady_lock;}
 ''' + fn(render, 'vr_seat_frame_heading') + fn(render, 'vr_seat_steady_anchor') + r'''
 static void pose(real_matrix4x3 *m, real yaw, real pitch, real x, real y, real z){
  real cy=cosf(yaw), sy=sinf(yaw), cp=cosf(pitch), sp=sinf(pitch);
@@ -151,6 +153,17 @@ int main(void){
   vr_seat_steady_anchor(&a);
   if(n>144){ real_point3d rest=place(&drawn[0],0.2f,0.1f,0.6f); real d=fabsf(a.z-rest.z); if(d>bob_out)bob_out=d; if(fabsf(b)>bob_in)bob_in=fabsf(b);} }
  assert(bob_out<0.15f*bob_in);
+ /* Test61: the immersive vehicle controls up: the head marker leaning with
+  * the steering animation moves the eyes not at all (the vehicle still
+  * carries them whole) */
+ { real_point3d held; int first=1; real drift=0; steady_lock=1;
+  for(int n=0;n<360;n++){
+   now_time=200+n/72.0; pose(&drawn[0], 0.3f, 0, 10, 20, 1);
+   real b=0.08f*3.2808f*sinf(2*_pi*1.5f*n/72.0f); real_point3d head=place(&drawn[0],0.2f,0.1f+b,0.6f), a=head;
+   vr_seat_steady_anchor(&a);
+   if(first){held=a;first=0;} for(int k=0;k<3;k++){real d=fabsf(a.n[k]-held.n[k]); if(d>drift)drift=d;} }
+  assert(drift<1e-4f);
+  steady_lock=0; }
  /* another seat: its head at once */
  vr_render.seat.seat_index=1; now_time+=1.0/72; { real_point3d head=place(&drawn[0],-0.5f,0.4f,0.7f), a=head;
   vr_seat_steady_anchor(&a); for(int k=0;k<3;k++)assert(fabsf(a.n[k]-head.n[k])<1e-4f); }

@@ -80,8 +80,8 @@ static void apply_collision(long index, struct collision_result const *hit,
     long tick=game_time_get(), target;
     struct unit_datum *owner;
     struct object_datum *source, *victim;
-    struct unit_definition *definition;
     struct damage_data damage;
+    long blow;
     float scale, units;
     if (!authority() || !config_boolean("vr.interaction_damage") || !hit || !velocity ||
         !(source=object_try_and_get(index))) return;
@@ -99,14 +99,25 @@ static void apply_collision(long index, struct collision_result const *hit,
         TEST_FLAG(victim->object.damage_flags,_object_dead_bit) ||
         (entries[i].last_target==target && tick-entries[i].last_tick<10) ||
         !(owner=unit_try_and_get(entries[i].owner))) return;
-    definition=unit_definition_get(owner->definition_index);
-    if(definition->unit.melee_damage.index==NONE) return;
+    /* Test61: the blow is the player's unarmed melee, found as the engine
+     * finds it (unit_unarmed_melee_damage: the unit's own, else the unarmed
+     * melee weapon's). The Master Chief's unit has none of its own, and
+     * Test38 to Test60 read only that: every impact on every NPC and prop
+     * returned here unseen (no "VR impact" line in the owner's Test59 and
+     * Test60 logs, marines thrown at 24 m/s). */
+    blow=unit_unarmed_melee_damage(entries[i].owner);
+    if(blow==NONE) {
+        static int logged;
+        if(!logged) platform_log("VR impact: no melee damage for owner=%08lx; impacts cannot hurt",entries[i].owner);
+        logged=1;
+        return;
+    }
     units=entries[i].units;
     scale=vr_interaction_impact_scale(-dot_product3d(velocity,&hit->plane.n),units,
         entries[i].mobility,config_real("vr.impact_threshold"),config_real("vr.impact_damage_cap"));
     if(scale<=0) return;
     entries[i].last_tick=tick; entries[i].last_target=target;
-    damage_data_new(&damage,definition->unit.melee_damage.index);
+    damage_data_new(&damage,blow);
     damage.owner_object_index=entries[i].owner;
     damage.owner_player_index=owner->unit.player_index;
     /* Test60: a blow, not friendly fire: no team, so an ally takes it in full
@@ -129,7 +140,7 @@ static void apply_collision(long index, struct collision_result const *hit,
     if(target!=index && source->object.type==_object_type_biped &&
        victim->object.type==_object_type_biped &&
        !TEST_FLAG(source->object.damage_flags,_object_dead_bit)) {
-        damage_data_new(&damage,definition->unit.melee_damage.index);
+        damage_data_new(&damage,blow);
         damage.owner_object_index=entries[i].owner;
         damage.owner_player_index=owner->unit.player_index;
         damage.owner_team_index=NONE;

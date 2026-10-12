@@ -1,6 +1,18 @@
 # Current development state
 
-## Active private candidate: Test60 (2026-10-12)
+## Active private candidate: Test61 (2026-10-12)
+
+**1.0.28-test61 / Android code73**, branch `test39-interaction-completion`,
+for the owner's Quest and phone tests (not a release). The immersive vehicle
+controls stay under the hands (steady seat, the hands' level frame, no jump);
+IMMERSIVE VEHICLE turns on FIRST PERSON; impacts hurt (the unarmed blow);
+24 rig slots; dead Elites and Hunters lift with one hand; more settings come
+on together; a button held from a menu is no reload. Item outcomes:
+[TEST61-CHECKLIST.md](TEST61-CHECKLIST.md); APKs and hashes:
+[TEST61-DELIVERY-STATUS.md](TEST61-DELIVERY-STATUS.md). Device acceptance
+pending.
+
+## Previous private candidate: Test60 (2026-10-12)
 
 **1.0.27-test60 / Android code72**, branch `test39-interaction-completion`,
 for the owner's Quest and phone tests (not a release). Impact damage works

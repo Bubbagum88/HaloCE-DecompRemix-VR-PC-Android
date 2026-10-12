@@ -241,6 +241,8 @@ static struct
 	float hud_tap_distance;
 	int hud_tap_armed, hud_hidden, reticle_hidden, reticle_press, reticle_cancelled, turn_stick_down;
 	int wrist_hud, menus_active;
+	/* Test61: X held while a menu was up, not yet let go */
+	int reload_held_from_menu;
 	/* test29: how long the weapon hand has been held still by its temple
 	(the HUD tap); the wrist HUD's place adjusted from its default
 	(vr.wrist_hud_along/_across/_out, metres) and its size */
@@ -997,7 +999,7 @@ void vr_initialize(void)
 		return;
 	vr.initialized = 1;
 	config_vr_vehicle_defaults();
-	platform_log("vr: HaloCE Quest test60 candidate 1.0.27-test60 code72 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; impacts for every NPC: slammed and thrown bodies strike other bodies, floors and walls, allies take the blow; DEATH RAGDOLLS turns on NPC RESCUE, NPC GRAB and IMPACT DAMAGE; test59: real hands in vehicles, controls from the eyes, comfort reach, tank drive, the gun's own magazine back in, DEATH FORCE ragdoll throws; test58: immersive vehicles placed on the vehicle, steady mounted reticle; test57: Warthog virtual wheel, Scorpion drive stick, Banshee flight bar, Ghost handlebar; test56: parent-relative ragdoll joints, NPCs up within 1 s; device acceptance pending)");
+	platform_log("vr: HaloCE Quest test61 candidate 1.0.28-test61 code73 (OpenCE Build157 base / network28; selected fixes through Build201 incl. the network27 map-sharing answer (no maps shared) and network28 rules; clients 11-28, All compatible by default; voice unchanged; immersive controls held under the hands (steady seat, the hands' level frame); IMMERSIVE VEHICLE turns on FIRST PERSON; impacts hurt with the unarmed blow; 24 rig slots; dead Elites and Hunters one-handed; test60: impacts for every NPC, DEATH RAGDOLLS turns on NPC RESCUE, NPC GRAB and IMPACT DAMAGE; test59: real hands in vehicles, controls from the eyes, comfort reach, tank drive, the gun's own magazine back in, DEATH FORCE ragdoll throws; test58: immersive vehicles placed on the vehicle, steady mounted reticle; test57: Warthog virtual wheel, Scorpion drive stick, Banshee flight bar, Ghost handlebar; test56: parent-relative ragdoll joints, NPCs up within 1 s; device acceptance pending)");
 	platform_log("vr: retained baseline history: HaloCE Quest test30 candidate 1.0.12 (the menus' face buttons as the Xbox's of the same letter: X deletes a profile; the co-op host's server name; test29: OpenCE build 144 netcode, network 21; the HUD head tap held by the temple, HUD and head tap on the HUD page, wrist HUD on the wrist and movable, moving with a hand while holding the gun in both, glasses FOV and resolution to 200%% (PR #1); test28: co-op games entered in progress keep their camera upright, release checks as OpenCE ships, co-op hosted for 2 to 128 players as OpenCE's Server Setup offers, gyro aim on phones as an option; test27: OpenCE build 138 netcode, network 20, with its co-op for up to 16 players; test26: co-op: death screams no longer stop the second player, cutscene characters placed and animated as on the first; HUD head tap, reticle toggle on the left stick click with crouch on the turning stick held down (or crouch kept on the click: Controls), optional wrist HUD, adjustable head taps; impact melee along the gun with a follow-through; fingers bend smoothly against walls; test25: vehicle seat and recentre diagnostics, first-person horizon option and seat glass, settings rows that fit, vehicle offset reset; test24b: comfort vignette, smooth speed and snap angle, SPV1 compatibility note; test24: co-op cutscenes animate for the second player; test23: remappable Quest buttons with the grenade on X; test22: co-op campaign host crash fixed, steady first-person vehicle view, left-hand ammo display, adjustable scopes, shot diagnostics; test21b: floating hands restored, torso-following arms, neck-pivot full body, auto two-hand lock, horn, online melee off, two-hand gun roll, pistol shots from the hand, reticle converges as shots do, per-gun aim, horn from either stick)");
 	if (!config_boolean("vr.enabled"))
 	{
@@ -2107,8 +2109,16 @@ int vr_interaction_trigger(int hand)
         !(vr.frame.flags & HALO_XR_FRAME_FOCUSED) || !(vr.frame.hand_valid[hand] & 1)) return 0;
     return interaction_trigger_held[hand];
 }
+/* Test61: X pressed in a menu (BACK) and still held as the menu closes is
+not a reload until it is let go: the owner's Test60 log, a menu closed with
+BACK and 27 ms later the held button ejected a magazine of 24 rounds, the
+gun not firing for 8 s ("stopped firing with the mag in and ammo") */
 int vr_manual_reload_action_down(void)
 {
+	if (!(vr.pad_buttons & HALO_XR_BUTTON_X))
+		vr.reload_held_from_menu = 0;
+	if (vr.reload_held_from_menu)
+		return 0;
 	return vr.active && !vr.menus_active &&
 		(vr.frame.flags & HALO_XR_FRAME_FOCUSED) &&
 		!(vr.frame.flags & HALO_XR_FRAME_RECENTRED) &&
@@ -4552,6 +4562,8 @@ int vr_ui_pointer(int menus_active, struct halo_ui_pointer *pointer)
 	short x, y;
 
 	vr.menus_active = menus_active != 0;
+	if (menus_active && (vr.pad_buttons & HALO_XR_BUTTON_X))
+		vr.reload_held_from_menu = 1;
 	if (!vr.active || !menus_active)
 	{
 		vr.pointer_age = 0;
