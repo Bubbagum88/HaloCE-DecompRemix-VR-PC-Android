@@ -28,7 +28,8 @@ Import your own complete supported Xbox Halo CE ISO/XISO or extracted data throu
 - Experimental parkour and fist-combat assist, toggle sprint, solo shake cooling, aim steadying and vehicle/turret reticle refinements.
 - Optional immersive vehicle wheels/bars/sticks with calibration preview and per-vehicle offsets. Ordinary third-person/right-hand steering remains the default. First-person vehicles still need refinement.
 - Flat Android circular touch HUD, layout import/export and individual control hiding, optional touch/gyro look and common USB/Bluetooth gamepads.
-- Native OpenCE server browsing, PvP/campaign hosting and voice; network28 hosting and compatible client targets11–28; launcher populations, updates, imports, support and per-launch logs.
+- **Voice chat, adapted from OpenCE:** host-relayed Opus voice for Quest and Android, with Push to Talk / Open Mic, incoming voice volume controls and host-controlled voice settings. Microphone permission is required for transmission; see the release guide for controls and setup.
+- Native OpenCE server browsing, PvP/campaign hosting; network28 hosting and compatible client targets11–28; launcher populations, updates, imports, support and per-launch logs.
 - Long VR-menu section indexes and the Test64 fix for the crash opening VR SETTINGS.
 
 ## Controls and feature setup

@@ -32,7 +32,8 @@ This release collects the work across many private tests, not just Test64's fina
 - **Menus:** long VR categories have a section index with Back navigation. Test64 fixes the Test63 crash when opening VR SETTINGS. Pointer/list/category navigation refinements are included.
 - **Android:** touch-layout export/import and individual control hiding, alongside the familiar editable circular HUD, gamepad support and optional direct touch/gyro looking.
 - **Launcher/data:** clearer imported-set selection/deletion, original/Rev 1/Rev 2 map comparison, fitted app icons, font choice, support links, network/population selection and expanded diagnostics.
-- **Network and audio:** network 28 hosting and compatible client targets 11–28; selected upstream changes through OpenCE Build 201, host-relayed Opus voice, and fixes for the Quest voice/server-join crashes investigated in private tests. This remains a customized OpenCE Build 157 base with selected later integrations, not a complete Build 201 rebase.
+- **New voice chat, adapted from OpenCE:** host-relayed Opus voice for Quest and Android, with Push to Talk / Open Mic, incoming voice volume controls, microphone permission handling and host-controlled voice settings. Hosts must enable voice; see section 6 for setup and platform-specific controls.
+- **Networking and stability:** network 28 hosting and compatible client targets 11–28; selected upstream changes through OpenCE Build 201, host-relayed Opus voice, and fixes for the Quest voice/server-join crashes investigated in private tests. This remains a customized OpenCE Build 157 base with selected later integrations, not a complete Build 201 rebase.
 
 ## 3. Controls and inputs
 
