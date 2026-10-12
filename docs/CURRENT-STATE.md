@@ -1,6 +1,20 @@
 # Current development state
 
-## Active private candidate: Test56 (2026-10-11)
+## Active private candidate: Test57 (2026-10-11)
+
+**1.0.24-test57 / Android code69**, branch `test39-interaction-completion`,
+for the owner's Quest and phone tests (not a release). A final polish pass on
+Test56 from the owner's Test56 session: every drivable vehicle its own
+immersive controls (Warthog virtual wheel, Ghost handlebar, Scorpion/Wraith
+drive stick, Banshee flight bar), a centre tick, a within-reach highlight,
+grab-miss logging and CONTROL GLOW / STEER HAPTICS / BANSH SLIDE rows; the
+assault rifle's safety button verified as authored; ragdolls and holster
+calibration reviewed and unchanged. Item outcomes:
+[TEST57-CHECKLIST.md](TEST57-CHECKLIST.md); APKs and hashes:
+[TEST57-DELIVERY-STATUS.md](TEST57-DELIVERY-STATUS.md). Device acceptance
+pending.
+
+## Previous private candidate: Test56 (2026-10-11)
 
 **1.0.23-test56 / Android code68**, branch `test39-interaction-completion`,
 for the owner's Quest and phone tests (not a release). A polish pass on Test55

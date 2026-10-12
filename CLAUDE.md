@@ -1,6 +1,22 @@
 # Agent and contributor continuation
 
-## Active private Test56 candidate (2026-10-11)
+## Active private Test57 candidate (2026-10-11)
+
+Continue on `test39-interaction-completion`; private `1.0.24-test57`, Android
+code69 (docs/TEST57-DELIVERY-STATUS.md). A final polish pass the owner calls
+release-candidate quality: read docs/TEST57-CHECKLIST.md and
+docs/TEST57-DEVICE-CHECKLIST.md. Immersive vehicles (only with IMMERSIVE
+VEHICLE on) have one profile per vehicle in `vr_vehicle_handles.h`
+(`vr_wheel_names`, `vr_wheel_profiles`): the Warthog a drawn virtual wheel
+(the model's rim never took a hand in the owner's drive; hidden, the grab sits
+on the model's wheel), the Ghost its handlebar (owner-approved), the Scorpion
+and Wraith one drive stick, the Banshee a flight bar that rolls or slides.
+CONTROL GLOW, STEER HAPTICS and BANSH SLIDE are VEHICLES rows. The assault
+rifle's "frame safety button" is as authored (stock animations checked).
+Ragdolls and holster calibration were reviewed and left alone. The owner asks
+for toggles for optional behaviour, and regress nothing.
+
+## Previous private Test56 candidate (2026-10-11)
 
 Continue on `test39-interaction-completion`; private `1.0.23-test56`, Android
 code68 (docs/TEST56-DELIVERY-STATUS.md). Read docs/TEST56-CHECKLIST.md
