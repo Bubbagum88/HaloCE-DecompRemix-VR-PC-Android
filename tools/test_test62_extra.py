@@ -118,6 +118,9 @@ struct game_globals{struct{int count;struct game_globals_grenade*address;}grenad
 static struct game_globals no_grenade_globals={.grenades={0,NULL}};
 static struct game_globals*scenario_get_game_globals(void){return &no_grenade_globals;}
 struct render_lighting{int unused;};
+#define NUMBER_OF_OBJECT_CHANGE_COLORS 4
+#define NUMBER_OF_OUTGOING_OBJECT_FUNCTIONS 4
+typedef struct{float red,green,blue;}real_rgb_color;
 static struct{int frustum;}render;
 #define VR_RENDER_EYE() 1
 static void model_get_node_matrices(struct model const*m,real_matrix4x3*out,real_point3d const*o,real_vector3d const*f,real_vector3d const*u){(void)m;(void)out;(void)o;(void)f;(void)u;}

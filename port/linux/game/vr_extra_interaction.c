@@ -460,7 +460,14 @@ static void extra_draw_grenade(long unit,int type,real_point3d const *at,real_ve
     lighting=object_get_cached_render_lighting(unit,100.0f);
     if(!lighting)return;
     pixels=render_frustum_sphere_diameter_in_pixels(&render.frustum,at,radius);
-    render_model(model_index,pixels,matrices,NULL,NULL,NULL,lighting,at,radius,NULL,id,0,0);
+    {
+        /* the colours and functions an object passes: neutral (white, the
+         * plasma's glow functions at rest), never NULL */
+        static real_rgb_color colors[NUMBER_OF_OBJECT_CHANGE_COLORS];
+        static real functions[NUMBER_OF_OUTGOING_OBJECT_FUNCTIONS];
+        for(int c=0;c<NUMBER_OF_OBJECT_CHANGE_COLORS;c++)colors[c].red=colors[c].green=colors[c].blue=1.0f;
+        render_model(model_index,pixels,matrices,NULL,colors,functions,lighting,at,radius,NULL,id,0,0);
+    }
 }
 /* Drawn in the world model pass with the dropped magazines (render_objects.c):
  * the slots' grenades, and a held one in the palm, along the hand. */
