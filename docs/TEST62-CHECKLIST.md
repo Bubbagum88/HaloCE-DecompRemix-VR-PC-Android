@@ -257,13 +257,12 @@ No external game code, assets, animations or sounds were copied.
 
 ## Final gates
 
-Both flavor build runs passed all 125 suites registered at their start, plus the compiled-image Opus and guest ABI gates. The additional package metadata suite passed all five cases separately and is now registered for future full runs. Final package hashes and owner device acceptance are separate.
+Both flavor build runs passed all 125 suites registered at their start, plus the compiled-image Opus and guest ABI gates. The additional package metadata suite passed all five cases separately and is now registered for future full runs. Final package/signature/archive checks passed; hashes and exact source are recorded in DELIVERY-STATUS. Owner device acceptance remains pending.
 
 Do not replace pending device status with an unsupported success claim.
 
 1. Rerun the final shield/material-effect, ownership and input-conflict regressions.
 2. Rerun the entire quest suite after all final source and guide edits.
-3. Build both flavors, inspect identities/signatures, then package matching
-   source and artifacts with hashes.
+3. Both flavors built; identities/signatures verified and matching source/artifacts packaged with hashes.
 4. Record actual results and unresolved device checks in DELIVERY-STATUS.
 5. Deliver privately. No push, tag, publish, install or launch.

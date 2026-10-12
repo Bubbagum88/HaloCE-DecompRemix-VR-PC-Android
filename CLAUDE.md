@@ -44,7 +44,7 @@ not unlimited peers. Protocol and voice implementations are unchanged.
 Euphoria-style active control/better solver replacement was assessed and not
 added; keep the tested solver and <=1 s living-NPC recovery.
 
-Both native builds and automated regression gates passed. Final packaging is pending in this source snapshot; device acceptance remains pending. Read
+Both native builds, regression gates and final package verification passed. APK source is `ed60571ff85eaacbfe178cc98872d603bad32085`; delivery is `D:\HaloQuest\builds\test62-20261012-v1.0.29-test62`. Device acceptance remains pending. Read
 `docs/TEST62-CHECKLIST.md`, `docs/TEST62-FIELD-GUIDE.md`,
 `docs/TEST62-DEVICE-CHECKLIST.md`, `docs/TEST62-DELIVERY-STATUS.md`.
 Saved settings stay; new defaults do not overwrite a user's stored choices.
