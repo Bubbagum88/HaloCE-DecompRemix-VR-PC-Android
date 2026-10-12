@@ -147,7 +147,11 @@ static struct vr_menu_section const test_sections[] = {{"FIRST",8},{"SECOND",3},
 static struct vr_menu_page vr_menu_pages[] = {
  {"ONE",test_settings,17,test_sections,3},{"TWO",test_settings,9},{"THREE",test_settings,8},
  {"FOUR",test_settings,1},{"FIVE",test_settings,4},{"SIX",test_settings,5},
- {"SEVEN",test_settings,7},{"EIGHT",test_settings,8},{"NINE",test_settings,3}
+ {"SEVEN",test_settings,7},{"EIGHT",test_settings,8},{"NINE",test_settings,3},
+ /* Test64: seventeen categories, as the game has: the category list spans
+  * three screens (Test63's index read past this table for it and crashed) */
+ {"TEN",test_settings,2},{"ELEVEN",test_settings,2},{"TWELVE",test_settings,2},{"THIRTEEN",test_settings,2},
+ {"FOURTEEN",test_settings,2},{"FIFTEEN",test_settings,2},{"SIXTEEN",test_settings,2},{"SEVENTEEN",test_settings,2}
 };
 static long vr_menu_value_index(struct vr_menu_setting const *s){(void)s;return 0;}
 static int vr_gun_class(void){return 0;}

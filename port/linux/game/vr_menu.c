@@ -1578,8 +1578,13 @@ static long vr_menu_paged(long pause, long list, long resume, long group,
      * first (the owner: "jump right to a section without clicking back eight
      * times"): its topics by name, or each page by its first setting; a row
      * opens that screen, B comes back to the index in one press, NEXT still
-     * pages on. Eight rows an index screen, MORE to the rest. */
-    if (pages >= VR_MENU_INDEX_FROM) {
+     * pages on. Eight rows an index screen, MORE to the rest. Test64: a
+     * category's own pages only. The list of categories (group
+     * VR_MENU_PAGE_COUNT, 17 categories, three screens) is itself the list
+     * of topics; Test63 built an index for it too, naming each row from
+     * vr_menu_pages[VR_MENU_PAGE_COUNT], one past the table: the owner's
+     * Test63 log, signal 11 in vr_menu_setting_text opening VR SETTINGS. */
+    if (pages >= VR_MENU_INDEX_FROM && group >= 0 && group < VR_MENU_PAGE_COUNT) {
         long index_screens = VR_MENU_PAGES(pages), following = NONE, chunk;
         for (chunk = index_screens - 1; chunk >= 0; --chunk) {
             long visible[VR_MENU_SETTINGS_PER_SCREEN + 1], length = 0, target;
