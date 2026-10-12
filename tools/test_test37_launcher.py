@@ -65,7 +65,7 @@ class ProfileCheck {
   Files.writeString(new File(root,"config.toml").toPath(),"[vr]\nbody = 2\n[network]\nonline = true\n");
   check(!NetworkProfile.legacyCoop(root));
   NetworkProfile.setLegacyCoop(root,true);check(NetworkProfile.legacyCoop(root));
-  for(int v=0;v<=27;v++)check(NetworkProfile.campaignCompatible(v,true)==(v>=12&&v<=26));
+  for(int v=0;v<=29;v++)check(NetworkProfile.campaignCompatible(v,true)==(v>=12&&v<=28)); // Test59: network 28
   NetworkProfile.setLegacyCoop(root,false);check(!NetworkProfile.legacyCoop(root));
   check(NetworkProfile.selected(app)==0);
   NetworkProfile.prepare(app,root); check(NetworkProfile.configured(root)==0);
@@ -75,7 +75,7 @@ class ProfileCheck {
   check(ConfigSettings.read(root,"vr","body","").equals("2"));
   check(ConfigSettings.read(root,"network","online","").equals("true"));
   String before=ConfigSettings.contents(root);
-  for(int bad:new int[]{1,5,10,27,65535,-1}) {
+  for(int bad:new int[]{1,5,10,29,65535,-1}) { // Test59: 27 and 28 are selectable
    try {NetworkProfile.select(app,root,bad);throw new AssertionError();}catch(IOException expected){}
    check(ConfigSettings.contents(root).equals(before));
   }
@@ -99,7 +99,7 @@ class ProfileCheck {
   try {NetworkProfile.setLegacyCoop(root,true);throw new AssertionError();}catch(IOException expected){}
   try {NetworkProfile.select(app,root,23);throw new AssertionError();}catch(IOException expected){}
   NetworkProfile.prepare(app,root);check(NetworkProfile.configured(root)==0);
-  System.out.println("PASS: all 16 targets (default All compatible) and persistence, per-data handoff, live-game switch blocked, invalid versions, write failures and config preservation");
+  System.out.println("PASS: all 18 targets 11-28 (default All compatible) and persistence, per-data handoff, live-game switch blocked, invalid versions, write failures and config preservation");
  }
 }'''
     }
@@ -133,7 +133,7 @@ class PopulationCheck {
   check(rows.size()==2 && rows.get(0).players==10 && rows.get(1).players==4);
   b.selectedNetworkVersion=0;check(b.filteredDirectory().size()==5);
   check(b.compatibleReportedPlayers()==44);
-  b.directory.add(new Entry(27,9));check(b.totalReportedPlayers()==53 && b.compatibleReportedPlayers()==44);
+  b.directory.add(new Entry(29,9));check(b.totalReportedPlayers()==53 && b.compatibleReportedPlayers()==44); // Test59: 29 is past this build's 28
   b.directory.get(1).customEdition=true;check(b.compatibleReportedPlayers()==36);
   b.campaign=true;check(b.compatibleReportedPlayers()==28);
   b.directory.add(new Entry(14,7));check(b.compatibleReportedPlayers()==28);
