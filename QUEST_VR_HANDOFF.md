@@ -1,3 +1,5 @@
+> **Published:** v1.0.31 (Test64/code76) is now Latest. See `docs/PUBLIC-RELEASE-1.0.31-HANDOFF.md` for source/publication and updater verification. Historical holds below are superseded for this release.
+
 > **Public promotion authorized 2026-10-12:** the owner requested Test64 as
 > public **v1.0.31**, retaining the exact `1.0.31-test64`/code76 APKs.
 > This supersedes the historical local-only publication holds below for this release.
