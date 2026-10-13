@@ -48,7 +48,7 @@ static struct {
         real_point3d start,previous_relative;
         real_vector3d velocity;
     } hand[2];
-} pickup={NONE};
+} pickup={.unit=NONE};
 
 void vr_weapon_pickup_reset(void)
 {
@@ -242,12 +242,13 @@ void vr_weapon_pickup_tick(short local_player_index)
             }
             pickup.hand[h].held_ticks++;
             {
-                /* a flick: the hand snapped back toward the body or up, over 1.2 m/s */
-                real_vector3d home;real speed;
-                vector_from_points3d(&hands[h],&camera,&home);
-                if(normalize3d(&home)<.0001f)home=*global_up3d;
-                speed=MAX(dot_product3d(&pickup.hand[h].velocity,&home),pickup.hand[h].velocity.k)*(real)TICKS_PER_SECOND/units;
-                if(pickup_flick()?speed>=1.2f:pickup.hand[h].held_ticks>=(6*TICKS_PER_SECOND)/10)pickup_launch(h,unit,&hands[h],units);
+                /* a flick: the hand yanked away from the weapon (toward you)
+                 * or up, the head's own movement taken out, over 1 m/s */
+                real_vector3d away;real speed;
+                vector_from_points3d(&weapon->object.bounding_sphere_center,&hands[h],&away);
+                if(normalize3d(&away)<.0001f)away=*global_up3d;
+                speed=MAX(dot_product3d(&pickup.hand[h].velocity,&away),pickup.hand[h].velocity.k)*(real)TICKS_PER_SECOND/units;
+                if(pickup_flick()?speed>=1.0f:pickup.hand[h].held_ticks>=(6*TICKS_PER_SECOND)/10)pickup_launch(h,unit,&hands[h],units);
             }
             continue;
         }
