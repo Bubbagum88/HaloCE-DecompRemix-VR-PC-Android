@@ -1795,7 +1795,8 @@ void hud_draw_bitmap_direct(
 		&bounds,
 		&xy_scale,
 		theta,
-		color);
+		color,
+		1.0f);
 
 	match_assert_stack_frame("c:\\halo\\SOURCE\\interface\\hud_draw.c", 856);
 

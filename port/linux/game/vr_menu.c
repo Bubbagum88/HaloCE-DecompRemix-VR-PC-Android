@@ -600,6 +600,13 @@ static struct vr_menu_setting const vr_menu_effects[] =
 	VR_MENU_EFFECT("LENS FLARES", "graphics.lens_flares"),
 	VR_MENU_EFFECT("CAMO", "graphics.camouflage_multipass"),
 	{ "REFRESH", "vr.refresh_rate", _vr_setting_real, 5, { { "AUTO", "0" }, { "72 HZ", "72" }, { "80 HZ", "80" }, { "90 HZ", "90" }, { "120 HZ", "120" } } },
+	/* Test66: OpenCE Build 201's shield options, in VR too: your shield in an
+	armor color, shields lighting what is round them as they flare, and the
+	flare on the first-person arms (the VR hands) */
+	{ "SHIELD COLOR", "display.shield_color", _vr_setting_string, 12, { { "DEFAULT", "default" }, { "WHITE", "white" }, { "RED", "red" }, { "BLUE", "blue" }, { "GRAY", "gray" }, { "YELLOW", "yellow" }, { "GREEN", "green" }, { "PINK", "pink" }, { "PURPLE", "purple" }, { "CYAN", "cyan" }, { "ORANGE", "orange" }, { "TEAL", "teal" } } },
+	{ "SHIELD GLOW", "display.shield_glow", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	{ "GLOW REACH", "display.shield_glow_intensity", _vr_setting_string, 2, { { "DEFAULT", "default" }, { "LIGHT SHOW", "light_show" } } },
+	{ "ARM SHIELD", "display.viewmodel_shield", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 };
 
 /* test20c/d: the visible hands (never the gun: one row turns both, the

@@ -65,7 +65,8 @@ struct plasma_runtime_parameters
 
 struct rasterizer_transparent_geometry_group_plasma
 {
-	byte reserved00[0xC];
+	unsigned long geometry_flags; /* port: (the first-person bit) */
+	byte reserved04[8];
 	struct shader *shader;
 	short bitmap_sequence_index;
 	byte reserved12[0x5A];

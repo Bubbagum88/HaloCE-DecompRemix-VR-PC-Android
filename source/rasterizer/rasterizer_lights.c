@@ -102,6 +102,7 @@ symbols in this file:
 #include "rasterizer/xbox/rasterizer_xbox.h"
 #include "main/main.h"
 #include "view_fov.h" /* port: port/linux/game/view_fov.c */
+#include "render/render_cameras_internal.h" /* port: render_frustum_sphere_visible */
 
 /* ---------- constants */
 

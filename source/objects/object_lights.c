@@ -207,6 +207,8 @@ enum
 	_point_light_connects_to_map_bit = 1,
 	_point_light_connected_to_map_bit = 2,
 	_point_light_attached_to_first_person_weapon_bit = 3,
+	/* port: a glow the port colors and sizes itself (light_port_glow_set) */
+	_point_light_port_glow_bit = 4,
 };
 
 enum
@@ -1041,7 +1043,12 @@ void lights_preprocess_scene(
 		object = light->object_index != NONE
 			? object_try_and_get(light->object_index)
 			: NULL;
-		if (light->parent_light_index == NONE)
+		if (TEST_FLAG(light->flags, _point_light_port_glow_bit))
+		{
+			/* port: a glow's color is as set (light_port_glow_set) */
+			intensity = 1.0f;
+		}
+		else if (light->parent_light_index == NONE)
 		{
 			real_rgb_color const *color;
 
@@ -1138,6 +1145,9 @@ void lights_preprocess_scene(
 				light->radius = (definition->radius_modifier_lower_bound * inverse_intensity
 					+ definition->radius_modifier_upper_bound * intensity)
 					* definition->radius;
+				/* port: a glow's radius is as set (light_port_glow_set) */
+				if (TEST_FLAG(light->flags, _point_light_port_glow_bit))
+					light->radius = light->intensity_scale;
 				lights_port.radius_writes++;
 				if (light->radius != 0.0f)
 				{
