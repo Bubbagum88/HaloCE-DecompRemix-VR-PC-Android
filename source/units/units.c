@@ -9568,6 +9568,9 @@ boolean unit_vr_impact_melee(
 		damage_data.direction = direction;
 		damage_data.material_type = hit_material_type;
 		damage_data.scale = scale;
+		/* Test66: the assisted fists' share (ENEMY HEALTH, combo, takedown,
+		armour) as the multiplier; 1 for any other blow */
+		damage_data.multiplier = vr_combat_damage_share();
 		if (hit_object_index == NONE)
 		{
 			if (breakable_surface_index != NONE)

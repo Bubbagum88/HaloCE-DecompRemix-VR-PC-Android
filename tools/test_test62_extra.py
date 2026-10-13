@@ -26,16 +26,20 @@ typedef struct {float alpha,red,green,blue;}real_argb_color;
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #define PIN(v,a,b) MIN(MAX(v,a),b)
 #define _pi 3.141592653589793f
+#define NUMBEROF(a) ((int)(sizeof(a)/sizeof((a)[0])))
+/* (the fixture's bodies are of no kind unless a test says: 0 is none) */
+enum{_actor_elite=10,_actor_jackal,_actor_grunt,_actor_hunter};
+typedef struct{float i,j;}real_vector2d;
 enum{_game_connection_local,_game_connection_network_client,_game_connection_network_server};
 enum{_object_dead_bit,_unit_suspended_bit,_biped_airborne_bit,_biped_no_collision_bit,_unit_control_weapon_primary_trigger_bit,_unit_control_throw_grenade_bit,_unit_control_use_equipment_bit,_unit_control_jump_bit};
 enum{_object_type_biped=1,_object_mask_biped=2,_collision_result_object=3,_collision_test_for_projectiles_flags=4};
 enum{VR_INTERACTION_NONE,VR_INTERACTION_RELOAD,VR_INTERACTION_VEHICLE,VR_INTERACTION_WORLD,VR_INTERACTION_PARKOUR,VR_INTERACTION_NPC,VR_INTERACTION_GRENADE};
-struct object_fields{long parent_object_index;unsigned damage_flags;int type,owner_team_index;real_point3d position,bounding_sphere_center;real_vector3d forward;real bounding_sphere_radius;struct{long size;}node_matrices;};
-struct unit_fields{long actor_index,player_index;unsigned flags,control_flags;real_vector3d throttle;real primary_trigger;};
+struct object_fields{long parent_object_index;unsigned damage_flags;int type,owner_team_index;real_point3d position,bounding_sphere_center;real_vector3d forward;real bounding_sphere_radius,shield_vitality;struct{long size;}node_matrices;};
+struct unit_fields{long actor_index,player_index;unsigned flags,control_flags;real_vector3d throttle;real primary_trigger;char melee_attack_state;};
 struct unit_datum{long definition_index;struct object_fields object;struct unit_fields unit;};
 struct biped_datum{long definition_index;struct object_fields object;struct unit_fields unit;struct{unsigned flags;}biped;};
 static struct biped_datum bodies[4];static real widths[4]={.2f,.3f,.3f,.3f};
-struct actor_datum{struct{int active,team_index;}meta;}actors[4];
+struct actor_datum{struct{int active,team_index,type;}meta;}actors[4];
 struct player_datum{long unit_index;}player={0};
 struct object_iterator{long index;};
 struct collision_result{int type;long object_index;float t;struct{real_vector3d n;float d;}plane;};
@@ -113,6 +117,11 @@ static void render_debug_polygon(real_point3d const*p,int n,real_argb_color cons
 static void render_debug_sphere(int b,real_point3d const*p,float r,real_argb_color const*c){(void)b;(void)p;(void)r;(void)c;draws++;}
 static struct object_definition*object_definition_get(long i){(void)i;return &definition;}
 static struct model*model_definition_get(long i){(void)i;return &model;}
+/* Test66: an enemy's bones as drawn (NULL: none, the camera point and sphere) */
+static real_matrix4x3 *node_pose;static real_matrix4x3*object_get_node_matrices(long i){(void)i;return node_pose;}
+static int swings;static long swinger=NONE;
+static boolean unit_melee_attack_begin(long u,boolean c,real_vector2d const*a){(void)c;(void)a;swings++;swinger=u;return 1;}
+int vr_combat_stunned(long unit);
 """
 extra_stubs=r"""
 /* Test63: the chest frame (vr_frame.c's vr_torso_place): from the eyes along
@@ -211,7 +220,7 @@ int main(void){
  real_matrix4x3 stock[3]={0};for(int k=0;k<3;k++){stock[k].scale=1;stock[k].forward.i=stock[k].left.j=stock[k].up.k=1;stock[k].position.z=k*.5f;}
  real_matrix4x3 saved[3];memcpy(saved,stock,sizeof stock);real_matrix4x3 *posed=vr_combat_render(1,stock);assert(posed!=stock&&!memcmp(saved,stock,sizeof stock));
  real_vector3d gap;vector_from_points3d(&posed[1].position,&posed[2].position,&gap);assert(fabsf(magnitude3d(&gap)-.5f)<1e-5f);
- assert(vr_combat_hit(0,1,&hit,NULL,1.0f,0)==6);assert(vr_combat_hit(0,0,&hit,NULL,1.0f,0)==1); // behind enemy: a takedown (Test65: x6); the player never valid
+ assert(vr_combat_hit(0,1,&hit,NULL,1.0f,0)==1&&vr_combat_damage_share()==6);assert(vr_combat_hit(0,0,&hit,NULL,1.0f,0)==1&&vr_combat_damage_share()==1); // behind enemy: a takedown (x6, Test66: as the multiplier); the player never valid
  now+=60;assert(vr_combat_render(1,stock)==stock);
  setup();combat=1;enabled=0;grip[0]=1;tick();vr_combat_punch(0,0,&p,&punch);gaze.i=-1;tick();assert(extra.target==NONE);
  setup();combat=1;enabled=0;grip[0]=1;tick();melee_speed=0;assert(!vr_combat_enabled());
@@ -302,16 +311,92 @@ int main(void){
   *    a hit taken breaks the meter */
  setup();combat=1;enabled=0;grip[0]=1;tick();health_setting=3;
  {real_point3d body_hit={.n={1.2f,0,.8f}};float blow;int before=knocks;
-  for(int i=1;i<=7;i++){blow=vr_combat_hit(0,1,&body_hit,NULL,.9f,0);assert(extra.combo==i);
-   assert(fabsf(blow-(1+.08f*(i-1))/3.0f)<1e-5f);extra.stun_until=0;extra.hit_count=0;tick();tick();tick();}
+  for(int i=1;i<=7;i++){blow=vr_combat_hit(0,1,&body_hit,NULL,.9f,0);assert(extra.combo==i&&blow==1);
+   blow=vr_combat_damage_share();assert(fabsf(blow-(1+.08f*(i-1))/3.0f)<1e-5f);assert(vr_combat_damage_share()==1); /* once */extra.stun_until=0;extra.hit_count=0;tick();tick();tick();}
   blow=vr_combat_hit(0,1,&body_hit,NULL,.9f,0);assert(extra.combo==8);tick();tick();tick();extra.stun_until=0;extra.hit_count=0;
-  blow=vr_combat_hit(0,1,&body_hit,NULL,1.2f,0);assert(blow==6&&extra.combo==0&&extra.knock_pending);
+  blow=vr_combat_hit(0,1,&body_hit,NULL,1.2f,0);assert(blow==1&&vr_combat_damage_share()==6&&extra.combo==0&&extra.knock_pending);
   tick();assert(knocks==before+1&&knocked==1&&knock_speed==6);
   tick();tick();tick();vr_combat_hit(0,1,&body_hit,NULL,.9f,0);tick();tick();tick();vr_combat_hit(0,1,&body_hit,NULL,.9f,0);assert(extra.combo==2);
   vr_combat_note_damage(1);assert(extra.combo==2);vr_combat_note_damage(0);assert(extra.combo==0);
   /* the meter runs out two seconds after the last hit */
   tick();tick();tick();vr_combat_hit(0,1,&body_hit,NULL,.9f,0);assert(extra.combo==1);for(int t=0;t<61;t++)tick();assert(extra.combo==0);}
  health_setting=1;
+ /* Test66 1. ENEMY HEALTH as the damage multiplier (6X: a sixth of a blow;
+  * the swing's scale untouched), and only for the tick of that blow */
+ setup();combat=1;enabled=0;grip[0]=1;tick();health_setting=6;
+ {real_point3d body_hit={.n={1.2f,0,.8f}};
+  assert(vr_combat_hit(0,1,&body_hit,NULL,.8f,0)==1);tick();assert(vr_combat_damage_share()==1); /* a tick on: spent */
+  tick();tick();extra.stun_until=0;assert(vr_combat_hit(0,1,&body_hit,NULL,.8f,0)==1);
+  assert(fabsf(vr_combat_damage_share()-(1+.08f)/6.0f)<1e-5f);}
+ health_setting=1;
+ /* 2. kinds: a Grunt staggers in two blows, an Elite in four, a Hunter
+  *    never; a Hunter's front takes 40%, its back 160%; a Jackal's shield
+  *    45% in front, all of it once staggered */
+ {real_point3d body_hit={.n={1.2f,0,.8f}};
+  setup();combat=1;enabled=0;grip[0]=1;tick();actors[1].meta.type=_actor_grunt;
+  vr_combat_hit(0,1,&body_hit,NULL,.8f,0);assert(!extra.stun_until);tick();tick();tick();vr_combat_hit(0,1,&body_hit,NULL,.8f,0);assert(extra.stun_until>now);
+  setup();combat=1;enabled=0;grip[0]=1;tick();actors[1].meta.type=_actor_elite;bodies[1].object.shield_vitality=1;
+  for(int i=0;i<3;i++){vr_combat_hit(0,1,&body_hit,NULL,.8f,0);assert(!extra.stun_until);for(int t=0;t<8;t++)tick();}
+  vr_combat_hit(0,1,&body_hit,NULL,.8f,0);assert(extra.stun_until>now);
+  setup();combat=1;enabled=0;grip[0]=1;tick();actors[1].meta.type=_actor_hunter;bodies[1].object.forward=(real_vector3d){.n={-1,0,0}};
+  for(int i=0;i<6;i++){vr_combat_hit(0,1,&body_hit,NULL,.8f,0);assert(!extra.stun_until&&fabsf(vr_combat_damage_share()-.40f*(1+.08f*(real)i))<1e-4f);tick();tick();tick();}
+  bodies[1].object.forward=(real_vector3d){.n={1,0,0}};vr_combat_hit(0,1,&body_hit,NULL,.8f,0);assert(vr_combat_damage_share()>1.5f);
+  assert(!extra.knock_pending); /* never knocked down */
+  setup();combat=1;enabled=0;grip[0]=1;tick();actors[1].meta.type=_actor_jackal;bodies[1].object.forward=(real_vector3d){.n={-1,0,0}};
+  vr_combat_hit(0,1,&body_hit,NULL,.8f,0);assert(fabsf(vr_combat_damage_share()-.45f)<1e-4f);
+  tick();tick();tick();vr_combat_hit(0,1,&body_hit,NULL,.8f,0);vr_combat_damage_share();assert(extra.stun_until>now);
+  tick();tick();tick();vr_combat_hit(0,1,&body_hit,NULL,.8f,0);assert(vr_combat_damage_share()>.9f);}
+ /* 3. an Elite struck twice in a second and a half answers with its own
+  *    swing a fifth of a second on (native unit_melee_attack_begin) */
+ setup();combat=1;enabled=0;grip[0]=1;tick();actors[1].meta.type=_actor_elite;bodies[1].object.shield_vitality=1;
+ {real_point3d body_hit={.n={1.2f,0,.8f}};int before=swings;
+  vr_combat_hit(0,1,&body_hit,NULL,.8f,0);tick();tick();tick();vr_combat_hit(0,1,&body_hit,NULL,.8f,0);
+  for(int t=0;t<5;t++){tick();assert(swings==before);}tick();assert(swings==before+1&&swinger==1);}
+ /* 4. BLOCK: an enemy's swing meets a hand held up between the face and it:
+  *    most of the blow stopped, the guard tiring blow on blow, never all */
+ setup();combat=1;enabled=0;grip[0]=1;tick();hand_speed=.5f;
+ bodies[1].object.position.x=.6f;bodies[1].object.bounding_sphere_center=(real_point3d){.n={.6f,0,1.2f}};bodies[1].object.forward=(real_vector3d){.n={-1,0,0}};
+ assert(vr_combat_defend(0,1)==1); /* not swinging: nothing to block */
+ vr_combat_note_melee(1);bodies[1].unit.melee_attack_state=1;tick();
+ assert(vr_combat_defend(0,1)==1); /* hands down: the whole blow */
+ hands[0]=(real_point3d){.n={.3f,0,1.45f}};
+ {float first=vr_combat_defend(0,1),second=vr_combat_defend(0,1);
+  assert(fabsf(first-.35f)<1e-5f&&second>first&&second<1);
+  for(int i=0;i<8;i++)second=vr_combat_defend(0,1);assert(second<=1&&second>.9f);}
+ combat=0;assert(vr_combat_defend(0,1)==1);combat=1;
+ assert(vr_combat_defend(1,0)==1); /* the enemy is never defended */
+ /* 5. PARRY: a hand swiped hard while the swing comes: none of the blow,
+  *    the attacker staggered and open (a rear takedown, a grab) */
+ setup();combat=1;enabled=0;grip[0]=1;tick();
+ bodies[1].object.position.x=.6f;bodies[1].object.bounding_sphere_center=(real_point3d){.n={.6f,0,1.2f}};bodies[1].object.forward=(real_vector3d){.n={-1,0,0}};
+ vr_combat_note_melee(1);bodies[1].unit.melee_attack_state=1;hands[0]=(real_point3d){.n={.4f,.1f,1.3f}};hand_speed=4;tick();
+ assert(vr_combat_defend(0,1)==0&&extra.countered==1&&vr_combat_stunned(1)&&extra.target==1&&extra.stun_until>now);
+ /* a swipe long before the blow is no parry */
+ setup();combat=1;enabled=0;grip[0]=1;tick();
+ bodies[1].object.position.x=.6f;bodies[1].object.bounding_sphere_center=(real_point3d){.n={.6f,0,1.2f}};bodies[1].object.forward=(real_vector3d){.n={-1,0,0}};
+ vr_combat_note_melee(1);bodies[1].unit.melee_attack_state=1;hands[0]=(real_point3d){.n={.4f,.1f,1.3f}};hand_speed=4;tick();hand_speed=.5f;
+ for(int t=0;t<8;t++)tick();bodies[1].unit.melee_attack_state=1;hands[0]=(real_point3d){.n={0,.6f,.5f}};assert(vr_combat_defend(0,1)==1);
+ hand_speed=3;
+ /* 6. the lunge in the air rises or dives to the enemy (3 m); on the ground
+  *    an enemy two metres below is out of the dash */
+ for(int air=0;air<2;air++){
+  setup();combat=1;enabled=0;lunge_setting=6;grip[0]=1;tick();
+  bodies[2].object.position.x=9;bodies[2].object.bounding_sphere_center=(real_point3d){.n={9,0,1.2f}};
+  bodies[1].object.position=(real_point3d){.n={5,0,-2}};bodies[1].object.bounding_sphere_center=(real_point3d){.n={5,0,-.8f}};
+  if(air)bodies[0].biped.flags|=FLAG(_biped_airborne_bit);
+  real_point3d fist={.n={.3f,0,1.2f}};real_vector3d jab={.n={.2f,0,0}};vr_combat_punch(0,0,&fist,&jab);assert(extra.target==1&&extra.approach_until>now);
+  real_vector3d v={.n={0,0,-.01f}};vr_combat_velocity(0,&bodies[0].object.position,&v);
+  if(air)assert(v.i>0&&v.k<-.3f&&extra.approach_until>now);else assert(v.i==0&&v.k==-.01f&&extra.approach_until==0);}
+ lunge_setting=0;
+ /* 7. the lights sit on the bones as drawn (the chest the last spine node,
+  *    the face 8 cm over the neck), not the tick's camera point */
+ setup();combat=1;enabled=0;grip[0]=1;tick();
+ {real_matrix4x3 drawn[3]={0};for(int k=0;k<3;k++){drawn[k].scale=1;drawn[k].forward.i=drawn[k].left.j=drawn[k].up.k=1;}
+  drawn[0].position=(real_point3d){.n={2,1,0}};drawn[1].position=(real_point3d){.n={2,1,1.2f}};drawn[2].position=(real_point3d){.n={2,1,1.5f}};
+  node_pose=drawn;real_point3d head,chest;assert(combat_regions(1,&head,&chest));
+  assert(fabsf(chest.x-2)<1e-5f&&fabsf(chest.z-1.2f)<1e-5f&&fabsf(head.z-1.58f)<1e-5f&&fabsf(head.y-1)<1e-5f);
+  node_pose=NULL;assert(combat_regions(1,&head,&chest)&&fabsf(chest.x-1.2f)<1e-5f);}
+ puts("PASS: Test66 fist combat: ENEMY HEALTH divides the blow (the multiplier, once), Grunts/Jackals/Elites/Hunters fight their own ways, an Elite answers a flurry, BLOCK (tiring) and PARRY (the swing undone, an opening), the lunge rises and dives in the air, lights on the drawn bones");
  setup();real_point3d camera;unit_get_camera_position(0,&camera);assert(vr_extra_render(camera.n)&&draws>0);enabled=0;assert(!vr_extra_render(camera.n));
  puts("PASS: production Test62 grenade ownership/ammo/release/tracking/network gates; enemy acquisition, lock, collision velocity, stun, rear takedown and pose invariants");
  puts("PASS: Test65 fist combat: the last frame's head acquires in a tick; a lunge carries the blow to its landing (given up after a second); counters undo the swing; a combo meter (ENEMY HEALTH, broken by a hit, out after 2 s) and a takedown that knocks down");
@@ -334,7 +419,7 @@ un=(R/'source/units/units.c').read_text()
 native=function(un,'boolean unit_vr_throw_grenade(')
 ns=stubs
 ns=re.sub(r'static int unit_vr_throw_grenade\([^\n]*\n','',ns)
-ns=ns.replace('real bounding_sphere_radius;','real bounding_sphere_radius;real_vector3d translational_velocity;')
+ns=ns.replace('real bounding_sphere_radius,shield_vitality;','real bounding_sphere_radius,shield_vitality;real_vector3d translational_velocity;')
 ns=ns.replace('real primary_trigger;','real primary_trigger;real_vector3d aiming_vector;int grenade_throw_state;char grenade_counts[2];')
 ns=ns.replace('r->type=0;r->object_index=NONE;','r->type=0;r->object_index=NONE;r->t=.5f;')
 ns+=r"""

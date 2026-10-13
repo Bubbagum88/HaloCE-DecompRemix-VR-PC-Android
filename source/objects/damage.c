@@ -1468,6 +1468,15 @@ void object_cause_damage(
 		damage_definition->damage_upper_bound * damage->scale,
 		damage_definition->instantaneous_acceleration * damage->scale,
 		damage_definition->category, TEST_FLAG(damage->flags, _damage_area_of_effect_bit));
+	/* Test66: an enemy's blow blocked (most of it stopped) or parried
+	(none of it, nothing dealt) by the assisted fists' player */
+	{
+		real share = vr_combat_defend(object_index, damage->owner_object_index);
+
+		if (!(share > 0.0f))
+			return;
+		damage->multiplier *= share;
+	}
 	/* Test65: a hit taken breaks the assisted fists' combo */
 	if (damage_definition->damage_upper_bound * damage->scale > 0.0f)
 		vr_combat_note_damage(object_index);

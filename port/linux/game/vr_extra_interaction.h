@@ -14,6 +14,8 @@ int vr_combat_enabled(void);
 int vr_combat_stunned(long unit);
 void vr_combat_punch(long unit,int hand,real_point3d const *point,real_vector3d const *sweep);
 real vr_combat_hit(long unit,long target,real_point3d const *point,real_vector3d const *direction,real scale,boolean armed);
+real vr_combat_damage_share(void);
+real vr_combat_defend(long victim,long attacker);
 /* Test65: an enemy's swing begun (a counter window); a hit the player took
  * (breaks the combo); units.c: the blow a lunge or counter carries */
 void vr_combat_note_melee(long attacker);
