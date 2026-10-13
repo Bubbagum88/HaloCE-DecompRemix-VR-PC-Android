@@ -67,7 +67,7 @@ static struct npc_state {
     int recovery_blocked_ticks;
     /* Test54: death (a ragdoll begun at death, not by a hand) and the
      * pelvis-to-root offset a released body's root follows while it settles */
-    int death,root_follow;
+    int death,root_follow,root_moved_logged;
     real_vector3d root_offset,last_delta[2];
     /* Test65: GRAB RAGDOLL: when the first hand took hold and where each hand
      * took hold (a living body becomes a ragdoll only once lifted); a body
@@ -1131,11 +1131,37 @@ static void npc_touch_tick(void)
     }
 }
 #endif
+/* Test66: a body in the hands stays in the hands. The owner's Test65
+ * ragdoll video: dead bodies vanished out of the hand while held. Each tick a
+ * held body is kept awake (an object the engine puts to sleep is not
+ * updated, so its pose stops at where it lay), off the clean-up list (the
+ * engine may queue a corpse again while it is held; noted, so it is queued
+ * once more after the hands let go, at rest) and, a corpse, with its root
+ * near the body in the hands (vr_npc_interaction_palette: the engine culls
+ * and collects by the root) */
+static void npc_keep_held(void)
+{
+    for(int slot=0;slot<NPC_POOL_SIZE;++slot) {
+        struct npc_state *state=&npc_pool[slot];
+        struct unit_datum *u;
+        if(!state->active||state->is_remote||!(state->held[0]||state->held[1]))continue;
+        u=(struct unit_datum *)object_try_and_get_and_verify_type(state->index,_object_mask_biped);
+        if(!u)continue;
+        object_activate(state->index);
+        SET_FLAG(u->object.flags,_object_at_rest_bit,FALSE);
+        if(TEST_FLAG(u->object.flags,_object_garbage_bit)) {
+            object_set_garbage(state->index,FALSE);
+            if(!state->was_garbage)platform_log("VR NPC: held actor=%08lx was queued for clean-up again; kept (queued after release, at rest)",state->index);
+            state->was_garbage=1;
+        }
+    }
+}
 void vr_npc_interaction_tick(void)
 {
     short local=local_player_get_next(NONE);
     long player=local!=NONE?local_player_get_player_index(local):NONE;
     npc_deferred_garbage_tick();
+    npc_keep_held();
     npc_touch_tick();
     if(select_owner(player,FALSE,-1)) tick_player(FALSE,player);
     for(int n=0;n<NPC_REMOTE_PLAYERS;++n) if(remote_pool[n].valid) {
@@ -1166,6 +1192,29 @@ void vr_npc_interaction_palette(long index)
     }
     npc.rig.impact_enabled=npc.started&&!npc.recovery;
     npc.rig.impact_units=interaction_units();
+    /* Test66: a corpse in the hands keeps its root with it: past a metre
+     * from the body's torso the root is brought along (no further than the
+     * world allows; the rig is not moved with it) */
+    if(npc.started&&(npc.held[0]||npc.held[1])&&TEST_FLAG(unit_get(index)->object.damage_flags,_object_dead_bit)) {
+        struct unit_datum *body=unit_get(index);
+        int torso=npc.torso_node>=0&&npc.torso_node<npc.rig.body.count?npc.torso_node:0;
+        real_point3d at;real_vector3d gap;struct collision_result hit;
+        memcpy(at.n,npc.rig.body.nodes[torso].position,sizeof(at.n));
+        vector_from_points3d(&body->object.position,&at,&gap);
+        SET_FLAG(body->object.flags,_object_at_rest_bit,FALSE);
+        if(valid_real_point3d(&at)&&magnitude3d(&gap)>1.0f*units) {
+            if(collision_test_vector(FLAG(_collision_test_structure_bit),&body->object.position,&gap,index,&hit)&&
+               isfinite(hit.t)&&hit.t>=0&&hit.t<=1)
+                point_from_line3d(&body->object.position,&gap,MAX(0.0f,hit.t-.05f),&at);
+            object_set_position(index,&at,NULL,NULL);
+            npc.root=body->object.position;
+            if(!npc.root_moved_logged){
+                platform_log("VR NPC: held corpse actor=%08lx: its root brought to the body in the hands (%.1f m behind)",
+                    index,(float)(magnitude3d(&gap)/units));
+                npc.root_moved_logged=1;
+            }
+        }
+    }
     u=unit_get(index);native=object_get_node_matrices(index);
     if(!native || npc.rig.body.count>u->object.node_matrices.size/(long)sizeof(*native)) {cancel_one_reason("invalid-native-palette");return;}
     /* Translate by accepted native root motion. Ordinary NPCs already use a
