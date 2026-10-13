@@ -275,6 +275,38 @@ static const struct config_setting config_settings[] =
 		"In first person, point the view where the player aims now instead of\n"
 		"where the last tick left it: the view turns the frame the mouse moves,\n"
 		"not up to two ticks (66 ms) later." },
+	/* OpenCE Build 201: the display options (FOV, the first-person weapon, your
+	legs, the shield's color and glow). In VR the headset's projection, the
+	gun and hands and the full body stay VR's own (view_fov.c,
+	first_person_legs.c); the shield options apply to both. */
+	{ "display.fov", _config_real, "0.0", "HALO_FOV", _environment_value, _platform_all,
+		"The first-person view's field of view on foot, in degrees across at\n"
+		"16:9 (20 to 150); 0 keeps the stock view. Vehicles, cinematics and\n"
+		"scripted cameras keep their own." },
+	{ "display.viewmodel_fov", _config_real, "0.0", "HALO_VIEWMODEL_FOV", _environment_value, _platform_all,
+		"The first-person weapon's and hands' field of view, in degrees across\n"
+		"at 16:9 (20 to 150); 0 keeps the weapon's stock view, also when\n"
+		"display.fov widens the world." },
+	{ "display.viewmodel_visible", _config_boolean, "true", "HALO_VIEWMODEL_VISIBLE", _environment_value, _platform_all,
+		"Draw the first-person weapon, hands and what is attached to them.\n"
+		"Off, they are not drawn; firing, animation, sound and lights go on." },
+	{ "display.viewmodel_shield", _config_boolean, "false", "HALO_VIEWMODEL_SHIELD", _environment_value, _platform_all,
+		"The energy shield's flare on the first-person arms too, as on the body\n"
+		"(the stock game draws it on the body only)." },
+	{ "display.first_person_legs", _config_boolean, "false", "HALO_FIRST_PERSON_LEGS", _environment_value, _platform_all,
+		"Your own legs in first person, seen looking down: your body as others\n"
+		"see it, drawn from the waist down, moving as it moves." },
+	{ "display.shield_glow", _config_boolean, "false", "HALO_SHIELD_GLOW", _environment_value, _platform_all,
+		"Energy shields light what is around them as they flare, as plasma\n"
+		"does, in the shield's own color." },
+	{ "display.shield_glow_intensity", _config_string, "\"default\"", "HALO_SHIELD_GLOW_INTENSITY", _environment_value, _platform_all,
+		"How far the shield glow reaches: \"default\" or \"light_show\" (three\n"
+		"times as far, and at full strength from a third of the flare)." },
+	{ "display.shield_color", _config_string, "\"default\"", "HALO_SHIELD_COLOR", _environment_value, _platform_all,
+		"Your energy shield's color, as this machine draws it: \"default\" (the\n"
+		"shield's own) or a multiplayer armor color: white, black, red, blue,\n"
+		"gray, yellow, green, pink, purple, cyan, cobalt, orange, teal, sage,\n"
+		"brown, tan, maroon or salmon." },
 	{ "display.high_res_hud", _config_boolean, "true", "HALO_HIGH_RES_HUD", _environment_value, _platform_all,
 		"Draw the HUD (meters, counters, panels, motion sensor, reticles,\n"
 		"waypoints, scopes) from the high-res assets (8x the maps' bitmaps);\n"
