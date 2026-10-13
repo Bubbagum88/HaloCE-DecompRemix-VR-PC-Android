@@ -380,6 +380,15 @@ symbols in this file:
 #include "networking/network_game_manager.h"
 #include "networking/network_server_manager.h" /* port: a co-op game's level won */
 #include "network_coop.h" /* port: port/linux/game/network_coop.c */
+#include "network_voice.h" /* port: port/linux/game/network_voice.c */
+#include "map_share.h" /* port: port/linux/game/map_share.c */
+#include "profile_sections.h" /* port: port/linux/include/profile_sections.h */
+#ifdef HALO_PROFILE
+#include "profile_trace.h" /* port: port/linux/src/profile_trace.c */
+#endif
+#ifdef HALO_WEB
+#include <emscripten.h> /* port: the browser runs the main loop (port/web/README.md) */
+#endif
 #include "camera/director.h"
 #include "camera/observer.h"
 #include "cutscene/cinematics.h"
@@ -2716,10 +2725,14 @@ void main_rasterizer_throttle(
 			profile_idle_start();
 			while ((__int64)rasterizer_globals.frame_and_vertical_blank_index < target_index)
 			{
-				if (precache_in_progress)
-				{
-					Sleep(1);
-				}
+				/* the native builds sleep between looks: the Xbox spun here,
+				and on a port each look at the clock is a system call, so a
+				game held at 30 frames a second (display.interpolation off)
+				spent half its game thread asking the time. A millisecond is
+				well inside a 33 ms frame (Windows sets its timer to 1 ms:
+				win32_posix.c) */
+				(void)precache_in_progress;
+				Sleep(1);
 				if (system_milliseconds() > start_milliseconds + 1000)
 				{
 					console_warning(
@@ -3449,6 +3462,8 @@ void main_loop(
 			network_test_update(main_globals.main_menu_scenario_loaded, main_globals.seconds_elapsed);
 			/* OpenCE voice chat, both in the lobby and during network games. */
 			network_voice_update();
+			/* port: map sharing, in the lobby and in game (port/linux/game/map_share.c) */
+			map_share_update();
 			network_campaign_session_update(main_globals.main_menu_scenario_loaded, main_globals.seconds_elapsed);
 			network_pvp_session_update(main_globals.main_menu_scenario_loaded, main_globals.seconds_elapsed);
 			connection = main_globals.connection;

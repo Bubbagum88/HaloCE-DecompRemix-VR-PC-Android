@@ -475,6 +475,12 @@ BOOL platform_video_initialize(unsigned long width, unsigned long height)
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
+#ifdef HALO_WEB
+	/* an opaque canvas: the game keeps scratch values in destination alpha,
+	which a page would otherwise blend the picture by (black, or the page's
+	colours through it) */
+	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 0);
+#endif
 	if (config_boolean("debug.gl_debug"))
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 #if !defined(HALO_ANDROID) && !defined(_WIN32)
@@ -1192,7 +1198,24 @@ void platform_pump_events(void)
 #endif
 			break;
 		case SDL_EVENT_GAMEPAD_ADDED:
+#ifdef HALO_ANDROID
+			/* (the guest reaches SDL only through host_imports.list, which
+			has no SDL_GetGamepadName) */
 			SDL_OpenGamepad(event.gdevice.which);
+#else
+			{
+				SDL_Gamepad *gamepad = SDL_OpenGamepad(event.gdevice.which);
+
+				/* (which pads the game drives: under Steam Input, Steam's
+				virtual ones, named for the controllers behind them) */
+				if (gamepad)
+				{
+					const char *name = SDL_GetGamepadName(gamepad);
+
+					platform_log("gamepad: %s", name ? name : "(unnamed)");
+				}
+			}
+#endif
 			break;
 		default:
 			break;

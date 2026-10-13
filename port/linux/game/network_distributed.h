@@ -125,16 +125,20 @@ enum
 	/* co-op: where the host's devices are (doors, elevators), when they move
 	(network_coop.c) */
 	_distributed_message_coop_device_states = 77,
+	/* a player's vote to kick a player (network_votekick.c): to the host,
+	reliably, which takes it only from the voter's own stream */
+	_distributed_message_votekick = 78,
+	/* the vote running as the host counts it, to each client, every second
+	and when it changes (unreliable: network_votekick.c) */
+	_distributed_message_votekick_status = 79,
 	/* OpenCE voice chat; IDs match the upstream Build167 network messages. */
 	_distributed_message_voice_up = 80,
 	_distributed_message_voice_down = 81,
 	_distributed_message_voice_config = 82,
-	/* OpenCE's map sharing (network 27, its map_share.c), in the lobby too,
-	reliably: a client's request for the game's Custom Edition map, the
-	host's offer of its files, the machines that may have them, and the
-	client's progress. This build shares no maps: its host answers a request
-	as an OpenCE host with network.map_share off does (network_distributed.c),
-	and its client never asks */
+	/* map sharing (map_share.c), in the lobby too, reliably: a client's
+	request for the game's map, the host's offer (the files, their sizes and
+	hashes) and the machines that may have them, and the client's progress
+	(Test66: shared as OpenCE Build 201 shares them) */
 	_distributed_message_map_share_request = 83,
 	_distributed_message_map_share_offer = 84,
 	_distributed_message_map_share_sources = 85,

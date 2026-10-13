@@ -179,7 +179,15 @@ struct peer
 	unsigned long long receive_window;
 	unsigned long virtual_address;
 	int is_host;
+	/* (a host's: another player of its game, reached for map sharing:
+	p2p_reach_player) */
+	int is_player;
+	/* the hash of its public key, which another machine reaches it by */
+	unsigned char key_hash[P2P_KEY_HASH_SIZE];
 	int connected;
+	/* the WebRTC connection carrying its tunnel (p2p_webrtc.c: a browser's),
+	or -1 (the UDP tunnel) */
+	int connection;
 	struct p2p_candidate candidates[P2P_MAXIMUM_CANDIDATES];
 	int candidate_count;
 	struct p2p_candidate endpoint;
@@ -340,6 +348,22 @@ static struct
 	int game_player_maximum;
 	int reported_player_count;
 	int reported_player_maximum;
+
+	/* answering the other players of the game joined (map sharing:
+	p2p_set_answering_players): wanted, and doing (p2p_signal_host with the
+	token joined with) */
+	int answer_players;
+	int answering_players;
+	/* the other players of the game joined being reached (p2p_reach_player):
+	the hash of each one's key, and since when */
+	struct
+	{
+		int used;
+		int asked;
+		unsigned char hash[P2P_KEY_HASH_SIZE];
+		unsigned char identifier[P2P_IDENTIFIER_SIZE];
+		unsigned long time;
+	} reaching[P2P_MAXIMUM_PLAYER_JOINS];
 
 	/* joining: until the host is reached, or JOIN_TIMEOUT */
 	int join_requested;
@@ -1869,8 +1893,9 @@ void p2p_socket_port(int socket, int stream, int listening, unsigned short port)
 		entry->stream = (unsigned char)(stream != 0);
 		entry->listening |= (unsigned char)(listening != 0);
 	}
-	/* the game listens for connections while it hosts */
-	if (stream && listening)
+	/* the game listens for connections while it hosts (on any port but map
+	sharing's, which every player of a game listens on) */
+	if (stream && listening && port != network_short(P2P_MAP_SHARE_PORT))
 		p2p.hosting_socket = socket;
 	/* (and no stand-in that closed has the port now) */
 	forget_closed(stream != 0, port);
@@ -2644,6 +2669,95 @@ static void update_hosting(void)
 			p2p_discord_set_hosting(p2p.invite + strlen("halo://join/"), count, maximum);
 		}
 	}
+}
+
+/* ---------- map sharing between the players of a game joined */
+
+int p2p_peer_key_hash(unsigned long virtual_address, unsigned char *peer_identifier, unsigned char *key_hash)
+{
+	struct peer *peer;
+	int result = 0;
+
+	if (!p2p.running)
+		return 0;
+	pthread_mutex_lock(&p2p_lock);
+	peer = find_peer_by_address(virtual_address);
+	if (peer)
+	{
+		memcpy(peer_identifier, peer->identifier, P2P_IDENTIFIER_SIZE);
+		memcpy(key_hash, peer->key_hash, P2P_KEY_HASH_SIZE);
+		result = 1;
+	}
+	pthread_mutex_unlock(&p2p_lock);
+	return result;
+}
+
+void p2p_set_answering_players(int on)
+{
+	/* (only the game's thread writes it: unchanged, it need not wait for the
+	lock) */
+	if (!p2p.running || !on == !p2p.answer_players)
+		return;
+	pthread_mutex_lock(&p2p_lock);
+	p2p.answer_players = on != 0;
+	pthread_mutex_unlock(&p2p_lock);
+}
+
+int p2p_reach_player(const unsigned char *key_hash)
+{
+	unsigned char peer_identifier[P2P_IDENTIFIER_SIZE];
+	int free_index = -1;
+	int result = 0;
+	int index;
+
+	if (!p2p.running)
+		return 0;
+	p2p_identifier_from_hash(key_hash, peer_identifier);
+	pthread_mutex_lock(&p2p_lock);
+	if (!memcmp(peer_identifier, identifier, P2P_IDENTIFIER_SIZE) || !joined_host())
+	{
+		pthread_mutex_unlock(&p2p_lock);
+		return 0;
+	}
+	/* (reached, or being reached: by its offer, or by the request below) */
+	if (find_peer(peer_identifier))
+		result = 1;
+	for (index = 0; index < P2P_MAXIMUM_PLAYER_JOINS && !result; index++)
+	{
+		if (p2p.reaching[index].used && !memcmp(p2p.reaching[index].hash, key_hash, P2P_KEY_HASH_SIZE))
+			result = 1;
+		else if (!p2p.reaching[index].used && free_index < 0)
+			free_index = index;
+	}
+	if (!result && free_index >= 0)
+	{
+		memset(&p2p.reaching[free_index], 0, sizeof(p2p.reaching[free_index]));
+		p2p.reaching[free_index].used = 1;
+		memcpy(p2p.reaching[free_index].hash, key_hash, P2P_KEY_HASH_SIZE);
+		memcpy(p2p.reaching[free_index].identifier, peer_identifier, P2P_IDENTIFIER_SIZE);
+		p2p.reaching[free_index].time = p2p_now();
+		result = 1;
+	}
+	pthread_mutex_unlock(&p2p_lock);
+	return result;
+}
+
+int p2p_peer_reached(const unsigned char *peer_identifier, unsigned long *address)
+{
+	struct peer *peer;
+	int result = 0;
+
+	if (!p2p.running)
+		return 0;
+	pthread_mutex_lock(&p2p_lock);
+	peer = find_peer(peer_identifier);
+	if (peer && peer->connected)
+	{
+		*address = peer->virtual_address;
+		result = 1;
+	}
+	pthread_mutex_unlock(&p2p_lock);
+	return result;
 }
 
 void p2p_set_hosting_allowed(int allowed)

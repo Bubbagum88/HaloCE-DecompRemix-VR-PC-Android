@@ -77,6 +77,7 @@ machine (their datum identifiers need not be).
 #include "network_vr_pose.h"
 #include "network_interaction.h"
 #include "network_distributed.h"
+#include "map_share.h"
 #include "network_voice.h"
 
 #include <limits.h>
@@ -3923,99 +3924,11 @@ not overtaken by the newer damage sent with the ticks since
 (distributed_message_stale) */
 static boolean distributed_handling_batch;
 
-/* ---------- map sharing (OpenCE network 27)
-
-An OpenCE client of network 27 or newer joining a game on a Custom Edition
-map it lacks asks the host for the map (OpenCE's map_share.c). This build
-shares no maps: its host answers as an OpenCE host with network.map_share off
-does, and the client says "The host does not share its maps." instead of
-waiting for an answer. A client of this build never asks, and drops the
-host's messages. The layouts are OpenCE's. */
-
-#define MAP_SHARE_LEVEL_NAME_BYTES 64
-
-enum
-{
-	/* OpenCE's _offer_off: the host does not share maps */
-	_map_share_offer_off = 1,
-	/* OpenCE's _offer_in_progress_bit: the game is under way */
-	_map_share_offer_in_progress_bit = 0,
-};
-
-struct distributed_map_share_request
-{
-	char level_name[MAP_SHARE_LEVEL_NAME_BYTES];
-	unsigned long version;
-	/* the files the client lacks: a bit each */
-	byte wanted;
-	byte pad[3];
-};
-
-struct distributed_map_share_offer
-{
-	char level_name[MAP_SHARE_LEVEL_NAME_BYTES];
-	byte result;
-	byte file_count;
-	byte flags;
-	byte pad;
-};
-
-typedef char distributed_map_share_request_size_assert[sizeof(struct distributed_map_share_request) == 72 ? 1 : -1];
-typedef char distributed_map_share_offer_size_assert[sizeof(struct distributed_map_share_offer) == 68 ? 1 : -1];
-
-boolean map_share_handles_message(
-	word const *message,
-	word size)
-{
-	struct distributed_message_header header;
-
-	if (size < sizeof(header))
-		return FALSE;
-	csmemcpy(&header, message, sizeof(header));
-	return header.type >= _distributed_message_map_share_request &&
-		header.type <= _distributed_message_map_share_progress;
-}
-
-/* a message of map sharing: a request (from a machine of this host's game,
-over its connection alone: a datagram can be sent as from anyone) is
-answered; the rest are dropped */
-void map_share_handle_message(
-	long machine_index,
-	word const *message,
-	word size,
-	boolean from_stream)
-{
-	struct distributed_message_header header;
-	struct distributed_map_share_request request;
-	struct
-	{
-		struct distributed_message_header header;
-		struct distributed_map_share_offer offer;
-	} answer;
-
-	if (!map_share_handles_message(message, size) || !from_stream || machine_index < 0 ||
-		machine_index >= HALO_PORT_MAXIMUM_NETWORK_MACHINES || !global_network_game_server_get())
-	{
-		return;
-	}
-	csmemcpy(&header, message, sizeof(header));
-	if (header.type != _distributed_message_map_share_request || size != sizeof(header) + sizeof(request))
-		return;
-	csmemcpy(&request, (byte const *)message + sizeof(header), sizeof(request));
-	if (!memchr(request.level_name, 0, sizeof(request.level_name)) || !request.level_name[0])
-		return;
-	csmemset(&answer, 0, sizeof(answer));
-	answer.header.type = _distributed_message_map_share_offer;
-	answer.header.count = 1;
-	answer.header.game_time = game_in_progress() ? game_time_get() : 0;
-	build_message_header(&answer.header.header, (word)sizeof(answer), 2, 0);
-	csmemcpy(answer.offer.level_name, request.level_name, sizeof(answer.offer.level_name));
-	answer.offer.result = _map_share_offer_off;
-	answer.offer.flags = game_in_progress() ? FLAG(_map_share_offer_in_progress_bit) : 0;
-	network_distributed_server_send_to_machine_reliably(machine_index, &answer, (word)sizeof(answer));
-	error(_error_silent, "map sharing: machine #%ld asked for %s; this host shares no maps",
-		machine_index, request.level_name);
-}
+/* ---------- map sharing: OpenCE Build 201's (port/linux/game/map_share.c).
+Test66: the owner: "include EVERYTHING from opence ... INCLUDING map
+sharing". Network 28, which this build hosts and joins, carries its messages:
+a host shares its Custom Edition maps (network.map_share) and a client takes
+a map it lacks from the host (network.map_download). */
 
 /* a message of the distributed kind; machine_index is the sender's on the
 host, NONE on a client */
@@ -4035,11 +3948,12 @@ void network_distributed_handle_message(
 		network_voice_handle_message(machine_index, message, size);
 		return;
 	}
-	/* (map sharing's, in the lobby too, over the sender's connection alone:
-	above) */
+	/* (map sharing's, in the lobby too, over the host's connection alone:
+	map_share.c) */
 	if (map_share_handles_message(message, size))
 	{
-		map_share_handle_message(machine_index, message, size, distributed_handling_stream_message);
+		map_share_handle_message(machine_index, message, size, machine_index != NONE ?
+			distributed_handling_stream_message : !network_connection_last_read_was_unreliable());
 		return;
 	}
 	/* (none between games: loading, or in the menus) */

@@ -1202,7 +1202,7 @@ static void game_engine_generate_title_string(
 			}
 			else
 				outcome_string = L"";
-			ustrncpy(title_string, outcome_string, 80);
+			ustrncpy_terminated(title_string, outcome_string, 80);
 			break;
 
 		case FALSE:
@@ -1218,7 +1218,7 @@ static void game_engine_generate_title_string(
 				}
 				else
 					outcome_string = L"";
-				ustrncpy(title_string, outcome_string, 80);
+				ustrncpy_terminated(title_string, outcome_string, 80);
 			}
 			else
 			{
@@ -1232,7 +1232,7 @@ static void game_engine_generate_title_string(
 				}
 				else
 					outcome_string = L"";
-				ustrncpy(title_string, outcome_string, 80);
+				ustrncpy_terminated(title_string, outcome_string, 80);
 			}
 			break;
 
@@ -1249,7 +1249,7 @@ static void game_engine_generate_title_string(
 				}
 				else
 					outcome_string = L"";
-				ustrncpy(title_string, outcome_string, 80);
+				ustrncpy_terminated(title_string, outcome_string, 80);
 			}
 			else
 			{
@@ -1263,7 +1263,7 @@ static void game_engine_generate_title_string(
 				}
 				else
 					outcome_string = L"";
-				ustrncpy(title_string, outcome_string, 80);
+				ustrncpy_terminated(title_string, outcome_string, 80);
 			}
 			break;
 		}
@@ -2046,7 +2046,9 @@ static void game_engine_rasterize_scoreboard(
 	score_string[0] = 0;
 	if (!campaign)
 		game_engine->format_score_name(score_string);
-	usprintf(row_string, L"\t%s\t%s\t%s\t%s", column_name, score_name, score_string, network ? L"Ping" : L"");
+	/* port: bounded (the map's column names) */
+	usnprintf(row_string, NUMBEROF(row_string), L"\t%s\t%s\t%s\t%s", column_name, score_name, score_string,
+		network ? L"Ping" : L"");
 	{
 		long column;
 
@@ -2113,8 +2115,9 @@ static void game_engine_rasterize_scoreboard(
 			else
 				usprintf(ping_string, L"%ld", ping);
 		}
-		usprintf(
+		usnprintf(
 			row_string,
+			NUMBEROF(row_string),
 			L"\t%s\t%s\t%s\t%s",
 			campaign ? L"" : get_place_string(entry),
 			player->name,
@@ -2205,7 +2208,7 @@ static void game_engine_rasterize_in_game_score(
 		score_name = L"";
 
 	game_engine->format_score_name(score_string);
-	usprintf(row_string, L"\t%s\t%s\t%s", column_name, score_name, score_string);
+	usnprintf(row_string, NUMBEROF(row_string), L"\t%s\t%s\t%s", column_name, score_name, score_string);
 	rasterize_in_game_score_draw_line(row_string, FALSE, &color, 1);
 
 	for (entry_index = 0; entry_index < entry_count; entry_index++)
@@ -2262,8 +2265,9 @@ static void game_engine_rasterize_in_game_score(
 
 			place_string = get_place_string(&entries[entry_index]);
 
-			usprintf(
+			usnprintf(
 				row_string,
+				NUMBEROF(row_string),
 				L"\t%s\t%s\t%s",
 				place_string,
 				player->name,
@@ -7845,12 +7849,7 @@ static void game_engine_verify_current_map(
 		_netgame_flag_race_track,
 		"NETGAME MAP FAILURE: duplicate race track flag [team %d]");
 
-	/* BUG (preserved for exact matching): January passes team index zero for
-	 * both CTF checks, and netgame_verify_spawn_points never reads that
-	 * formal parameter.
-	 * A corrected build should filter starting locations by an authoritatively
-	 * recovered team-index field before reporting per-team counts.
-	 */
+	/* (the team index is not read: both checks count every ctf spawn) */
 	netgame_verify_spawn_points(
 		game_engine_ctf,
 		0,

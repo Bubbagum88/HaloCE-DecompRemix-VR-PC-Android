@@ -1392,6 +1392,7 @@ boolean network_game_server_handle_client_message(
 					if (network_game_server_client_machine_is_joined_to_game(server, machine) &&
 						network_game_server_get_client_machine(server, machine, &machine_index))
 					{
+						network_game_server_client_machine_heard(server, machine);
 						map_share_handle_message(machine_index, message, message_buffer_size, TRUE);
 					}
 					break;

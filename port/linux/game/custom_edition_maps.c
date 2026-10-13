@@ -165,29 +165,32 @@ static void custom_edition_maps_forget(
 	return;
 }
 
-/* the map's index in stock_maps, or NONE */
+/* the map's index in stock_maps, or NONE (by its name without its hash) */
 static short stock_map_index(
 	char const *name)
 {
+	short length = map_share_name_base_length(name);
 	short index;
 
 	for (index = 0; index < NUMBEROF(stock_maps); index++)
 	{
-		if (!csstrcasecmp(name, stock_maps[index].file))
+		if ((short)csstrlen(stock_maps[index].file) == length && !_strnicmp(name, stock_maps[index].file, length))
 			return index;
 	}
 	return NONE;
 }
 
 /* A map's menu name: Halo PC's name for its own maps, otherwise the file
-name with underscores as spaces and words capitalized ("the_bay_of_pigs"
-becomes "The Bay Of Pigs"). */
+name (without the hash it ends in, unless `hash`) with underscores as spaces
+and words capitalized ("the_bay_of_pigs" becomes "The Bay Of Pigs"). */
 static void display_name_make(
 	char const *name,
+	boolean hash,
 	wchar_t *display_name)
 {
 	boolean word_start = TRUE;
-	short index = stock_map_index(name);
+	short index = hash ? NONE : stock_map_index(name);
+	short length = hash ? (short)csstrlen(name) : map_share_name_base_length(name);
 
 	if (index != NONE)
 	{
@@ -195,7 +198,7 @@ static void display_name_make(
 		return;
 	}
 
-	for (index = 0; name[index]; index++)
+	for (index = 0; index < length; index++)
 	{
 		unsigned char character = (unsigned char)name[index];
 

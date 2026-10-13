@@ -136,6 +136,7 @@ symbols in this file:
 #include "sound/sound_manager.h"
 #include "tag_schema.h"
 #include "cache_file_formats.h"
+#include "map_share.h" /* port: port/linux/game/map_share.c */
 #include "custom_edition_cache.h"
 
 /* ---------- constants */
@@ -867,7 +868,8 @@ boolean cache_file_header_verify(
 		header->footer_signature != CACHE_FILE_FOOTER_SIGNATURE ||
 		header->file_length < 0 ||
 		header->file_length > 0x11600000 ||
-		csstrlen(header->name) > 31)
+		/* port: its name ends within its field (csstrlen read on past it) */
+		!memchr(header->name, 0, sizeof(header->name)))
 	{
 		if (fatal)
 		{
@@ -1060,8 +1062,15 @@ boolean cache_files_map_present(
 	name = tag_name_strip_path(map_name);
 	if (custom_edition_level_name(map_name))
 	{
-		if (custom_edition_cache_present(map_name, version, message, sizeof(message)))
+		/* port: one this machine lacks (or whose resource maps it lacks) is
+		asked of the host instead, if it may be (map sharing:
+		port/linux/game/map_share.c): taken as present, and downloaded before
+		it is precached */
+		if (custom_edition_cache_present(map_name, version, message, sizeof(message)) ||
+			map_share_download_begin(map_name, version, message))
+		{
 			return TRUE;
+		}
 	}
 	else
 	{
@@ -1111,6 +1120,10 @@ boolean cache_files_give_time_to_precache(
 	the main menu and three multiplayer maps played) matched none, so was
 	taken for a map missing from the disc (the damaged disc error) */
 	if (!map_name || !map_name[0])
+		return FALSE;
+	/* port: a map being downloaded (port/linux/game/map_share.c) is not
+	there yet: precached once it is */
+	if (map_share_downloading(map_name))
 		return FALSE;
 	if (cache_files_precache_map_loaded(map_name))
 	{
