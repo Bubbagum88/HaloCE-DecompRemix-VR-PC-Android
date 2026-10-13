@@ -4259,6 +4259,201 @@ static void vr_blend_action_arm(struct animation_graph *graph, real_matrix4x3 *m
             vr_blend_action_matrix(&matrices[n], &authored[n], weight);
 }
 
+/* Test66: MANUAL RELOAD's grip from Halo's own reload animation. The
+owner's Test65: a magazine taken in hand hovered at whatever offset it had
+when grabbed, the fingers not round it; the slide's hand floated near it.
+The first-person graph holds both arms and the gun, and its reload (reload-
+empty, reload-full, reload-full2) shows the off hand (the graph's left arm,
+whichever hand that is) holding the new magazine and, where it does, working
+the slide or charging handle. Sampled once per graph: the frame where the
+left wrist is nearest the magazine while the magazine is out of the gun (more
+than 4 cm from where it sits), and the frame where it is nearest the slide or
+handle while that is drawn back (1.5 cm); the magazine's or handle's place
+and the left fingers' (thumb, index, middle, ring, pinky) relative to the
+wrist there. While the reload holds a magazine or handle the fingers take
+that pose round it (eased over a tenth of a second) and the magazine is put
+in the hand as the animation holds it (vr_render_reload_grip). Nothing from
+a frame further than 18 cm (12 cm for the handle) from the wrist is used. */
+static struct
+{
+	struct animation_graph *graph;
+	long definition;
+	int part_valid[2], finger_count, frame[2];
+	short wrist, fingers[MAXIMUM_NODES_PER_ANIMATION];
+	real distance[2];
+	real_matrix4x3 part[2], finger[2][MAXIMUM_NODES_PER_ANIMATION];
+} vr_reload_grip = { NULL, NONE };
+static struct
+{
+	real_matrix4x3 wrist;
+	double time;
+	int valid;
+} vr_reload_wrist;
+
+static boolean vr_reload_grip_finger(char const *name)
+{
+	static char const *const fingers[] = { "thumb", "index", "middle", "ring", "pinky", "finger" };
+	unsigned i;
+	if (!strstr(name, "l "))
+		return FALSE;
+	for (i = 0; i < NUMBEROF(fingers); i++)
+		if (strstr(name, fingers[i]))
+			return TRUE;
+	return FALSE;
+}
+
+static void vr_reload_grip_learn(struct animation_graph *graph, long weapon)
+{
+	static char const *const names[] = { "first-person reload-empty", "first-person reload-full", "first-person reload-full2" };
+	static struct real_orientation orientations[MAXIMUM_NODES_PER_ANIMATION];
+	static real_matrix4x3 m[MAXIMUM_NODES_PER_ANIMATION];
+	struct object_datum *object = weapon != NONE ? object_try_and_get(weapon) : NULL;
+	long graph_index, definition;
+	short magazine = NONE, chamber = NONE, gun = NONE, wrist, index;
+	real_point3d origin = { 0, 0, 0 };
+	real_vector3d forward = { 1, 0, 0 }, up = { 0, 0, 1 };
+	real units = vr_units_per_metre();
+	real_matrix4x3 rest[2];
+	int have_rest = FALSE;
+	unsigned a;
+
+	if (!object || !(units > 0.0f))
+		return;
+	definition = object->definition_index;
+	if (vr_reload_grip.graph == graph && vr_reload_grip.definition == definition)
+		return;
+	memset(&vr_reload_grip, 0, sizeof(vr_reload_grip));
+	vr_reload_grip.graph = graph;
+	vr_reload_grip.definition = definition;
+	vr_reload_grip.distance[0] = vr_reload_grip.distance[1] = 1e9f;
+	graph_index = weapon_definition_get(definition)->weapon.interface_definition.first_person_animations.index;
+	wrist = vr_find_node(graph, "l ", "wrist");
+	if (wrist == NONE)
+		wrist = vr_find_node(graph, "l ", "hand");
+	for (index = 0; index < graph->nodes.count && index < MAXIMUM_NODES_PER_ANIMATION; index++)
+	{
+		char const *name = TAG_BLOCK_GET_ELEMENT(&graph->nodes, index, struct vr_animation_graph_node)->name;
+		if (!strcmp(name, "frame magazine"))
+			magazine = index;
+		else if (!strcmp(name, "frame ophandle") || !strcmp(name, "frame slide"))
+			chamber = index;
+		else if (!strcmp(name, "frame gun"))
+			gun = index;
+		if (vr_reload_grip_finger(name))
+			vr_reload_grip.fingers[vr_reload_grip.finger_count++] = index;
+	}
+	vr_reload_grip.wrist = wrist;
+	if (graph_index == NONE || wrist == NONE || gun == NONE || (magazine == NONE && chamber == NONE))
+	{
+		platform_log("vr: manual reload grip: no authored grip in this weapon's first-person graph (wrist %d, gun %d, magazine %d, handle %d)",
+			wrist, gun, magazine, chamber);
+		return;
+	}
+	for (a = 0; a < NUMBEROF(names); a++)
+	{
+		short animation_index = animation_graph_get_animation_by_name(graph_index, names[a]);
+		struct animation const *animation;
+		short frame;
+		if (animation_index == NONE)
+			continue;
+		animation = TAG_BLOCK_GET_ELEMENT(&animation_graph_definition_get(graph_index)->animations, animation_index, struct animation);
+		if (animation->node_count != graph->nodes.count || animation->frame_count <= 0)
+			continue;
+		for (frame = 0; frame < animation->frame_count; frame++)
+		{
+			int part;
+			real_matrix4x3 gun_inverse, inverse, relative;
+			animation_get_node_orientations(NULL, animation, frame, orientations);
+			animation_graph_node_matrices_from_orientations(graph_index, m, orientations, &origin, &forward, &up);
+			matrix4x3_inverse(&m[gun], &gun_inverse);
+			if (!have_rest)
+			{
+				/* the first frame: the magazine in the gun, the handle home */
+				if (magazine != NONE) matrix4x3_multiply(&gun_inverse, &m[magazine], &rest[0]);
+				if (chamber != NONE) matrix4x3_multiply(&gun_inverse, &m[chamber], &rest[1]);
+				have_rest = TRUE;
+				continue;
+			}
+			for (part = 0; part < 2; part++)
+			{
+				short node = part ? chamber : magazine;
+				real_vector3d moved, reach;
+				real distance;
+				if (node == NONE)
+					continue;
+				matrix4x3_multiply(&gun_inverse, &m[node], &relative);
+				vector_from_points3d(&rest[part].position, &relative.position, &moved);
+				if (magnitude3d(&moved) < (part ? 0.015f : 0.04f) * units)
+					continue;
+				vector_from_points3d(&m[wrist].position, &m[node].position, &reach);
+				distance = magnitude3d(&reach);
+				if (!(distance < vr_reload_grip.distance[part]))
+					continue;
+				vr_reload_grip.distance[part] = distance;
+				vr_reload_grip.frame[part] = frame;
+				matrix4x3_inverse(&m[wrist], &inverse);
+				matrix4x3_multiply(&inverse, &m[node], &vr_reload_grip.part[part]);
+				for (int f = 0; f < vr_reload_grip.finger_count; f++)
+					matrix4x3_multiply(&inverse, &m[vr_reload_grip.fingers[f]], &vr_reload_grip.finger[part][f]);
+			}
+		}
+		if (vr_reload_grip.distance[0] < 1e8f)
+			break;
+		have_rest = FALSE;
+	}
+	vr_reload_grip.part_valid[0] = vr_reload_grip.distance[0] <= 0.18f * units;
+	vr_reload_grip.part_valid[1] = vr_reload_grip.distance[1] <= 0.12f * units;
+	platform_log("vr: manual reload grip from the reload animation: magazine %s (frame %d, %.0f cm from the wrist), handle %s (frame %d, %.0f cm), %d finger joints",
+		vr_reload_grip.part_valid[0] ? "held as authored" : "not found", vr_reload_grip.frame[0],
+		(double)(vr_reload_grip.distance[0] < 1e8f ? vr_reload_grip.distance[0] / units * 100.0f : -1.0f),
+		vr_reload_grip.part_valid[1] ? "held as authored" : "not found", vr_reload_grip.frame[1],
+		(double)(vr_reload_grip.distance[1] < 1e8f ? vr_reload_grip.distance[1] / units * 100.0f : -1.0f),
+		vr_reload_grip.finger_count);
+}
+
+/* the magazine (0) or the handle (1) as the drawn off hand holds it in the
+reload animation, from the last frame's wrist (world); FALSE without one */
+int vr_render_reload_grip(int part, real_matrix4x3 *out)
+{
+	double now = vr_pose_time();
+	if (part < 0 || part > 1 || !out || !vr_reload_wrist.valid || !vr_reload_grip.part_valid[part] ||
+		!(now >= vr_reload_wrist.time && now - vr_reload_wrist.time < 0.25))
+		return FALSE;
+	matrix4x3_multiply(&vr_reload_wrist.wrist, &vr_reload_grip.part[part], out);
+	return valid_real_matrix4x3(out);
+}
+
+/* the left fingers round the held part as authored, eased in by `amount` */
+static void vr_reload_grip_fingers(real_matrix4x3 *matrices, short wrist, int part, real amount)
+{
+	int f, k;
+	if (wrist != vr_reload_grip.wrist || !vr_reload_grip.part_valid[part] || !(amount > 0.0f))
+		return;
+	for (f = 0; f < vr_reload_grip.finger_count; f++)
+	{
+		short node = vr_reload_grip.fingers[f];
+		real_matrix4x3 posed, *m = &matrices[node];
+		matrix4x3_multiply(&matrices[wrist], &vr_reload_grip.finger[part][f], &posed);
+		if (!valid_real_matrix4x3(&posed))
+			continue;
+		if (amount >= 1.0f)
+		{
+			*m = posed;
+			continue;
+		}
+		for (k = 0; k < 3; k++)
+		{
+			m->position.n[k] += (posed.position.n[k] - m->position.n[k]) * amount;
+			m->forward.n[k] += (posed.forward.n[k] - m->forward.n[k]) * amount;
+			m->up.n[k] += (posed.up.n[k] - m->up.n[k]) * amount;
+		}
+		normalize3d(&m->forward);
+		cross_product3d(&m->up, &m->forward, &m->left);
+		normalize3d(&m->left);
+		cross_product3d(&m->forward, &m->left, &m->up);
+	}
+}
+
 void vr_render_first_person_ik(
 	real_matrix4x3 *matrices,
 	struct animation_graph *graph, long unit, long weapon, unsigned native_arms)
@@ -4712,6 +4907,18 @@ void vr_render_first_person_ik(
 			}
 		}
 	}
+    /* Test66: the reload's grip, as Halo's own reload animation holds it */
+    if (left[_vr_arm_hand] != NONE && weapon != NONE)
+    {
+        int part = NONE;
+        real amount = 0.0f;
+        vr_reload_grip_learn(graph, weapon);
+        if (vr_manual_reload_grip_state(&part, &amount))
+            vr_reload_grip_fingers(matrices, left[_vr_arm_hand], part, amount);
+        vr_reload_wrist.wrist = matrices[left[_vr_arm_hand]];
+        vr_reload_wrist.time = vr_pose_time();
+        vr_reload_wrist.valid = valid_real_matrix4x3(&vr_reload_wrist.wrist);
+    }
     for (side = 0; side < 2; side++) {
         short *chain = side ? right : left;
         int controller = side ? vr_weapon_hand() : 1 - vr_weapon_hand();

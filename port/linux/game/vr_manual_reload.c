@@ -57,6 +57,10 @@ static struct {
     /* Test59: the pulled magazine has been clear of the well (4 cm), so
      * coming back to it seats it again */
     int pulled_clear;
+    /* Test66: where on the slide or handle the hand took it (its own
+     * frame), the last centimetre of the well's approach felt, the grip */
+    real_point3d charge_grip;
+    int charge_grip_valid, well_felt, authored_logged;
     double grip_press_time;
     struct vr_magazine_debris_transaction debris_transaction;
     real_point3d bounds_min[2], bounds_max[2];
@@ -80,6 +84,7 @@ static long cancelled_weapon;
 static boolean reload_button_down;
 static boolean reload_local_weapon(long weapon_index, long *unit_out);
 static boolean reload_matrix_valid(real_matrix4x3 const *matrix);
+static void reload_well_assist(real_matrix4x3 *held);
 static boolean reload_component_bounds_touch(real_matrix4x3 const *socket,
 	real_matrix4x3 const *held, real radius);
 static long bounds_logged_weapon = NONE, bounds_logged_model = NONE;
@@ -786,6 +791,18 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
                     attached = grip;
                 }
             }
+            {
+                /* Test66: held as Halo's own reload animation holds it (the
+                 * off hand's wrist as drawn), when the animation has it */
+                real_matrix4x3 authored;
+                if (vr_render_reload_grip(0, &authored)) {
+                    attached = authored;
+                    if (!reload.authored_logged) {
+                        platform_log("VR manual reload: the magazine taken in hand as the reload animation holds it");
+                        reload.authored_logged = TRUE;
+                    }
+                }
+            }
             if (!reload_attach_to_hand(&hand_matrix, &attached)) {
                 reload_log_gate(weapon_index, "replacement-attachment-invalid");
                 vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
@@ -801,6 +818,11 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
                 vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
             }
             lying = dropped_magazines[slot_index].matrices[reload.magazine];
+            {
+                /* Test66: picked up into the authored grip too */
+                real_matrix4x3 authored;
+                if (vr_render_reload_grip(0, &authored)) lying = authored;
+            }
             if (!reload_attach_to_hand(&hand_matrix, &lying)) {
                 reload_log_gate(weapon_index, "dropped-magazine-attachment-invalid");
                 vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
@@ -813,9 +835,37 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         if (event == VR_MR_CHARGE) {
             matrix4x3_inverse_transform_point(&reload.gun, &hand, &reload.charge_start);
             reload.chamber_travel = 0;
+            /* Test66: the hand takes the slide or handle where it touched it
+             * (inside its bounds) and keeps that spot: it moves with it along
+             * its travel and no longer slides about on it */
+            reload.charge_grip_valid = FALSE;
+            if (reload.bounds_valid[1] && reload_matrix_valid(&reload.charge)) {
+                real_point3d local;
+                matrix4x3_inverse_transform_point(&reload.charge, &hand, &local);
+                for (int axis = 0; axis < 3; axis++) {
+                    if (local.n[axis] < reload.bounds_min[1].n[axis]) local.n[axis] = reload.bounds_min[1].n[axis];
+                    if (local.n[axis] > reload.bounds_max[1].n[axis]) local.n[axis] = reload.bounds_max[1].n[axis];
+                }
+                reload.charge_grip = local;
+                reload.charge_grip_valid = valid_real_point3d(&local);
+            }
         }
     }
-    if (reload.have_attachment) matrix4x3_multiply(&hand_matrix, &reload.attachment, &reload.held);
+    if (reload.have_attachment) {
+        matrix4x3_multiply(&hand_matrix, &reload.attachment, &reload.held);
+        reload_well_assist(&reload.held);
+    }
+    /* Test66: the well felt coming: a light tick each centimetre closer in
+     * the last 8 (stronger the nearer), the lock's click as before */
+    if (reload.state.phase == VR_MR_NEW_HELD && reload.have_attachment) {
+        real_vector3d gap;
+        int centimetres;
+        vector_from_points3d(&reload.socket.position, &reload.held.position, &gap);
+        centimetres = (int)(magnitude3d(&gap) / units * 100.0f);
+        if (centimetres < 8 && centimetres < reload.well_felt)
+            vr_haptic(hand_index, 0.06f + 0.03f * (real)(8 - centimetres), 0.012f);
+        reload.well_felt = centimetres < 8 ? centimetres : 8;
+    } else reload.well_felt = 8;
     if (event != VR_MR_NONE) {
         platform_log("VR manual reload: input=%s weapon=%ld event=%d phase=%d rounds=%d reserve=%d chambered=%d",
             trigger_input ? "trigger" : "grip", weapon_index, event, reload.state.phase,
@@ -833,6 +883,57 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
      * the raw held button here: the active transaction must keep blocking fire. */
     return vr_mr_output_flags(suppress_native, input.valid, reload.state.phase, event,
         VR_MANUAL_SUPPRESS_AUTO, VR_MANUAL_BLOCK_FIRE, VR_MANUAL_COMMIT);
+}
+
+/* Test66: what vr_render.c poses the off hand's fingers round */
+int vr_manual_reload_grip_state(int *part, float *amount)
+{
+    real t;
+    if (!reload.ready || reload.hand != 1-vr_weapon_hand() || vr_interaction_owner(reload.hand) != VR_INTERACTION_RELOAD)
+        return 0;
+    if (reload.state.phase == VR_MR_OLD_HELD || reload.state.phase == VR_MR_NEW_HELD) *part = 0;
+    else if (reload.state.phase == VR_MR_CHAMBER_HELD) *part = 1;
+    else return 0;
+    t = (real)((vr_pose_time() - reload.grip_time) / 0.10);
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    *amount = (float)(t * t * (3 - 2 * t));
+    return 1;
+}
+
+/* Test66: the mag well's help. A replacement brought within 8 cm of the
+ * well, roughly lined up (60 degrees) and coming toward it, is eased onto the
+ * well's line (the gun's up) and turned to it, more the nearer it is (at most
+ * 60%); it never flies in. The well itself still has to be reached. */
+static void reload_well_assist(real_matrix4x3 *held)
+{
+    real units = vr_units_per_metre(), distance, along, weight, reach;
+    real_vector3d offset, lateral, toward;
+    int axis;
+    if (reload.state.phase != VR_MR_NEW_HELD || reload.kind != RELOAD_MAGAZINE || !reload_matrix_valid(held) ||
+        !reload_matrix_valid(&reload.socket) || !(units > 0))
+        return;
+    reach = 0.08f * units;
+    vector_from_points3d(&reload.socket.position, &held->position, &offset);
+    distance = magnitude3d(&offset);
+    if (!(distance < reach) || dot_product3d(&held->forward, &reload.socket.forward) < 0.5f ||
+        dot_product3d(&held->up, &reload.socket.up) < 0.5f)
+        return;
+    toward = offset; scale_vector3d(&toward, -1.0f, &toward);
+    if (distance > 0.03f * units && dot_product3d(&reload.hand_velocity, &toward) <= 0.0f)
+        return;
+    weight = 1.0f - distance / reach;
+    weight = weight * weight * (3 - 2 * weight) * 0.6f;
+    along = dot_product3d(&offset, &reload.gun.up);
+    for (axis = 0; axis < 3; axis++) lateral.n[axis] = offset.n[axis] - reload.gun.up.n[axis] * along;
+    for (axis = 0; axis < 3; axis++) {
+        held->position.n[axis] -= lateral.n[axis] * weight;
+        held->forward.n[axis] += (reload.socket.forward.n[axis] - held->forward.n[axis]) * weight;
+        held->up.n[axis] += (reload.socket.up.n[axis] - held->up.n[axis]) * weight;
+    }
+    normalize3d(&held->forward);
+    cross_product3d(&held->up, &held->forward, &held->left);
+    normalize3d(&held->left);
+    cross_product3d(&held->forward, &held->left, &held->up);
 }
 
 static boolean reload_node_under(struct model *model, short node, short root)
@@ -895,6 +996,7 @@ static void reload_refresh_held_pose(void)
         if(vr_hand_pose(reload.hand,reload.camera.n,hand.n,forward.n,up.n)) {
             matrix4x3_from_point_and_vectors(&matrix,&hand,&forward,&up);
             if(reload_matrix_valid(&matrix))matrix4x3_multiply(&matrix,&reload.attachment,&reload.held);
+            reload_well_assist(&reload.held);
         }
     }
 }
@@ -953,6 +1055,8 @@ int vr_manual_reload_hand(int hand,float position[3])
         if(local.n[clamp_axis]<reload.bounds_min[part].n[clamp_axis])local.n[clamp_axis]=reload.bounds_min[part].n[clamp_axis];
         if(local.n[clamp_axis]>reload.bounds_max[part].n[clamp_axis])local.n[clamp_axis]=reload.bounds_max[part].n[clamp_axis];
     }
+    /* Test66: the handle's hand stays on the spot it took */
+    if(part&&reload.charge_grip_valid)local=reload.charge_grip;
     matrix4x3_transform_point(&transform,&local,&contact);
     real t=(real)((vr_pose_time()-reload.grip_time)/0.08);
     t=t<0?0:t>1?1:t;t=t*t*(3-2*t);
@@ -1040,10 +1144,20 @@ void vr_manual_reload_model(long weapon_index, long model_index, real_matrix4x3 
         t = t < 0 ? 0 : t > 1 ? 1 : t;
         t = t*t*(3-2*t);
         matrix4x3_multiply(&reload.gun, &reload.insertion_local, &from);
-        for (int axis=0; axis<3; ++axis) {
-            position.n[axis] = from.position.n[axis]*(1-t)+reload.socket.position.n[axis]*t;
-            forward.n[axis] = from.forward.n[axis]*(1-t)+reload.socket.forward.n[axis]*t;
-            up.n[axis] = from.up.n[axis]*(1-t)+reload.socket.up.n[axis]*t;
+        {
+            /* Test66: it slides in along the well: its sideways offset and
+             * its turn are taken out in the first part of the push, the
+             * depth along the well's line (the gun's up) over all of it */
+            real_vector3d offset;
+            real along, side = t * 2.0f > 1.0f ? 1.0f : t * 2.0f, turn = t * 1.6f > 1.0f ? 1.0f : t * 1.6f;
+            vector_from_points3d(&reload.socket.position, &from.position, &offset);
+            along = dot_product3d(&offset, &reload.gun.up);
+            for (int axis=0; axis<3; ++axis) {
+                real lateral = offset.n[axis] - reload.gun.up.n[axis]*along;
+                position.n[axis] = reload.socket.position.n[axis] + lateral*(1-side) + reload.gun.up.n[axis]*along*(1-t);
+                forward.n[axis] = from.forward.n[axis]*(1-turn)+reload.socket.forward.n[axis]*turn;
+                up.n[axis] = from.up.n[axis]*(1-turn)+reload.socket.up.n[axis]*turn;
+            }
         }
         normalize3d(&forward); cross_product3d(&up,&forward,&left); normalize3d(&left);
         cross_product3d(&forward,&left,&up);

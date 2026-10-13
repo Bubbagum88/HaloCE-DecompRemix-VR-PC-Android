@@ -43,7 +43,7 @@ struct collision_result{int type;float t;real_point3d point;struct{real_vector3d
 #define TAG_BLOCK_GET_ELEMENT(block,index,type) (&((type*)(block)->data)[index])
 enum{_game_connection_local,RELOAD_MAGAZINE=0,RELOAD_SHELL,RELOAD_TUBES,RELOAD_CANISTER,RELOAD_CRYSTALS};
 enum{VR_MR_IDLE,VR_MR_OLD_HELD,VR_MR_NEED_MAG,VR_MR_NEW_HELD,VR_MR_NEED_CHAMBER,VR_MR_CHAMBER_HELD,VR_MR_SEATING};
-static struct{int ready,hand;double sample_time,grip_time;int bounds_valid[2],kind;struct{int phase;}state;real_matrix4x3 socket,charge,gun,held;float chamber_travel;real_point3d bounds_min[2],bounds_max[2];}reload;
+static struct{int ready,hand;double sample_time,grip_time;int bounds_valid[2],kind;struct{int phase;}state;real_matrix4x3 socket,charge,gun,held;float chamber_travel;real_point3d bounds_min[2],bounds_max[2];real_point3d charge_grip;int charge_grip_valid;}reload; /* Test66: the handle's spot */
 enum{VR_INTERACTION_RELOAD=1};static int owner=VR_INTERACTION_RELOAD;
 static int vr_interaction_owner(int hand){(void)hand;return owner;}
 static int enabled=1,active=1,network;static double now=10;
