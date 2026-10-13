@@ -1714,6 +1714,7 @@ void vr_npc_interaction_death(long index)
             real_point3d hit;real_vector3d direction;
             struct vr_npc_hit blow={0,0,0};
             int hit_node=NONE,area=FALSE;
+            char const *location="none";
             if(npc_recent_damage(index,&hit,&direction,&blow,&area)) {
                 real kick,falloff=.35f*units,nearest=INFINITY;
                 real_vector3d push;
@@ -1753,13 +1754,35 @@ void vr_npc_interaction_death(long index)
                     }
                 }
                 if(!(nearest<.6f*units)) hit_node=NONE;
+                /* Test66: where the shot met the body (not a blast): a leg
+                 * shot takes the legs out (they go with the shot) and the
+                 * trunk tips the other way into the fall; a head shot snaps
+                 * the head and neck back harder */
+                if(!area&&npc_death_force()>VR_NPC_FORCE_CLASSIC) {
+                    real torso_z=npc.rig.body.nodes[npc.torso_node].position[2];
+                    real height=hit.z-torso_z;
+                    if(height<-.25f*units) {
+                        for(int n=0;n<npc.rig.body.count;++n) {
+                            real below=npc.rig.body.nodes[n].position[2]<torso_z-.10f*units?1.0f:
+                                npc.rig.body.nodes[n].position[2]>torso_z+.10f*units?-.4f:0.0f;
+                            for(int k=0;k<2;++k) npc.rig.body.nodes[n].previous[k]-=direction.n[k]*kick*.6f*below;
+                        }
+                        location="legs";
+                    } else if(height>.35f*units) {
+                        for(int n=0;n<npc.rig.body.count;++n) {
+                            real over=npc.rig.body.nodes[n].position[2]-torso_z-.30f*units;
+                            if(over>0) for(int k=0;k<3;++k) npc.rig.body.nodes[n].previous[k]-=direction.n[k]*kick*.5f;
+                        }
+                        location="head";
+                    } else location="torso";
+                }
             }
             npc.was_garbage=TEST_FLAG(u->object.flags,_object_garbage_bit);
             object_activate(index);object_set_garbage(index,FALSE);
             npc_begin_root_follow();
-            platform_log("VR NPC: death ragdoll actor=%08lx species=%d nodes=%d speed_mps=%.2f hit_node=%d kick_mps=%.1f push_mps=%.1f lift_mps=%.1f explosion=%d force=%d",
+            platform_log("VR NPC: death ragdoll actor=%08lx species=%d nodes=%d speed_mps=%.2f hit_node=%d kick_mps=%.1f push_mps=%.1f lift_mps=%.1f explosion=%d force=%d hit=%s",
                 index,npc.species_type,npc.rig.body.count,(float)(magnitude3d(&velocity)*TICKS_PER_SECOND/units),hit_node,
-                (float)blow.local,(float)blow.body,(float)blow.lift,area,npc_death_force());
+                (float)blow.local,(float)blow.body,(float)blow.lift,area,npc_death_force(),location);
         }
     }
     npc_current=saved;

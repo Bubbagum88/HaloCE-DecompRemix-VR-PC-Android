@@ -82,7 +82,10 @@ static inline int vr_npc_hit_kick_force(float damage, float acceleration, int ca
         out->body = fminf(fminf(0.1f * push, 3.0f) * scale, VR_NPC_FORCE_MAXIMUM_SPEED);
         out->lift = out->body * 0.1f;
     } else {
-        out->local = fminf(out->local * 1.25f, VR_NPC_HIT_LOCAL_MAXIMUM);
+        /* Test66: the owner's Test65: deaths should show how they were
+         * hit: a shot's joints twice Test56's (an assault rifle round
+         * 2.2 m/s, a pistol 3.2, a sniper round at the 6 m/s most) */
+        out->local = fminf(out->local * 2.0f * scale, VR_NPC_HIT_LOCAL_MAXIMUM);
         /* the whole body's push is the burst's (vr_npc_burst_body) */
     }
     return 1;
@@ -96,8 +99,10 @@ static inline float vr_npc_burst_body(float burst_damage, int force)
 {
     float body;
     if (!isfinite(burst_damage) || !(burst_damage > 0.0f) || force <= VR_NPC_FORCE_CLASSIC) return 0.0f;
-    body = fminf(1.2f + 0.035f * burst_damage, 5.0f);
-    return force >= VR_NPC_FORCE_HUGE ? fminf(body * 1.6f, 8.0f) : body;
+    /* Test66: a little more of a burst (an assault rifle's killing burst
+     * ~3.0-4.6 m/s, a sniper round ~5.9) */
+    body = fminf(1.4f + 0.045f * burst_damage, 6.0f);
+    return force >= VR_NPC_FORCE_HUGE ? fminf(body * 1.6f, 9.0f) : body;
 }
 static inline float vr_npc_burst_lift(float body)
 {

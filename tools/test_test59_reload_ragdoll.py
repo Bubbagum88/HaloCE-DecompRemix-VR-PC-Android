@@ -89,14 +89,15 @@ int main(void)
  assert(vr_npc_force_from_name("strong") == VR_NPC_FORCE_STRONG && vr_npc_force_from_name(0) == VR_NPC_FORCE_STRONG && vr_npc_force_from_name("x") == VR_NPC_FORCE_STRONG);
  /* a bullet: joints a quarter harder, the body's push from the burst */
  assert(vr_npc_hit_kick_force(10, 0, 2, 0, units, VR_NPC_FORCE_STRONG, &strong));
- assert(near(strong.local, 1.1f * 1.25f, .01f));
+ assert(near(strong.local, 1.1f * 2.0f, .01f)); /* Test66: twice Test56's */
+ assert(vr_npc_hit_kick_force(101, 0, 2, 0, units, VR_NPC_FORCE_STRONG, &strong) && strong.local == VR_NPC_HIT_LOCAL_MAXIMUM);
  /* an assault rifle's killing burst: 15 rounds a second, a round every 2 ticks */
  burst = 0; for (int shot = 0; shot < 4; ++shot) burst = vr_npc_burst_add(burst, shot ? 2 : 0, 10);
  assert(burst > 30 && burst < 40);
- assert(vr_npc_burst_body(burst, VR_NPC_FORCE_STRONG) > 2.2f && vr_npc_burst_body(70, VR_NPC_FORCE_STRONG) > 3.5f);
- assert(near(vr_npc_burst_body(70, VR_NPC_FORCE_STRONG), 3.65f, .01f) && near(vr_npc_burst_body(101, VR_NPC_FORCE_STRONG), 4.735f, .01f));
- assert(vr_npc_burst_body(1000, VR_NPC_FORCE_STRONG) == 5.0f && vr_npc_burst_body(1000, VR_NPC_FORCE_HUGE) == 8.0f);
- assert(near(vr_npc_burst_body(70, VR_NPC_FORCE_HUGE), 3.65f * 1.6f, .01f));
+ assert(vr_npc_burst_body(burst, VR_NPC_FORCE_STRONG) > 2.8f && vr_npc_burst_body(70, VR_NPC_FORCE_STRONG) > 4.5f);
+ assert(near(vr_npc_burst_body(70, VR_NPC_FORCE_STRONG), 4.55f, .01f) && near(vr_npc_burst_body(101, VR_NPC_FORCE_STRONG), 5.945f, .01f));
+ assert(vr_npc_burst_body(1000, VR_NPC_FORCE_STRONG) == 6.0f && vr_npc_burst_body(1000, VR_NPC_FORCE_HUGE) == 9.0f);
+ assert(near(vr_npc_burst_body(70, VR_NPC_FORCE_HUGE), 4.55f * 1.6f, .01f));
  assert(near(vr_npc_burst_lift(3.65f), .5475f, .001f) && vr_npc_burst_lift(0) == 0.0f && vr_npc_burst_lift(NAN) == 0.0f);
  /* 30 times the old 0.04 m/s for a rifle bullet that kills */
  assert(vr_npc_burst_body(10, VR_NPC_FORCE_STRONG) >= 30 * 0.04f);
