@@ -272,7 +272,7 @@ the hand */
 /* Test54: tuning that changes how the features feel, one row per decision */
 #define VR_IMMERSION_POUCH_SIDE { "MAG POUCH SIDE", "vr.reload_pouch_side", _vr_setting_string, 4, { { "AUTO", "auto" }, { "LEFT", "left" }, { "RIGHT", "right" }, { "BOTH", "both" } } }
 #define VR_IMMERSION_CLIMB_GRAB { "CLIMB GRAB", "vr.climb_grab_radius", _vr_setting_real, 5, { { "6 CM", "0.06" }, { "10 CM", "0.10" }, { "14 CM", "0.14" }, { "18 CM", "0.18" }, { "20 CM", "0.20" } } }
-#define VR_IMMERSION_NPC_GRAB_ASSIST { "GRAB ASSIST", "vr.npc_grab_assist", _vr_setting_real, 4, { { "TOUCH", "0" }, { "5 CM", "0.05" }, { "10 CM", "0.10" }, { "15 CM", "0.15" } } }
+#define VR_IMMERSION_NPC_GRAB_ASSIST { "GRAB ASSIST", "vr.npc_grab_assist", _vr_setting_real, 6, { { "TOUCH", "0" }, { "5 CM", "0.05" }, { "10 CM", "0.10" }, { "15 CM", "0.15" }, { "20 CM", "0.20" }, { "25 CM", "0.25" } } }
 /* Test56: NPC HOLD became LIFT (strength): the same setting (and saved key),
 now for everything a hand lifts (NPCs, props, turrets, vehicles) */
 #define VR_IMMERSION_NPC_HOLD { "LIFT", "vr.npc_hold_strength", _vr_setting_real, 4, { { "LIGHT", "0.75" }, { "NORMAL", "1.0" }, { "SPARTAN", "1.5" }, { "IRON", "2.5" } } }
@@ -802,6 +802,11 @@ static struct vr_menu_dependency
 	/* Test63: ONE-HAND HEAVIES is a way of grabbing: it brings NPC GRAB */
 	{ "vr.npc_one_hand_heavy", "vr.npc_interaction", FALSE },
 	{ "vr.assisted_combat", "vr.close_contact", TRUE },
+	/* Test66: grabbing works the moment it is on (the owner's Test65:
+	GRAB ASSIST had to be found and raised): NPC GRAB and FIST COMBAT bring
+	an assist of 10 cm from the body's surface (more chosen by hand stays) */
+	{ "vr.npc_interaction", "vr.npc_grab_assist", TRUE },
+	{ "vr.assisted_combat", "vr.npc_grab_assist", TRUE },
 	{ "vr.dropped_magazines", "vr.manual_reload", FALSE },
 	{ "vr.custom_scenery_grab", "vr.world_interaction", FALSE },
 	{ "vr.custom_npc_rigs", "vr.npc_interaction", FALSE },
@@ -855,6 +860,7 @@ static char const *vr_menu_requirement_value(char const *requires, boolean on)
 {
 	if (!strcmp(requires, "vr.melee")) return on ? "impact" : "swing";
 	if (!strcmp(requires, "vr.melee_speed")) return on ? "2.0" : "0";
+	if (!strcmp(requires, "vr.npc_grab_assist")) return on ? "0.10" : "0.05";
 	if (!strcmp(requires, "vr.vehicle_view"))
 		return on ? "first_person" : "chase";
 	return NULL;
@@ -867,6 +873,10 @@ static boolean vr_menu_requirement_met(struct vr_menu_dependency const *dependen
 	if (!strcmp(dependency->requires, "vr.melee_speed")) {
 		real speed = config_real("vr.melee_speed");
 		return isfinite(speed) && speed > 0.0f;
+	}
+	if (!strcmp(dependency->requires, "vr.npc_grab_assist")) {
+		real assist = config_real("vr.npc_grab_assist");
+		return isfinite(assist) && assist >= 0.095f;
 	}
 	return value ? (boolean)config_matches(dependency->requires, value) : config_boolean(dependency->requires);
 }

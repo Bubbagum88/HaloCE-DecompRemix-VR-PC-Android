@@ -592,7 +592,7 @@ static long candidate(real_point3d const *point, real_point3d const *camera, lon
      * default), the hand still in sight of what it takes. */
     if (selected == NONE && count) {
         double assist = config_real("vr.npc_grab_assist");
-        real reach = contact_radius + ((real)(isfinite(assist) ? PIN(assist, 0.0, 0.15) : 0.05) + 0.03f) * units;
+        real reach = contact_radius + ((real)(isfinite(assist) ? PIN(assist, 0.0, 0.25) : 0.10) + 0.03f) * units;
         for (int index_in_order = 0; index_in_order < count && index_in_order < 8; index_in_order++) {
             long candidate_index = order[index_in_order];
             struct collision_model_instance model;

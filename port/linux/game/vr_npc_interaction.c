@@ -927,8 +927,18 @@ static void tick_player(int use_remote,long player)
             struct collision_model_instance model;
             short model_node;
             int budget=0,budget_exhausted=0,scanned=0,eligible_count=0,surface_hits=0,body_hits=0;
-            real body_reach=contact_radius+npc_setting("vr.npc_grab_assist",0.05f,0.0f,0.15f)*units+.07f*units;
+            /* Test66: GRAB ASSIST is measured from the body the player sees.
+             * The owner's Test65 Grunts took a hand almost on them even at
+             * 15 cm: the assist widened only the bone capsules, measured from
+             * the skeleton's centre line (26 cm from a Grunt's spine is about
+             * its skin), and the shot geometry took a 4 cm palm alone. Now
+             * the shot geometry is touched by a palm grown by the assist, and
+             * the capsules allow for the body round the bones (15 cm). */
+            real assist=npc_setting("vr.npc_grab_assist",0.10f,0.0f,0.25f)*units;
+            real surface_reach=contact_radius+assist;
+            real body_reach=contact_radius+assist+.07f*units+.15f*units;
             int graph_rejects=0,node_rejects=0,capacity_rejects=0,acquired=0;
+            real nearest_gap=1e9f;
             object_iterator_new(&it,_object_mask_biped,0);
             while((candidate=object_iterator_next(&it))!=NULL) {
                 int node,mapped=FALSE;
@@ -943,6 +953,7 @@ static void tick_player(int use_remote,long player)
                 destination=existing?existing:(!npc.active?npc_current:free_state());
                 if(!destination){++capacity_rejects;continue;}
                 vector_from_points3d(&point,&candidate->object.bounding_sphere_center,&delta);
+                nearest_gap=MIN(nearest_gap,magnitude3d(&delta)-candidate->object.bounding_sphere_radius);
                 if(magnitude3d(&delta)>candidate->object.bounding_sphere_radius+body_reach) continue;
                 if(++budget>16) {budget_exhausted=1;break;}
                 real_point3d contact;
@@ -955,7 +966,7 @@ static void tick_player(int use_remote,long player)
                     int captured=FALSE;
                     contact=point;
                     if(!collision_model_instance_new(&model,it.index) ||
-                       !collision_model_touch_sphere(&model,&point,contact_radius,&model_node)) {
+                       !collision_model_touch_sphere(&model,&point,surface_reach,&model_node)) {
                         struct vr_articulated_native const *probe;
                         if(!existing && !vr_articulated_native_capture(it.index,&destination->rig)) {++graph_rejects;continue;}
                         captured=!existing;
@@ -1038,9 +1049,11 @@ static void tick_player(int use_remote,long player)
                 acquired=1;
                 break;
             }
+            if(!acquired&&eligible_count)platform_log("VR NPC: contact grab miss: the nearest body's bounds %.0f cm from the palm (assist %.0f cm from its surface)",
+                (float)(nearest_gap/units*100.0f),(float)(assist/units*100.0f));
             if(!acquired)platform_log("VR NPC: contact grab miss hand=%d scanned=%d eligible=%d collision_candidates=%d body_capsule_hits=%d collision_budget=16 budget_exhausted=%d graph_rejects=%d node_rejects=%d no_rig_slot=%d contact_radius=%.2f cm body_reach=%.2f cm custom_rigs=%d",
                 h,scanned,eligible_count,surface_hits,body_hits,budget_exhausted,graph_rejects,node_rejects,capacity_rejects,
-                (float)contact_radius*100.0f/(float)units,(float)body_reach*100.0f/(float)units,config_boolean("vr.custom_npc_rigs"));
+                (float)surface_reach*100.0f/(float)units,(float)body_reach*100.0f/(float)units,config_boolean("vr.custom_npc_rigs"));
         }
     }
 }

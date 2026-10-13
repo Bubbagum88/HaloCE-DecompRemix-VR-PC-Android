@@ -74,8 +74,8 @@ static struct { char const *key; int on; } store[] = {
     {"vr.npc_one_hand_heavy",0}, /* Test63: ONE-HAND HEAVIES */
     {"vr.vehicle_cockpit_lock",1},{"vr.vehicle_grip_guide",0},{"vr.npc_lift_to_ragdoll",1}}; /* Test65 */
 static char automatic_store[256], view_store[32] = "chase", melee_store[32] = "swing";
-static real speed_store;
-static real config_real(char const *key){assert(!strcmp(key,"vr.melee_speed"));return speed_store;}
+static real speed_store, assist_store = 0.05f;
+static real config_real(char const *key){if(!strcmp(key,"vr.npc_grab_assist"))return assist_store;assert(!strcmp(key,"vr.melee_speed"));return speed_store;}
 static int sprint_setter_calls;
 static int *slot(char const *key)
 { for (unsigned i = 0; i < NUMBEROF(store); i++) if (!strcmp(store[i].key, key)) return &store[i].on; assert(0); return 0; }
@@ -85,7 +85,7 @@ static char const *config_string(char const *key) { assert(!strcmp(key, "vr.imme
 static void config_write_string(char const *key, char const *value) { (void)key; snprintf(automatic_store, sizeof automatic_store, "%s", value); }
 static void platform_log(char const *f, ...) { (void)f; }
 static int config_matches(char const *key, char const *text) { if(!strcmp(key,"vr.melee"))return !strcmp(melee_store,text); assert(!strcmp(key, "vr.vehicle_view")); return !strcmp(view_store, text); }
-static int config_write_text(char const *key, char const *text) { if(!strcmp(key,"vr.melee_speed")){speed_store=atof(text);return 1;} if(!strcmp(key,"vr.melee")){snprintf(melee_store,sizeof melee_store,"%s",text);return 1;} assert(!strcmp(key, "vr.vehicle_view")); snprintf(view_store, sizeof view_store, "%s", text); return 1; }
+static int config_write_text(char const *key, char const *text) { if(!strcmp(key,"vr.npc_grab_assist")){assist_store=atof(text);return 1;} if(!strcmp(key,"vr.melee_speed")){speed_store=atof(text);return 1;} if(!strcmp(key,"vr.melee")){snprintf(melee_store,sizeof melee_store,"%s",text);return 1;} assert(!strcmp(key, "vr.vehicle_view")); snprintf(view_store, sizeof view_store, "%s", text); return 1; }
 ''' + resolver + r'''
 static boolean vr_menu_button_sprint_set(boolean enabled) { sprint_setter_calls++; config_write_boolean("vr.button_sprint", enabled); return TRUE; }
 ''' + r'''
@@ -215,6 +215,13 @@ int main(void)
     assert(config_boolean("vr.npc_interaction") && config_boolean("vr.custom_npc_rigs"));
     choose("vr.npc_interaction", 0);
     assert(!config_boolean("vr.custom_npc_rigs"));
+    /* Test66: NPC GRAB and FIST COMBAT bring GRAB ASSIST of at least 10 cm,
+     * back to 5 cm when the last of them goes; more chosen by hand stays */
+    assist_store=0.05f;choose("vr.npc_interaction",1);assert(assist_store>0.099f&&assist_store<0.101f);
+    choose("vr.assisted_combat",1);choose("vr.npc_interaction",0);assert(assist_store>0.099f);
+    choose("vr.assisted_combat",0);assert(assist_store>0.049f&&assist_store<0.051f);
+    assist_store=0.20f;choose("vr.npc_interaction",1);choose("vr.npc_interaction",0);assert(assist_store>0.199f);
+    puts("PASS: Test66 NPC GRAB and FIST COMBAT bring a 10 cm GRAB ASSIST (released with the last of them; a larger one chosen by hand stays)");
     puts("PASS: Test60 toggles: DEATH RAGDOLLS turns on NPC GRAB, NPC RESCUE and IMPACT DAMAGE (and FIST REQUIRED through NPC GRAB); grabs turn on IMPACT DAMAGE; vehicle refinements turn on IMMERSIVE VEHICLE; turned off by hand stays off; released with their feature; Test61: IMMERSIVE VEHICLE puts VIEW in FIRST PERSON, TANK HATCH and HOG GLASS bring it, pouches MANUAL RELOAD, SPRINT TOGGLE BUTTON SPRINT, the grabs CUSTOM NPC RIGS and CUSTOM SCENERY");
     return 0;
 }
