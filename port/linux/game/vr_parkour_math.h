@@ -26,6 +26,28 @@ static int vr_pk_vertical(float const normal[3])
     float length=normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2];
     return isfinite(length)&&length>0.9f&&length<1.1f&&fabsf(normal[2])<0.35f;
 }
+/* Test66: a wall to run along need not be a vertical plane (the owner's
+ * Test65 run failed on Silent Cartographer's rock walls): any face steeper
+ * than ~53 degrees, an overhang as much; the knee-high probe still wants a
+ * real wall, so a steep hill underfoot is never one */
+static int vr_pk_runnable(float const normal[3],int low)
+{
+    float length=normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2];
+    if(!(isfinite(length)&&length>0.9f&&length<1.1f))return 0;
+    return low?fabsf(normal[2])<0.35f:fabsf(normal[2])<0.6f;
+}
+/* Test66: the wall followed round a bend or over a seam: the facing run along
+ * eases toward the face met (a sharp corner, past ~80 degrees, is taken whole) */
+static void vr_pk_blend_normal(float normal[3],float const met[3])
+{
+    float dot=normal[0]*met[0]+normal[1]*met[1]+normal[2]*met[2],length;
+    int k;
+    if(!(dot>0.17f)){normal[0]=met[0];normal[1]=met[1];normal[2]=met[2];return;}
+    for(k=0;k<3;k++)normal[k]=normal[k]*0.6f+met[k]*0.4f;
+    length=sqrtf(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);
+    if(length>0.001f)for(k=0;k<3;k++)normal[k]/=length;
+    else{normal[0]=met[0];normal[1]=met[1];normal[2]=met[2];}
+}
 /* Test54: what a free hand may grip to climb: walls, rock faces steeper than
  * about 40 degrees, overhangs and ceilings, and any surface (a ledge's top)
  * at or above the waist. The floor under the feet is never a hold. */
