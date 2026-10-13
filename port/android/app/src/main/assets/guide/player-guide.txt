@@ -1,3 +1,94 @@
+# Test65 private candidate: 1.0.32-test65
+
+## Test65: Arkham Shadow fists, a steady Warthog, safer grabs
+
+This private build answers your 2026-10-13 list (your Test64 logs and video
+and a tester's report). It installs over Test64 and earlier (same package
+names and signing key, Android version code 77) and keeps your settings,
+profiles, saves and game data. Multiplayer, the network protocol and voice
+are unchanged (the phone join fix in 1.0.31 stays).
+
+### Fist combat, after Batman: Arkham Shadow (FIST COMBAT on)
+
+- **It works now.** In Test64 a punch never picked a target: the game asked
+  for your head's position a moment before each frame had it, and got
+  nothing (65 punches in your logs, not one "fist combat" line). It now uses
+  the last frame's head.
+- **Punch across the room (LUNGE, 6 m).** Make a fist (grip and trigger),
+  look at an enemy (or throw the punch at one) and punch: you dash to it (up
+  to 10 m/s) and the blow lands as you arrive. Chain punches between enemies
+  the same way. LUNGE OFF keeps the old short step (FIST REACH).
+- **Combo meter.** Each hit within two seconds of the last adds to your
+  combo (white lights over the enemy, and each hit lands 8% harder, up to
+  +80%). Getting hit breaks it. At 8 the lights turn gold: a hard punch is a
+  **takedown** (six times the blow) that knocks the enemy down. A hit from
+  behind on a stunned enemy is a takedown too.
+- **Counters (COUNTERS on).** When an enemy swings at you, a blue light
+  pulses over its head and both hands tap. Punch toward it to counter: its
+  blow never lands, it is knocked down, and your combo goes on.
+- **ENEMY HEALTH (3X).** Enemies take three times as many punches, so fights
+  flow as combos instead of ending in one hit. Guns, grenades and takedowns
+  are unchanged.
+- Long lunges, counters and takedowns knock enemies down as short ragdolls;
+  they are up again within a second (your NPC RECOVERY rule).
+
+### Warthog: steady wheel and view, no purple bar (IMMERSIVE VEHICLE on)
+
+- **The purple bar is gone.** It was the Banshee's flight yoke being drawn
+  by mistake over the Warthog's own wheel. GRIP GUIDE (off by default) can
+  show small pads where your hands go instead.
+- **COCKPIT LOCK (on).** Your eyes, your hands and the wheel now move as one
+  with the Warthog, so the wheel stays on the dash under your hands. Before,
+  the view stayed level and smooth while the hands and wheel were turned in
+  30 Hz steps and kept level; on rough ground and in turns the dash swam
+  against the wheel and it snapped. With the cockpit lock the cockpit stays
+  still around you and the world moves (the vehicle's pitch, roll and turns).
+  Turn it off to go back to HORIZON's choice.
+
+### Hands and guns
+
+- **HAND SWAP (CONTROLS page, 10 cm).** Racking the pistol's slide could pass
+  the gun to the other hand: the swap (the off hand's grip with the hands
+  close) reached 20 cm. It is 10 cm now; choose 6 to 20 cm, or OFF.
+- **WEAPON PULL (1 m) and PULL GLOW.** Point a free hand at a weapon lying
+  within reach (or hold it right by one): it glows. Grip, and it flies into
+  that hand and is equipped (into a free slot, or in place of the gun you
+  hold). Let go early and it drops. Solo, or as the host.
+- **Dual wielding is not in this build.** Halo CE fires only the gun in
+  hand; a real second gun needs new engine work (see the delivery notes).
+
+### Grabbing, bodies and ragdolls
+
+- **Shade turrets no longer kill you.** A turret (any vehicle) in your hands
+  pressed into you counted as a vehicle running you over, every tick. Now
+  what you hold never hurts or pushes you, and for two seconds after you let
+  go it can push but not hurt you.
+- **Friendly NPCs survive being picked up.** A body in your hands hurts
+  nothing for its first half second, never hurts an ally (itself or one it
+  bumps) while held, and otherwise only when you slam it (5 m/s). A thrown
+  ally takes half.
+- **Thrown bodies stay.** A body still flying when its time ran out went
+  back to the engine marked for clean-up, and the engine deletes moving
+  bodies it thinks you cannot see. Bodies now rest first (up to 10 s), and
+  their clean-up mark waits until they are still.
+- **GRAB RAGDOLL (ON LIFT).** Taking a living NPC by an arm or leg no longer
+  ragdolls it at once: it stays on its feet, held (it cannot walk or shoot;
+  a light one is dragged along). Lift it 18 cm off the floor, or yank it,
+  and it becomes a ragdoll in your hands. AT ONCE is the old way.
+- **ACTIVE RAGDOLL (on).** Bodies react: a slow hand pushes an NPC (ally or
+  enemy) and the touched arm or the torso gives; hits make the struck limb
+  swing and the torso lean; the held limb reaches toward your hand. Knocked
+  and thrown NPCs keep some of their posture as they stagger and get up,
+  and a body just killed slumps instead of dropping limp.
+- **Easier grabs.** A hand that touches nothing now takes the nearest object
+  within GRAB ASSIST and 3 cm more (8 cm by default): turrets, crates, props.
+
+Test with a log, please: the new lines start "VR fist combat:", "vr: cockpit
+lock:", "VR pickup:", "VR NPC: lifted", "VR NPC: touch push", "VR NPC:
+knocked down", "VR world: grab assist" and "vr: hand swap:".
+
+---
+
 # Test64 private candidate: 1.0.31-test64
 
 ## Test64: VR SETTINGS open again

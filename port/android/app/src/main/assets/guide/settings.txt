@@ -833,6 +833,26 @@ vr.combat_highlights [boolean]
 Default: true
 Highlight a locked enemy head/chest and show stun/impact feedback with assisted combat.
 
+vr.weapon_pull_reach [real]
+Default: 1.0
+WEAPON PULL: a free hand pointed at a weapon lying within this many metres (or right by one) marks it, and its grip pulls the weapon into that hand and equips it (into a free slot, or in place of the gun held); let go first, it drops. 0 turns it off. On foot, solo or as the host.
+
+vr.weapon_pull_glow [boolean]
+Default: true
+PULL GLOW: the weapon a hand can pull is outlined (pulsing; brighter while it flies to the hand).
+
+vr.combat_lunge_reach [real]
+Default: 6.0
+LUNGE (FIST COMBAT): how far a punch carries you to the enemy you look at or throw it at, in metres (Arkham Shadow's punch across the room: a dash up to 10 m/s, the blow landing on arrival); 0 keeps FIST REACH's short step only.
+
+vr.combat_enemy_health [real]
+Default: 3.0
+ENEMY HEALTH (FIST COMBAT): enemies take this many times more punches, so fights flow as combos (each hit in a row adds 8%, up to +80%); takedowns, guns and grenades are unchanged.
+
+vr.combat_counters [boolean]
+Default: true
+COUNTERS (FIST COMBAT): an enemy swinging at you shows a blue warning over its head and taps both hands; a punch toward it counters (its blow undone, it is knocked down, the combo goes on).
+
 vr.combat_reach [real]
 Default: 2.5
 How far from the eyes a punch picks an enemy (metres, 0.75..3); short of striking range a short step closes the gap.
@@ -1030,6 +1050,12 @@ vr.flashlight_distance [real]
 Default: 0.2
 The off hand brought this close (metres) to the middle of the head
 turns the flashlight on or off; 0 turns the gesture off (0.10 to 0.30 in the menu).
+
+vr.hand_swap_distance [real]
+Default: 0.1
+HAND SWAP: the off hand's grip squeezed with the two controllers this close (metres) passes the
+gun to that hand (palms together); 0 turns the gesture off. Smaller keeps a slide rack or a
+magazine change from swapping hands (0.06 to 0.20 in the menu).
 
 vr.hud_tap_distance [real]
 Default: 0.1
@@ -1236,6 +1262,14 @@ vr.vehicle_wheel_visible [boolean]
 Default: true
 Show virtual cockpit control geometry. Hiding it retains physical grip controls; the Warthog's wheel is then taken on the vehicle's own wheel (HOG REACH, LEFT, HEIGHT and SIZE line it up), drawn it sits 2.5 cm in front of it.
 
+vr.vehicle_cockpit_lock [boolean]
+Default: true
+COCKPIT LOCK: with IMMERSIVE VEHICLE controls up, the eyes, the hands and the controls are held to the vehicle as one: the cockpit stays still around you and the world moves (pitch, roll and turns), so the wheel stays on the dash under your hands. Off, the horizon follows HORIZON.
+
+vr.vehicle_grip_guide [boolean]
+Default: false
+GRIP GUIDE: marks where the hands take the Warthog's own steering wheel (a rubber pad at each grip, turning with it). Off, only the vehicle's own parts are seen.
+
 vr.vehicle_control_glow [boolean]
 Default: true
 CONTROL GLOW: the immersive vehicle controls light up while a free hand is close enough to take them.
@@ -1410,7 +1444,7 @@ Optional solo VR physical reload for supported weapons. The USE/RELOAD action dr
 
 vr.npc_grab_assist [real]
 Default: 0.05
-Extra reach in metres (0 to 0.15) added to an NPC's body volumes when grabbing it. Default 0.05 adds 5 cm; 0 keeps the closer touch setting. Existing saved choices are preserved.
+Extra reach in metres (0 to 0.15) added to an NPC's body volumes when grabbing it. Default 0.05 adds 5 cm; 0 keeps the closer touch setting. Existing saved choices are preserved. Test65: a hand that touches no object (a prop, a turret, a vehicle) takes the nearest within this reach and 3 cm more.
 
 vr.npc_one_hand_heavy [boolean]
 Default: false
@@ -1431,6 +1465,14 @@ How far in metres (0.04 to 0.20) from a solid surface a squeezed free hand still
 vr.immersion_auto [string]
 Default: ""
 Written by VR Settings: the settings it turned on only because an immersion feature needs them (FIST REQUIRED for grabbing and climbing, MANUAL RELOAD for MAG DEBRIS...), turned off again when no feature needs them.
+
+vr.active_ragdoll [boolean]
+Default: true
+ACTIVE RAGDOLL: NPC bodies give where they are touched, held or hit (the limb swings, the torso leans; drawn only), a slow hand pushes them, a body knocked or thrown keeps some of its posture as it staggers and gets up, and a body just killed slumps instead of dropping limp.
+
+vr.npc_lift_to_ragdoll [boolean]
+Default: true
+GRAB RAGDOLL: ON LIFT keeps a living NPC taken by a limb on its feet (held still, a light one dragged along; it cannot walk or shoot) until the hands lift it 18 cm or yank it, then it is a ragdoll in the hands; AT ONCE makes it a ragdoll as soon as it is taken (as before). Corpses are ragdolls at once either way.
 
 vr.death_ragdolls [boolean]
 Default: false
