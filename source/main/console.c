@@ -59,7 +59,6 @@ symbols in this file:
 #include "editor/editor_stubs.h"
 #include "hs/hs.h"
 #include "networking/network_server_manager.h"
-#include "network_votekick.h" /* port: port/linux/game/network_votekick.c */
 #include "input/input.h"
 #include "interface/terminal.h"
 #include "math/real_math.h"
@@ -131,10 +130,7 @@ void console_open(
 	{
 		console_globals.input_state.result[0] = '\0';
 		console_globals.active = terminal_gets_begin(&console_globals.input_state);
-		/* port: not in the profiling build (as in console_update) */
-#ifndef HALO_PROFILE
 		profile_global_enable = FALSE;
-#endif
 	}
 
 	return;
@@ -265,13 +261,12 @@ static char *console_get_text_to_autocomplete(
 }
 
 /* port: the text after the host's ban or kick command ("ban ", "kick "),
-or any player's votekick ("votekick "), which completes as a player's name
-(network_game_server_matching_player_names, network_votekick_matching_player_names;
-the command's index: votekick's, 2); NULL if the input is not one */
+which completes as a player's name (network_game_server_matching_player_names);
+NULL if the input is not one */
 static char *console_player_command_name(
-	short *command_index)
+	void)
 {
-	static char const *const commands[] = { "ban", "kick", "votekick" };
+	static char const *const commands[] = { "ban", "kick" };
 	char *text = console_globals.input_state.result;
 	short command;
 
@@ -292,7 +287,6 @@ static char *console_player_command_name(
 		}
 		if (index == length && text[length] == ' ')
 		{
-			*command_index = command;
 			text += length;
 			while (*text == ' ' || *text == '"')
 				text++;
@@ -310,19 +304,14 @@ static void console_complete(
 	/* (port: the players' names the ban and kick commands complete) */
 	static char player_names[64][NETWORK_GAME_SERVER_NAME_TEXT_SIZE];
 
-	short command_index = NONE;
-	char *token = console_player_command_name(&command_index);
+	char *token = console_player_command_name();
 	short count;
 
 	if (token)
 	{
 		short index;
 
-		/* (the votekick's: any machine's, from the game's players) */
-		if (command_index == 2)
-			count = network_votekick_matching_player_names(token, player_names, NUMBEROF(player_names));
-		else
-			count = network_game_server_matching_player_names(token, player_names, NUMBEROF(player_names));
+		count = network_game_server_matching_player_names(token, player_names, NUMBEROF(player_names));
 		for (index = 0; index < count; index++)
 			matching_items[index] = player_names[index];
 	}
@@ -459,10 +448,6 @@ boolean console_update(
 			match_assert("c:\\halo\\SOURCE\\main\\console.c", 184, key->key_code!=NONE);
 			switch (key->key_code)
 			{
-			/* port: escape closes it too */
-			case _key_escape:
-				console_close();
-				return FALSE;
 			case _key_backquote:
 				console_close();
 				break;
@@ -514,12 +499,7 @@ boolean console_update(
 	{
 		console_globals.input_state.result[0] = '\0';
 		console_globals.active = terminal_gets_begin(&console_globals.input_state);
-		/* port: the profiling build: cleared mid-frame, a section already entered
-		would never exit, and its next enter assert; and opening the console
-		to type profile_stop would end the recording's timing */
-#ifndef HALO_PROFILE
 		profile_global_enable = FALSE;
-#endif
 	}
 
 	return console_globals.active;

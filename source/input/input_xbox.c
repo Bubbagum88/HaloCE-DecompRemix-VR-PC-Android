@@ -402,8 +402,8 @@ static void update_hold_ticks(
 	long *down_time,
 	boolean down)
 {
-	/* port: the clock is read only for a button held: this runs for every
-	key each frame, and a read of the clock is slow in a browser */
+	long now = (long)system_milliseconds();
+
 	if (!down)
 	{
 		*ticks = 0;
@@ -411,11 +411,11 @@ static void update_hold_ticks(
 	else if (*ticks == 0)
 	{
 		*ticks = 1;
-		*down_time = (long)system_milliseconds();
+		*down_time = now;
 	}
 	else
 	{
-		long held = (long)system_milliseconds() - *down_time;
+		long held = now - *down_time;
 
 		held = held < 0 ? 0 : MIN(held, (long)UNSIGNED_CHAR_MAX * 1000 / TICKS_PER_SECOND);
 		*ticks = (byte)PIN(1 + held * TICKS_PER_SECOND / 1000, 2, UNSIGNED_CHAR_MAX);

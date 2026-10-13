@@ -99,7 +99,7 @@ static long file_add(const char *path, const unsigned char *data, unsigned long 
 
 static unsigned char *file_read(const char *path, unsigned long *size)
 {
-#ifdef HALO_ARM64_GUEST
+#ifdef HALO_ANDROID
 	FILE *file = fopen(path, "rb");
 	unsigned char *data = NULL;
 	long length;
@@ -387,17 +387,7 @@ static long current_line(struct reader *reader)
 	return (long)XML_GetCurrentLineNumber(reader->parser);
 }
 
-/* this build's platform, as the platform attribute names it */
-#ifdef HALO_ANDROID
-#define MENU_PLATFORM "android"
-#elif defined(HALO_WEB)
-#define MENU_PLATFORM "web"
-#else
-#define MENU_PLATFORM "desktop"
-#endif
-
-/* whether the element is for this platform (its platform attribute: the
-platforms it is for, separated by spaces) */
+/* whether the element is for this platform (its platform attribute) */
 static int for_this_platform(struct reader *reader, const XML_Char **attributes)
 {
 	int index;
@@ -406,30 +396,18 @@ static int for_this_platform(struct reader *reader, const XML_Char **attributes)
 	{
 		if (!strcmp(attributes[index], "platform"))
 		{
-			const char *name = attributes[index + 1];
-			int found = 0;
+			const char *platform = attributes[index + 1];
 
-			while (*name)
+			if (strcmp(platform, "desktop") && strcmp(platform, "android"))
 			{
-				size_t length = strcspn(name, " ");
-
-				if (length)
-				{
-					if ((length != 7 || strncmp(name, "desktop", 7)) && (length != 7 || strncmp(name, "android", 7)) &&
-						(length != 3 || strncmp(name, "web", 3)))
-					{
-						reader_error(reader, "platform=\"%s\" names one that is not desktop, android or web",
-							attributes[index + 1]);
-						return 1;
-					}
-					if (length == strlen(MENU_PLATFORM) && !strncmp(name, MENU_PLATFORM, length))
-						found = 1;
-				}
-				name += length;
-				while (*name == ' ')
-					name++;
+				reader_error(reader, "platform=\"%s\" is not \"desktop\" or \"android\"", platform);
+				return 1;
 			}
-			return found;
+#ifdef HALO_ANDROID
+			return !strcmp(platform, "android");
+#else
+			return !strcmp(platform, "desktop");
+#endif
 		}
 	}
 	return 1;
@@ -1059,10 +1037,7 @@ void halo_menus_art_register(void const *texture, char const *png)
 	{
 		free(art[index].png);
 		if (art[index].texture)
-		{
-			xgpu_gl_texture_deleted(art[index].texture);
 			glDeleteTextures(1, &art[index].texture);
-		}
 	}
 	memset(&art[index], 0, sizeof(art[index]));
 	art[index].data = data;
@@ -1077,10 +1052,7 @@ void halo_menus_art_forget(void)
 	{
 		free(art[index].png);
 		if (art[index].texture)
-		{
-			xgpu_gl_texture_deleted(art[index].texture);
 			glDeleteTextures(1, &art[index].texture);
-		}
 	}
 	art_count = 0;
 }

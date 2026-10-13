@@ -82,38 +82,6 @@ file, the line and the problem, and the game uses the Xbox's menus. The
 setting `display.menus = "xbox"` also uses them. `debug.menu_open` starts on
 one screen (by its name, `main_menu/settings_select/...`), for looking at it.
 
-## Writing them again
-
-`tools/ce_menus.py` writes every file in `ce/` and `menus.json` again,
-the settings screens too (it runs `tools/port_settings.py`'s):
-
-```sh
-python3 tools/ce_menus.py \
-    --tags <halopc-restored>/tags \
-    --definitions <invader>/src/tag/hek/definition \
-    --redraws <ui-svg-handmade> \
-    --placeholder <placeholder.png> \
-    --pictures <extracted-ui-assets-fixed>
-```
-
-- `--tags`: the PC version's tags (its `ui\shell` widgets, strings and
-  bitmaps).
-- `--definitions`: Invader's tag definitions, which say how the tags are
-  laid out.
-- `--redraws`: the hand-made SVG redraws, copied to `svg/`.
-- `--placeholder`: the picture drawn where a picture has no redraw and the
-  Xbox's map has not got it.
-- `--pictures` (optional): the PC version's pictures, of which only where
-  each sits in its frame is read.
-
-It needs `rsvg-convert`, Pillow, NumPy and SciPy. It writes every file, so
-`git status` should show only the screens meant to change; then
-`ninja linux` (or `ninja android`) embeds them in the game.
-
-A settings screen (Controls Setup, Gamepads, Mouse, Audio, Video or Network
-Setup) is changed in `tools/port_settings.py`, not in its XML, and written
-with the command above.
-
 ## Elements
 
 A file holds one `<menus>` element (`root` names the main menu's widget, in
@@ -178,7 +146,7 @@ be a child of many).
 | `description` | A column list's extended description: a widget |
 | `controller` | `1` to `4`, or `any` (the default); a `<child>`'s or `child_controller`: the one it is for |
 | `auto_close`, `auto_close_fade` | It closes itself after this many milliseconds, fading for this many |
-| `platform` | `desktop`, `android` or `web`, or several separated by spaces: it is only there. Every element takes this. |
+| `platform` | `desktop` or `android`: it is only there. Every element takes this. |
 
 Widget flags: `pass_unhandled_to_focused_child` (an event it does not handle
 goes to its focused child: a screen needs it for its list to get events),

@@ -525,7 +525,7 @@ static boolean slayer_engine_display_score(
 			usnprintf(
 				string,
 				NUMBEROF(string),
-				ustring_format_checked(GET_MULTIPLAYER_GAME_TEXT(_string_n_team_n), "dd"),
+				GET_MULTIPLAYER_GAME_TEXT(_string_n_team_n),
 				slayer_get_score(player_index, _get_score_individual),
 				slayer_get_score(player_index, _get_score_team));
 		}
@@ -547,7 +547,7 @@ static boolean slayer_engine_display_score(
 		usnprintf(
 			buffer,
 			buffer_character_count,
-			ustring_format_checked(GET_MULTIPLAYER_GAME_TEXT(_string_new_target_name), "s"),
+			GET_MULTIPLAYER_GAME_TEXT(_string_new_target_name),
 			target_player->name);
 		break;
 
@@ -560,8 +560,8 @@ static boolean slayer_engine_display_score(
 			usnprintf(
 				buffer,
 				buffer_character_count,
-				ustring_format_checked(GET_MULTIPLAYER_GAME_TEXT(
-					_string_name_kills_score_n_team_score_of_max), "sddd"),
+				GET_MULTIPLAYER_GAME_TEXT(
+					_string_name_kills_score_n_team_score_of_max),
 				place_name,
 				slayer_get_score(player_index, _get_score_individual),
 				slayer_get_score(player_index, _get_score_team),
@@ -575,8 +575,8 @@ static boolean slayer_engine_display_score(
 			usnprintf(
 				buffer,
 				buffer_character_count,
-				ustring_format_checked(GET_MULTIPLAYER_GAME_TEXT(
-					_string_name_kills_score_of_max), "sdd"),
+				GET_MULTIPLAYER_GAME_TEXT(
+					_string_name_kills_score_of_max),
 				place_name,
 				slayer_get_score(player_index, _get_score_team),
 				game_engine_get_variant()->universal_variant.score_to_win);

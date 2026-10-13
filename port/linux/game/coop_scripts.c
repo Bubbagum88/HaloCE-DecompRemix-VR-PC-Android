@@ -225,13 +225,10 @@ boolean coop_scripts_unit_near(
 	long unit_index,
 	real_point3d const *destination)
 {
-	real_point3d origin;
-
 	if (unit_index == NONE || !destination)
 		return FALSE;
 
-	/* (in the world: a seated unit's position is its seat's, in the vehicle) */
-	return distance_squared3d(destination, object_get_origin(unit_index, &origin)) <=
+	return distance_squared3d(destination, &object_get(unit_index)->object.position) <=
 		COOP_SCRIPT_TELEPORT_RADIUS * COOP_SCRIPT_TELEPORT_RADIUS;
 }
 
@@ -268,22 +265,21 @@ boolean coop_scripts_arrive_at(
 	unit_index = player->unit_index;
 	if (unit_index == NONE)
 		return FALSE;
-	object_get_origin(unit_index, &original);
+	original = object_get(unit_index)->object.position;
 	face_unit = facing_unit(arrived_unit_indices, arrived_count);
 	if (!player_position_switches_bsp(destination) && teleport_to(player_index, face_unit, destination, FALSE))
 		return TRUE;
 	for (index = 0; index < arrived_count; index++)
 	{
-		real_point3d spot;
+		real_point3d const *spot = &object_get(arrived_unit_indices[index])->object.position;
 
-		object_get_origin(arrived_unit_indices[index], &spot);
 		if (!coop_scripts_unit_near(arrived_unit_indices[index], destination) ||
-			!line_of_sight_clear(destination, &spot) ||
-			player_position_switches_bsp(&spot))
+			!line_of_sight_clear(destination, spot) ||
+			player_position_switches_bsp(spot))
 		{
 			continue;
 		}
-		if (teleport_to(player_index, face_unit, &spot, FALSE))
+		if (teleport_to(player_index, face_unit, spot, FALSE))
 			return TRUE;
 	}
 	for (radius_index = 0; radius_index < (short)NUMBEROF(ring_radius); radius_index++)
@@ -321,7 +317,6 @@ void coop_scripts_teleport_followers(
 	short arrived_count = 0;
 	short index;
 	long player0_index;
-	real_point3d origin;
 
 	if (count == 0 || !destination)
 		return;
@@ -330,7 +325,7 @@ void coop_scripts_teleport_followers(
 	BSP switch does not count: the next tick would switch the level. */
 	player0_index = player_index_from_unit_index(unit_index);
 	if (coop_scripts_unit_near(unit_index, destination) &&
-		!player_position_switches_bsp(object_get_origin(unit_index, &origin)))
+		!player_position_switches_bsp(&object_get(unit_index)->object.position))
 	{
 		arrived[arrived_count++] = unit_index;
 	}

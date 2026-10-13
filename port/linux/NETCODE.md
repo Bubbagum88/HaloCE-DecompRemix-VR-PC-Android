@@ -52,13 +52,14 @@ with ideas from VALORANT's netcode articles, keeping the 30 Hz tick:
   Until a client has the host's, the host takes none of its players'
   movement and none of its loading zones, and after any switch no loading
   zone switches again until every machine has the new BSP (ten seconds at
-  most). Only the host's crossing of a loading zone switches the BSP, and
-  it brings every player to the host, however far behind, so no one
-  running ahead or doubling back drags the team through the level (while
-  none of the host's players are alive, anyone's crossing does); a client
-  standing on a loading zone is told it waits for the host. A player
-  outside the loaded BSP and falling for two seconds is brought back beside
-  the host, else a teammate. A dead
+  most). A loading zone into a
+  BSP the team hasn't been in brings every player to whoever crossed it,
+  as split screen does; one back into a BSP it has been in switches only
+  with two thirds of the living players at it (in the trigger, or within
+  15 world units of the player in it, about 45 metres), so one player can't
+  drag the team back through the level; a player held back is told how
+  many are there and how many it needs. A player outside the loaded BSP
+  and falling for two seconds is brought back beside a teammate. A dead
   player watches a living teammate (`coop_spectate.c`) and comes back
   beside one once it is safe. With everyone dead they come back where they
   were at the last checkpoint, without a revert. A mission the scripts fail
@@ -90,9 +91,7 @@ with ideas from VALORANT's netcode articles, keeping the 30 Hz tick:
 - **Corrections.** The host sends each client the authoritative state of
   the players' units and the game's moving objects; a client moves its
   copies toward it, a small error half of the way each tick, a larger one
-  at once, drawn gliding from where they were (a player's moved at once
-  is on the teleporter it lands on, as a teleporter leaves one it sends,
-  so the client's does not send it back). A client's own unit and
+  at once, drawn gliding from where they were. A client's own unit and
   vehicle are only corrected past a tolerance, so prediction does not
   rubber-band: the host tells the client which of the client's ticks it
   has its player at (its prediction come back), and the client compares
@@ -122,13 +121,7 @@ with ideas from VALORANT's netcode articles, keeping the 30 Hz tick:
   than the player goes of their own (and up, what its tick added but a
   jump's), so a client that says it goes faster (a copy said to hover and
   fall, gaining the host's gravity each tick) gains nothing by it. A
-  teleporter, which moves the host's own copy too, starts afresh. On a
-  moving elevator the host takes only where a client's player is across,
-  not how high: the client's elevator follows the host's (co-op's device
-  sync), so its player's height reaches the host a round trip behind the
-  host's elevator, under its floor going up, where the host's copy would
-  fall through it. Each machine's elevator carries its own copy up and
-  down, and they meet where it stops.
+  teleporter, which moves the host's own copy too, starts afresh.
 - **Shooter's hits.** A client reports what its own players hit; the host
   checks the report (the player's, a weapon they carry, fired from within
   its reach, the target where the host had it when the shooter saw it, no
@@ -181,28 +174,7 @@ the Elite major's and commander's armor); version 19 sends with the game's
 settings whether co-op's players collide with each other (Server Setup's PLAYER
 COLLISIONS: each machine's players then pass through the others'); version 20
 lists a public game with a password with its invite's token sealed with the
-password's key (`p2p_lobby.c`), a listing of another layout; version 21
-sends each killing blow again reliably and an object come to rest three
-times (a client waits for a player's blow before its body dies without one),
-and switches co-op's BSP on the host's crossing alone; version 22 names a
-Custom Edition map `custom_maps\<name>`, which older clients cannot load or
-explain; version 23 keeps the blocks of a Custom Edition map that 22 cut to
-the Xbox tools' limits, so both place the same objects; version 24 sends the
-gametype's PC vehicle set; version 25 sends a unit's integrated light with
-its object state; version 26 has each machine say its WebRTC in internet
-play's signalling (a native build's certificate, a browser's ICE credentials
-too), so that browsers play (port/linux/README.md, "Browsers"); version 27
-shares Custom Edition maps (below, "Map sharing"): a client asks the host for
-a map it lacks, and the game's players reach each other to send it; version
-28 holds the players of a machine still downloading the map out of the game
-until it has the map, keeps a multiplayer map's first scripted BSP, leaves
-dynamic lights and the flashlight on past the Xbox game's player and vehicle
-limits, and readies a second weapon picked up while firing.
-
-`port/linux/network_format.txt` records the wire format of the current
-version (`tools/network_format.py`): `test_linux_port.py` fails when the
-sources' messages, kinds, bits, structs sent whole or the sizes of their
-arrays differ from it.
+password's key (`p2p_lobby.c`), a listing of another layout.
 
 A client plays by its host's rules: in another's game (searching for it,
 in its lobby, or playing it) the developer console, the telnet console
@@ -257,45 +229,6 @@ machine tells them: anyone with administrator or root access can change
 them, and players behind one address share it. The console's `kick <player
 name>` drops a player as `ban` does (every machine told), but adds no line
 and keeps no address out: the player may join again at once.
-
-The players' votes to kick a player (`network_votekick.c`): a client sends
-`_distributed_message_votekick` (the player's absolute index) reliably, and
-the host takes it only from the client's stream. The host alone counts:
-one vote per real address (an internet play peer's endpoint, not its
-stand-in), and votes again deduplicated by hardware id, which only ever
-removes votes (the players who may vote are counted by address alone, so a
-copied hardware id cannot lower the votes needed). A vote needs more than
-half of the players who may vote, the target counted, and at least two;
-starting one needs `network.votekick_minutes` played on this host in its
-own ticks, voting two minutes; one vote runs at a time, and a failed vote
-cools its starter down and protects its target. A vote that passes kicks as
-the `kick` command does, and the host refuses the address and hardware id
-for `network.votekick_ban_minutes`. The host sends each client
-`_distributed_message_votekick_status` every second while a vote runs (and
-as it changes), for the scoreboard, whose right click frees the mouse to
-pick a player; the host's own scoreboard adds Kick and Ban. Builds without
-votes drop both kinds as unknown, so the network version is unchanged.
-
-Voice chat (`network_voice.c`, the sound in `port/linux/src/voice_audio.c`)
-travels as distributed messages too, but in the lobby as well as in a game:
-`network_voice_handles_message` takes them before the netcode's checks that
-a game is running (`network_distributed_handle_message`, and the host's
-stream and datagram paths in `network_server_message_handler.c`). A client
-sends its 20 ms Opus frames to the host unreliably
-(`_distributed_message_voice_up`), each with the key the host gave it over
-its stream (`_distributed_message_voice_config`, with the host's settings,
-again every ten seconds and when they change), so a datagram sent as from
-another machine is dropped; an empty one every two seconds says it hears
-voices. The host checks the key, the frame's size against its quality, a
-rate of 50 frames a second (a burst of 10), and at most 8 machines talking,
-then sends the frame to each machine that may hear it
-(`_distributed_message_voice_down`, with that machine's key) by its
-`network.voice_mode`, `network.voice_lobby` and `network.voice_proximity`,
-or plays it itself. The host never decodes a frame it only relays, and
-never sends a machine its own. A listener sets the gain and pan of a voice
-heard for being near by its own view of the speaker's unit. Mutes are each
-machine's own. Builds without voice chat never say they hear voices, so the
-host sends them none, and drop the kinds as unknown.
 A speed hack of less than a tenth is let be: the host's bounds on how far
 and how fast a client's player moves and fires hold it to the host's time
 anyway.
@@ -335,70 +268,6 @@ Until it has loaded, the machine hears none of the game's messages (which a
 machine in the pregame refuses, and which the others no longer need), only
 a pregame keep-alive every five seconds from the host
 (`network_server_manager.c`, `network_server_message_handler.c`).
-
-## Map sharing
-
-A client may join a game on a Custom Edition map it does not have
-(`port/linux/game/map_share.c`, `map_share_files.c`). Every map in the
-custom_maps folder is named for its contents: once the map lists (or a host
-picking it) find it, `hugeass.map` is renamed `hugeass_<8 hex digits>.map`,
-the first digits of its hash, with its picture and description, so a game's
-level name (`custom_maps\hugeass_0e2b3ee4`) says which version of the map it
-is, and two versions never meet. A file's hash is BLAKE2b's (32 bytes) of a
-label, its size and the BLAKE2b hashes of its pieces (256 KiB each). The
-menus show a map without its hash, unless two versions are listed.
-
-- **Asking.** A client whose settings name a map it lacks
-  (`cache_files_map_present`), or one whose resource maps it lacks, asks the
-  host over its connection (`_distributed_message_map_share_request`: the
-  level, and which of the map, bitmaps.map, sounds.map and loc.map it
-  lacks) instead of leaving, if `network.map_download` lets it; the map must
-  be named for its hash. Its players wait to join until the host's settings
-  have named the map, and for a game in progress until it is downloaded; in
-  the lobby they join at once, and the host's start waits for the machine to
-  precache the map, as it waits for any machine.
-- **The offer.** A host that shares maps (`network.map_share`) hashes the
-  map, and the resource maps the map needs (its tag index says which: a tag
-  whose entry's word at 0x18 is set is held whole by bitmaps.map for a
-  bitmap, sounds.map for a sound, loc.map for a font, string list or HUD
-  message text) that the client lacks, on a thread of their own, and
-  answers with each file's size and hash (`_offer`, or why it does not:
-  sharing off, or not the game's map), and which of its other machines may
-  have them (`_sources`: an address on a LAN, internet play's key hash on the
-  internet), again every ten seconds. A map whose hash is not its name's is
-  not offered. The client checks that the map's hash is its name's, and
-  that no file is larger than the cache loader takes.
-- **The swarm.** The client connects to the host and up to eight of the
-  others on port 5153 (of two downloading, the one of the lower machine
-  connects). Each end says which files it has, whole or by piece, and tells
-  the other of each piece it gets; the client asks for the rarest pieces
-  first (from a random place, so that clients ask for different pieces), two
-  at a time from each connection, sixteen in all, and the last few again of
-  whoever is quicker. The pieces' hashes come from any end that has them,
-  checked against the file's hash; each piece is checked against its own as
-  it arrives, and an end that sends a wrong one is not asked again. A machine
-  sends of the game's files (its map, the resource maps the map needs, a
-  download's pieces) no faster than `network.map_share_upload` (the host,
-  1024 KB/s) or `network.map_seed_upload` (a player, 256 KB/s), round all
-  its connections a 16 KiB block at a time, so that the game's own traffic
-  keeps the rest of the upload; `network.map_seed = false` sends none. A
-  player that has downloaded the map sends it on at once.
-- **Internet play.** The players of an internet game reach its host alone.
-  A player that shares answers the holders of the invite it joined with as
-  its host does (`p2p_set_answering_players`), and a downloading client asks
-  another player, by the key hash the host told, for a session as it asked
-  the host (`p2p_reach_player`: up to eight at once, alongside the request to
-  the host, in one topic of the invite's token). Its map sharing connection
-  then goes through their tunnel, as the game's connections go.
-- **Writing.** A download is written to `<file>.part` beside its file in
-  custom_maps, and renamed when every piece is had. A part file found again
-  is checked piece by piece on the hashing thread and taken up where it was.
-  The client checks the map again once it has it (`custom_edition_cache_present`),
-  and tells the host its progress every two seconds (`_progress`); the host
-  does not drop a machine downloading (and for 20 seconds after) for adding
-  no players or loading slowly. A download that brings nothing for a minute,
-  or a host that does not answer in 30 seconds, leaves the game, saying why.
-- The download's progress is drawn at the top of the screen.
 
 ## Stages
 
@@ -451,9 +320,7 @@ menus show a map without its hash, unless two versions are listed.
      indices from the upper half of the object array, clear of the host's.
    - Ten times a second, what every unit carries (the host's weapons, slot
      for slot, their ammunition, the weapon in hand, the grenades); a
-     client moves the same weapon objects in and out of its units, which
-     carry no grenades until the host says (not the unit tag's: a player
-     spawned with the button held threw one the host's copy had not). A
+     client moves the same weapon objects in and out of its units. A
      change of weapons or grenades goes to every client at once; one of
      ammunition only to the unit's player's machine at once, and to the
      others as often as they are sent that player. A client takes its own
@@ -468,16 +335,9 @@ menus show a map without its hash, unless two versions are listed.
 4. (Done) Corrections: the host sends each client where its moving objects
    are (vehicles, items, bodies) as often as they are near that client's
    nearest player (every tick within 25 world units, every second within
-   60, every third within 120, every fourth further off), to every client
-   three times over half a second as an object comes to rest (one lost
-   would leave a falling body hanging until its turn round all of them),
-   and a few of those at rest, round them all. A client takes the host's
-   word on whether each is at rest even when its copy is close enough to
-   leave where it is. A body's pose goes with it: one lying limp that the
-   host moves stops lying limp (the blast that moved the host's reaches
-   only the machines that see the body's player), and one the host has at
-   rest is on the ground, so it lies limp again where it stops instead of
-   keeping the pose of its fall in the air. A client puts its copies there, and the difference is
+   60, every third within 120, every fourth further off), once more to
+   every client as an object comes to rest, and a few of those at rest,
+   round them all. A client puts its copies there, and the difference is
    drawn fading over a few ticks (`render_interpolation.c`) instead of a
    jump. A client drives its own player's vehicle and sends where it is,
    which the host takes within a tolerance, as it does its own player's
@@ -511,9 +371,8 @@ menus show a map without its hash, unless two versions are listed.
      player; damage one of their weapons (a vehicle's a driver's or
      gunner's; now or in the last ten seconds), a grenade the host's own game
      saw them throw in the last ten seconds that has not gone off (each
-     throw's explosion is taken once, its other hits and its other damage
-     (a frag grenade's shock wave) that tick with it: holding grenades
-     deals nothing) or the vehicle they drove (in the
+     throw's explosion is taken once, its other hits that tick with it:
+     holding grenades deals nothing) or the vehicle they drove (in the
      last ten seconds: its collisions) can deal (its projectiles' impacts
      and detonations, followed through the tags), no harder than it can be
      (all of it, but an airborne melee blow's half again); of the shape the
@@ -578,11 +437,9 @@ menus show a map without its hash, unless two versions are listed.
      player's screen effects to that player's machine alone, but for a
      weapon's own shake of the player firing it (no one's damage), which
      that player's machine shows itself at once. The killing blow is sent
-     with the tick's other damage and once more reliably (a client replays
-     one blow of a unit only), so every body falls as the host's did: a
-     body the host says is dead (the objects' states say so of an actor's,
-     the units' states of a player's) that is still alive half a second on
-     is killed with nothing to show.
+     unreliably: an actor's body the host says is dead (the objects' states
+     say so) that is still alive half a second on is killed with nothing
+     to show (a player's the units' states kill).
    - A client's own projectiles respond to what they hit as the game has
      them: the host's shields and health, which the client has, say
      whether the shield or the body took the hit, and how much is left of
@@ -594,14 +451,6 @@ What reaches the other machines, and how, decides how the game feels over
 a real network as much as the model does (compared with Quake III, Source,
 Unity's Netcode for Entities, lightyear, netfox and the Ares source):
 
-- **Datagrams carry only what is theirs.** A datagram is known to be a
-  machine's only by the address it came from, which anyone can send one
-  as. So a client takes from a datagram only what the host sends in one: its
-  game's advertisement, its answer to a ping, and the distributed netcode's
-  messages (checked as the host's below); the game's own messages (a player
-  added or removed, the game begun or over, its settings), which the host
-  sends over its connection, are ignored in a datagram
-  (`network_client_message_handler.c`).
 - **Nothing held back.** The game's connections (the reliable messages:
   objects made and deleted, the game type's state, hits, pickups) send each
   write at once (`TCP_NODELAY`, in `xnet.c` for the game's sockets and in
@@ -697,22 +546,9 @@ swap the bots' wandering does not reach (`debug.network_test_pickup_weapon`
 picks the weapon: the first whose tag name has it in it, as "sniper"), and `debug.network_test_score`
 shortens the game, to test the next (`host:<map>:<variant>,<variant>...`
 plays the variants in turn, the next once a game is over, as the host's
-button on the scores does). `debug.network_test_public` lists the host's
-game in the server browser, and `browse` joins the one listed there with the
-most players (not co-op, if it can), as the server browser does
-(port/web/tests/internet.mjs plays the native build and browsers so).
-`debug.network_latency` and
+button on the scores does). `debug.network_latency` and
 `debug.network_loss` hold back what a machine receives and drop some of its
-datagrams, to test as over the internet. `debug.network_corrupt` damages
-that share of the datagrams a machine receives at random (bytes changed,
-cut short, stretched to a full datagram, or replaced throughout: `xnet.c`),
-and `debug.network_corrupt_stream` that share of its reads of connections
-(a damaged connection is closed, so a little goes a long way), from
-`debug.network_corrupt_after` seconds after the start (what a host sends its
-own client over the loopback is damaged too, so the game is set up and
-started first), to test that nothing another machine sends can crash the
-game: a host and a client with a third of their datagrams damaged must play
-on, their logs noting what they refused.
+datagrams, to test as over the internet.
 
 The host logs to `debug.txt` when a player on another machine presses the
 action button where the host has nothing for them to pick up, with where it

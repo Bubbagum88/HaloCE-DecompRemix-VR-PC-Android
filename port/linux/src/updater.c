@@ -29,7 +29,7 @@ update.h's: posix_update.c on Linux, win32_update.c on Windows.
 #include "port_config.h"
 #include "update.h"
 
-#if !defined(HALO_ANDROID) && !defined(HALO_WEB)
+#ifndef HALO_ANDROID
 
 #include "zlib_prefixed.h"
 
@@ -526,8 +526,7 @@ static void updater_clean_up(void)
 {
 	static const char *const names[] =
 	{
-		"halo.old", "halo.exe.old", "SDL3.dll.old", "libSDL3.so.0.old", "SDL3-LICENSE.txt.old",
-		"extract-xiso-LICENSE.txt.old", "mbedtls-LICENSE.txt.old",
+		"halo.old", "halo.exe.old", "SDL3.dll.old", "extract-xiso-LICENSE.txt.old", "mbedtls-LICENSE.txt.old",
 	};
 	char path[1200];
 	size_t index;
@@ -654,15 +653,5 @@ void updater_poll(SDL_Window *window)
 void updater_start(void)
 {
 }
-
-#ifdef HALO_WEB
-#include <SDL3/SDL.h>
-
-/* (the site updates itself: port/web/site/sw.js) */
-void updater_poll(SDL_Window *window)
-{
-	(void)window;
-}
-#endif
 
 #endif
