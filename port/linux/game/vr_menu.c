@@ -216,6 +216,15 @@ one place (the same setting either way: changing one shows on the other) */
 #define VR_IMMERSION_COMBAT { "FIST COMBAT", "vr.assisted_combat", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_COMBAT_LIGHTS { "HIT HIGHLIGHTS", "vr.combat_highlights", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_COMBAT_REACH { "FIST REACH", "vr.combat_reach", _vr_setting_real, 5, { { "1 M", "1" }, { "1.5 M", "1.5" }, { "2 M", "2" }, { "2.5 M", "2.5" }, { "3 M", "3" } } }
+/* Test65: Arkham Shadow's fist combat: how far a punch carries the player to
+an enemy, how many more punches enemies take, and counters */
+#define VR_IMMERSION_COMBAT_LUNGE { "LUNGE", "vr.combat_lunge_reach", _vr_setting_real, 5, { { "OFF", "0" }, { "3 M", "3" }, { "4.5 M", "4.5" }, { "6 M", "6" }, { "8 M", "8" } } }
+#define VR_IMMERSION_COMBAT_HEALTH { "ENEMY HEALTH", "vr.combat_enemy_health", _vr_setting_real, 5, { { "1X", "1" }, { "2X", "2" }, { "3X", "3" }, { "4X", "4" }, { "6X", "6" } } }
+/* Test65: WEAPON PULL: a weapon within reach glows and a grip pulls it into
+the hand */
+#define VR_IMMERSION_WEAPON_PULL { "WEAPON PULL", "vr.weapon_pull_reach", _vr_setting_real, 5, { { "OFF", "0" }, { "0.5 M", "0.5" }, { "1 M", "1" }, { "1.5 M", "1.5" }, { "2 M", "2" } } }
+#define VR_IMMERSION_PULL_GLOW { "PULL GLOW", "vr.weapon_pull_glow", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_COMBAT_COUNTERS { "COUNTERS", "vr.combat_counters", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_AIM_STEADY { "AIM STEADY", "vr.aim_steadying", _vr_setting_real, 5, { { "OFF", "0" }, { "LIGHT", "0.2" }, { "MEDIUM", "0.4" }, { "STRONG", "0.6" }, { "MAX", "0.8" } } }
 #define VR_IMMERSION_GRENADES { "PHYS GRENADES", "vr.physical_grenades", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_GRENADE_FWD { "CHEST FWD", "vr.grenade_chest_forward", _vr_setting_real, 7, { { "8 CM", "0.08" }, { "12 CM", "0.12" }, { "16 CM", "0.16" }, { "20 CM", "0.20" }, { "25 CM", "0.25" }, { "30 CM", "0.30" }, { "40 CM", "0.40" } } }
@@ -319,6 +328,8 @@ static struct vr_menu_setting const vr_menu_controls[] =
 	VR_IMMERSION_WEAPONS,
 	VR_IMMERSION_HOLSTERS,
 	VR_IMMERSION_HOLSTER_HAPTICS,
+	VR_IMMERSION_WEAPON_PULL,
+	VR_IMMERSION_PULL_GLOW,
     VR_IMMERSION_NPC_RIG_SLOTS,
     VR_IMMERSION_BODY_RETENTION,
     VR_IMMERSION_NPC_GRAB,
@@ -365,6 +376,9 @@ static struct vr_menu_setting const vr_menu_controls[] =
     VR_IMMERSION_COMBAT,
     VR_IMMERSION_COMBAT_LIGHTS,
     VR_IMMERSION_COMBAT_REACH,
+    VR_IMMERSION_COMBAT_LUNGE,
+    VR_IMMERSION_COMBAT_HEALTH,
+    VR_IMMERSION_COMBAT_COUNTERS,
     VR_IMMERSION_GRENADES,
     VR_IMMERSION_GRENADE_FWD,
     VR_IMMERSION_GRENADE_DOWN,
@@ -675,10 +689,16 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_FIST_REQUIRED,
 	VR_IMMERSION_SHAKE_COOLING,
 	VR_IMMERSION_PHYSICAL_HANDLES,
+	/* PICKUPS */
+	VR_IMMERSION_WEAPON_PULL,
+	VR_IMMERSION_PULL_GLOW,
 	/* FIST COMBAT */
 	VR_IMMERSION_COMBAT,
 	VR_IMMERSION_COMBAT_LIGHTS,
 	VR_IMMERSION_COMBAT_REACH,
+	VR_IMMERSION_COMBAT_LUNGE,
+	VR_IMMERSION_COMBAT_HEALTH,
+	VR_IMMERSION_COMBAT_COUNTERS,
 	VR_IMMERSION_AIM_STEADY,
 	/* GRENADES */
 	VR_IMMERSION_GRENADES,
@@ -755,7 +775,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
-	{ "WEAPONS", 8 }, { "FIST COMBAT", 4 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
+	{ "WEAPONS", 8 }, { "PICKUPS", 2 }, { "FIST COMBAT", 7 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
 	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 7 }, { "RAGDOLLS", 6 }, { "ADVANCED", 8 },
 };
 

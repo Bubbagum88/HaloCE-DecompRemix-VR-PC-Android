@@ -4397,6 +4397,12 @@ boolean unit_melee_attack_begin(
 					if (unit->unit.player_index == NONE)
 						network_actors_note_melee(unit_index, alignment_vector);
 				}
+#ifdef HALO_VR
+				/* Test65: an enemy's swing at the player opens the assisted
+				fists' counter window (vr_extra_interaction.c) */
+				if (unit->unit.player_index == NONE)
+					vr_combat_note_melee(unit_index);
+#endif
 				result = TRUE;
 			}
 		}
@@ -9383,6 +9389,32 @@ void unit_cause_player_melee_damage(
 }
 
 #ifdef HALO_VR
+/* Test65: the blow a fist combat lunge or counter carries, landed on
+arrival: the fist's own blow (unit_vr_impact_melee: the same damage, effects
+and combo), swept into `target` along `direction` from just outside it */
+boolean unit_vr_combat_strike(
+	long unit_index,
+	long target_index,
+	real_vector3d const *direction,
+	real scale)
+{
+	struct object_datum *target = object_try_and_get(target_index);
+	real units = vr_render_units_per_metre();
+	real_point3d from;
+	real_vector3d along, sweep;
+	real reach;
+
+	if (!target || !direction || !(units > 0.0f))
+		return FALSE;
+	along = *direction;
+	if (!(normalize3d(&along) > 0.0001f))
+		return FALSE;
+	reach = target->object.bounding_sphere_radius + 0.25f * units;
+	point_from_line3d(&target->object.bounding_sphere_center, &along, -reach, &from);
+	scale_vector3d(&along, reach + 0.2f * units, &sweep);
+	return unit_vr_impact_melee(unit_index, &from, &sweep, scale, FALSE, 0.05f * units);
+}
+
 /* port: a melee struck by the headset's hand (port/linux/game/vr_render.c,
 vr.melee "impact"): what the hand swept through this tick, from `from`
 along `sweep`, takes the blow unit_cause_player_melee_damage gives what is
@@ -9507,7 +9539,7 @@ boolean unit_vr_impact_melee(
         scale *= 0.25f; /* a fist, not the globals' full terminal fall */
     }
 	if (melee_damage_effect_index != NONE && hit_object_index != NONE)
-		scale *= vr_combat_hit(unit_index, hit_object_index, &collision.point, weapon_hand);
+		scale *= vr_combat_hit(unit_index, hit_object_index, &collision.point, &direction, scale, weapon_hand);
 
 	if (hit_object_index != NONE && object_get(hit_object_index)->object.type == _object_type_vehicle)
 	{

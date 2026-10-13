@@ -213,6 +213,7 @@ symbols in this file:
 
 #include "real_math.h"
 #include "halo_vr.h"
+#include "vr_weapon_pickup.h"
 #ifdef HALO_VR
 #include "vr_extra_interaction.h"
 #endif
@@ -666,6 +667,8 @@ static void handle_one_player_input(
 			}
 		}
 		vr_render_impact_melee(local_player_index);
+		/* Test65: WEAPON PULL */
+		vr_weapon_pickup_tick(local_player_index);
         if(vr_physical_grenade_busy())
             SET_FLAG(input.unit_control_flags,_unit_control_throw_grenade_bit,FALSE);
 	}

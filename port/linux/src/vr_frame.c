@@ -4158,6 +4158,17 @@ static void draw_reticle(void)
 	host_xr_release(HALO_XR_SWAPCHAIN_RETICLE);
 }
 
+/* Test65: WEAPON PULL: a weapon pulled into the off hand is held in it (as
+the palms-together swap passes the gun) */
+void vr_set_weapon_hand(int hand)
+{
+	if (hand < 0 || hand > 1 || hand == vr.weapon_hand)
+		return;
+	vr.weapon_hand = hand;
+	vr.two_hand_held = 0;
+	platform_log("vr: the weapon changes to the %s hand (pulled into it)", vr.weapon_hand ? "right" : "left");
+}
+
 int vr_heading_forward(float out_forward[3])
 {
 	if (!vr.heading_valid)
@@ -4212,6 +4223,27 @@ unsigned int vr_head_look_actions(void)
 	delta = pitch - tutorial_look.pitch;
 	if (fabsf(delta) > 0.02f) { actions |= delta > 0 ? 1u : 2u; tutorial_look.pitch = pitch; }
 	return actions;
+}
+
+/* Test65: the head as the last frame tracked it, for a game tick that runs
+before this frame's vr_aim (player_control.c: the fist sweep and the combat
+tick come first in a tick). vr_head_view refused them (the frame not yet
+begun), so the assisted fists never took a target: 65 fist strikes in the
+owner's Test64 logs and not one "VR fist combat" line. The last frame's
+pose is at most a frame old. */
+int vr_head_view_recent(const float position[3], const float forward[3],
+	float out_position[3], float out_forward[3], float out_up[3])
+{
+	const unsigned int needed = HALO_XR_FRAME_SHOULD_RENDER | HALO_XR_FRAME_VIEWS_VALID;
+	float offset[3];
+
+	if (vr_head_view(position, forward, out_position, out_forward, out_up))
+		return 1;
+	if (!vr.active || !vr.stereo_enabled || (vr.frame.flags & needed) != needed)
+		return 0;
+	head_offset(offset);
+	view(offset, vr.frame.head.orientation, position, forward, out_position, out_forward, out_up);
+	return 1;
 }
 
 int vr_head_view(const float position[3], const float forward[3],

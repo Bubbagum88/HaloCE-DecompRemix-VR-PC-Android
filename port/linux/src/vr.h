@@ -65,6 +65,10 @@ int vr_eye_view(int eye, const float position[3], const float forward[3], float 
 /* the head between the eyes, as vr_eye_view gives an eye */
 int vr_head_view(const float position[3], const float forward[3],
 	float out_position[3], float out_forward[3], float out_up[3]);
+/* Test65: the same, or the last frame's head for a tick that runs before this
+frame begins (0 when no frame has tracked the head) */
+int vr_head_view_recent(const float position[3], const float forward[3],
+	float out_position[3], float out_forward[3], float out_up[3]);
 /* the frustum bounds of the HUD's head-locked panel (vr.hud_distance,
 vr.hud_width) seen from the head, as vr_eye_view gives an eye's: the HUD
 pass drawn from the head with them places its markers over what they
@@ -106,6 +110,8 @@ int vr_script_head_view(const float position[3], float out_position[3], float ou
 int vr_aiming(void);
 /* the heading the eyes are turned by (Halo's x, y) */
 int vr_heading_forward(float out_forward[3]);
+/* Test65: the gun to `hand` (WEAPON PULL) */
+void vr_set_weapon_hand(int hand);
 /* Test65: COCKPIT LOCK: the seat's heading and frame as the vehicle is drawn
 this frame (forward NULL: the heading only); the frame while it is in use */
 void vr_set_cockpit_frame(float heading, const float forward[3], const float left[3], const float up[3]);

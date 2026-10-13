@@ -733,6 +733,8 @@ boolean vr_render_vehicle_controls(void)
     boolean saved_debug=rasterizer_debug_options.draw_debug_geometry;
     rasterizer_debug_options.draw_debug_geometry=TRUE;
     int extras=VR_RENDER_EYE()?vr_extra_render(vr_render.game_camera_position.n):0;
+    /* Test65: WEAPON PULL's glow */
+    if(VR_RENDER_EYE()&&vr_weapon_pickup_render(vr_render.game_camera_position.n))extras=1;
     if(!markers && !controls && !extras){rasterizer_debug_options.draw_debug_geometry=saved_debug;return FALSE;}
     {
         real_argb_color blue={0.35f,0.15f,0.45f,1.0f};

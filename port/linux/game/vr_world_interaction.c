@@ -585,6 +585,35 @@ static long candidate(real_point3d const *point, real_point3d const *camera, lon
             best_center_distance = distance; selected = iterator.index; *contact = *point;
         }
     }
+    /* Test65: the owner: "picking up certain world objects isnt as easy as it
+     * should be" (a tester's turret grabs missed with the hand inside its
+     * bounds, the 4 cm palm short of its surface). Nothing touched: the same
+     * nearest objects again with GRAB ASSIST's reach and 3 cm more (8 cm by
+     * default), the hand still in sight of what it takes. */
+    if (selected == NONE && count) {
+        double assist = config_real("vr.npc_grab_assist");
+        real reach = contact_radius + ((real)(isfinite(assist) ? PIN(assist, 0.0, 0.15) : 0.05) + 0.03f) * units;
+        for (int index_in_order = 0; index_in_order < count && index_in_order < 8; index_in_order++) {
+            long candidate_index = order[index_in_order];
+            struct collision_model_instance model;
+            real distance;
+            item = object_get(candidate_index);
+            if (gaps[index_in_order] > reach) break;
+            if (!collision_model_instance_new(&model, candidate_index) ||
+                !collision_model_touch_sphere(&model, point, reach, NULL)) continue;
+            vector_from_points3d(camera, point, &ray);
+            if (collision_test_vector(_collision_test_for_line_of_sight_flags, camera, &ray, unit, &hit) &&
+                !(hit.type == _collision_result_object && hit.object_index == candidate_index)) continue;
+            vector_from_points3d(point, &item->object.bounding_sphere_center, &ray);
+            distance = magnitude3d(&ray);
+            if (distance < best_center_distance) {
+                best_center_distance = distance; selected = candidate_index; *contact = *point;
+            }
+        }
+        if (selected != NONE)
+            platform_log("VR world: grab assist took object=%08lx within %.0f cm of the hand", selected,
+                (float)(reach / units * 100.0f));
+    }
     return selected;
 }
 void vr_world_interaction_tick(void)

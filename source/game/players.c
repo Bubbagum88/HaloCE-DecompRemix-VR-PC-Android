@@ -3952,6 +3952,7 @@ static boolean player_handle_weapon_swap(
 }
 
 #ifdef HALO_VR
+boolean player_vr_take_weapon(long player_index, long weapon_index);
 /* port: the headset's weapon hand gripping by a weapon lying within its
 reach (port/linux/game/vr_render.c, vr.weapons "physical"): the nearest is
 taken as player_handle_weapon_swap takes the one the action button chose,
@@ -4003,13 +4004,28 @@ boolean player_vr_grab_weapon(
 	}
 	if (nearest_index == NONE)
 		return FALSE;
-	if (!unit_add_weapon_to_inventory(player->unit_index, nearest_index, TRUE) &&
+	return player_vr_take_weapon(player_index, nearest_index);
+}
+
+/* port: Test65 (WEAPON PULL, port/linux/game/vr_weapon_pickup.c): `weapon`,
+lying in the world, taken as player_vr_grab_weapon takes the nearest */
+boolean player_vr_take_weapon(
+	long player_index,
+	long weapon_index)
+{
+	struct player_datum *player = player_get(player_index);
+	struct weapon_datum *weapon;
+
+	if (!players_decide_pickups() || player->unit_index == NONE ||
+		!object_try_and_get_and_verify_type(weapon_index, _object_mask_weapon))
+		return FALSE;
+	if (!unit_add_weapon_to_inventory(player->unit_index, weapon_index, TRUE) &&
 		!(unit_drop_current_weapon(player->unit_index, TRUE) &&
-		  unit_add_weapon_to_inventory(player->unit_index, nearest_index, TRUE)))
+		  unit_add_weapon_to_inventory(player->unit_index, weapon_index, TRUE)))
 	{
 		return FALSE;
 	}
-	weapon = weapon_get(nearest_index);
+	weapon = weapon_get(weapon_index);
 	hud_picked_up_weapon(player->local_player_index, weapon->definition_index);
 	player_network_picked_up(player, player_index, _network_pickup_weapon, weapon->definition_index, 0);
 	player_control_unzoom(player->unit_index);

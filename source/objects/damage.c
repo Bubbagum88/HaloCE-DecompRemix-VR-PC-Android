@@ -141,6 +141,7 @@ symbols in this file:
 #include "units/vehicles.h"
 #ifdef HALO_VR
 #include "vr_npc_interaction.h"
+#include "vr_extra_interaction.h"
 #endif
 
 /* network_game_globals.c's */
@@ -1467,6 +1468,9 @@ void object_cause_damage(
 		damage_definition->damage_upper_bound * damage->scale,
 		damage_definition->instantaneous_acceleration * damage->scale,
 		damage_definition->category, TEST_FLAG(damage->flags, _damage_area_of_effect_bit));
+	/* Test65: a hit taken breaks the assisted fists' combo */
+	if (damage_definition->damage_upper_bound * damage->scale > 0.0f)
+		vr_combat_note_damage(object_index);
 #endif
 	damage_was_modified = FALSE;
 	parent_takes_body_damage = TRUE;

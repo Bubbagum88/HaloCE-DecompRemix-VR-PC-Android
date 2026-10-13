@@ -39,6 +39,7 @@ built from the game's camera and the headset's pose (port/linux/src/vr.h).
 #include "physics/collision_bsp.h"
 #include "vr_parkour.h"
 #include "vr_extra_interaction.h"
+#include "vr_weapon_pickup.h"
 #include "vr_contact_math.h"
 #include "vr_world_interaction.h"
 #include "network_interaction.h"
