@@ -527,10 +527,11 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
                 real twist=(ahead-vr_wheel.push_start[h])/fmaxf(vr_wheel.radius*vr_wheel.scale,0.05f*vr_units_per_metre())*(h?-1.0f:1.0f);
                 real across=local[0]-vr_wheel.side_start[h];
                 real turn=vr_wheel.kind==2?vr_wheel.grip[h].base+atan2f(-across,VR_STICK_LENGTH*vr_units_per_metre()*vr_wheel.scale):
+                    vr_wheel.kind==0?vr_wheel_grip_follow(&vr_wheel.grip[h],local,VR_WHEEL_TURN_LIMIT):
                     vr_wheel_grip_angle(&vr_wheel.grip[h],local);
                 if(vr_wheel.kind==1)turn+=twist;
                 if(vr_wheel.kind==3 && vr_wheel.slide)turn+=-across/(VR_BAR_SLIDE*vr_units_per_metre())*VR_WHEEL_LOCK;
-                total+=PIN(turn,-VR_WHEEL_LOCK,VR_WHEEL_LOCK);push+=ahead-vr_wheel.push_start[h];count++;
+                total+=vr_wheel.kind==0?PIN(turn,-VR_WHEEL_TURN_LIMIT,VR_WHEEL_TURN_LIMIT):PIN(turn,-VR_WHEEL_LOCK,VR_WHEEL_LOCK);push+=ahead-vr_wheel.push_start[h];count++;
             }
         }
     }
@@ -567,17 +568,18 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
     if(!isfinite(vr_wheel.pitch))vr_wheel.pitch=0;
     /* Test56: the hands feel the steering: a light tick as the controls turn
      * (stronger toward full lock) and a firm one at the stop */
+    real steered=PIN(vr_wheel.angle,-VR_WHEEL_LOCK,VR_WHEEL_LOCK); /* Test66: the wheel turns on past full lock */
     for(int hand=0;hand<2;hand++) {
-        int limit,side=vr_wheel.angle>VR_WHEEL_DEAD_ZONE?1:vr_wheel.angle<-VR_WHEEL_DEAD_ZONE?-1:0;
-        if(!vr_wheel.grip[hand].held || !vr_wheel.steer_haptics) {vr_wheel.at_limit[hand]=0;vr_wheel.felt[hand]=vr_wheel.angle;vr_wheel.side[hand]=side;continue;}
+        int limit,side=steered>VR_WHEEL_DEAD_ZONE?1:steered<-VR_WHEEL_DEAD_ZONE?-1:0;
+        if(!vr_wheel.grip[hand].held || !vr_wheel.steer_haptics) {vr_wheel.at_limit[hand]=0;vr_wheel.felt[hand]=steered;vr_wheel.side[hand]=side;continue;}
         /* Test57: a soft tick crossing the centre */
         if(side && vr_wheel.side[hand] && side!=vr_wheel.side[hand]) vr_haptic(hand,0.10f,0.012f);
         if(side) vr_wheel.side[hand]=side;
-        limit=fabsf(vr_wheel.angle)>=VR_WHEEL_LOCK-0.01f;
+        limit=fabsf(steered)>=VR_WHEEL_LOCK-0.01f;
         if(limit && !vr_wheel.at_limit[hand]) vr_haptic(hand,0.45f,0.04f);
-        else if(fabsf(vr_wheel.angle-vr_wheel.felt[hand])>=0.12f) {
-            vr_haptic(hand,0.06f+0.14f*fabsf(vr_wheel.angle)/VR_WHEEL_LOCK,0.015f);
-            vr_wheel.felt[hand]=vr_wheel.angle;
+        else if(fabsf(steered-vr_wheel.felt[hand])>=0.12f) {
+            vr_haptic(hand,0.06f+0.14f*fabsf(steered)/VR_WHEEL_LOCK,0.015f);
+            vr_wheel.felt[hand]=steered;
         }
         vr_wheel.at_limit[hand]=limit;
     }
@@ -589,8 +591,8 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
      * limits. Test56: a turn right (+) is a heading to the right: the yaw
      * falls (Test55 added it, so every control steered the wrong way). A
      * degree and a half each side of centre is dead. */
-    real steer=fabsf(vr_wheel.angle)<=VR_WHEEL_DEAD_ZONE?0:
-        (vr_wheel.angle-copysignf(VR_WHEEL_DEAD_ZONE,vr_wheel.angle))*VR_WHEEL_LOCK/(VR_WHEEL_LOCK-VR_WHEEL_DEAD_ZONE);
+    real steer=fabsf(steered)<=VR_WHEEL_DEAD_ZONE?0:
+        (steered-copysignf(VR_WHEEL_DEAD_ZONE,steered))*VR_WHEEL_LOCK/(VR_WHEEL_LOCK-VR_WHEEL_DEAD_ZONE);
     real yaw=vr_yaw(&vr_wheel.simulated_forward)-steer;
     real pitch=vr_wheel.kind==3?vr_wheel.pitch:0;
     forward->i=cosf(yaw)*cosf(pitch);forward->j=sinf(yaw)*cosf(pitch);forward->k=sinf(pitch);

@@ -664,7 +664,33 @@ static void vr_seat_steady_anchor(
 		steady.valid = FALSE;
 		return;
 	}
-	if (!steady.valid || steady.vehicle_index != vr_render.seat.vehicle_index ||
+	/* Test66: while the immersive controls are up the eyes' place in the
+	seat is fixed: only a new seat (or vehicle, or unit) takes the head's
+	place again. The owner's Test64 and Test65 drives: the view dropped into
+	the Warthog's dash for a second and a half and came back. The held place
+	was taken again whenever the head marker strayed half a metre (a pause,
+	a driver animation, a marker not found that frame), and held there,
+	never eased back, until the next stray. */
+	if (steady.valid && steady.vehicle_index == vr_render.seat.vehicle_index &&
+		steady.unit_index == vr_render.seat.unit_index && steady.seat_index == vr_render.seat.seat_index &&
+		vr_vehicle_handles_steady())
+	{
+		static double strayed_logged;
+		real stray = (real)sqrt((local[0] - steady.local[0]) * (local[0] - steady.local[0]) +
+			(local[1] - steady.local[1]) * (local[1] - steady.local[1]) +
+			(local[2] - steady.local[2]) * (local[2] - steady.local[2]));
+
+		if (stray > 0.25f * vr_units_per_metre() && (now < strayed_logged || now - strayed_logged > 2.0))
+		{
+			platform_log("vr: seat eyes held in place; the head marker strayed %.0f cm (forward %.0f, left %.0f, up %.0f cm), not followed",
+				(double)(stray / vr_units_per_metre() * 100.0f),
+				(double)((local[0] - steady.local[0]) / vr_units_per_metre() * 100.0f),
+				(double)((local[1] - steady.local[1]) / vr_units_per_metre() * 100.0f),
+				(double)((local[2] - steady.local[2]) / vr_units_per_metre() * 100.0f));
+			strayed_logged = now;
+		}
+	}
+	else if (!steady.valid || steady.vehicle_index != vr_render.seat.vehicle_index ||
 		steady.unit_index != vr_render.seat.unit_index || steady.seat_index != vr_render.seat.seat_index ||
 		now < steady.time || now - steady.time > 0.5 ||
 		(local[0] - steady.local[0]) * (local[0] - steady.local[0]) +

@@ -125,6 +125,7 @@ static real vr_units_per_metre(void){return 3.2808f;}
 static real vr_yaw(real_vector3d const *v){return atan2f(v->j, v->i);}
 /* Test61: the immersive vehicle controls hold the seat's eyes still */
 static int steady_lock; static int vr_vehicle_handles_steady(void){return steady_lock;}
+static int strays_logged; static void platform_log(char const *f, ...){ if(strstr(f,"strayed")) strays_logged++; }
 ''' + fn(render, 'vr_seat_frame_heading') + fn(render, 'vr_seat_steady_anchor') + r'''
 static void pose(real_matrix4x3 *m, real yaw, real pitch, real x, real y, real z){
  real cy=cosf(yaw), sy=sinf(yaw), cp=cosf(pitch), sp=sinf(pitch);
@@ -163,6 +164,23 @@ int main(void){
    vr_seat_steady_anchor(&a);
    if(first){held=a;first=0;} for(int k=0;k<3;k++){real d=fabsf(a.n[k]-held.n[k]); if(d>drift)drift=d;} }
   assert(drift<1e-4f);
+  /* Test66: the owner's Test64/65 drives: the head marker strays 70 cm
+   * into the dash for a second and a half, then comes back; the eyes stay
+   * where the seat holds them (once a stray is logged), never into the dash */
+  strays_logged=0; drift=0;
+  for(int n=0;n<360;n++){
+   now_time=300+n/72.0; pose(&drawn[0], 0.3f+n*0.01f, 0.1f, 10+n*0.2f, 20, 1);
+   real stray=(n>=72&&n<180)?0.7f*3.2808f:0.0f;
+   real_point3d head=place(&drawn[0],0.2f+stray,0.1f,0.6f-0.3f*stray), a=head;
+   vr_seat_steady_anchor(&a);
+   /* the eyes' place in the vehicle's own frame, against the first frame's */
+   { real_vector3d r={{a.x-drawn[0].position.x,a.y-drawn[0].position.y,a.z-drawn[0].position.z}};
+     real l3[3]={r.i*drawn[0].forward.i+r.j*drawn[0].forward.j+r.k*drawn[0].forward.k,
+                 r.i*drawn[0].left.i+r.j*drawn[0].left.j+r.k*drawn[0].left.k,
+                 r.i*drawn[0].up.i+r.j*drawn[0].up.j+r.k*drawn[0].up.k};
+     static real first3[3]; if(n==0)memcpy(first3,l3,sizeof l3);
+     for(int k=0;k<3;k++){real d=fabsf(l3[k]-first3[k]); if(d>drift)drift=d;} } }
+  assert(drift<1e-3f && strays_logged==1);
   steady_lock=0; }
  /* another seat: its head at once */
  vr_render.seat.seat_index=1; now_time+=1.0/72; { real_point3d head=place(&drawn[0],-0.5f,0.4f,0.7f), a=head;

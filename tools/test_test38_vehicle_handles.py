@@ -103,7 +103,17 @@ int main(void){
  input_valid=0;assert(!vr_vehicle_handles_update(1,&f));input_valid=1;vr_vehicle_handles_update(1,&f);assert(!owner[0]);
  held[0]=0;vr_vehicle_handles_update(1,&f);held[0]=1;vr_vehicle_handles_update(1,&f);assert(owner[0]==2);
  vr_wheel.grip[0].held=0;vr_wheel.down[0]=0;owner[0]=1;pressed[0]=1;vr_vehicle_handles_update(1,&f);assert(owner[0]==1&&!vr_wheel.grip[0].held);owner[0]=0;
- hands(0);vr_wheel.down[0]=0;vr_wheel.angle=0;vr_vehicle_handles_update(1,&f);pressed[0]=0;hands(2.0f);vr_vehicle_handles_update(1,&f);assert(fabsf(vr_wheel.angle-1.04719755f)<1e-6);
+ hands(0);vr_wheel.down[0]=0;vr_wheel.angle=0;vr_vehicle_handles_update(1,&f);pressed[0]=0;hands(2.0f);vr_vehicle_handles_update(1,&f);
+ /* Test66: the Warthog's wheel turns on with the hand past full lock; the steering stays at full lock */
+ assert(fabsf(vr_wheel.angle-2.0f)<1e-4&&fabsf(atan2f(f.j,f.i)-steered(1.04719755f))<1e-5);
+ /* turned on past half a circle from where it was taken: never the opposite lock (the owner's Test65 snap) */
+ hands(2.9f);vr_vehicle_handles_update(1,&f);hands(3.5f);vr_vehicle_handles_update(1,&f);hands(4.2f);vr_vehicle_handles_update(1,&f);
+ assert(fabsf(vr_wheel.angle-VR_WHEEL_TURN_LIMIT)<1e-4&&atan2f(f.j,f.i)<-1.0f&&owner[0]==2&&vr_wheel.grip[0].held);
+ /* the hand slid on the rim: turned back, the wheel follows at once */
+ hands(3.7f);vr_vehicle_handles_update(1,&f);assert(fabsf(vr_wheel.angle-(VR_WHEEL_TURN_LIMIT-0.5f))<1e-3);
+ for(float a=3.2f;a>-1.0f;a-=0.5f){hands(a);vr_vehicle_handles_update(1,&f);} /* (a hand moves less than half a turn a frame) */
+ hands(-2.0f);vr_vehicle_handles_update(1,&f);hands(-3.0f);vr_vehicle_handles_update(1,&f);hands(-4.0f);vr_vehicle_handles_update(1,&f);
+ assert(vr_wheel.angle<=-VR_WHEEL_TURN_LIMIT+1e-4f&&atan2f(f.j,f.i)>1.0f&&vr_wheel.grip[0].held);
  /* handles (Ghost/Scorpion/Banshee): along the outer half of each handle */
  held[0]=held[1]=0;vr_vehicle_handles_update(1,&f);vr_wheel.kind=3;vr_wheel.angle=0;hands(0);
  pose[0].y=.12f;held[0]=pressed[0]=1;vr_vehicle_handles_update(1,&f);assert(owner[0]==2); /* on the horn's outer half */
