@@ -691,6 +691,48 @@ static boolean distributed_vehicle_unsteered(
 		unit_get(vehicle->unit.driver_object_index)->unit.player_index == NONE;
 }
 
+/* the object if it is a body (a dead biped), else NULL */
+static struct biped_datum *distributed_body_get(
+	long object_index)
+{
+	struct biped_datum *biped = (struct biped_datum *)object_try_and_get_and_verify_type(object_index,
+		_object_mask_biped);
+
+	return biped && TEST_FLAG(biped->object.damage_flags, _object_dead_bit) ? biped : NULL;
+}
+
+/* A body lying limp here, which the host moves: its pose, fixed in the world
+where it came to rest (bipeds.c), would stay there as the body goes, drawn
+hanging in the air or in a wall. Unfixed, as the push of the explosion that
+moved the host's body would have unfixed it here (that push reaches only the
+machines that see the body's player, network_damage.c); it lies limp again
+where it comes to rest (units.c). */
+static void distributed_body_unfix_pose(
+	long object_index)
+{
+	if (distributed_body_get(object_index))
+		biped_stop_limp_body_physics(object_index);
+}
+
+/* A body at rest or moving as the host has it. Moving, its pose goes with
+it, however close it is. At rest, it is on the ground, as the host's is:
+not airborne, which only its physics clears, and rest stops its physics
+(bipeds.c); left airborne, it would keep the pose of its fall, in the air,
+and never lie limp. */
+static void distributed_body_set_at_rest(
+	long object_index,
+	boolean at_rest)
+{
+	struct biped_datum *biped = distributed_body_get(object_index);
+
+	if (!biped)
+		return;
+	if (!at_rest)
+		distributed_body_unfix_pose(object_index);
+	else
+		SET_FLAG(biped->biped.flags, _biped_airborne_bit, FALSE);
+}
+
 /* whether this machine's player drives the unit: it is their biped, or the
 vehicle they drive */
 static boolean distributed_unit_driven_here(

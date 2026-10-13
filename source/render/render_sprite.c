@@ -785,15 +785,34 @@ static short build_sprite_get_group(
 			break;
 	}
 
-	match_vassert(
-		"c:\\halo\\SOURCE\\render\\render_sprite.c",
-		275,
-		group_index < data->group_count ||
-			data->group_count < MAXIMUM_BUILD_SPRITE_GROUPS,
-		csprintf(
-			temporary,
-			"a build_sprites_begin call can accomodate at most %d bitmaps",
-			MAXIMUM_BUILD_SPRITE_GROUPS));
+	/* port: a Halo PC map's particle may be drawn from more bitmaps than a
+	call takes (beavercreek_rev_beta's fluid bursts have a bitmap a frame, up
+	to 56), which halted a debug build: its sprites on the others are not
+	drawn, as a release build already did, and it is logged once. The Xbox's
+	maps' particles stay within the limit. */
+	if (custom_edition_cache_tags_loaded())
+	{
+		static boolean logged;
+
+		if (group_index >= data->group_count && data->group_count >= MAXIMUM_BUILD_SPRITE_GROUPS && !logged)
+		{
+			error(_error_silent, "%s: a particle's sprites on more than %d bitmaps; those past them are not drawn",
+				tag_get_name(data->bitmap_group_index), MAXIMUM_BUILD_SPRITE_GROUPS);
+			logged = TRUE;
+		}
+	}
+	else
+	{
+		match_vassert(
+			"c:\\halo\\SOURCE\\render\\render_sprite.c",
+			275,
+			group_index < data->group_count ||
+				data->group_count < MAXIMUM_BUILD_SPRITE_GROUPS,
+			csprintf(
+				temporary,
+				"a build_sprites_begin call can accomodate at most %d bitmaps",
+				MAXIMUM_BUILD_SPRITE_GROUPS));
+	}
 
 	if (group_index < data->group_count ||
 		data->group_count < MAXIMUM_BUILD_SPRITE_GROUPS)

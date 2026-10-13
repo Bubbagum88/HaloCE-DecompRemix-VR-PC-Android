@@ -33,6 +33,9 @@ void rasterizer_text_begin(
 	struct rasterizer_dynamic_screen_geometry_parameters const *parameters);
 void rasterizer_text_end(
 	void);
+/* port: draws the characters of the string so far (rasterizer_xbox_text.c) */
+void rasterizer_text_flush(
+	void);
 
 /* Text scale is private render state; 1 restores normal drawing. */
 void rasterizer_text_set_scale(real scale, real origin_x, real origin_y);

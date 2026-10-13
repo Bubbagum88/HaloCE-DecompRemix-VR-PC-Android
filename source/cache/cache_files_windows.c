@@ -1225,6 +1225,17 @@ static void cache_file_windows_thread_proc(
 	return;
 }
 
+#ifdef HALO_WEB
+/* port: WebAssembly calls a function only through a pointer of its own type,
+so the thread starts here, with the type CreateThread calls */
+static DWORD WINAPI cache_file_windows_thread_start(
+	void *parameter)
+{
+	cache_file_windows_thread_proc();
+	return 0;
+}
+#endif
+
 static void cache_file_windows_thread_create(
 	void)
 {
@@ -1236,7 +1247,11 @@ static void cache_file_windows_thread_create(
 	cache_file_globals.thread = CreateThread(
 		NULL,
 		CACHE_FILE_THREAD_STACK_SIZE,
+#ifdef HALO_WEB
+		cache_file_windows_thread_start,
+#else
 		(LPTHREAD_START_ROUTINE)cache_file_windows_thread_proc,
+#endif
 		NULL,
 		0,
 		NULL);
@@ -1695,7 +1710,13 @@ static struct cached_map_file *cached_map_file_get(
 static void cached_map_file_invalidate(
 	short map_file_index)
 {
-	cached_map_file_get(map_file_index)->file = INVALID_HANDLE_VALUE;
+	struct cached_map_file *map_file = cached_map_file_get(map_file_index);
+
+	if (map_file->file != INVALID_HANDLE_VALUE)
+	{
+		CloseHandle(map_file->file);
+	}
+	map_file->file = INVALID_HANDLE_VALUE;
 
 	return;
 }
