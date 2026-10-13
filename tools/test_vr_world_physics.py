@@ -122,7 +122,15 @@ static real magnitude3d(real_vector3d const *v){return sqrtf(v->i*v->i+v->j*v->j
 static long last_tick,last_unit;
 static int previous_grip[2];
 static unsigned long weight_haptic_at[2]={10,20};
-''' + state + '\n' + function('release_hand') + '\n' + function('vr_world_interaction_reset') + r'''
+/* Test65: vehicles let go of (a held one never crushes its holder) */
+#include <stdio.h>
+#define NUMBEROF(a) ((int)(sizeof(a)/sizeof((a)[0])))
+#define TICKS_PER_SECOND 30
+static long now_tick=100;
+static long game_time_get(void){return now_tick;}
+static struct { long object, unit, from, until; } released_vehicles[4];
+static int released_vehicle_cursor;
+''' + state + '\n' + function('vr_world_interaction_protects') + '\n' + function('release_hand') + '\n' + function('vr_world_interaction_reset') + r'''
 int main(void){
  hands[0].active=1;hands[0].index=42;hands[0].velocity.i=100;
  release_hand(0,0,1,"tracking-loss");assert(throws==0&&!hands[0].active&&releases==1);
@@ -141,6 +149,19 @@ int main(void){
  vr_world_interaction_reset();assert(probes==old&&throws==1&&!hands[0].active&&last_tick==NONE&&last_unit==NONE);
  assert(weight_haptic_at[0]==0&&weight_haptic_at[1]==0);
  assert(previous_grip[0]&&previous_grip[1]);
+ /* Test65: a turret in this player's hands: no contact with its holder (2);
+  * let go: two seconds of no crush damage (1); then the engine's rules */
+ last_unit=7;item.object.type=_object_type_vehicle;hands[0].active=1;hands[0].index=42;
+ assert(vr_world_interaction_protects(42,7)==2&&vr_world_interaction_protects(42,8)==0&&vr_world_interaction_protects(43,7)==0);
+ release_hand(0,1,1,"vehicle-throw");
+ assert(vr_world_interaction_protects(42,7)==1);
+ now_tick+=2*TICKS_PER_SECOND;assert(vr_world_interaction_protects(42,7)==1);
+ now_tick+=1;assert(vr_world_interaction_protects(42,7)==0);
+ /* a prop let go is not a vehicle */
+ item.object.type=_object_type_none;hands[0].active=1;hands[0].index=42;release_hand(0,0,1,"prop");
+ assert(vr_world_interaction_protects(42,7)==0);
+ vr_world_interaction_reset();last_unit=7;assert(vr_world_interaction_protects(42,7)==0);
+ puts("PASS: Test65 a vehicle in the hands never crushes its holder; two seconds after letting go it cannot damage them");
 }
 '''
 c=out/'lifecycle.c';c.write_text(lifecycle);binary=out/'lifecycle'

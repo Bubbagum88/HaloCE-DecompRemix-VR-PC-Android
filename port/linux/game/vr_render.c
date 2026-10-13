@@ -722,9 +722,9 @@ static void view_heading(
 controls up in a first-person driver's seat, the seat's frame as this frame
 draws the vehicle: its root node turned by the seat's offset, eased in from
 the level view over a third of a second when the controls come up (and out
-at once when they go). Otherwise the seat's heading as drawn alone, so the
-hands turn with the vehicle as the eyes do (test22) instead of stepping with
-the 30 Hz tick. */
+at once when they go), and the seat's heading as drawn, so the hands turn
+with the vehicle as the eyes do (test22) instead of stepping with the 30 Hz
+tick. Any other seat is as before. */
 static void vr_cockpit_update(
 	void)
 {
@@ -752,9 +752,11 @@ static void vr_cockpit_update(
 		!(nodes = object_get_node_matrices(vr_render.seat.vehicle_index)) ||
 		!valid_real_vector3d(&nodes[0].forward) || !valid_real_vector3d(&nodes[0].up))
 	{
+		/* (without the lock every seat is as before: the heading the tick
+		took; only the immersive controls' lock changes how the hands turn) */
 		lock.vehicle_index = NONE;
 		lock.amount = 0.0f;
-		vr_set_cockpit_frame(heading, NULL, NULL, NULL);
+		vr_set_cockpit_frame((float)NAN, NULL, NULL, NULL);
 		return;
 	}
 	if (lock.vehicle_index != vr_render.seat.vehicle_index)
@@ -794,13 +796,13 @@ static void vr_cockpit_update(
 	}
 	if (!(normalize3d(&up) > 0.0f))
 	{
-		vr_set_cockpit_frame(heading, NULL, NULL, NULL);
+		vr_set_cockpit_frame((float)NAN, NULL, NULL, NULL);
 		return;
 	}
 	cross_product3d(&up, &forward, &left);
 	if (!(normalize3d(&left) > 0.0f))
 	{
-		vr_set_cockpit_frame(heading, NULL, NULL, NULL);
+		vr_set_cockpit_frame((float)NAN, NULL, NULL, NULL);
 		return;
 	}
 	cross_product3d(&left, &up, &forward);

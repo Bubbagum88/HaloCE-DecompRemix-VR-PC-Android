@@ -29,6 +29,7 @@ static struct {
  float diag_yaw,diag_walk_speed,head_yaw,aim_yaw,heading,last_aim_yaw;
  float run_push,comfort_move,comfort_turn;
  int recentre_source;
+ int cockpit_valid,heading_from_seat;float cockpit[3][3]; /* Test65: COCKPIT LOCK */
  struct {unsigned flags,buttons,hand_valid[2];struct {float orientation[4];} head,aim[2];float thumb[4];long long predicted_display_period;} frame;
 } vr;
 static int frame_begin(void){return 1;}
@@ -51,7 +52,7 @@ static int vr_script_calibration_reticle_ray(float origin[3],float direction[3])
  memcpy(origin,calibration_origin,sizeof(calibration_origin));memcpy(direction,calibration_direction,sizeof(calibration_direction));return 1;
 }
 '''
-helpers=''.join(fn(s,n) for n in ['rotate','to_halo','head_forward','wrap_angle','vr_aim','vr_script_head_valid','vr_head_look_reset','vr_head_look_actions'])
+helpers=''.join(fn(s,n) for n in ['rotate','to_halo','head_forward','wrap_angle','vr_cockpit_active','vr_aim','vr_script_head_valid','vr_head_look_reset','vr_head_look_actions'])
 run('aim-tutorial',pre+helpers+r'''
 static void reset(void){
  memset(&vr,0,sizeof(vr));vr.active=vr.stereo_enabled=vr.hand_aim=1;vr.frame.flags=7;

@@ -47,8 +47,19 @@ typedef struct { real scale; real_vector3d forward, left, up; real_point3d posit
 #define PIN(x, lo, hi) ((x) < (lo) ? (lo) : (x) > (hi) ? (hi) : (x))
 #define VR_STICK_LENGTH 0.16f
 #include "vr_vehicle_controls_math.h"
-static struct { real_point3d game_camera_position; } vr_render;
+static struct { real_point3d game_camera_position; struct { int driver; real offset; } seat; } vr_render;
 static float heading_yaw;
+/* Test65: COCKPIT LOCK (off for the level-frame checks below) and the
+ * cockpit's frame as the vehicle is drawn (vr_frame.c vr_cockpit_frame) */
+static int cockpit_lock, cockpit_on;
+static real_matrix4x3 cockpit_frame;
+static int config_boolean(char const *k) { return !strcmp(k, "vr.vehicle_cockpit_lock") && cockpit_lock; }
+static int vr_cockpit_frame(float f[3], float l[3], float u[3])
+{
+    if (!cockpit_on) return 0;
+    for (int i = 0; i < 3; i++) { f[i] = cockpit_frame.forward.n[i]; l[i] = cockpit_frame.left.n[i]; u[i] = cockpit_frame.up.n[i]; }
+    return 1;
+}
 static int vr_heading_forward(float f[3]) { f[0] = cosf(heading_yaw); f[1] = sinf(heading_yaw); f[2] = 0; return 1; }
 static real vr_units_per_metre(void) { return 1.0f; }
 static int valid_real_point3d(real_point3d const *p) { return isfinite(p->x) && isfinite(p->y) && isfinite(p->z); }
@@ -124,7 +135,45 @@ int main(void)
     vr_wheel.kind = 2; vr_wheel.head_anchored = 1; vr_wheel.far = 0;
     vr_wheel_place(&level);
     assert(!vr_wheel.far && fabsf(gap() - sqrtf(0.35f * 0.35f + 0.40f * 0.40f)) < 0.002f);
-    puts("PASS: Test61 vehicle hold: the controls placed in the hands' level frame from the seat's eyes; pitch and roll move neither them nor the turn a still hand reads; the Warthog's wheel kept at COMFORT REACH, never thrown to the chest; a marker past 1.5 m in front of the chest");
+    /* Test65: COCKPIT LOCK. The hands turn with the cockpit as drawn
+     * (vr_frame.c); the Warthog's wheel is placed in the same frame, so seen
+     * from the eyes in that frame it never moves while the Warthog pitches,
+     * rolls and turns (the owner's Test64 drive: "the wheel and camera isnt
+     * stable and snaps") */
+    vr_wheel.kind = 0; vr_wheel.head_anchored = 0; vr_wheel.far = 0; vr_wheel.comfort = 1;
+    vr_wheel.local[0] = 0.80f; vr_wheel.local[1] = 0.0f; vr_wheel.local[2] = -0.55f;
+    cockpit_on = 1;
+    {
+        real first[3] = { 0, 0, 0 };
+        for (int t = 0; t < 12; t++) {
+            real_matrix4x3 rough = body(0.21f * sinf(t * 0.7f), 0.35f * sinf(t * 1.3f));
+            real_vector3d d; real seen[3];
+            cockpit_frame = rough;
+            vr_wheel_place(&rough);
+            vector_from_points3d(&vr_render.game_camera_position, &vr_wheel.center, &d);
+            seen[0] = dot_product3d(&d, &rough.forward); seen[1] = dot_product3d(&d, &rough.left); seen[2] = dot_product3d(&d, &rough.up);
+            if (!t) for (int i = 0; i < 3; i++) first[i] = seen[i];
+            for (int i = 0; i < 3; i++) assert(fabsf(seen[i] - first[i]) < 1e-4f);
+            assert(fabsf(gap() - 0.55f) < 0.002f && !vr_wheel.far);
+            assert(fabsf(vr_wheel.root.up.k - rough.up.k) < 1e-5f);
+        }
+    }
+    cockpit_on = 0;
+    /* boarding with the lock on (before it is up): measured in the vehicle's
+     * own frame, the one the lock eases to */
+    cockpit_lock = 1; vr_render.seat.driver = 1; vr_wheel.valid = 0;
+    {
+        real_matrix4x3 rough = body(0.15f, -0.2f), frame;
+        vr_wheel_hand_frame(&rough, &vr_render.game_camera_position, &frame);
+        for (int i = 0; i < 3; i++) {
+            assert(fabsf(frame.up.n[i] - rough.up.n[i]) < 1e-4f && fabsf(frame.forward.n[i] - rough.forward.n[i]) < 1e-4f);
+        }
+        vr_wheel.valid = 1;
+        vr_wheel_hand_frame(&rough, &vr_render.game_camera_position, &frame);
+        assert(frame.up.k == 1.0f); /* placed, not yet locked: the level frame */
+    }
+    cockpit_lock = 0; vr_render.seat.driver = 0; vr_wheel.valid = 0;
+    puts("PASS: Test61 vehicle hold: the controls placed in the hands' level frame from the seat's eyes; pitch and roll move neither them nor the turn a still hand reads; the Warthog's wheel kept at COMFORT REACH, never thrown to the chest; a marker past 1.5 m in front of the chest; Test65 COCKPIT LOCK: the wheel rides the cockpit frame, measured on boarding in the vehicle's own");
     return 0;
 }
 '''

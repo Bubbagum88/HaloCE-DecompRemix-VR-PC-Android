@@ -199,6 +199,9 @@ static double vr_pose_time(void){ return now; }
 static struct object_datum *object_try_and_get(long i){ return i == 7 ? &vehicle : NULL; }
 static real_matrix4x3 *render_interpolation_object_node_matrices(long i){ return have_drawn && i == 7 ? drawn : NULL; }
 static real normalize3d(real_vector3d *v){ real l = sqrtf(v->i*v->i+v->j*v->j+v->k*v->k); if (l > 0) { v->i/=l; v->j/=l; v->k/=l; } return l; }
+/* Test65: COCKPIT LOCK turns the eyes with the whole vehicle already */
+static int cockpit_on;
+static int vr_cockpit_frame(float f[3], float l[3], float u[3]){ (void)f; (void)l; (void)u; return cockpit_on; }
 ''' + tilt_state + fn(render, 'vr_vehicle_tilt_view') + r'''
 static real_point3d anchor = {{ 10, 20, 3 }}, position; static real_vector3d forward, up;
 static void camera(void){ position.x = 10; position.y = 20.1f; position.z = 3; forward.i = 1; forward.j = forward.k = 0; up.i = up.j = 0; up.k = 1; }
@@ -236,6 +239,9 @@ int main(void){
  /* gunners, passengers and third person stay level */
  vr_render.seat.driver = FALSE; camera(); vr_vehicle_tilt_view(&anchor, &position, &forward, &up); assert(up.k == 1 && !vr_tilt.valid);
  vr_render.seat.driver = TRUE; seat_view = FALSE; camera(); vr_vehicle_tilt_view(&anchor, &position, &forward, &up); assert(up.k == 1);
+ /* Test65: with the cockpit locked, HORIZON adds no tilt of its own */
+ seat_view = TRUE; amount = 1; roll(20); cockpit_on = 1; camera(); vr_vehicle_tilt_view(&anchor, &position, &forward, &up);
+ assert(up.k == 1 && !vr_tilt.valid); cockpit_on = 0;
  puts("PASS: Horizon: Level leaves the view as it was; Vehicle tilts a driver's view with the vehicle exactly (the forward kept, "
       "the eyes turned about the seat), Half about half, held at 60 degrees, eased against jolts, hitches bounded; "
       "gunners, passengers and third person stay level");

@@ -24,10 +24,24 @@ The older v1.0.19 "current public" claim below is superseded: that release
 attempt was withdrawn/cancelled in the conversation and is not the current
 latest release. No local v1.0.19 tag exists. Preserve its notes as history,
 but do not use them as a live release pointer or instruction to check it out.
-Continue private Test64 on its stated branch. Public v1.0.18 and all earlier
+Continue private Test65 on its stated branch. Public v1.0.18 and all earlier
 release assets remain unchanged; no publication is authorized.
 
-## Active private Test64 candidate (2026-10-12)
+## Active private Test65 candidate (2026-10-13)
+
+Private **1.0.32-test65 / Android code77**, branch `test39-interaction-completion`,
+on Test64 = public 1.0.31: Arkham Shadow fist combat (it never acquired: the
+tick's head view; lunge 6 m, combo meter and takedown, counters, ENEMY HEALTH
+3X, knockdown ragdolls), the Warthog (no Banshee yoke on its wheel, GRIP
+GUIDE, COCKPIT LOCK), HAND SWAP 10 cm, held vehicles never crush their holder,
+held-NPC impacts safe for allies, thrown corpses kept, ACTIVE RAGDOLL, GRAB
+RAGDOLL (on lift), world grab assist, WEAPON PULL. Dual wield not implemented
+(design noted in the delivery status). Read `docs/TEST65-CHECKLIST.md`,
+`TEST65-DELIVERY-STATUS.md`, `TEST65-DEVICE-CHECKLIST.md`; Test64's and
+Test63's device checks are also still pending. No protocol or voice change.
+Local commits only; no push/publish/install/launch.
+
+## Previous private Test64 candidate (2026-10-12)
 
 Private **1.0.31-test64 / Android code76**, branch `test39-interaction-completion`,
 Test63 (APK source `e2849e9b`) plus one fix: opening VR SETTINGS crashed

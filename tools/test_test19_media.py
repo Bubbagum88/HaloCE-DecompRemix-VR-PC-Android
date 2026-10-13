@@ -22,9 +22,10 @@ c=r'''
 #define HEAD_REACH .35f
 static struct {int heading_valid,roomscale;float units_per_metre,heading,reticle_distance,reticle_position[3];
  struct {int origin_valid,recentre_pending;float origin[3];} vehicle_seat;
- float room_previous[2],room_now[2];struct {struct {float position[3];} head;} frame;} vr;
+ float room_previous[2],room_now[2];struct {struct {float position[3];} head;} frame;
+ int cockpit_valid,heading_from_seat;float cockpit[3][3];} vr; /* Test65: COCKPIT LOCK (off here) */
 static float render_interpolation_fraction(void){return .4f;}
-'''+fn(frame,'rotate')+fn(frame,'to_halo')+fn(frame,'head_offset')+fn(frame,'view')+fn(frame,'vr_set_reticle_world')+r'''
+'''+fn(frame,'rotate')+fn(frame,'to_halo')+fn(frame,'head_offset')+fn(frame,'vr_cockpit_active')+fn(frame,'cockpit_to_halo')+fn(frame,'view')+fn(frame,'vr_set_reticle_world')+r'''
 int main(void){
  vr.heading_valid=1;vr.units_per_metre=3.048f;
  for(int yaw=-8;yaw<=8;yaw++)for(int room=0;room<2;room++)for(int pose=0;pose<20;pose++){

@@ -140,6 +140,7 @@ run('fist_fallback',r"""
 #define NONE (-1)
 typedef int boolean;typedef float real;
 typedef struct {float n[3];} real_point3d;
+typedef struct {float n[3];} real_vector3d;
 struct unit_datum{struct{int current_weapon_index;long weapon_object_indices[2];}unit;};
 struct unit_definition{struct{struct{long index;}melee_damage;}unit;};
 struct weapon_datum{long definition_index;};
@@ -152,11 +153,12 @@ static struct weapon_definition*weapon_definition_get(long i){assert(i==7);retur
 static long unit_unarmed_melee_damage(long i){assert(i==1);unarmed_calls++;return unarmed;}
 static long damage_globals_impact_effect(void){falling_calls++;return falling;}
 static int vr_combat_enabled(void){return allowed;}
-static float vr_combat_hit(long unit,long target,real_point3d const*p,int weapon_hand){assert(unit==1&&target==2);(void)p;(void)weapon_hand;combat_calls++;return combo;}
+/* Test65: the swing's direction and strength go with it (the combo's knockdowns and shoves) */
+static float vr_combat_hit(long unit,long target,real_point3d const*p,real_vector3d const*d,real s,int weapon_hand){assert(unit==1&&target==2&&d&&s>0);(void)p;(void)weapon_hand;combat_calls++;return combo;}
 static long result,response;static float result_scale;
 static void choose(struct unit_datum*unit,struct unit_definition*unit_definition,boolean weapon_hand,real scale){
  long unit_index=1,hit_object_index=2,melee_damage_effect_index=NONE,melee_response_effect_index=NONE;
- struct {real_point3d point;}collision={0};
+ struct {real_point3d point;}collision={0};real_vector3d direction={{1,0,0}};
 """+selection+r"""
  result=melee_damage_effect_index;response=melee_response_effect_index;result_scale=scale;
 }

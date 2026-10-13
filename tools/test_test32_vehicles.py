@@ -50,6 +50,7 @@ static struct {
  float room_previous[2],room_now[2],units_per_metre;
  struct {int known,index,role,origin_valid,recentre_pending;long unit,vehicle;float origin[3];}vehicle_seat;
  struct {struct halo_xr_pose head,eye[2],aim[2];float fov[2][4],thumb[4];unsigned flags,buttons,hand_valid[2];long long predicted_display_period;}frame;
+ int cockpit_valid,heading_from_seat;float cockpit[3][3]; /* Test65: COCKPIT LOCK */
 }vr;
 static struct {struct {int seated,driver,gunner;long unit_index,vehicle_index;short seat_index;float offset,heading;}seat;}vr_render;
 static struct {int valid;}pool={1},*object_header_data=&pool;
@@ -96,7 +97,7 @@ static void comfort_update(double s){(void)s;}
 static void aim_diagnostics(float g,int s,int h,const float *b,float p){(void)g;(void)s;(void)h;(void)b;(void)p;}
 void vr_room_hold(void);
 '''
-    code+=''.join(fn(frame,n) for n in ['rotate','to_halo','wrap_angle','head_forward','vehicle_recentered','vr_vehicle_seat','head_offset','view','vr_eye_view','vr_room_hold','vr_room_step','vr_aim'])
+    code+=''.join(fn(frame,n) for n in ['rotate','to_halo','wrap_angle','head_forward','vehicle_recentered','vr_vehicle_seat','head_offset','vr_cockpit_active','cockpit_to_halo','view','vr_eye_view','vr_room_hold','vr_room_step','vr_aim'])
     code+=''.join(fn(render,n) for n in ['vr_vehicle_steering','vr_turret_aim','vr_vehicle_aim_source','vr_render_mounted_direct_fire','vr_yaw','vr_update_seat','vr_render_reset_vehicle_view'])
     code+=r'''
 static void near(float a,float b){assert(fabsf(a-b)<.00001f);}

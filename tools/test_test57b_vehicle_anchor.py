@@ -68,14 +68,16 @@ static void cross_product3d(const real_vector3d*a,const real_vector3d*b,real_vec
 static float normalize3d(real_vector3d*v){float m=magnitude3d(v);if(m>0)for(int i=0;i<3;i++)v->n[i]/=m;return m;}
 static int valid_real_point3d(const real_point3d*p){return isfinite(p->x)&&isfinite(p->y)&&isfinite(p->z);}
 static void vr_interaction_release(int h,int o){(void)h;(void)o;}
-static struct {struct {long vehicle_index;short seat_index;} seat;real_point3d game_camera_position;} vr_render;
+static struct {struct {long vehicle_index;short seat_index;int driver;float offset;} seat;real_point3d game_camera_position;} vr_render;
+/* Test65: COCKPIT LOCK is checked in test_test61_vehicle_hold; here the level frame */
+static int vr_cockpit_frame(float f[3],float l[3],float u[3]){(void)f;(void)l;(void)u;return 0;}
 static int vr_settings_generation(void){return 1;}
 static double clock_now;static double vr_pose_time(void){return clock_now;}
 static int vr_vehicle_handles_enabled(long u){(void)u;return 1;}
 static float cfg_all[3],cfg_vehicle[3];
 static float config_real(char const*k){if(strstr(k,"vr.handle_")&&!strstr(k,"_size")){int i=strstr(k,"_forward")?0:strstr(k,"_left")?1:2;return strstr(k,"_all_")?cfg_all[i]:cfg_vehicle[i];}if(!strcmp(k,"vr.interaction_reach"))return .04f;if(strstr(k,"_size"))return 1;return 0;}
 static int cfg_comfort=1,cfg_visible=1;
-static int config_boolean(char const*k){if(!strcmp(k,"vr.vehicle_comfort_reach"))return cfg_comfort;if(!strcmp(k,"vr.vehicle_wheel_visible"))return cfg_visible;return 1;}
+static int config_boolean(char const*k){if(!strcmp(k,"vr.vehicle_comfort_reach"))return cfg_comfort;if(!strcmp(k,"vr.vehicle_wheel_visible"))return cfg_visible;if(!strcmp(k,"vr.vehicle_cockpit_lock")||!strcmp(k,"vr.vehicle_grip_guide"))return 0;return 1;}
 static real_matrix4x3 *render_interpolation_object_node_matrices(long o){(void)o;return NULL;}
 /* Test63: no calibration rows on screen; the fixture's vehicle has no wheel bone */
 static int vr_calibration_shown(int m){(void)m;return 0;}

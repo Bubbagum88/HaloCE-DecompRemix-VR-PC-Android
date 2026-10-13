@@ -325,6 +325,9 @@ static struct vr_menu_setting const vr_menu_controls[] =
 	/* test21: AUTO LOCK (default) locks the off hand at the support grip
 	without squeezing; SQUEEZE needs the grip held there */
 	{ "TWO HANDS", "vr.two_handed", _vr_setting_string, 3, { { "AUTO LOCK", "auto" }, { "SQUEEZE", "grip" }, { "OFF", "off" } } },
+	/* Test65: how close the palms come for the off hand's squeeze to take the
+	gun (a slide rack or a magazine change no longer passes it) */
+	{ "HAND SWAP", "vr.hand_swap_distance", _vr_setting_real, 7, { { "OFF", "0" }, { "6 CM", "0.06" }, { "8 CM", "0.08" }, { "10 CM", "0.1" }, { "12 CM", "0.12" }, { "15 CM", "0.15" }, { "20 CM", "0.2" } } },
 	VR_IMMERSION_WEAPONS,
 	VR_IMMERSION_HOLSTERS,
 	VR_IMMERSION_HOLSTER_HAPTICS,
@@ -578,8 +581,6 @@ static struct vr_menu_setting const vr_menu_hands[] =
     { "GUN UP", "vr.gun_up", _vr_setting_centimetres, 0, { { NULL,NULL } } },
     { "GUN OUT", "vr.gun_out", _vr_setting_centimetres, 0, { { NULL,NULL } } },
     { "GUN GRIP", "vr.gun_anchor", _vr_setting_boolean, 2, { { "ANCHORED", "true" }, { "CLASSIC", "false" } } },
-    /* Test65: how close the palms come for the off hand's squeeze to take the gun */
-    { "HAND SWAP", "vr.hand_swap_distance", _vr_setting_real, 7, { { "OFF", "0" }, { "6 CM", "0.06" }, { "8 CM", "0.08" }, { "10 CM", "0.1" }, { "12 CM", "0.12" }, { "15 CM", "0.15" }, { "20 CM", "0.2" } } },
     { "AIM FOR", "gun", _vr_setting_gun_aim, 0, { { NULL,NULL } } },
     { "AIM UP", "up", _vr_setting_gun_aim, 0, { { NULL,NULL } } },
     { "AIM RIGHT", "right", _vr_setting_gun_aim, 0, { { NULL,NULL } } },

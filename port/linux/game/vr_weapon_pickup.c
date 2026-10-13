@@ -104,7 +104,7 @@ void vr_weapon_pickup_tick(short local_player_index)
     }
     if(pickup.unit!=unit){vr_weapon_pickup_reset();pickup.unit=unit;}
     unit_get_camera_position(unit,&camera);
-    for(int h=0;h<2;h++)tracked[h]=vr_hand_world(h,camera.n,hands[h].n,forwards[h].n,up.n);
+    for(int each=0;each<2;each++)tracked[each]=vr_hand_world(each,camera.n,hands[each].n,forwards[each].n,up.n);
     for(int h=0;h<2;h++){
         int press,release,held=vr_interaction_grip(h,&press,&release);
         int free_hand=tracked[h]&&!(h==vr_weapon_hand()&&!vr_hand_empty())&&

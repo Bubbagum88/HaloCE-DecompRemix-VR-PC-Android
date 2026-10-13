@@ -232,9 +232,11 @@ static void combat_tick(long unit)
     if(extra.knock_pending){
         long target=extra.knock_target;
         extra.knock_pending=0;extra.knock_target=NONE;
-        if(target!=NONE&&unit_try_and_get(target)&&!TEST_FLAG(unit_get(target)->object.damage_flags,_object_dead_bit)&&
-           vr_npc_interaction_knock(target,&extra.knock_point,&extra.knock_dir,extra.knock_speed))
-            extra.stun_until=MAX(extra.stun_until,now+TICKS_PER_SECOND);
+        /* (a body knocked down is the NPC module's while it lies there: its
+         * controls held, up within NPC RECOVERY; no stun of its own, which
+         * would make every knockdown a rear takedown) */
+        if(target!=NONE&&unit_try_and_get(target)&&!TEST_FLAG(unit_get(target)->object.damage_flags,_object_dead_bit))
+            vr_npc_interaction_knock(target,&extra.knock_point,&extra.knock_dir,extra.knock_speed);
     }
 }
 void vr_extra_tick(long unit)
@@ -258,7 +260,7 @@ void vr_extra_tick(long unit)
             vector_from_points3d(&camera,&unit_get(extra.target)->object.bounding_sphere_center,&delta);
             keep=magnitude3d(&delta)<(combat_reach()+1.0f)*units&&normalize3d(&delta)>0.001f&&
                 vr_head_view_recent(camera.n,unit_get(unit)->object.forward.n,head.n,gaze.n,up.n)&&
-                (dot_product3d(&gaze,&delta)>.25f||now<extra.approach_until)&&
+                dot_product3d(&gaze,&delta)>.25f&&
                 extra_visible(unit,extra.target,&camera,&unit_get(extra.target)->object.bounding_sphere_center);
         }
         if(!keep){extra.target=NONE;extra.hit_count=0;extra.stun_until=extra.approach_until=extra.hold_until=0;extra.strike_pending=0;}
@@ -588,7 +590,16 @@ void vr_combat_velocity(long unit,real_point3d const *position,real_vector3d *ve
             return;
         }
         delta.k=0;real distance=normalize3d(&delta);
-        real stop=combat_stop(extra.unit,extra.target);
+        /* The render sphere includes an actor's height/equipment and may
+         * stop a punch out of reach. Use the same pill widths as Halo's
+         * body collision, including the player's optional close-contact width. */
+        real_point3d unused_base;real unused_height,player_width,target_width;
+        biped_get_physics_pill(extra.unit,&unused_base,&unused_height,&player_width);
+        biped_get_physics_pill(extra.target,&unused_base,&unused_height,&target_width);
+        if(!isfinite(player_width)||!isfinite(target_width)||player_width<0||target_width<0){
+            extra.approach_until=0;return;
+        }
+        real stop=MAX(.55f*units,player_width+target_width+.05f*units);
         if(distance<=stop){extra.approach_until=0;return;}
         /* a Spartan's dash, up to 10 m/s, easing in to striking range */
         real speed=MIN(10.0f*units/TICKS_PER_SECOND,(distance-stop)*.6f);

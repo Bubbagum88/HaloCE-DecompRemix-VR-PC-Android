@@ -69,7 +69,7 @@ enum {_actor_elite,_actor_jackal,_actor_grunt,_actor_hunter,_actor_engineer,_act
 enum {_race_player=1,_race_human=2,_race_covenant=4,_race_floodcombat=8,_race_floodcarrier=16,_race_floodinfection=32,_race_sentinel=64};
 enum {_actor_definition_flying_bit=21,_actor_definition_swarm_actor_bit=26,_biped_flying_bit=2};
 enum {_game_connection_local=0};static int connection;static int game_connection(void){return connection;}
-static struct npc_state {int active,recovery,settling,minimum_hands,started,is_remote,getting_up,species_type,was_garbage,settle_stuck_logged,recovery_blocked_logged,torso_node,death,root_follow;float mobility;long index,tick,player;int held[2],edge[2],node[2],strain_logged[2];real_vector3d target[2],offset[2],root_anchor[2],velocity[2],root_offset,last_delta[2],restraint_root;float history[2][VR_WORLD_THROW_HISTORY][3];int history_count[2],history_next[2];struct{struct vr_articulated_body body;real_matrix4x3 captured[64];}rig;} npc_pool[NPC_POOL_SIZE],*npc_current=&npc_pool[0];
+static struct npc_state {int active,recovery,settling,minimum_hands,started,is_remote,getting_up,species_type,was_garbage,settle_stuck_logged,recovery_blocked_logged,torso_node,death,root_follow;float mobility;long index,tick,player;int held[2],edge[2],node[2],strain_logged[2];real_vector3d target[2],offset[2],root_anchor[2],velocity[2],root_offset,last_delta[2],restraint_root;float history[2][VR_WORLD_THROW_HISTORY][3];int history_count[2],history_next[2];long grab_tick;real_point3d grab_point[2];int knocked;struct{struct vr_articulated_body body;real_matrix4x3 captured[64];}rig;} npc_pool[NPC_POOL_SIZE],*npc_current=&npc_pool[0];
 #define npc (*npc_current)
 static struct remote_state {long player,candidate[2];int valid,held[2],seen[2],edge[2];real_vector3d point[2];} remote_pool[128];
 static struct {long definition;short type;int valid;} species_cache[64];
@@ -118,6 +118,12 @@ static int maximum=8;
 static long config_integer(char const *name){(void)name;return maximum;}
 static double config_real(char const *name){(void)name;return 1.0;} /* Test54 THROW/HOLD 1x */
 static void cancel_one(void);
+/* Test65: GRAB RAGDOLL (off for the checks before it: a body held is a
+ * ragdoll at once), the deferred cleanup list and the drawn reactions */
+static int lift_required;
+static int npc_lift_required(void){return lift_required;}
+static struct {long object,until;} npc_deferred_garbage[16];
+static void vr_body_reactions_reset(void){}
 '''
 c=c.replace('#define VR_NPC_INTERACTION_POOL_SIZE {POOL_SIZE}',
             f'#define VR_NPC_INTERACTION_POOL_SIZE {POOL_SIZE}')
@@ -450,7 +456,14 @@ assert 'collision_budget=16 budget_exhausted=%d' in source
 assert 'npc.was_garbage=TEST_FLAG(candidate->object.flags,_object_garbage_bit)' in source
 assert 'if(restore_garbage) object_set_garbage(index,TRUE)' in source
 assert 'temporary garbage hold' in source
-assert 'object_set_garbage(index,TRUE);' in palette and palette.index('object_set_garbage(index,TRUE)') < palette.index('biped_start_limp_body_physics(index)')
+# Test65: a corpse's cleanup entry comes back once it rests (npc_defer_garbage),
+# still before its native limp body begins
+assert 'if(restore_garbage) npc_defer_garbage(index,u);' in palette and palette.index('npc_defer_garbage(index,u)') < palette.index('biped_start_limp_body_physics(index)')
+defer = function('static void npc_defer_garbage(')
+assert 'TEST_FLAG(u->object.flags,_object_at_rest_bit)) {object_set_garbage(index,TRUE);return;}' in defer
+assert defer.count('object_set_garbage(index,TRUE);') == 2  # at rest now, or the list full
+deferred_tick = function('static void npc_deferred_garbage_tick(')
+assert 'TEST_FLAG(o->object.flags,_object_at_rest_bit)||now>=npc_deferred_garbage[n].until' in deferred_tick and 'if(state_for_object(index)) continue;' in deferred_tick
 eligible_source=function('static struct unit_datum *eligible(')
 for marker in ['u->unit.player_index!=NONE','u->object.parent_object_index!=NONE',
                '_object_movie_star_bit','_unit_possessed_by_recording_bit','unit_is_playing_custom_animation(index)',

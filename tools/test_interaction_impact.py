@@ -21,7 +21,7 @@ typedef real_vector3d real_point3d;
 struct location {int leaf;};
 struct collision_result {int type;long object_index;real_point3d point;struct {real_vector3d n;} plane;struct location location;short material_type,node_index,region_index,material_index;};
 struct object_datum {long definition_index;struct {int type,damage_flags;} object;};
-struct unit_datum {long definition_index;struct {int owner_team_index;} object;struct {long player_index;} unit;};
+struct unit_datum {long definition_index;struct {int owner_team_index;} object;struct {long player_index,actor_index;} unit;};
 struct unit_definition {struct {struct {long index;} melee_damage;} unit;};
 struct damage_data {long owner_object_index,owner_player_index;int owner_team_index;struct location location;real_point3d origin,epicenter;real_vector3d direction;float scale;};
 enum {FALSE,TRUE};
@@ -34,7 +34,7 @@ static int tick,connection,campaign,enabled=1,damage_calls;
 static float threshold=2,cap=1,damage_scale;
 static long damaged,damage_owner;
 static struct object_datum objects[5];
-static struct unit_datum owner={0,{2},{10}};
+static struct unit_datum owner={0,{2},{10,NONE}};
 /* Test61: the Master Chief's unit has no melee damage of its own (NONE);
  * the engine's unit_unarmed_melee_damage falls back to the unarmed melee
  * weapon's (9 here) */
@@ -45,7 +45,16 @@ static long unit_unarmed_melee_damage(long i){(void)i;return definition.unit.mel
 static long globals_impact=12;
 long damage_globals_impact_effect(void){return globals_impact;}
 static struct object_datum* object_try_and_get(long i){return i>=0&&i<5?&objects[i]:0;}
-static struct unit_datum* unit_try_and_get(long i){return i==0?&owner:0;}
+/* Test65: bodies 1-4 are units only where a test makes them one (an ally on
+ * the player's team 2, an enemy on team 3) */
+static struct unit_datum units[5];static int unit_present[5];
+static struct unit_datum* unit_try_and_get(long i){return i==0?&owner:i>0&&i<5&&unit_present[i]?&units[i]:0;}
+struct actor_datum {struct {short team_index;} meta;};
+static struct actor_datum *actor_try_and_get(long i){(void)i;return 0;}
+enum {_game_team_player=2};
+static int game_team_is_enemy(short a,short b){return a!=b;}
+static long held_age=-1;
+static long vr_npc_interaction_hold_age(long i){(void)i;return held_age;}
 static int game_connection(void){return connection;}
 static int network_coop_active(void){return campaign;}
 static int network_interaction_host_ready(void){return campaign;}
@@ -124,8 +133,38 @@ int main(void) {
   tick+=10;velocity.i=20.f/30.f;velocity.k=-1.f/30.f;
   vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();assert(damage_calls==before+1);
  }
+ /* Test65: a body in the hands. The owner's friendly Marines died on being
+  * picked up (a self-impact 0.27 s after the grab, then full-scale hits on
+  * another ally while held): the first half second of a hold hurts nothing,
+  * a held body hurts nothing short of a 5 m/s slam, never an ally while
+  * held, and a thrown ally takes half */
+ {int before=damage_calls;threshold=2;cap=1;
+  objects[1].object.type=_object_type_biped;objects[3].object.type=_object_type_biped;
+  hit.type=_collision_result_structure;hit.plane.n.i=0;hit.plane.n.j=0;hit.plane.n.k=1;
+  velocity.i=velocity.j=0;velocity.k=-4.f/30.f;
+  held_age=5;tick+=10;vr_interaction_impact_track(1,0,1,1);vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();
+  assert(damage_calls==before); /* within the grace */
+  held_age=40;tick+=10;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();
+  assert(damage_calls==before); /* held, 4 m/s: no slam */
+  velocity.k=-6.f/30.f;tick+=10;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();
+  assert(damage_calls==before+1); /* a held enemy slammed at 6 m/s */
+  unit_present[1]=1;units[1].object.owner_team_index=2;units[1].unit.player_index=NONE;units[1].unit.actor_index=NONE;
+  tick+=10;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();
+  assert(damage_calls==before+1); /* a held ally: never */
+  unit_present[1]=0;hit.type=_collision_result_object;hit.object_index=3;unit_present[3]=1;units[3].object.owner_team_index=2;
+  units[3].unit.player_index=NONE;units[3].unit.actor_index=NONE;
+  tick+=10;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();
+  assert(damage_calls==before+1); /* an ally met by a held body: never */
+  held_age=-1;tick+=10;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();
+  {float full=vr_interaction_impact_scale(6.f/30.f,1,1,2,1);
+   assert(damage_calls>=before+2&&fabsf(damage_scale-full*.5f)<1e-5f);} /* thrown into an ally: half */
+  units[3].object.owner_team_index=3;tick+=10;vr_interaction_impact_collision(1,&hit,&velocity);vr_interaction_impact_flush();
+  {float full=vr_interaction_impact_scale(6.f/30.f,1,1,2,1);
+   assert(fabsf(damage_scale-full)<1e-5f||damage_calls>=before+3);} /* an enemy: in full */
+  unit_present[3]=0;held_age=-1;
+ }
  enabled=0;vr_interaction_impact_track(1,0,1,1);assert(!entries[0].active);
- puts("PASS: production impact authority, deferred collision damage, native attribution, kinetic weights/cap, expiry/debounce, world/self hits, reset and finite guards; Test56 struck bodies shoved by the blow; Test61 the unarmed melee blow when the unit has none of its own (the Master Chief); Test62 the globals' falling damage where there is no unarmed melee weapon (the campaign)");
+ puts("PASS: production impact authority, deferred collision damage, native attribution, kinetic weights/cap, expiry/debounce, world/self hits, reset and finite guards; Test56 struck bodies shoved by the blow; Test61 the unarmed melee blow when the unit has none of its own (the Master Chief); Test62 the globals' falling damage where there is no unarmed melee weapon (the campaign); Test65 held bodies: a grace, slams only, allies spared, thrown allies half");
 }
 '''
 c=out/'impact.c'; c.write_text(stub+production+tests)

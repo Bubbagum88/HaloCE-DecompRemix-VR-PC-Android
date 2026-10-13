@@ -72,10 +72,13 @@ assert render_objects.index("vr_manual_reload_debris_render();") < render_object
 
 # 4. fist assist: acquisition, step, hold, grab takes over, diagnostics
 punch = body(extra, "void vr_combat_punch(long unit,int hand,real_point3d const *point,real_vector3d const *sweep)")
-assert 'extra_bound("vr.combat_reach",2.5f,.75f,3)' in punch and "facing<.70f" in punch
-assert "punch acquired enemy=%ld hand=%d at %.2f m (%s)" in punch and "punch took no target" in punch
+# Test65 (Arkham Shadow): within LUNGE or FIST REACH, looked at (45 deg) or punched at (37 deg)
+assert 'extra_bound("vr.combat_reach",2.5f,.75f,3)' in extra and "reach=combat_reach()*units" in punch
+assert "facing>=.70f||(thrown>=.80f&&facing>=.35f)" in punch
+engage = body(extra, "static void combat_engage(long unit,long target,int hand,boolean counter)")
+assert "punch acquired" in engage and "punch took no target" in punch
 velocity = body(extra, "void vr_combat_velocity(long unit,real_point3d const *position,real_vector3d *velocity)")
-assert "velocity->i*=.35f;velocity->j*=.35f;" in velocity and "MIN(5.0f*units/TICKS_PER_SECOND" in velocity
+assert "velocity->i*=.35f;velocity->j*=.35f;" in velocity and "MIN(10.0f*units/TICKS_PER_SECOND" in velocity
 assert "vr_interaction_owner(0)==VR_INTERACTION_NPC||vr_interaction_owner(1)==VR_INTERACTION_NPC" in velocity
 assert "hand %d grabbed; the assist lets go" in tick
 assert '{ "vr.combat_reach", _config_real, "2.5",' in config
