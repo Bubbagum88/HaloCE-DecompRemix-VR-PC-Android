@@ -41,6 +41,10 @@ RAGDOLL (on lift), world grab assist, WEAPON PULL. Dual wield not implemented
 Test63's device checks are also still pending. No protocol or voice change.
 Local commits only; no push/publish/install/launch.
 
+Built and packaged: APK source `098a5a9182095b293f8243736da70f7478e072c1`,
+delivery `D:\HaloQuest\builds\test65-20261013-v1.0.32-test65`; full suite,
+both native builds, ABI lint and package verification passed.
+
 ## Previous private Test64 candidate (2026-10-12)
 
 Private **1.0.31-test64 / Android code76**, branch `test39-interaction-completion`,
@@ -86,7 +90,7 @@ WALL SPEED 1.5X, WALL LEAP 1.5X, THROW POWER 1.5X (CLIMB LAUNCH 1X, WALL TIME
 
 Full suite (127 suites), both native builds, ABI lint and package
 verification passed. APK source is `e2849e9b4effc9b1dab195bda0217e3aeabaf30e`;
-delivery is `D:\HaloQuestuilds	est63-20261012-v1.0.30-test63`.
+delivery is `D:\HaloQuest\builds\test63-20261012-v1.0.30-test63`.
 
 Read `docs/TEST63-CHECKLIST.md`, `docs/TEST63-FIELD-GUIDE.md`,
 `docs/TEST63-DEVICE-CHECKLIST.md`, `docs/TEST63-DELIVERY-STATUS.md`.
