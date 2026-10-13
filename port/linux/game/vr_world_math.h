@@ -104,7 +104,7 @@ static inline int vr_world_throw_velocity_spartan(float const average[3], float 
 {
     int i;
     if (!isfinite(strength)) strength = 1.0f;
-    strength = fmaxf(0.75f, fminf(2.0f, strength));
+    strength = fmaxf(0.75f, fminf(3.0f, strength)); /* Test66: OBJECT THROW to 3X (NPC THROW stays 0.75-2) */
     if (!isfinite(spartan)) spartan = 1.0f;
     spartan = fmaxf(1.0f, fminf(2.5f, spartan));
     if (!(units > 0.0f && units < 100.0f)) return 0;

@@ -29,7 +29,8 @@ sections_text = menu[menu.index("static struct vr_menu_section const vr_menu_imm
 sections_text = sections_text[:sections_text.index("};")]
 sections = [(label, int(count)) for label, count in re.findall(r'\{ "([A-Z +]+)", (\d+) \}', sections_text)]
 assert [label for label, _ in sections] == ["WEAPONS", "PICKUPS", "FIST COMBAT", "GRENADES", "RELOAD", "POUCH PLACES", "HOLSTER PLACES",
-                                            "MOVEMENT", "BODY", "GRAB + NPCS", "RAGDOLLS", "ADVANCED"], sections  # Test59: RAGDOLLS (DEATH FORCE); Test65: PICKUPS (WEAPON PULL)
+                                            "MOVEMENT", "BODY", "GRAB + NPCS", "VEHICLES", "VEHICLE OPTIONS", "WARTHOG + GHOST",
+                                            "TANK + BANSHEE", "RAGDOLLS", "ADVANCED"], sections  # Test59: RAGDOLLS (DEATH FORCE); Test65: PICKUPS (WEAPON PULL); Test66: the vehicle topics
 assert all(0 < count <= 8 for _, count in sections) and sum(count for _, count in sections) == len(listed)
 # each topic's rows, in order, are the ones its comment heads
 blocks = re.split(r"/\* ([A-Z +]+) \*/", table)[1:]
@@ -49,6 +50,7 @@ for name, row in macros.items():
     uses = re.findall(r"\b" + name + r",", rest)
     assert len(uses) == 1, f"{name} must also stay on its usual page (found {len(uses)})"
     key = re.match(r'\{ "[^"]+", "([^"]+)"', row).group(1)
+    if "_vr_setting_reset_" in row: continue  # Test66: RESET CONTROLS acts, it stores nothing
     assert f'{{ "{key}"' in config, f"{name}: {key} is a real setting"
 
 for required in ("vr.parkour_wallrun", "vr.parkour_walljump", "vr.parkour_climb", "vr.melee", "vr.manual_reload",

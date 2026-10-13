@@ -116,9 +116,11 @@ static struct vehicle_datum *vehicle_lift_get(long id){return id==42?&vehicle:0;
 static void vr_world_object_velocity(long id,real_vector3d const *linear,real_vector3d const *angular){assert(id==42);(void)angular;++throws;applied=*linear;}
 static void vr_interaction_release(int hand,int owner){assert(hand>=0&&hand<2&&owner==3);++releases;}
 static void platform_log(char const *format,...){(void)format;}
-static double config_real(char const *key){(void)key;return 1.0;} /* Test54 THROW: 1x */
+static double object_throw_setting=1.0;
+static double config_real(char const *key){if(!strcmp(key,"vr.object_throw"))return object_throw_setting;return 1.0;} /* Test54 THROW: 1x; Test66 OBJECT THROW */
 static float vr_world_object_mobility(long id){(void)id;return 1.0f;} /* Test55: a light item: Spartan class 2.4 */
 static real magnitude3d(real_vector3d const *v){return sqrtf(v->i*v->i+v->j*v->j+v->k*v->k);}
+static void scale_vector3d(real_vector3d const *v,real s,real_vector3d *out){out->i=v->i*s;out->j=v->j*s;out->k=v->k*s;} /* Test66: the thrown vehicle's cap */
 static long last_tick,last_unit;
 static int previous_grip[2];
 static unsigned long weight_haptic_at[2]={10,20};
@@ -140,7 +142,13 @@ int main(void){
  hands[0].active=1;hands[0].index=42;hands[0].velocity.i=100;item.object.type=_object_type_vehicle;
  vehicle.object.translational_velocity.i=1.0f;vehicle.object.angular_velocity.j=.2f;
  release_hand(0,1,1,"vehicle-release");assert(throws==1&&!hands[0].active);
- assert(fabsf(magnitude3d(&vehicle.object.translational_velocity)-.20f)<.00001f);
+ /* Test66: OBJECT THROW: the hand's swing throws it (here the throw's cap, 0.24 a tick) */
+ assert(fabsf(magnitude3d(&vehicle.object.translational_velocity)-.24f)<.00001f);
+ /* OBJECT THROW off: only its own motion, capped as before */
+ object_throw_setting=0;hands[0].active=1;hands[0].index=42;hands[0].velocity.i=100;
+ vehicle.object.translational_velocity.i=1.0f;vehicle.object.translational_velocity.j=vehicle.object.translational_velocity.k=0;
+ release_hand(0,1,1,"vehicle-release");
+ assert(fabsf(magnitude3d(&vehicle.object.translational_velocity)-.20f)<.00001f);object_throw_setting=1.0;
  assert(fabsf(magnitude3d(&vehicle.object.angular_velocity)-.08f)<.00001f);
  item.object.type=_object_type_none;
  hands[0].active=1;hands[0].index=42;hands[0].velocity.i=NAN;
@@ -205,7 +213,7 @@ assert 'else if(r->pressed||!r->held)' in network # host only attempts new press
 assert 'vr_npc_interaction_remote(r->player,hand,r->held,r->position.n)' in network
 npc=(ROOT/'port/linux/game/vr_npc_interaction.c').read_text()
 assert 'vr_world_hand_contact_radius((float)config_real("vr.interaction_reach")' in npc
-assert 'collision_model_touch_sphere(&model,&point,contact_radius,&model_node)' in npc
+assert 'collision_model_touch_sphere(&model,&point,surface_reach,&model_node)' in npc
 assert '!vr_aiming()' not in npc
 assert '.12f*units' not in npc and '.12f*.32808399f' not in npc
 assert 'contact grab miss' in npc

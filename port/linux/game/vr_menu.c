@@ -227,9 +227,11 @@ the hand */
 #define VR_IMMERSION_COMBAT_COUNTERS { "COUNTERS", "vr.combat_counters", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_AIM_STEADY { "AIM STEADY", "vr.aim_steadying", _vr_setting_real, 5, { { "OFF", "0" }, { "LIGHT", "0.2" }, { "MEDIUM", "0.4" }, { "STRONG", "0.6" }, { "MAX", "0.8" } } }
 #define VR_IMMERSION_GRENADES { "PHYS GRENADES", "vr.physical_grenades", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
-#define VR_IMMERSION_GRENADE_FWD { "CHEST FWD", "vr.grenade_chest_forward", _vr_setting_real, 7, { { "8 CM", "0.08" }, { "12 CM", "0.12" }, { "16 CM", "0.16" }, { "20 CM", "0.20" }, { "25 CM", "0.25" }, { "30 CM", "0.30" }, { "40 CM", "0.40" } } }
-#define VR_IMMERSION_GRENADE_DOWN { "CHEST DOWN", "vr.grenade_chest_down", _vr_setting_real, 7, { { "15 CM", "0.15" }, { "20 CM", "0.20" }, { "25 CM", "0.25" }, { "30 CM", "0.30" }, { "40 CM", "0.40" }, { "50 CM", "0.50" }, { "60 CM", "0.60" } } }
-#define VR_IMMERSION_GRENADE_SPREAD { "CHEST SPACING", "vr.grenade_chest_spread", _vr_setting_real, 6, { { "6 CM", "0.06" }, { "10 CM", "0.10" }, { "14 CM", "0.14" }, { "18 CM", "0.18" }, { "24 CM", "0.24" }, { "30 CM", "0.30" } } }
+/* Test66: the grenades at the waist (the owner: "match them to the waist
+ * area"), measured from the neck so a glance down no longer moves them */
+#define VR_IMMERSION_GRENADE_FWD { "GRENADE FWD", "vr.grenade_chest_forward", _vr_setting_real, 7, { { "8 CM", "0.08" }, { "12 CM", "0.12" }, { "16 CM", "0.16" }, { "20 CM", "0.20" }, { "25 CM", "0.25" }, { "30 CM", "0.30" }, { "40 CM", "0.40" } } }
+#define VR_IMMERSION_GRENADE_DOWN { "GRENADE DOWN", "vr.grenade_chest_down", _vr_setting_real, 8, { { "30 CM", "0.30" }, { "40 CM", "0.40" }, { "50 CM", "0.50" }, { "55 CM", "0.55" }, { "60 CM", "0.60" }, { "65 CM", "0.65" }, { "70 CM", "0.70" }, { "80 CM", "0.80" } } }
+#define VR_IMMERSION_GRENADE_SPREAD { "GRENADE GAP", "vr.grenade_chest_spread", _vr_setting_real, 6, { { "6 CM", "0.06" }, { "10 CM", "0.10" }, { "14 CM", "0.14" }, { "18 CM", "0.18" }, { "24 CM", "0.24" }, { "30 CM", "0.30" } } }
 #define VR_IMMERSION_GRENADE_POWER { "THROW POWER", "vr.grenade_throw_scale", _vr_setting_real, 5, { { "0.5X", "0.5" }, { "0.75X", "0.75" }, { "1X", "1" }, { "1.5X", "1.5" }, { "2X", "2" } } }
 #define VR_IMMERSION_WEAPONS { "WEAPONS", "vr.weapons", _vr_setting_multi, 3, { { "LOCKED", "vr.weapons=locked" }, { "PHYSICAL", "vr.weapons=physical;vr.physical_multiplayer=false" }, { "PHYSICAL + MP", "vr.weapons=physical;vr.physical_multiplayer=true" } } }
 #define VR_IMMERSION_HOLSTERS { "HOLSTERS", "vr.holsters", _vr_setting_multi, 7, { { "OFF", "vr.holsters=false" }, { "10 CM", "vr.holsters=true;vr.holster_size=0.1" }, { "15 CM", "vr.holsters=true;vr.holster_size=0.15" }, { "20 CM", "vr.holsters=true;vr.holster_size=0.2" }, { "25 CM", "vr.holsters=true;vr.holster_size=0.25" }, { "30 CM", "vr.holsters=true;vr.holster_size=0.3" }, { "40 CM", "vr.holsters=true;vr.holster_size=0.4" } } }
@@ -267,11 +269,44 @@ the hand */
 #define VR_IMMERSION_SHAKE_COOLING { "SHAKE COOLING", "vr.cooldown_shake", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_CLOSE_CONTACT { "CLOSE CONTACT", "vr.close_contact", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_PHYSICAL_HANDLES { "IMMERSIVE VEHICLE", "vr.vehicle_handles", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+/* Test66: the immersive vehicle rows, on VEHICLES and on IMMERSION's vehicle topics */
+#define VR_IMMERSION_VIRTUAL_WHEEL { "VIRTUAL WHEEL", "vr.vehicle_wheel_visible", _vr_setting_boolean, 2, { { "HIDDEN", "false" }, { "VISIBLE", "true" } } }
+#define VR_IMMERSION_COCKPIT_LOCK { "COCKPIT LOCK", "vr.vehicle_cockpit_lock", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_GRIP_GUIDE { "GRIP GUIDE", "vr.vehicle_grip_guide", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_CONTROL_GLOW { "CONTROL GLOW", "vr.vehicle_control_glow", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_STEER_HAPTICS { "STEER HAPTICS", "vr.vehicle_steer_haptics", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_COMFORT_REACH { "COMFORT REACH", "vr.vehicle_comfort_reach", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_TANK_DRIVE { "TANK DRIVE", "vr.vehicle_tank_drive", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_BANSH_SLIDE { "BANSH SLIDE", "vr.vehicle_banshee_slide", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_TANK_HATCH { "TANK HATCH", "vr.vehicle_tank_hatch", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_CTRL_REACH { "CTRL REACH", "vr.handle_all_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_CTRL_LEFT { "CTRL LEFT", "vr.handle_all_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_CTRL_HEIGHT { "CTRL HEIGHT", "vr.handle_all_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_RESET_CONTROLS { "RESET CONTROLS", "control offsets", _vr_setting_reset_vehicle_offsets, 0, { { NULL, NULL } } }
+#define VR_IMMERSION_HOG_REACH { "HOG REACH", "vr.handle_warthog_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_HOG_LEFT { "HOG LEFT", "vr.handle_warthog_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_HOG_HEIGHT { "HOG HEIGHT", "vr.handle_warthog_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_HOG_SIZE { "HOG SIZE", "vr.handle_warthog_size", _vr_setting_real, 5, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "150%", "1.5" }, { "200%", "2" } } }
+#define VR_IMMERSION_GHOST_REACH { "GHOST REACH", "vr.handle_ghost_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_GHOST_LEFT { "GHOST LEFT", "vr.handle_ghost_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_GHOST_HEIGHT { "GHOST HEIGHT", "vr.handle_ghost_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_GHOST_SIZE { "GHOST SIZE", "vr.handle_ghost_size", _vr_setting_real, 5, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "150%", "1.5" }, { "200%", "2" } } }
+#define VR_IMMERSION_TANK_REACH { "TANK REACH", "vr.handle_scorpion_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_TANK_LEFT { "TANK LEFT", "vr.handle_scorpion_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_TANK_HEIGHT { "TANK HEIGHT", "vr.handle_scorpion_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_TANK_SIZE { "TANK SIZE", "vr.handle_scorpion_size", _vr_setting_real, 5, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "150%", "1.5" }, { "200%", "2" } } }
+#define VR_IMMERSION_BANSH_REACH { "BANSH REACH", "vr.handle_banshee_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_BANSH_LEFT { "BANSH LEFT", "vr.handle_banshee_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_BANSH_UP { "BANSH UP", "vr.handle_banshee_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }
+#define VR_IMMERSION_BANSHEE_SIZE { "BANSHEE SIZE", "vr.handle_banshee_size", _vr_setting_real, 5, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "150%", "1.5" }, { "200%", "2" } } }
 #define VR_IMMERSION_FINGERS { "FINGERS", "vr.fingers", _vr_setting_boolean, 2, { { "OFF", "false" }, { "TRACKED", "true" } } }
 #define VR_IMMERSION_ROOM_SCALE { "ROOM-SCALE", "vr.roomscale", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 /* Test54: tuning that changes how the features feel, one row per decision */
 #define VR_IMMERSION_POUCH_SIDE { "MAG POUCH SIDE", "vr.reload_pouch_side", _vr_setting_string, 4, { { "AUTO", "auto" }, { "LEFT", "left" }, { "RIGHT", "right" }, { "BOTH", "both" } } }
 #define VR_IMMERSION_CLIMB_GRAB { "CLIMB GRAB", "vr.climb_grab_radius", _vr_setting_real, 5, { { "6 CM", "0.06" }, { "10 CM", "0.10" }, { "14 CM", "0.14" }, { "18 CM", "0.18" }, { "20 CM", "0.20" } } }
+/* Test66: OBJECT THROW: a prop or vehicle let go of while moving flies off
+ * the hand (the owner's Test65 request); WORLD GRAB and LIFT VEHICLES bring it */
+#define VR_IMMERSION_OBJECT_THROW { "OBJECT THROW", "vr.object_throw", _vr_setting_real, 5, { { "OFF", "0" }, { "1X", "1" }, { "1.5X", "1.5" }, { "2X", "2" }, { "3X", "3" } } }
 #define VR_IMMERSION_NPC_GRAB_ASSIST { "GRAB ASSIST", "vr.npc_grab_assist", _vr_setting_real, 6, { { "TOUCH", "0" }, { "5 CM", "0.05" }, { "10 CM", "0.10" }, { "15 CM", "0.15" }, { "20 CM", "0.20" }, { "25 CM", "0.25" } } }
 /* Test56: NPC HOLD became LIFT (strength): the same setting (and saved key),
 now for everything a hand lifts (NPCs, props, turrets, vehicles) */
@@ -318,7 +353,9 @@ mode) are folded into it; a combination set in config.toml by hand shows
 as CUSTOM. */
 static struct vr_menu_setting const vr_menu_controls[] =
 {
-	{ "HANDEDNESS", "vr.left_handed", _vr_setting_handedness, 2, { { "RIGHT", "false" }, { "LEFT", "true" } } },
+	/* Test66: LEFT-HAND MODE (the owner's name for it): the gun in the left
+	 * hand at every level start and respawn; the hands still swap by hand */
+	{ "LEFT-HAND MODE", "vr.left_handed", _vr_setting_handedness, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "MIRROR CONTROLS", "vr.mirror_controls", _vr_setting_string, 2, { { "AUTO", "auto" }, { "OFF", "off" } } },
 	VR_MENU_TURNING_ROW,
 	{ "MOVE WITH", "vr.move_relative", _vr_setting_string, 3, { { "HEAD", "head" }, { "LEFT HAND", "left" }, { "RIGHT HAND", "right" } } },
@@ -339,6 +376,7 @@ static struct vr_menu_setting const vr_menu_controls[] =
     VR_IMMERSION_NPC_GRAB_ASSIST,
     VR_IMMERSION_NPC_HOLD,
     VR_IMMERSION_THROW_STRENGTH,
+    VR_IMMERSION_OBJECT_THROW,
     VR_IMMERSION_ONE_HAND_HEAVY,
     VR_IMMERSION_DEATH_RAGDOLLS,
     VR_IMMERSION_ACTIVE_RAGDOLL,
@@ -480,42 +518,43 @@ static struct vr_menu_setting const vr_menu_vehicles[] =
 	{ "ALL RIGHT", "vr.vehicle_all_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
 	{ "RESET OFFSETS", "vehicle offsets", _vr_setting_reset_vehicle_offsets, 0, { { NULL, NULL } } },
     VR_IMMERSION_PHYSICAL_HANDLES,
-    { "VIRTUAL WHEEL", "vr.vehicle_wheel_visible", _vr_setting_boolean, 2, { { "HIDDEN", "false" }, { "VISIBLE", "true" } } },
+    VR_IMMERSION_VIRTUAL_WHEEL,
     /* Test65: the eyes, hands and controls held to the vehicle as one
      * (the owner's Test64 Warthog: "lock the head and wheel in place"), and
      * an optional mark where the hands take the Warthog's rim */
-    { "COCKPIT LOCK", "vr.vehicle_cockpit_lock", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-    { "GRIP GUIDE", "vr.vehicle_grip_guide", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    VR_IMMERSION_COCKPIT_LOCK,
+    VR_IMMERSION_GRIP_GUIDE,
     /* Test57: the immersive controls' highlight within reach, their steering
      * haptics, and the Banshee's bar turning when slid across */
-    { "CONTROL GLOW", "vr.vehicle_control_glow", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-    { "STEER HAPTICS", "vr.vehicle_steer_haptics", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-    { "BANSH SLIDE", "vr.vehicle_banshee_slide", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    VR_IMMERSION_CONTROL_GLOW,
+    VR_IMMERSION_STEER_HAPTICS,
+    VR_IMMERSION_BANSH_SLIDE,
     /* Test59: controls past 55 cm from the eyes come in toward them */
-    { "COMFORT REACH", "vr.vehicle_comfort_reach", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    VR_IMMERSION_COMFORT_REACH,
     /* Test59: the tank's drive stick pushed or pulled drives */
-    { "TANK DRIVE", "vr.vehicle_tank_drive", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    VR_IMMERSION_TANK_DRIVE,
     /* Test57b: a tank's first-person eyes over its hull, as from an open hatch */
-    { "TANK HATCH", "vr.vehicle_tank_hatch", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-    { "CTRL REACH", "vr.handle_all_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "CTRL LEFT", "vr.handle_all_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "CTRL HEIGHT", "vr.handle_all_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "HOG REACH", "vr.handle_warthog_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "HOG LEFT", "vr.handle_warthog_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "HOG HEIGHT", "vr.handle_warthog_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "HOG SIZE", "vr.handle_warthog_size", _vr_setting_real, 5, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "150%", "1.5" }, { "200%", "2" } } },
-    { "GHOST REACH", "vr.handle_ghost_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "GHOST LEFT", "vr.handle_ghost_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "GHOST HEIGHT", "vr.handle_ghost_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "GHOST SIZE", "vr.handle_ghost_size", _vr_setting_real, 5, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "150%", "1.5" }, { "200%", "2" } } },
-    { "TANK REACH", "vr.handle_scorpion_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "TANK LEFT", "vr.handle_scorpion_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "TANK HEIGHT", "vr.handle_scorpion_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "TANK SIZE", "vr.handle_scorpion_size", _vr_setting_real, 5, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "150%", "1.5" }, { "200%", "2" } } },
-    { "BANSH REACH", "vr.handle_banshee_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "BANSH LEFT", "vr.handle_banshee_left", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "BANSH UP", "vr.handle_banshee_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } },
-    { "BANSHEE SIZE", "vr.handle_banshee_size", _vr_setting_real, 5, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "150%", "1.5" }, { "200%", "2" } } },
+    VR_IMMERSION_TANK_HATCH,
+    VR_IMMERSION_CTRL_REACH,
+    VR_IMMERSION_CTRL_LEFT,
+    VR_IMMERSION_CTRL_HEIGHT,
+    VR_IMMERSION_RESET_CONTROLS,
+    VR_IMMERSION_HOG_REACH,
+    VR_IMMERSION_HOG_LEFT,
+    VR_IMMERSION_HOG_HEIGHT,
+    VR_IMMERSION_HOG_SIZE,
+    VR_IMMERSION_GHOST_REACH,
+    VR_IMMERSION_GHOST_LEFT,
+    VR_IMMERSION_GHOST_HEIGHT,
+    VR_IMMERSION_GHOST_SIZE,
+    VR_IMMERSION_TANK_REACH,
+    VR_IMMERSION_TANK_LEFT,
+    VR_IMMERSION_TANK_HEIGHT,
+    VR_IMMERSION_TANK_SIZE,
+    VR_IMMERSION_BANSH_REACH,
+    VR_IMMERSION_BANSH_LEFT,
+    VR_IMMERSION_BANSH_UP,
+    VR_IMMERSION_BANSHEE_SIZE,
 	{ "HOG GLASS", "vr.vehicle_warthog_hide_glass", _vr_setting_boolean, 2, { { "VISIBLE", "false" }, { "HIDDEN", "true" } } },
 	{ "HOG UP", "vr.vehicle_warthog_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
 	{ "HOG FWD", "vr.vehicle_warthog_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
@@ -689,7 +728,6 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_MELEE_SPEED,
 	VR_IMMERSION_FIST_REQUIRED,
 	VR_IMMERSION_SHAKE_COOLING,
-	VR_IMMERSION_PHYSICAL_HANDLES,
 	/* PICKUPS */
 	VR_IMMERSION_WEAPON_PULL,
 	VR_IMMERSION_PULL_GLOW,
@@ -756,6 +794,42 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_NPC_HOLD,
 	VR_IMMERSION_THROW_STRENGTH,
 	VR_IMMERSION_ONE_HAND_HEAVY,
+	VR_IMMERSION_OBJECT_THROW,
+	/* Test66: every immersive vehicle setting together, out of WEAPONS: */
+	/* VEHICLES */
+	VR_IMMERSION_PHYSICAL_HANDLES,
+    VR_IMMERSION_VIRTUAL_WHEEL,
+    VR_IMMERSION_COCKPIT_LOCK,
+    VR_IMMERSION_GRIP_GUIDE,
+    VR_IMMERSION_CONTROL_GLOW,
+    VR_IMMERSION_STEER_HAPTICS,
+    VR_IMMERSION_COMFORT_REACH,
+    VR_IMMERSION_TANK_DRIVE,
+	/* VEHICLE OPTIONS */
+    VR_IMMERSION_BANSH_SLIDE,
+    VR_IMMERSION_TANK_HATCH,
+    VR_IMMERSION_CTRL_REACH,
+    VR_IMMERSION_CTRL_LEFT,
+    VR_IMMERSION_CTRL_HEIGHT,
+    VR_IMMERSION_RESET_CONTROLS,
+	/* WARTHOG + GHOST */
+    VR_IMMERSION_HOG_REACH,
+    VR_IMMERSION_HOG_LEFT,
+    VR_IMMERSION_HOG_HEIGHT,
+    VR_IMMERSION_HOG_SIZE,
+    VR_IMMERSION_GHOST_REACH,
+    VR_IMMERSION_GHOST_LEFT,
+    VR_IMMERSION_GHOST_HEIGHT,
+    VR_IMMERSION_GHOST_SIZE,
+	/* TANK + BANSHEE */
+    VR_IMMERSION_TANK_REACH,
+    VR_IMMERSION_TANK_LEFT,
+    VR_IMMERSION_TANK_HEIGHT,
+    VR_IMMERSION_TANK_SIZE,
+    VR_IMMERSION_BANSH_REACH,
+    VR_IMMERSION_BANSH_LEFT,
+    VR_IMMERSION_BANSH_UP,
+    VR_IMMERSION_BANSHEE_SIZE,
 	/* RAGDOLLS */
 	VR_IMMERSION_DEATH_RAGDOLLS,
 	VR_IMMERSION_ACTIVE_RAGDOLL,
@@ -776,8 +850,10 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
-	{ "WEAPONS", 8 }, { "PICKUPS", 2 }, { "FIST COMBAT", 7 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
-	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 7 }, { "RAGDOLLS", 6 }, { "ADVANCED", 8 },
+	{ "WEAPONS", 7 }, { "PICKUPS", 2 }, { "FIST COMBAT", 7 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
+	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 8 },
+	{ "VEHICLES", 8 }, { "VEHICLE OPTIONS", 6 }, { "WARTHOG + GHOST", 8 }, { "TANK + BANSHEE", 8 },
+	{ "RAGDOLLS", 6 }, { "ADVANCED", 8 },
 };
 
 
@@ -824,6 +900,9 @@ static struct vr_menu_dependency
 	{ "vr.npc_interaction", "vr.interaction_damage", TRUE },
 	{ "vr.world_interaction", "vr.interaction_damage", TRUE },
 	{ "vr.vehicle_lift", "vr.interaction_damage", TRUE },
+	/* Test66: what is grabbed is thrown */
+	{ "vr.vehicle_lift", "vr.object_throw", TRUE },
+	{ "vr.world_interaction", "vr.object_throw", TRUE },
 	{ "vr.holster_haptics", "vr.holsters", TRUE },
 	/* the immersive vehicle controls' own refinements turn the controls on */
 	{ "vr.vehicle_wheel_visible", "vr.vehicle_handles", TRUE },
@@ -861,6 +940,7 @@ static char const *vr_menu_requirement_value(char const *requires, boolean on)
 	if (!strcmp(requires, "vr.melee")) return on ? "impact" : "swing";
 	if (!strcmp(requires, "vr.melee_speed")) return on ? "2.0" : "0";
 	if (!strcmp(requires, "vr.npc_grab_assist")) return on ? "0.10" : "0.05";
+	if (!strcmp(requires, "vr.object_throw")) return on ? "2" : "0";
 	if (!strcmp(requires, "vr.vehicle_view"))
 		return on ? "first_person" : "chase";
 	return NULL;
@@ -873,6 +953,10 @@ static boolean vr_menu_requirement_met(struct vr_menu_dependency const *dependen
 	if (!strcmp(dependency->requires, "vr.melee_speed")) {
 		real speed = config_real("vr.melee_speed");
 		return isfinite(speed) && speed > 0.0f;
+	}
+	if (!strcmp(dependency->requires, "vr.object_throw")) {
+		real strength = config_real("vr.object_throw");
+		return isfinite(strength) && strength > 0.0f;
 	}
 	if (!strcmp(dependency->requires, "vr.npc_grab_assist")) {
 		real assist = config_real("vr.npc_grab_assist");
@@ -2215,6 +2299,20 @@ boolean vr_menu_setting_change(
         written=TRUE;
         for(key=0;key<(int)NUMBEROF(keys);key++) written=config_write_real(keys[key],config_default_real(keys[key]))&&written;
         vr_reload_settings(); platform_log("vr: reset the wrist HUD's place and size%s",written?"":" (save failed)");
+        return TRUE;
+    }
+    if(setting->type == _vr_setting_reset_vehicle_offsets && !strcmp(setting->key,"control offsets")) {
+        /* Test66: RESET CONTROLS: every immersive control's reach, left,
+         * height and size back to its default */
+        static const char *const controls[]={"all","warthog","ghost","scorpion","banshee"};
+        static const char *const axes[]={"forward","left","up","size"};
+        char key[64]; int control, axis;
+        written=TRUE;
+        for(control=0;control<(int)NUMBEROF(controls);control++) for(axis=0;axis<4;axis++) {
+            if(!control&&axis==3)continue;
+            snprintf(key,sizeof(key),"vr.handle_%s_%s",controls[control],axes[axis]);
+            written=config_write_real(key,config_default_real(key))&&written; }
+        vr_reload_settings(); platform_log("vr: reset the immersive vehicle controls' places and sizes%s",written?"":" (save failed)");
         return TRUE;
     }
     if(setting->type == _vr_setting_reset_vehicle_offsets) {

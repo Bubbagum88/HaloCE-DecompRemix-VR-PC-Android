@@ -249,9 +249,9 @@ static boolean chest_points(long unit,real_point3d const *camera,real_point3d po
     if(!(units>0&&units<10)||!camera)return FALSE;
     for(int type=0;type<2;type++){
         float offset[3];
-        offset[0]=(float)((type?1.0f:-1.0f)*extra_bound("vr.grenade_chest_spread",.14f,.06f,.3f));
-        offset[1]=-(float)extra_bound("vr.grenade_chest_down",.30f,.15f,.6f);
-        offset[2]=-(float)extra_bound("vr.grenade_chest_forward",.16f,.08f,.4f);
+        offset[0]=(float)((type?1.0f:-1.0f)*extra_bound("vr.grenade_chest_spread",.18f,.06f,.3f));
+        offset[1]=-(float)extra_bound("vr.grenade_chest_down",.60f,.15f,.8f);
+        offset[2]=-(float)extra_bound("vr.grenade_chest_forward",.12f,.08f,.4f);
         if(!vr_torso_place(offset,camera->n,points[type].n)||!valid_real_point3d(&points[type]))return FALSE;
     }
     return TRUE;
@@ -862,9 +862,19 @@ static void extra_draw_grenade(long unit,int type,real_point3d const *at,real_ve
     model=model_definition_get(model_index);
     if(model->nodes.count<=0||model->nodes.count>MAXIMUM_NODES_PER_MODEL)return;
     model_get_node_matrices(model,matrices,at,forward,up);
+    /* Test66: three quarters of the model's size (the owner: "a bit more of
+     * a smaller size"), about its place */
+    for(int n=0;n<model->nodes.count;n++){
+        matrices[n].scale*=.75f;
+        for(int k=0;k<3;k++)matrices[n].position.n[k]=at->n[k]+(matrices[n].position.n[k]-at->n[k])*.75f;
+    }
     lighting=object_get_cached_render_lighting(unit,100.0f);
     if(!lighting)return;
     pixels=render_frustum_sphere_diameter_in_pixels(&render.frustum,at,radius);
+    /* Test66: always the finest level of detail: lowered to the waist, the
+     * model's size on screen changed its level of detail as the head moved
+     * (the owner: "they morph and glitch when lowered") */
+    pixels=MAX(pixels,1000.0f);
     {
         /* the colours and functions an object passes: neutral (white, the
          * plasma's glow functions at rest), never NULL */

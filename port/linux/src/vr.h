@@ -138,6 +138,7 @@ int vr_hand_world(int hand, const float position[3], float out_position[3], floa
 /* Test63: a point in the torso's chest frame (metres from the eyes: x right,
 y up, z back, level; the torso turns with the head only past 35 degrees) in
 the world (vr_frame.c) */
+void vr_weapon_hand_preferred(void);
 int vr_torso_place(const float offset[3], const float camera[3], float out[3]);
 /* Test63: whether a calibration row (vr_calibration_note_shown's mask) is on screen */
 int vr_calibration_shown(int mask);

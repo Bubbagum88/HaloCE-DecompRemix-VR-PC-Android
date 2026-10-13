@@ -1079,6 +1079,15 @@ void vr_initialize(void)
 	vr.snap_armed = 1;
 	vr.seat_logged = -1;
 	vr.weapon_hand = config_boolean("vr.left_handed") ? 0 : 1;
+	/* Test66: the physical grenades to the waist, once */
+	if (!config_boolean("vr.grenade_waist_applied"))
+	{
+		config_write_real("vr.grenade_chest_down", 0.60);
+		config_write_real("vr.grenade_chest_forward", 0.12);
+		config_write_real("vr.grenade_chest_spread", 0.18);
+		config_write_boolean("vr.grenade_waist_applied", 1);
+		platform_log("vr: the physical grenades moved to the waist (60 cm down, 12 cm out, 18 cm apart), once");
+	}
 	migrate_calibration_split();
 	migrate_handedness();
 	migrate_two_hand_auto();
@@ -2061,9 +2070,24 @@ int vr_torso_place(const float offset[3], const float camera[3], float out[3])
 	yaw = torso_yaw_now();
 	c = cosf(yaw);
 	s = sinf(yaw);
-	pose.position[0] = vr.frame.head.position[0] + offset[0] * c + offset[2] * s;
-	pose.position[1] = vr.frame.head.position[1] + offset[1];
-	pose.position[2] = vr.frame.head.position[2] - offset[0] * s + offset[2] * c;
+	/* Test66: from the neck, not the eyes: the eyes swing forward and down
+	round it as the head bows, and the owner's grenades, lowered to the
+	waist, slid with every glance down at them. The neck: the eyes less
+	their 11 cm up and 9 cm forward as the head is turned, then 11 cm up
+	again (the eyes' height with the head level) */
+	{
+		static const float eyes_from_neck[3] = { 0.0f, 0.11f, -0.09f };
+		float turned[3], base[3];
+		int axis;
+
+		rotate(vr.frame.head.orientation, eyes_from_neck, turned);
+		for (axis = 0; axis < 3; axis++)
+			base[axis] = vr.frame.head.position[axis] - turned[axis];
+		base[1] += eyes_from_neck[1];
+		pose.position[0] = base[0] + offset[0] * c + offset[2] * s;
+		pose.position[1] = base[1] + offset[1];
+		pose.position[2] = base[2] - offset[0] * s + offset[2] * c;
+	}
 	pose.orientation[0] = pose.orientation[1] = pose.orientation[2] = 0.0f;
 	pose.orientation[3] = 1.0f;
 	return hand_view(&pose, NULL, camera, out, forward, up) &&
@@ -2837,6 +2861,21 @@ int vr_vignette_shown(void)
 int vr_weapon_hand(void)
 {
 	return vr.weapon_hand;
+}
+
+/* Test66: LEFT-HAND MODE at each new body (a level's start, a respawn): the
+gun back in the hand the setting names, after any swap by hand in the last
+life (the owner: "left-handed players avoid manually swapping every level") */
+void vr_weapon_hand_preferred(void)
+{
+	int preferred = config_boolean("vr.left_handed") ? 0 : 1;
+
+	if (vr.weapon_hand != preferred)
+	{
+		platform_log("vr: a new body: the gun back in the %s hand (LEFT-HAND MODE %s)",
+			preferred ? "right" : "left", preferred ? "off" : "on");
+		vr.weapon_hand = preferred;
+	}
 }
 
 /* the direction the left stick moves the player in (vr.move_relative), as

@@ -1787,6 +1787,13 @@ void vr_player_control_facing(
 	player_index = local_player_get_player_index(local_player_index);
 	unit_index = player_index != NONE ? player_get(player_index)->unit_index : NONE;
 	vr_diag_drive(unit_index);
+	/* Test66: a new body (a level's start, a respawn): LEFT-HAND MODE's hand */
+	{
+		static long body = NONE;
+		if (unit_index != NONE && unit_index != body)
+			vr_weapon_hand_preferred();
+		body = unit_index;
+	}
 	vr_update_seat(unit_index);
 	/* seated, the head leans from where the player stood (vr.roomscale) */
 	if (vr_render.seat.seated)

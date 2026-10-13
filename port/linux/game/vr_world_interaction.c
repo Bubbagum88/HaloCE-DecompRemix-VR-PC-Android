@@ -473,6 +473,28 @@ static void release_hand(int hand, boolean throwing, real units,char const *reas
                         linear = *global_zero_vector3d;
                         angular = *global_zero_vector3d;
                     }
+                    /* Test66: OBJECT THROW: a vehicle let go of while the hand
+                     * moves flies along the hand's swing (the owner: "it will
+                     * actually have some force and be thrown in the direction you
+                     * released"), as hard as OBJECT THROW, at most 12 m/s; it
+                     * strikes what it meets (vr_interaction_impact) and never its
+                     * holder (released_vehicles) */
+                    {
+                        double strength = config_real("vr.object_throw");
+                        real_vector3d peak, thrown;
+                        int have_peak = vr_world_throw_peak((float const (*)[3])held->history, held->history_count, peak.n);
+                        if (isfinite(strength) && strength > 0.0 &&
+                            vr_world_throw_velocity_spartan(have_peak ? peak.n : held->velocity.n, have_peak ? peak.n : held->last_change.n,
+                                (float)strength, 1.0f, (float)units, thrown.n)) {
+                            real speed = magnitude3d(&thrown), cap = 12.0f * units / (real)TICKS_PER_SECOND;
+                            if (speed > cap) scale_vector3d(&thrown, cap / speed, &thrown);
+                            if (magnitude3d(&thrown) > magnitude3d(&linear)) {
+                                linear = thrown;
+                                platform_log("VR world: vehicle thrown hand=%d object=%08lx speed=%.1f m/s (OBJECT THROW %.1fx)",
+                                    hand, held->index, (float)(magnitude3d(&linear) * TICKS_PER_SECOND / units), (float)strength);
+                            }
+                        }
+                    }
                     vehicle->object.translational_velocity = linear;
                     vehicle->object.angular_velocity = angular;
                     platform_log("VR world: vehicle free release hand=%d object=%08lx linear_speed_m_tick=%.3f angular_speed_tick=%.3f",
@@ -485,12 +507,15 @@ static void release_hand(int hand, boolean throwing, real units,char const *reas
                  * strength as thrown NPCs: light things (a gun, a crate)
                  * fly far, heavy ones (low mobility) less. */
                 real_vector3d velocity, peak;
-                double strength = config_real("vr.throw_strength");
+                /* Test66: OBJECT THROW (0 lets it drop; 2 as before, which was
+                 * the NPC THROW default) */
+                double strength = config_real("vr.object_throw");
                 float mobility = vr_world_object_mobility(held->index);
                 /* Test56: the hand's peak at release (vr_world_throw_peak) */
                 int have_peak = vr_world_throw_peak((float const (*)[3])held->history, held->history_count, peak.n);
-                if (vr_world_throw_velocity_spartan(have_peak ? peak.n : held->velocity.n, have_peak ? peak.n : held->last_change.n,
-                        isfinite(strength) ? (float)strength : 2.0f,
+                if (isfinite(strength) && strength > 0.0 &&
+                    vr_world_throw_velocity_spartan(have_peak ? peak.n : held->velocity.n, have_peak ? peak.n : held->last_change.n,
+                        (float)strength,
                         vr_world_throw_class(isfinite(mobility) && mobility < 0.3f ? 2 : 1, mobility),
                         (float)units, velocity.n))
                     vr_world_object_velocity(held->index, &velocity, &item->object.angular_velocity);
