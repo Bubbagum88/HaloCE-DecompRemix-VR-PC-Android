@@ -222,7 +222,12 @@ an enemy, how many more punches enemies take, and counters */
 #define VR_IMMERSION_COMBAT_HEALTH { "ENEMY HEALTH", "vr.combat_enemy_health", _vr_setting_real, 5, { { "1X", "1" }, { "2X", "2" }, { "3X", "3" }, { "4X", "4" }, { "6X", "6" } } }
 /* Test65: WEAPON PULL: a weapon within reach glows and a grip pulls it into
 the hand */
-#define VR_IMMERSION_WEAPON_PULL { "WEAPON PULL", "vr.weapon_pull_reach", _vr_setting_real, 5, { { "OFF", "0" }, { "0.5 M", "0.5" }, { "1 M", "1" }, { "1.5 M", "1.5" }, { "2 M", "2" } } }
+/* Test66: WEAPON PULL as Half-Life 2 VR's and Alyx's gravity gloves: on or
+ * off, how far, and flicked or held (the owner's Test65 session: it never
+ * pulled, and had no switch) */
+#define VR_IMMERSION_WEAPON_PULL { "WEAPON PULL", "vr.weapon_pull", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_PULL_REACH { "PULL REACH", "vr.weapon_pull_reach", _vr_setting_real, 5, { { "1 M", "1" }, { "2 M", "2" }, { "3 M", "3" }, { "4 M", "4" }, { "5 M", "5" } } }
+#define VR_IMMERSION_PULL_STYLE { "PULL STYLE", "vr.weapon_pull_style", _vr_setting_string, 2, { { "FLICK", "flick" }, { "GRIP", "grip" } } }
 #define VR_IMMERSION_PULL_GLOW { "PULL GLOW", "vr.weapon_pull_glow", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_COMBAT_COUNTERS { "COUNTERS", "vr.combat_counters", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_AIM_STEADY { "AIM STEADY", "vr.aim_steadying", _vr_setting_real, 5, { { "OFF", "0" }, { "LIGHT", "0.2" }, { "MEDIUM", "0.4" }, { "STRONG", "0.6" }, { "MAX", "0.8" } } }
@@ -369,6 +374,8 @@ static struct vr_menu_setting const vr_menu_controls[] =
 	VR_IMMERSION_HOLSTERS,
 	VR_IMMERSION_HOLSTER_HAPTICS,
 	VR_IMMERSION_WEAPON_PULL,
+	VR_IMMERSION_PULL_REACH,
+	VR_IMMERSION_PULL_STYLE,
 	VR_IMMERSION_PULL_GLOW,
     VR_IMMERSION_NPC_RIG_SLOTS,
     VR_IMMERSION_BODY_RETENTION,
@@ -737,6 +744,8 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_SHAKE_COOLING,
 	/* PICKUPS */
 	VR_IMMERSION_WEAPON_PULL,
+	VR_IMMERSION_PULL_REACH,
+	VR_IMMERSION_PULL_STYLE,
 	VR_IMMERSION_PULL_GLOW,
 	/* FIST COMBAT */
 	VR_IMMERSION_COMBAT,
@@ -857,7 +866,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
-	{ "WEAPONS", 7 }, { "PICKUPS", 2 }, { "FIST COMBAT", 7 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
+	{ "WEAPONS", 7 }, { "PICKUPS", 4 }, { "FIST COMBAT", 7 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
 	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 8 },
 	{ "VEHICLES", 8 }, { "VEHICLE OPTIONS", 6 }, { "WARTHOG + GHOST", 8 }, { "TANK + BANSHEE", 8 },
 	{ "RAGDOLLS", 6 }, { "ADVANCED", 8 },

@@ -135,7 +135,9 @@ assert "vr_combat_note_damage(object_index);" in damage
 assert "boolean unit_vr_combat_strike(" in units
 
 # 8. WEAPON PULL
-default("vr.weapon_pull_reach", "_config_real", "1.0")
+default("vr.weapon_pull_reach", "_config_real", "3.0")  # Test66: 3 m (1 to 5)
+default("vr.weapon_pull", "_config_boolean", "true")  # Test66: the switch
+default("vr.weapon_pull_style", "_config_string", chr(92) + chr(34) + "flick" + chr(92) + chr(34))
 default("vr.weapon_pull_glow", "_config_boolean", "true")
 assert player_control.index("vr_render_impact_melee(local_player_index);") < player_control.index("vr_weapon_pickup_tick(local_player_index);")
 assert "boolean player_vr_take_weapon(" in players and "return player_vr_take_weapon(player_index, nearest_index);" in players
