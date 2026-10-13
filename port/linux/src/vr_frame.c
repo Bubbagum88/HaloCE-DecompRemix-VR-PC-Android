@@ -59,6 +59,12 @@ static struct
 	GLuint framebuffer;
 	/* the runtime's frame begun and not yet ended, and its state */
 	int frame_begun;
+	/* Test65: COCKPIT LOCK (vr_set_cockpit_frame): a seat's frame as the
+	vehicle is drawn (forward, left, up in the game's axes), which the
+	eyes, the hands and the aim are all turned by while the heading is the
+	seat's; and whether the heading is the seat's (vr_aim's base heading) */
+	int cockpit_valid, heading_from_seat;
+	float cockpit[3][3];
 	struct halo_xr_frame frame;
 	/* the eye render size (vr.resolution_scale) */
 	int eye_size;
@@ -239,6 +245,9 @@ static struct
 	clicks sound the horn); the turning stick held down (a button); the
 	wrist HUD (vr.wrist_hud) and whether menus are up (none masked then) */
 	float hud_tap_distance;
+	/* Test65: the palms this close (metres) pass the gun to the off hand's
+	squeeze (vr.hand_swap_distance; 0 off) */
+	float hand_swap_distance;
 	int hud_tap_armed, hud_hidden, reticle_hidden, reticle_press, reticle_cancelled, turn_stick_down;
 	int wrist_hud, menus_active;
 	/* Test61: X held while a menu was up, not yet let go */
@@ -878,6 +887,17 @@ void vr_reload_settings(void)
 	if (vr.hud_tap_distance > 0.3f) vr.hud_tap_distance = 0.3f;
 	vr.hud_tap_armed = vr.hud_tap_last_valid = 0;
 	vr.hud_tap_dwell = vr.hud_tap_release = vr.hud_tap_cooldown = 0.0f;
+	/* Test65: HAND SWAP. A player racking the pistol's slide passed the gun
+	to the racking hand: the off hand's squeeze within 20 cm of the gun hand
+	was the swap. The reach is the player's now, 10 cm unless set (palms
+	together are 6 to 10 cm apart; a rack 8 to 15 cm); 0 turns it off. */
+	vr.hand_swap_distance = (float)config_real("vr.hand_swap_distance");
+	if (!(vr.hand_swap_distance >= 0.0f)) vr.hand_swap_distance = 0.0f;
+	if (vr.hand_swap_distance > 0.3f) vr.hand_swap_distance = 0.3f;
+	if (vr.hand_swap_distance > 0.0f)
+		platform_log("vr: hand swap: the off hand's squeeze with the palms within %.0f cm", vr.hand_swap_distance * 100.0f);
+	else
+		platform_log("vr: hand swap: off");
 	vr.wrist_hud = config_boolean("vr.wrist_hud");
 	/* test29: the wrist HUD's place and size, bounded */
 	vr.wrist_along = (float)config_real("vr.wrist_hud_along");
@@ -1131,6 +1151,7 @@ static float wrap_angle(float angle);
 
 static void rotate(const float q[4], const float v[3], float out[3]);
 static void to_halo(const float v[3], float cosine, float sine, float out[3]);
+static float wrap_angle(float angle);
 static void look_rotation(const float forward[3], const float up[3], float out[4]);
 
 /* vr.weapons "physical" in effect: set, allowed by the game (a local game,
@@ -2624,7 +2645,7 @@ static void update_gestures(void)
 	hands; otherwise, within reach of the gun, it holds it in both */
 	if (vr.grip_pressed[o] && both_tracked && !vr_interaction_owner(o) && !vr_interaction_owner(w))
 	{
-		if (hands_apart < 0.2f && !vr.grip_held[w])
+		if (vr.hand_swap_distance > 0.0f && hands_apart < vr.hand_swap_distance && !vr.grip_held[w])
 		{
 			vr.weapon_hand = o;
 			vr.two_hand_held = 0;
@@ -3272,6 +3293,69 @@ void vr_room_hold(void)
 	vr.room_held = 1;
 }
 
+/* Test65: COCKPIT LOCK. The owner's Test64 Warthog: "the wheel and camera
+isn't stable and snaps". In a seat the eyes turned with the vehicle as drawn
+(test22) but stayed level (HORIZON LEVEL), while the hands and the immersive
+controls were placed in a level frame turned by the seat's heading as the
+30 Hz tick last took it: the dash pitched and rolled against the view, and
+turning, the wheel and the hands stepped against it every tick. With the
+immersive controls up, vr_render.c gives the seat's frame as the vehicle is
+drawn each frame; the eyes, the hands and the aim are all turned by it, so
+the cockpit, the wheel and the hands are one still place around the player
+and the world moves past. Only while the heading is the seat's (vr_aim's
+base heading): out of the seat the frame is never used. */
+static int vr_cockpit_active(void)
+{
+	return vr.cockpit_valid && vr.heading_from_seat;
+}
+
+static void cockpit_to_halo(const float v[3], float out[3])
+{
+	float forward = -v[2], left = -v[0], up = v[1];
+	int axis;
+
+	for (axis = 0; axis < 3; axis++)
+		out[axis] = vr.cockpit[0][axis] * forward + vr.cockpit[1][axis] * left + vr.cockpit[2][axis] * up;
+}
+
+/* the seat's heading and frame as this frame draws the vehicle (forward
+NULL: no cockpit lock, the heading only) */
+void vr_set_cockpit_frame(float heading, const float forward[3], const float left[3], const float up[3])
+{
+	int axis;
+
+	/* the hands turn with the vehicle as drawn, as the eyes do */
+	if (vr.heading_from_seat && vr.heading_valid && isfinite(heading))
+		vr.heading = wrap_angle(heading);
+	vr.cockpit_valid = 0;
+	if (!forward || !left || !up)
+		return;
+	for (axis = 0; axis < 3; axis++)
+	{
+		if (!isfinite(forward[axis]) || !isfinite(left[axis]) || !isfinite(up[axis]))
+			return;
+		vr.cockpit[0][axis] = forward[axis];
+		vr.cockpit[1][axis] = left[axis];
+		vr.cockpit[2][axis] = up[axis];
+	}
+	vr.cockpit_valid = 1;
+}
+
+int vr_cockpit_frame(float forward[3], float left[3], float up[3])
+{
+	int axis;
+
+	if (!vr_cockpit_active())
+		return 0;
+	for (axis = 0; axis < 3; axis++)
+	{
+		forward[axis] = vr.cockpit[0][axis];
+		left[axis] = vr.cockpit[1][axis];
+		up[axis] = vr.cockpit[2][axis];
+	}
+	return 1;
+}
+
 /* a view at `offset` (LOCAL metres) turned by `orientation`, for a viewer
 at `position` with the heading of `forward` */
 static void view(const float offset[3], const float orientation[4], const float position[3],
@@ -3287,14 +3371,25 @@ static void view(const float offset[3], const float orientation[4], const float 
 		cosine = forward[0] / heading;
 		sine = forward[1] / heading;
 	}
-	to_halo(offset, cosine, sine, halo);
+	if (vr_cockpit_active())
+	{
+		cockpit_to_halo(offset, halo);
+		rotate(orientation, xr_forward, local);
+		cockpit_to_halo(local, out_forward);
+		rotate(orientation, xr_up, local);
+		cockpit_to_halo(local, out_up);
+	}
+	else
+	{
+		to_halo(offset, cosine, sine, halo);
+		rotate(orientation, xr_forward, local);
+		to_halo(local, cosine, sine, out_forward);
+		rotate(orientation, xr_up, local);
+		to_halo(local, cosine, sine, out_up);
+	}
 	out_position[0] = position[0] + halo[0] * vr.units_per_metre;
 	out_position[1] = position[1] + halo[1] * vr.units_per_metre;
 	out_position[2] = position[2] + halo[2] * vr.units_per_metre;
-	rotate(orientation, xr_forward, local);
-	to_halo(local, cosine, sine, out_forward);
-	rotate(orientation, xr_up, local);
-	to_halo(local, cosine, sine, out_up);
 }
 
 int vr_eye_view(int eye, const float position[3], const float forward[3], float aspect,
@@ -3769,6 +3864,9 @@ int vr_aim(float game_yaw, int seated, int hand_may_aim, const float *base_headi
 	hand then aims where it points). A seat limits how far its occupant
 	turns, and the game holding the aim at that limit is not a turn: in a
 	seat the heading is taken up only on getting in or out. */
+	vr.heading_from_seat = base_heading != NULL;
+	if (!base_heading)
+		vr.cockpit_valid = 0;
 	if (base_heading)
 	{
 		/* in a vehicle the view turns with it: the heading is the seat's */
@@ -3824,6 +3922,15 @@ int vr_aim(float game_yaw, int seated, int hand_may_aim, const float *base_headi
 	out_forward[0] = aim[0] * cosine - aim[1] * sine;
 	out_forward[1] = aim[0] * sine + aim[1] * cosine;
 	out_forward[2] = aim[2];
+	/* Test65: COCKPIT LOCK: the head aims where it looks in the locked
+	cockpit (aim is forward, left, up at heading 0) */
+	if (vr_cockpit_active())
+	{
+		int axis;
+
+		for (axis = 0; axis < 3; axis++)
+			out_forward[axis] = vr.cockpit[0][axis] * aim[0] + vr.cockpit[1][axis] * aim[1] + vr.cockpit[2][axis] * aim[2];
+	}
 	vr.last_aim_yaw = atan2f(out_forward[1], out_forward[0]);
 	vr.aiming = 1;
 	/* Lost steering tracking holds native facing; head movement must not

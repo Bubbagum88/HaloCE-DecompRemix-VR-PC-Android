@@ -770,6 +770,10 @@ static const struct config_setting config_settings[] =
 	{ "vr.flashlight_distance", _config_real, "0.2", "HALO_VR_FLASHLIGHT_DISTANCE", _environment_value, _platform_vr,
 		"The off hand brought this close (metres) to the middle of the head\n"
 		"turns the flashlight on or off; 0 turns the gesture off (0.10 to 0.30 in the menu)." },
+	{ "vr.hand_swap_distance", _config_real, "0.1", "HALO_VR_HAND_SWAP_DISTANCE", _environment_value, _platform_vr,
+		"HAND SWAP: the off hand's grip squeezed with the two controllers this close (metres) passes the\n"
+		"gun to that hand (palms together); 0 turns the gesture off. Smaller keeps a slide rack or a\n"
+		"magazine change from swapping hands (0.06 to 0.20 in the menu)." },
 	{ "vr.hud_tap_distance", _config_real, "0.1", "HALO_VR_HUD_TAP_DISTANCE", _environment_value, _platform_vr,
 		"The weapon hand held for a moment this close (metres) beside its own side of the head (the\n"
 		"right temple for a right hand) shows or hides the HUD for the session; menus, prompts,\n"
@@ -894,6 +898,10 @@ static const struct config_setting config_settings[] =
         "IMMERSIVE VEHICLE: first-person cockpit controls. Grip the Warthog's own wheel, or the Ghost handlebar, Scorpion sticks or Banshee yoke (push/pull to dive/climb), and turn physically; stick throttle remains. While shown they replace controller steering and return to centre when let go; your first-person hands hold them." },
     { "vr.vehicle_wheel_visible", _config_boolean, "true", "HALO_VR_VEHICLE_WHEEL_VISIBLE", _environment_value, _platform_vr,
         "Show virtual cockpit control geometry. Hiding it retains physical grip controls; the Warthog's wheel is then taken on the vehicle's own wheel (HOG REACH, LEFT, HEIGHT and SIZE line it up), drawn it sits 2.5 cm in front of it." },
+    { "vr.vehicle_cockpit_lock", _config_boolean, "true", "HALO_VR_VEHICLE_COCKPIT_LOCK", _environment_value, _platform_vr,
+        "COCKPIT LOCK: with IMMERSIVE VEHICLE controls up, the eyes, the hands and the controls are held to the vehicle as one: the cockpit stays still around you and the world moves (pitch, roll and turns), so the wheel stays on the dash under your hands. Off, the horizon follows HORIZON." },
+    { "vr.vehicle_grip_guide", _config_boolean, "false", "HALO_VR_VEHICLE_GRIP_GUIDE", _environment_value, _platform_vr,
+        "GRIP GUIDE: marks where the hands take the Warthog's own steering wheel (a rubber pad at each grip, turning with it). Off, only the vehicle's own parts are seen." },
     { "vr.vehicle_control_glow", _config_boolean, "true", "HALO_VR_VEHICLE_CONTROL_GLOW", _environment_value, _platform_vr,
         "CONTROL GLOW: the immersive vehicle controls light up while a free hand is close enough to take them." },
     { "vr.vehicle_steer_haptics", _config_boolean, "true", "HALO_VR_VEHICLE_STEER_HAPTICS", _environment_value, _platform_vr,
@@ -992,6 +1000,10 @@ static const struct config_setting config_settings[] =
 		"How far in metres (0.04 to 0.20) from a solid surface a squeezed free hand still grips it for climbing; a hand pushed into a wall grips its surface." },
 	{ "vr.immersion_auto", _config_string, "\"\"", "HALO_VR_IMMERSION_AUTO", _environment_value, _platform_vr,
 		"Written by VR Settings: the settings it turned on only because an immersion feature needs them (FIST REQUIRED for grabbing and climbing, MANUAL RELOAD for MAG DEBRIS...), turned off again when no feature needs them." },
+	{ "vr.active_ragdoll", _config_boolean, "true", "HALO_VR_ACTIVE_RAGDOLL", _environment_value, _platform_vr,
+	    "ACTIVE RAGDOLL: NPC bodies give where they are touched, held or hit (the limb swings, the torso leans; drawn only), a slow hand pushes them, a body knocked or thrown keeps some of its posture as it staggers and gets up, and a body just killed slumps instead of dropping limp." },
+	{ "vr.npc_lift_to_ragdoll", _config_boolean, "true", "HALO_VR_NPC_LIFT_TO_RAGDOLL", _environment_value, _platform_vr,
+	    "GRAB RAGDOLL: ON LIFT keeps a living NPC taken by a limb on its feet (held still, a light one dragged along; it cannot walk or shoot) until the hands lift it 18 cm or yank it, then it is a ragdoll in the hands; AT ONCE makes it a ragdoll as soon as it is taken (as before). Corpses are ragdolls at once either way." },
 	{ "vr.death_ragdolls", _config_boolean, "false", "HALO_VR_DEATH_RAGDOLLS", _environment_value, _platform_vr,
 		"Solo (and co-op host): NPCs killed nearby fall as physical ragdolls carrying their momentum, then rest as grabbable corpses. Uses the NPC RIG SLOTS pool." },
     { "vr.death_ragdoll_range", _config_real, "60.0", "HALO_VR_DEATH_RAGDOLL_RANGE", _environment_value, _platform_vr,

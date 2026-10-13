@@ -106,6 +106,10 @@ int vr_script_head_view(const float position[3], float out_position[3], float ou
 int vr_aiming(void);
 /* the heading the eyes are turned by (Halo's x, y) */
 int vr_heading_forward(float out_forward[3]);
+/* Test65: COCKPIT LOCK: the seat's heading and frame as the vehicle is drawn
+this frame (forward NULL: the heading only); the frame while it is in use */
+void vr_set_cockpit_frame(float heading, const float forward[3], const float left[3], const float up[3]);
+int vr_cockpit_frame(float forward[3], float left[3], float up[3]);
 
 /* ---------- aiming with the hand (vr.aim = "hand")
 

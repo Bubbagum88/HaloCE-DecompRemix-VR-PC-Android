@@ -71,7 +71,8 @@ static struct { char const *key; int on; } store[] = {
     {"vr.vehicle_tank_drive",1},{"vr.vehicle_banshee_slide",1},{"vr.vehicle_tank_hatch",0},
     {"vr.vehicle_warthog_hide_glass",0},{"vr.reload_shoulder",0},{"vr.reload_hip",0},
     {"vr.button_sprint_toggle",0},{"vr.button_sprint",0},{"vr.assisted_combat",0},{"vr.close_contact",0},
-    {"vr.npc_one_hand_heavy",0}}; /* Test63: ONE-HAND HEAVIES */
+    {"vr.npc_one_hand_heavy",0}, /* Test63: ONE-HAND HEAVIES */
+    {"vr.vehicle_cockpit_lock",1},{"vr.vehicle_grip_guide",0},{"vr.npc_lift_to_ragdoll",1}}; /* Test65 */
 static char automatic_store[256], view_store[32] = "chase", melee_store[32] = "swing";
 static real speed_store;
 static real config_real(char const *key){assert(!strcmp(key,"vr.melee_speed"));return speed_store;}

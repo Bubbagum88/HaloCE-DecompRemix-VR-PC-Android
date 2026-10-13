@@ -271,6 +271,11 @@ now for everything a hand lifts (NPCs, props, turrets, vehicles) */
 #define VR_IMMERSION_ONE_HAND_HEAVY { "ONE-HAND HEAVIES", "vr.npc_one_hand_heavy", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_THROW_STRENGTH { "THROW", "vr.throw_strength", _vr_setting_real, 5, { { "0.75X", "0.75" }, { "1X", "1.0" }, { "1.25X", "1.25" }, { "1.5X", "1.5" }, { "2X", "2.0" } } }
 #define VR_IMMERSION_DEATH_RAGDOLLS { "DEATH RAGDOLLS", "vr.death_ragdolls", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+/* Test65: bodies that give when touched, held or hit, keep some posture as
+they stagger and slump as they die (Euphoria-like); a living body taken by a
+limb stays itself until the hands lift it */
+#define VR_IMMERSION_ACTIVE_RAGDOLL { "ACTIVE RAGDOLL", "vr.active_ragdoll", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_GRAB_RAGDOLL { "GRAB RAGDOLL", "vr.npc_lift_to_ragdoll", _vr_setting_boolean, 2, { { "AT ONCE", "false" }, { "ON LIFT", "true" } } }
 /* Test59: how hard a killing burst or blast throws a death ragdoll
 (vr_npc_impulse.h): CLASSIC is Test56's */
 #define VR_IMMERSION_RAGDOLL_RANGE { "RAGDOLL RANGE", "vr.death_ragdoll_range", _vr_setting_real, 4, { { "20 M", "20" }, { "40 M", "40" }, { "60 M", "60" }, { "80 M", "80" } } }
@@ -322,6 +327,8 @@ static struct vr_menu_setting const vr_menu_controls[] =
     VR_IMMERSION_THROW_STRENGTH,
     VR_IMMERSION_ONE_HAND_HEAVY,
     VR_IMMERSION_DEATH_RAGDOLLS,
+    VR_IMMERSION_ACTIVE_RAGDOLL,
+    VR_IMMERSION_GRAB_RAGDOLL,
     VR_IMMERSION_DEATH_FORCE,
     VR_IMMERSION_RAGDOLL_RANGE,
     VR_IMMERSION_NPC_RESCUE,
@@ -457,6 +464,11 @@ static struct vr_menu_setting const vr_menu_vehicles[] =
 	{ "RESET OFFSETS", "vehicle offsets", _vr_setting_reset_vehicle_offsets, 0, { { NULL, NULL } } },
     VR_IMMERSION_PHYSICAL_HANDLES,
     { "VIRTUAL WHEEL", "vr.vehicle_wheel_visible", _vr_setting_boolean, 2, { { "HIDDEN", "false" }, { "VISIBLE", "true" } } },
+    /* Test65: the eyes, hands and controls held to the vehicle as one
+     * (the owner's Test64 Warthog: "lock the head and wheel in place"), and
+     * an optional mark where the hands take the Warthog's rim */
+    { "COCKPIT LOCK", "vr.vehicle_cockpit_lock", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+    { "GRIP GUIDE", "vr.vehicle_grip_guide", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
     /* Test57: the immersive controls' highlight within reach, their steering
      * haptics, and the Banshee's bar turning when slid across */
     { "CONTROL GLOW", "vr.vehicle_control_glow", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
@@ -552,6 +564,8 @@ static struct vr_menu_setting const vr_menu_hands[] =
     { "GUN UP", "vr.gun_up", _vr_setting_centimetres, 0, { { NULL,NULL } } },
     { "GUN OUT", "vr.gun_out", _vr_setting_centimetres, 0, { { NULL,NULL } } },
     { "GUN GRIP", "vr.gun_anchor", _vr_setting_boolean, 2, { { "ANCHORED", "true" }, { "CLASSIC", "false" } } },
+    /* Test65: how close the palms come for the off hand's squeeze to take the gun */
+    { "HAND SWAP", "vr.hand_swap_distance", _vr_setting_real, 7, { { "OFF", "0" }, { "6 CM", "0.06" }, { "8 CM", "0.08" }, { "10 CM", "0.1" }, { "12 CM", "0.12" }, { "15 CM", "0.15" }, { "20 CM", "0.2" } } },
     { "AIM FOR", "gun", _vr_setting_gun_aim, 0, { { NULL,NULL } } },
     { "AIM UP", "up", _vr_setting_gun_aim, 0, { { NULL,NULL } } },
     { "AIM RIGHT", "right", _vr_setting_gun_aim, 0, { { NULL,NULL } } },
@@ -723,6 +737,8 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_ONE_HAND_HEAVY,
 	/* RAGDOLLS */
 	VR_IMMERSION_DEATH_RAGDOLLS,
+	VR_IMMERSION_ACTIVE_RAGDOLL,
+	VR_IMMERSION_GRAB_RAGDOLL,
 	VR_IMMERSION_DEATH_FORCE,
 	VR_IMMERSION_RAGDOLL_RANGE,
 	VR_IMMERSION_BODY_RETENTION,
@@ -740,7 +756,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
 	{ "WEAPONS", 8 }, { "FIST COMBAT", 4 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
-	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 7 }, { "RAGDOLLS", 4 }, { "ADVANCED", 8 },
+	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 7 }, { "RAGDOLLS", 6 }, { "ADVANCED", 8 },
 };
 
 
@@ -786,6 +802,8 @@ static struct vr_menu_dependency
 	/* the immersive vehicle controls' own refinements turn the controls on */
 	{ "vr.vehicle_wheel_visible", "vr.vehicle_handles", TRUE },
 	{ "vr.vehicle_control_glow", "vr.vehicle_handles", TRUE },
+	{ "vr.vehicle_cockpit_lock", "vr.vehicle_handles", TRUE },
+	{ "vr.vehicle_grip_guide", "vr.vehicle_handles", TRUE },
 	{ "vr.vehicle_steer_haptics", "vr.vehicle_handles", TRUE },
 	{ "vr.vehicle_comfort_reach", "vr.vehicle_handles", TRUE },
 	{ "vr.vehicle_tank_drive", "vr.vehicle_handles", TRUE },

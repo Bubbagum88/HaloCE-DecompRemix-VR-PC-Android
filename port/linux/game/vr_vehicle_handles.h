@@ -40,8 +40,8 @@ static struct {
     /* Test57: the Warthog's wheel drawn (in front of the model's), or hidden
      * (on the model's own wheel exactly) */
     int wheel_front;
-    /* Test57: CONTROL GLOW, STEER HAPTICS, BANSH SLIDE */
-    int glow, steer_haptics, slide;
+    /* Test57: CONTROL GLOW, STEER HAPTICS, BANSH SLIDE; Test65: GRIP GUIDE */
+    int glow, steer_haptics, slide, grip_guide;
     /* Test57b: where the controls were placed and how far from the eyes */
     real head_gap; char const *anchored;
     /* Test59: the player's offsets (HOG/GHOST/TANK/BANSH REACH, LEFT,
@@ -137,8 +137,32 @@ static int vr_wheel_valid_frame(real_matrix4x3 const *m)
  * then: on the vehicle's own controls at that moment), so they never jump. */
 static void vr_wheel_hand_frame(real_matrix4x3 const *root,real_point3d const *head,real_matrix4x3 *frame)
 {
-    float heading[3];
+    float heading[3],cockpit[3][3];
     *frame=*root;
+    /* Test65: COCKPIT LOCK: the hands are turned by the seat's frame as the
+     * vehicle is drawn (vr_frame.c); the controls are placed in the same
+     * frame, so they ride the dash and stay under the hands. Measured on
+     * boarding (before the lock is up), in the vehicle's own frame, which is
+     * where the lock eases to: on the vehicle's own controls exactly. */
+    if(vr_cockpit_frame(cockpit[0],cockpit[1],cockpit[2])) {
+        for(int axis=0;axis<3;axis++) {
+            frame->forward.n[axis]=cockpit[0][axis];frame->left.n[axis]=cockpit[1][axis];frame->up.n[axis]=cockpit[2][axis];
+        }
+        frame->position=*head;
+        return;
+    }
+    if(config_boolean("vr.vehicle_cockpit_lock") && vr_render.seat.driver && !vr_wheel.valid) {
+        real c=cosf(vr_render.seat.offset),s=sinf(vr_render.seat.offset);
+        for(int axis=0;axis<3;axis++)frame->forward.n[axis]=root->forward.n[axis]*c+root->left.n[axis]*s;
+        frame->up=root->up;
+        cross_product3d(&frame->up,&frame->forward,&frame->left);
+        if(normalize3d(&frame->left)>0.0f && normalize3d(&frame->up)>0.0f) {
+            cross_product3d(&frame->left,&frame->up,&frame->forward);
+            frame->position=*head;
+            return;
+        }
+        *frame=*root;
+    }
     if(vr_heading_forward(heading)) {frame->forward.i=heading[0];frame->forward.j=heading[1];}
     frame->forward.k=0.0f;
     if(!(normalize3d(&frame->forward)>0.0f)) frame->forward=root->forward;
@@ -225,6 +249,7 @@ static void vr_wheel_read_user(int kind)
     vr_wheel.glow=config_boolean("vr.vehicle_control_glow");
     vr_wheel.steer_haptics=config_boolean("vr.vehicle_steer_haptics");
     vr_wheel.slide=config_boolean("vr.vehicle_banshee_slide");
+    vr_wheel.grip_guide=config_boolean("vr.vehicle_grip_guide");
 }
 /* while a frame is drawn: the vehicle as drawn, kept for the input after it */
 static void vr_wheel_drawn_refresh(void)
@@ -787,6 +812,25 @@ boolean vr_render_vehicle_controls(void)
             }
             vr_wheel_tube(hub_back,vr_wheel.center,22.0f*m,gunmetal);
             vr_wheel_tube(vr_wheel.center,hub_front,30.0f*m,olive);
+        }
+    } else if(vr_wheel.kind==0) {
+        /* Test65: the Warthog's own wheel (the model's bone, moved and turned
+         * by vr_vehicle_controls_matrices) is the control: nothing is drawn
+         * over it. Test63 fell through to the Banshee's flight yoke below, a
+         * violet bar with blue tips across the Warthog's grips (the owner's
+         * Test64 video: "that weird purple part"). GRIP GUIDE (off by
+         * default) marks where the hands take the rim instead: a short
+         * rubber pad at each grip, turning with the wheel. */
+        if(vr_wheel.grip_guide) {
+            real r=vr_wheel.radius*vr_wheel.scale;
+            for(int h=0;h<2;h++) {
+                real centre=vr_wheel.angle+(h?_pi:0.0f);
+                for(int segment=0;segment<3;segment++) {
+                    real a0=centre-0.21f+0.14f*(real)segment,a1=a0+0.14f;
+                    vr_wheel_tube(vr_wheel_point(0,r*cosf(a0),r*sinf(a0)),vr_wheel_point(0,r*cosf(a1),r*sinf(a1)),
+                        17.0f*m,lit?olive:rubber);
+                }
+            }
         }
     } else if(vr_wheel.kind==2) {
         /* Scorpion (a Wraith too): a UNSC drive stick: a gunmetal base with a

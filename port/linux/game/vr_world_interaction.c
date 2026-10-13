@@ -46,6 +46,10 @@ static struct world_hand {
     int history_count, history_next;
 } hands[2];
 static long last_tick = NONE, last_unit = NONE;
+/* Test65: vehicles this player let go of in the last two seconds
+ * (vr_world_interaction_protects) */
+static struct { long object, unit, from, until; } released_vehicles[4];
+static int released_vehicle_cursor;
 static int previous_grip[2] = {1,1};
 static unsigned long weight_haptic_at[2];
 static int interaction_diag_connection = -2;
@@ -424,10 +428,40 @@ long vr_world_interaction_object(int hand)
 {
     return hand>=0 && hand<2 && hands[hand].active && grabbable(hands[hand].index) ? hands[hand].index : NONE;
 }
+/* Test65: a tester's Shade turrets killed their holder: "I keep getting
+ * crushed by the shade turrets when I go to throw them. They lift and then I
+ * die" (orca log: a turret grabbed at 16:39:48, the checkpoint taken back at
+ * 16:39:55; lifted and thrown at 16:40:02, taken back at 16:40:05). A held
+ * vehicle pressed into its holder is a vehicle striking a biped
+ * (physics.c physics_compute_biped_collision): the engine shoves the biped
+ * and, where it cannot fit the biped clear, gives it the globals' vehicle
+ * collision damage every tick. 2: held by this biped's hands (no contact at
+ * all); 1: let go by them in the last two seconds (no damage, the shove
+ * stays); 0: the engine's own rules. */
+int vr_world_interaction_protects(long object, long biped)
+{
+    long now = game_time_get();
+    int hand, n;
+    if (object == NONE || biped == NONE || biped != last_unit) return 0;
+    for (hand = 0; hand < 2; ++hand)
+        if (hands[hand].active && hands[hand].index == object) return 2;
+    for (n = 0; n < (int)NUMBEROF(released_vehicles); ++n)
+        if (released_vehicles[n].object == object && released_vehicles[n].unit == biped &&
+            now >= released_vehicles[n].from && now <= released_vehicles[n].until) return 1;
+    return 0;
+}
 static void release_hand(int hand, boolean throwing, real units,char const *reason)
 {
     struct world_hand *held = &hands[hand];
     struct object_datum *item = held->active ? grabbable(held->index) : NULL;
+    if (held->active && item && item->object.type == _object_type_vehicle && last_unit != NONE) {
+        long now = game_time_get();
+        released_vehicles[released_vehicle_cursor].object = held->index;
+        released_vehicles[released_vehicle_cursor].unit = last_unit;
+        released_vehicles[released_vehicle_cursor].from = now;
+        released_vehicles[released_vehicle_cursor].until = now + 2 * TICKS_PER_SECOND;
+        released_vehicle_cursor = (released_vehicle_cursor + 1) % (int)NUMBEROF(released_vehicles);
+    }
     if (held->active) {
         if (throwing && item && !(hands[1-hand].active && hands[1-hand].index == held->index)) {
             if (item->object.type == _object_type_vehicle) {
@@ -477,6 +511,8 @@ void vr_world_interaction_reset(void)
     previous_grip[0]=previous_grip[1]=1;
     weight_haptic_at[0]=weight_haptic_at[1]=0;
     last_tick = last_unit = NONE;
+    memset(released_vehicles, 0, sizeof(released_vehicles));
+    released_vehicle_cursor = 0;
 }
 /* Test63: the nearest object to the hand on a miss, for the log */
 static long candidate_nearest;

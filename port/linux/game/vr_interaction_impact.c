@@ -7,6 +7,8 @@
 #include "units/bipeds.h"
 #include "units/vehicles.h"
 #include "objects/object_definitions.h"
+#include "ai/actors.h"
+#include "game/game_allegiance.h"
 #include "vr_npc_interaction.h"
 #include "physics/collisions.h"
 #include "network_coop.h"
@@ -73,6 +75,27 @@ static void impact_shove(long target, struct object_datum *victim, real_vector3d
     if(victim->object.type==_object_type_biped) biped_accelerate(target,&shove);
     else if(victim->object.type==_object_type_vehicle) vehicle_accelerate(target,&shove);
 }
+/* Test65: the owner: "friendly NPCS appear very sensitive and die sometimes
+ * when being picked up". Their 17:48 log: a Marine grabbed at 17:56:46 struck
+ * itself (scale 0.58) a quarter second later as its limbs met the floor, then
+ * struck another ally six times at full scale (1.0, the globals' lethal
+ * falling damage) while held. A body in the hands now hurts nothing for its
+ * first half second, never hurts an ally (itself or one it meets) while held,
+ * and otherwise only when slammed (5 m/s into what it meets); a thrown ally
+ * takes half. Enemies thrown are as before. */
+#define VR_IMPACT_HOLD_GRACE_TICKS 15
+#define VR_IMPACT_HELD_SLAM_MPS 5.0f
+static boolean impact_ally(long object)
+{
+    struct unit_datum *u = object != NONE ? unit_try_and_get(object) : NULL;
+    struct actor_datum *a;
+    short team;
+    if (!u) return FALSE;
+    if (u->unit.player_index != NONE) return TRUE;
+    a = u->unit.actor_index != NONE ? actor_try_and_get(u->unit.actor_index) : NULL;
+    team = a ? a->meta.team_index : u->object.owner_team_index;
+    return team >= 0 && !game_team_is_enemy(_game_team_player, team);
+}
 static void apply_collision(long index, struct collision_result const *hit,
     real_vector3d const *velocity)
 {
@@ -117,8 +140,15 @@ static void apply_collision(long index, struct collision_result const *hit,
         return;
     }
     units=entries[i].units;
+    {
+        long held = source->object.type == _object_type_biped ? vr_npc_interaction_hold_age(index) : -1;
+        float normal_mps = -dot_product3d(velocity,&hit->plane.n) * 30.0f / units;
+        if (held >= 0 && (held < VR_IMPACT_HOLD_GRACE_TICKS || impact_ally(index) || impact_ally(target) ||
+            !(normal_mps >= VR_IMPACT_HELD_SLAM_MPS))) return;
+    }
     scale=vr_interaction_impact_scale(-dot_product3d(velocity,&hit->plane.n),units,
         entries[i].mobility,config_real("vr.impact_threshold"),config_real("vr.impact_damage_cap"));
+    if(scale>0 && source->object.type==_object_type_biped && impact_ally(target)) scale*=0.5f;
     if(scale<=0) return;
     entries[i].last_tick=tick; entries[i].last_target=target;
     damage_data_new(&damage,blow);
@@ -151,7 +181,7 @@ static void apply_collision(long index, struct collision_result const *hit,
         damage.owner_team_index=NONE;
         damage.location=hit->location; damage.origin=hit->point; damage.epicenter=hit->point;
         damage.direction=*velocity; scale_vector3d(&damage.direction,-1.0f,&damage.direction);
-        normalize3d(&damage.direction); damage.scale=scale;
+        normalize3d(&damage.direction); damage.scale=impact_ally(index)?scale*0.5f:scale;
         object_cause_contact_damage(&damage,index,NONE,NONE,NONE,&hit->plane.n);
         platform_log("VR impact: object=%08lx target=%08lx owner=%08lx scale=%.3f (the thrown body itself)",
             index,index,entries[i].owner,scale);

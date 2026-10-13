@@ -117,6 +117,7 @@ symbols in this file:
 #include "units/bipeds.h"
 #include "units/unit_definitions.h"
 #include "units/vehicles.h"
+#include "vr_world_interaction.h" /* port: Test65, a held vehicle never crushes its holder */
 
 /* ---------- constants */
 
@@ -1103,7 +1104,13 @@ static boolean physics_compute_biped_collision(
 		real_vector3d acceleration;
 		real_point3d new_position;
 		boolean cause_damage = TRUE;
+		/* port: Test65 (vr_world_interaction_protects): a vehicle in the
+		player's hands neither shoves nor damages them; just let go, it
+		shoves but does not damage */
+		int held_by_biped = vr_world_interaction_protects(instance->object_index, biped_index);
 
+		if (held_by_biped == 2)
+			return FALSE;
 		vector_from_points3d(
 			&vehicle->object.bounding_sphere_center,
 			&biped->object.bounding_sphere_center,
@@ -1141,7 +1148,7 @@ static boolean physics_compute_biped_collision(
 						(real_point3d const *)&biped->object.translational_velocity) > 0.0011111111f);
 		}
 
-		if (cause_damage)
+		if (cause_damage && !held_by_biped)
 		{
 			struct game_globals_falling_damage *falling_damage = TAG_BLOCK_GET_ELEMENT(
 				&scenario_get_game_globals()->falling_damage,

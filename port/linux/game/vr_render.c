@@ -506,7 +506,11 @@ static void vr_vehicle_tilt_view(
 	real c, s;
 	int i;
 
+	float cockpit[3][3];
+
+	/* Test65: COCKPIT LOCK turns the eyes with the whole vehicle already */
 	if (!(amount > 0.0f) || !vr_seat_view() || !vr_render.seat.driver ||
+		vr_cockpit_frame(cockpit[0], cockpit[1], cockpit[2]) ||
 		!(vehicle = object_try_and_get(vr_render.seat.vehicle_index)))
 	{
 		vr_tilt.valid = FALSE;
@@ -711,6 +715,95 @@ static void view_heading(
 	{
 		*heading = camera->forward;
 	}
+}
+
+/* Test65: COCKPIT LOCK (vr_frame.c vr_set_cockpit_frame): with the immersive
+controls up in a first-person driver's seat, the seat's frame as this frame
+draws the vehicle: its root node turned by the seat's offset, eased in from
+the level view over a third of a second when the controls come up (and out
+at once when they go). Otherwise the seat's heading as drawn alone, so the
+hands turn with the vehicle as the eyes do (test22) instead of stepping with
+the 30 Hz tick. */
+static void vr_cockpit_update(
+	void)
+{
+	static struct
+	{
+		long vehicle_index;
+		real amount;
+		double time;
+	} lock;
+	real_matrix4x3 *nodes;
+	real heading;
+	real_vector3d level_forward, forward, left, up;
+	double now = vr_pose_time();
+	int axis;
+
+	if (vr_render.cinematic_view || !vr_seat_view())
+	{
+		lock.vehicle_index = NONE;
+		lock.amount = 0.0f;
+		vr_set_cockpit_frame((float)NAN, NULL, NULL, NULL);
+		return;
+	}
+	heading = vr_seat_frame_heading();
+	if (!vr_render.seat.driver || !config_boolean("vr.vehicle_cockpit_lock") || !vr_vehicle_handles_steady() ||
+		!(nodes = object_get_node_matrices(vr_render.seat.vehicle_index)) ||
+		!valid_real_vector3d(&nodes[0].forward) || !valid_real_vector3d(&nodes[0].up))
+	{
+		lock.vehicle_index = NONE;
+		lock.amount = 0.0f;
+		vr_set_cockpit_frame(heading, NULL, NULL, NULL);
+		return;
+	}
+	if (lock.vehicle_index != vr_render.seat.vehicle_index)
+	{
+		lock.vehicle_index = vr_render.seat.vehicle_index;
+		lock.amount = 0.0f;
+		lock.time = now;
+		platform_log("vr: cockpit lock: the eyes, hands and controls held to the %s as drawn",
+			tag_get_name(object_get(vr_render.seat.vehicle_index)->definition_index));
+	}
+	else if (now > lock.time)
+	{
+		double seconds = now - lock.time;
+
+		lock.amount += (1.0f - lock.amount) * (real)(1.0 - exp(-(seconds < 0.25 ? seconds : 0.25) / 0.12));
+		lock.time = now;
+	}
+	if (lock.amount > 0.995f)
+		lock.amount = 1.0f;
+	/* the seat's forward: the vehicle's turned about its up by the seat's
+	offset (0 for a driver) */
+	{
+		real c = (real)cos(vr_render.seat.offset), s = (real)sin(vr_render.seat.offset);
+
+		for (axis = 0; axis < 3; axis++)
+			forward.n[axis] = nodes[0].forward.n[axis] * c + nodes[0].left.n[axis] * s;
+	}
+	up = nodes[0].up;
+	level_forward.i = (real)cos(heading);
+	level_forward.j = (real)sin(heading);
+	level_forward.k = 0.0f;
+	/* between the level view and the vehicle's frame by the amount eased in */
+	for (axis = 0; axis < 3; axis++)
+	{
+		forward.n[axis] = level_forward.n[axis] + (forward.n[axis] - level_forward.n[axis]) * lock.amount;
+		up.n[axis] = global_up3d->n[axis] + (up.n[axis] - global_up3d->n[axis]) * lock.amount;
+	}
+	if (!(normalize3d(&up) > 0.0f))
+	{
+		vr_set_cockpit_frame(heading, NULL, NULL, NULL);
+		return;
+	}
+	cross_product3d(&up, &forward, &left);
+	if (!(normalize3d(&left) > 0.0f))
+	{
+		vr_set_cockpit_frame(heading, NULL, NULL, NULL);
+		return;
+	}
+	cross_product3d(&left, &up, &forward);
+	vr_set_cockpit_frame(heading, forward.n, left.n, up.n);
 }
 
 static char const *vr_vehicle_profile(char const *name)
@@ -1181,6 +1274,7 @@ short vr_render_windows(
 		long player_index = local_player_get_player_index(windows[0].local_player_index);
 		vr_update_seat(player_index != NONE ? player_get(player_index)->unit_index : NONE);
 	}
+	vr_cockpit_update();
 	player = windows[0];
 	console = windows[1];
 	for (eye = 0; eye < 2; eye++)
