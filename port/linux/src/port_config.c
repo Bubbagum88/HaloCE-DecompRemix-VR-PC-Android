@@ -242,6 +242,8 @@ static const struct config_setting config_settings[] =
 		_platform_all,
 		"Held in the third-person camera: the camera turns alone, the player\n"
 		"keeps on its way." },
+	{ "controls.text_chat", _config_string, "\"T\"", "HALO_KEY_TEXT_CHAT", _environment_value, _platform_all,
+		"Text chat: open a line to type (game.text_chat)." },
 
 	{ "debug.menu_open", _config_string, "\"\"", "HALO_MENU_OPEN", _environment_value, _platform_all,
 		"Start on this screen of the menus (port/assets/menus) instead of the main\n"
@@ -507,6 +509,16 @@ static const struct config_setting config_settings[] =
 		"How many decals (bullet holes, scorch marks, blood) stay before the\n"
 		"oldest give way: \"default\" (the game's own limit, 2048), \"4x\", \"8x\"\n"
 		"or \"insane\" (twelve times). Takes effect as the next map begins." },
+	{ "game.text_chat", _config_boolean, "true", "HALO_TEXT_CHAT", _environment_value, _platform_all,
+		"Text chat in network games, in the lobby too: controls.text_chat (T)\n"
+		"opens a line to type (Enter sends it, Tab: to your team or to all,\n"
+		"Escape cancels), and the players' lines show at the left of the\n"
+		"screen. Off: none shown, none typed." },
+	{ "game.text_chat_opacity", _config_integer, "100", "HALO_TEXT_CHAT_OPACITY", _environment_value, _platform_all,
+		"How opaque text chat is drawn, in percent (25 to 100)." },
+	{ "game.text_chat_size", _config_string, "\"large\"", "HALO_TEXT_CHAT_SIZE", _environment_value, _platform_all,
+		"How large text chat is drawn: \"small\", \"medium\" or \"large\" (the HUD's\n"
+		"own size)." },
 
 	{ "paths.data", _config_string, "\"\"", "HALO_DATA_ROOT", _environment_value, _platform_desktop,
 		"The folder holding the game data's maps folder; empty looks in the\n"

@@ -2231,6 +2231,7 @@ static struct
 	{ "controls.push_to_talk", L"PUSH TO TALK", 2 },
 	{ "controls.third_person", L"THIRD PERSON", 2 },
 	{ "controls.free_look", L"FREE LOOK", 2 },
+	{ "controls.text_chat", L"TEXT CHAT", 2 },
 };
 
 static struct

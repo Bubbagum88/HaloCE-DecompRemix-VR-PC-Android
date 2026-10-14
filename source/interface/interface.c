@@ -109,6 +109,7 @@ symbols in this file:
 #include "units/units.h"
 #include "map_share.h" /* port: port/linux/game/map_share.c */
 #include "armor_sync.h" /* port: port/linux/game/armor_sync.c */
+#include "network_chat.h" /* port: port/linux/game/network_chat.c */
 
 /* ---------- constants */
 
@@ -390,6 +391,8 @@ void interface_draw_fullscreen_overlays(
 	map_share_render();
 	/* port: the Armor choices sent (port/linux/game/armor_sync.c) */
 	armor_sync_network_update();
+	/* port: text chat, in the lobby and the game (port/linux/game/network_chat.c) */
+	network_chat_render();
 	terminal_draw();
 	main_framerate_render();
 	render_debug_profile();

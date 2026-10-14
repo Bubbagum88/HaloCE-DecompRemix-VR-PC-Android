@@ -42,6 +42,9 @@ enum halo_keyboard_action
 	HALO_KEYBOARD_THIRD_PERSON,
 	/* (the third-person camera's free look, held: platform_free_look_held) */
 	HALO_KEYBOARD_FREE_LOOK,
+	/* (text chat's line opened, which the game itself does not read:
+	platform_chat_key: the OpenCE fork's network_chat.c) */
+	HALO_KEYBOARD_TEXT_CHAT,
 	NUMBER_OF_HALO_KEYBOARD_ACTIONS
 };
 
