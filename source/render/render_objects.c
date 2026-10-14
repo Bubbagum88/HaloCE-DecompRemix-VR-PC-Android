@@ -387,6 +387,12 @@ void render_objects(
 /* port: port/linux/game/first_person_legs.c */
 boolean first_person_legs_wanted(long object_index);
 real_matrix4x3 const *first_person_legs_node_matrices(long object_index, real_matrix4x3 const *nodes);
+/* port: port/linux/game/item_draw_scale.c */
+real_matrix4x3 const *item_draw_scale_node_matrices(long object_index, real_matrix4x3 const *nodes);
+/* (an item lying about in multiplayer drawn at its own size with
+display.big_multiplayer_guns "enhanced"; any other object's nodes as they are) */
+#define ITEM_NODE_MATRICES(object_index) \
+	((real_matrix4x3 *)item_draw_scale_node_matrices((object_index), object_get_node_matrices(object_index)))
 /* port: port/linux/game/shield_color.c */
 real_rgb_color const *shield_color_colors(long unit_index, real_rgb_color const *colors);
 
@@ -647,10 +653,10 @@ static void render_object_list(
 						vr_body ? vr_render_body_matrices(object_index) :
                         vr_vehicle_controls_matrices(object_index,
                             vr_body_reaction_render(object_index,
-                            vr_combat_render(object_index,network_vr_pose_render(object_index, object_get_node_matrices(object_index))))),
+                            vr_combat_render(object_index,network_vr_pose_render(object_index, ITEM_NODE_MATRICES(object_index))))),
 #else
 						legs ? (real_matrix4x3 *)legs_matrices :
-						network_vr_pose_render(object_index, object_get_node_matrices(object_index)),
+						network_vr_pose_render(object_index, ITEM_NODE_MATRICES(object_index)),
 #endif
 						object->object.region_permutations,
 						object->object.outgoing_change_colors,
@@ -673,7 +679,7 @@ static void render_object_list(
 					render_model(
 						definition->object.model.index,
 						level_of_detail_pixels * 0.3f,
-						network_vr_pose_render(object_index, object_get_node_matrices(object_index)),
+						network_vr_pose_render(object_index, ITEM_NODE_MATRICES(object_index)),
 						object->object.region_permutations,
 						object->object.outgoing_change_colors,
 						object->object.outgoing_function_values,
