@@ -167,6 +167,9 @@ typedef int boolean;
 #define TRUE 1
 struct tag_validate_file_range { unsigned long offset, size; };
 struct tag_validation {};
+/* (Test67: GulchCE's MCC validation is asked first; no MCC map here) */
+struct mcc_validation_dispatch { boolean (*owns)(struct tag_validation *); boolean (*file_contains)(struct tag_validation *, long, long); };
+static struct mcc_validation_dispatch const *mcc_validation_callbacks = 0;
 static struct { struct tag_validate_file_range file_ranges[4]; short file_range_count; } tag_validate_globals;
 ''' + file_contains + r'''
 int main(void) {

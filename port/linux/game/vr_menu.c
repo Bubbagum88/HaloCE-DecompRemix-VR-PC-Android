@@ -28,6 +28,7 @@ fixed child counts are required to create a functioning screen.
 #include <stdlib.h>
 #include <string.h>
 
+
 /* port/linux/src/platform.h (a variadic call needs its prototype in scope
 on the Android guest's ABI) */
 void platform_log(const char *format, ...);
@@ -680,6 +681,10 @@ gun hand's lower/upper buttons and "X"/"Y" the other hand's (mirrored with
 Mirror Controls); the grip is the gun hand's, with locked weapons only */
 static struct vr_menu_setting const vr_menu_buttons[] =
 {
+    /* Test67: a player asked for a "reset to default controls" here: it was
+    the page's last row, below every binding; now also its first, plainly
+    named, and either says DONE once pressed */
+    { "ALL TO DEFAULT", "buttons", _vr_setting_reset_buttons, 0, { { NULL,NULL } } },
     { "JUMP", "vr.button_jump", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
     VR_IMMERSION_SHOULDER_POUCH,
     VR_IMMERSION_HIP_POUCH,
@@ -1423,6 +1428,10 @@ static long vr_menu_value_index(
 /* Test63: jump: 0 a NEXT row; 1 an index row opening a topic; 2 an index
 row opening a page (its first setting named); 3 the index's MORE row */
 struct vr_menu_navigation { long tag, next, total; char const *label; int jump; };
+/* cseries_windows.c's: when RESET BUTTONS was last pressed, for its DONE */
+unsigned long system_milliseconds(void);
+static unsigned long vr_menu_buttons_reset_at = 0;
+#define VR_MENU_RESET_DONE_MS 2000
 
 static struct
 {
@@ -2268,7 +2277,9 @@ boolean vr_menu_setting_text(
             setting->type == _vr_setting_reset_hand || setting->type == _vr_setting_reset_weapon ||
             setting->type == _vr_setting_reset_scopes || setting->type == _vr_setting_reset_buttons ||
             setting->type == _vr_setting_reset_vehicle_offsets || setting->type == _vr_setting_reset_wrist)
-            snprintf(line,sizeof(line),"%s: APPLY",setting->label);
+            snprintf(line,sizeof(line),"%s: %s",setting->label,
+                setting->type == _vr_setting_reset_buttons && vr_menu_buttons_reset_at &&
+                system_milliseconds() - vr_menu_buttons_reset_at < VR_MENU_RESET_DONE_MS ? "DONE" : "APPLY");
         else
 		snprintf(line, sizeof(line), setting->type == _vr_setting_real || setting->type == _vr_setting_snap_angle ?
 			"%s: < %s >" : "%s: %s", setting->label,
@@ -2384,6 +2395,8 @@ boolean vr_menu_setting_change(
         for(action=0;action<VR_BUTTON_ACTIONS;action++)
             written=config_write_string(vr_button_action_key(action),vr_button_source_value(vr_button_default(action)))&&written;
         vr_reload_settings(); platform_log("vr: reset buttons to their defaults%s",written?"":" (save failed)");
+        vr_menu_buttons_reset_at = system_milliseconds();
+        if (!vr_menu_buttons_reset_at) vr_menu_buttons_reset_at = 1;
         return TRUE;
     }
     if(setting->type == _vr_setting_button) {

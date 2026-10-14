@@ -72,6 +72,8 @@ struct weapon_definition { struct { int magazines; } weapon; } wd;
 struct weapon_datum { long definition_index; struct { unsigned flags; } item;
  struct { unsigned control_flags; } weapon; } weapon;
 struct { int infinite_ammo; } cheat;
+/* (Test67: GulchCE's MCC campaign unlimited ammo, none here) */
+static int mcc_campaign_unlimited_ammo(void) { return 0; }
 #define TAG_BLOCK_GET_ELEMENT(block,index,type) ((void)(block),(void)(index),&md)
 #define TEST_FLAG(value,bit) (((value) & (1u<<(bit))) != 0)
 #define FALSE 0
