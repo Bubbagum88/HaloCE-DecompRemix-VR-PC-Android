@@ -177,7 +177,7 @@ assert "if (mcc_level_name(scenario_name))" in cache and "mcc_cache_tags_load(sc
 assert "vr_menu_tags_loaded();" in cache.split("mcc_cache_tags_load(scenario_name", 1)[1].split("return result;", 1)[0]
 assert "loose_sounds" not in cache
 limits = read("port/linux/include/halo_port_limits.h")
-assert "#define HALO_PORT_NETWORK_VERSION 28" in limits and "MCC SHA-256" not in limits
+assert "#define HALO_PORT_NETWORK_VERSION 29" in limits and "MCC SHA-256" not in limits
 distributed = read("port/linux/game/network_distributed.h")
 assert "_distributed_message_mcc" not in distributed
 assert "mcc_content_sha256" not in read("source/networking/network_game_manager.h")
@@ -210,5 +210,5 @@ assert ".WorkshopActivity" in read("port/android/app/src/main/AndroidManifest.xm
 launcher = read("port/android/app/src/main/java/com/halo/decomp/LauncherActivity.java")
 assert '"Steam Workshop: download MCC maps"' in launcher and "WorkshopActivity.EXTRA_MANAGE" in launcher
 assert '"HALO 1 MCC MAPS (SOLO, EXPERIMENTAL)"' in launcher and "PICK_MCC_MAPS" in launcher and "PICK_MCC_SHARED" in launcher
-print("PASS: Test67 MCC engine wiring: GulchCE's loader dispatched, OpenCE network 28 unchanged (no MCC messages or "
+print("PASS: Test67 MCC engine wiring: GulchCE's loader dispatched, OpenCE network 29 (Build206) unchanged by MCC (no MCC messages or "
       "fingerprint, sends compiled out, MCC hosting/joining refused, host chooser skips MCC kinds), port's stb_vorbis, bcdec")

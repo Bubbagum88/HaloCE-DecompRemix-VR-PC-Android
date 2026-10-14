@@ -64,8 +64,8 @@ game advertisements. This build advertises 24; supported PvP clients may
 accept a compatible host version from the declared range. Hosts built before
 the field was added send zero, which clients reject. Raise the host version
 when a wire change requires it. */
-/* This build hosts and advertises as OpenCE network version 28 (OpenCE
-Build201). The supported PvP host range (11..28) follows ChupaThingyCE's
+/* This build hosts and advertises as OpenCE network version 29 (OpenCE
+Build206). The supported PvP host range (11..29) follows ChupaThingyCE's
 OpenCE-derived compatibility table, extended by OpenCE's 25 (a unit's
 integrated light in the host's object states, with a bit saying it was sent,
 so older hosts' zeros are not "off"), 26 (internet signalling's message
@@ -76,18 +76,26 @@ network_distributed.c, and its client never asks) and 28 (a multiplayer
 map's first scripted BSP kept, hs.c; dynamic lights and the flashlight on
 past the Xbox player and vehicle limits, game_engine.c; a second weapon
 picked up while firing readied, units.c and network_objects.c; the host
-holds a downloading machine's players, which this build's never are).
+holds a downloading machine's players, which this build's never are) and 29
+(a Custom Edition map's level name its own, custom_maps\hugeass, and the
+game record's map version its hash's first 32 bits, map_share_hash_version,
+where 28 named it for its hash and sent its header checksum: this build's
+client of a host before 29 finds such a map by its name and checks its
+checksum, custom_edition_cache.c).
 Client selection can narrow
 discovery/admission but never changes the local wire version. Campaign joins require version15 (the complete presentation
 and allegiance record); Custom Edition maps require version23 or newer. The range is also consumed by Android launcher/update metadata. */
-#define HALO_PORT_NETWORK_VERSION 28
+#define HALO_PORT_NETWORK_VERSION 29
 #define HALO_PORT_NETWORK_VERSION_MINIMUM 11
-#define HALO_PORT_NETWORK_VERSION_MAXIMUM 28
+#define HALO_PORT_NETWORK_VERSION_MAXIMUM 29
 #define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15
 #define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23
-/* The binary always hosts/advertises as 28. This immutable startup selection
+/* ... from which a host sends a Custom Edition map's hash version, not its
+header checksum, in the game record (OpenCE Build206) */
+#define HALO_PORT_MAP_HASH_VERSION_NETWORK_VERSION 29
+/* The binary always hosts/advertises as 29. This immutable startup selection
  * controls which compatible remote PvP protocol versions are listed/joined;
- * zero (the default) means all compatible versions in the declared 11..28
+ * zero (the default) means all compatible versions in the declared 11..29
  * range. */
 int halo_port_active_network_version(void);
 /* ... the advertisement's reserved bytes: the version (a little-endian word),

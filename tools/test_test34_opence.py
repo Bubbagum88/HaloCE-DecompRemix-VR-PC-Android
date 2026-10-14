@@ -22,9 +22,9 @@ def function(source, name):
 
 
 limits = read("port/linux/include/halo_port_limits.h")
-assert re.search(r"#define HALO_PORT_NETWORK_VERSION 28\b", limits)
+assert re.search(r"#define HALO_PORT_NETWORK_VERSION 29\b", limits)
 assert re.search(r"#define HALO_PORT_NETWORK_VERSION_MINIMUM 11\b", limits)
-assert re.search(r"#define HALO_PORT_NETWORK_VERSION_MAXIMUM 28\b", limits)
+assert re.search(r"#define HALO_PORT_NETWORK_VERSION_MAXIMUM 29\b", limits)
 assert re.search(r"#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15\b", limits)
 assert re.search(r"#define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23\b", limits)
 
@@ -68,7 +68,8 @@ assert "scope_path_log(5, zoom_level, shape)" in scope_window
 assert "state == previous_state" in scope_path_log
 assert "hold the off-hand index trigger" in scope_path_log
 package_gate = read("tools/package-quest.py")
-assert ('current_upstream_markers = ([b"OpenCE Build201 merged / network28"' in package_gate or
+assert ('current_upstream_markers = ([b"OpenCE Build206 merged / network29"' in package_gate or
+        'current_upstream_markers = ([b"OpenCE Build201 merged / network28"' in package_gate or
         'current_upstream_markers = ([b"OpenCE Build157 base / network28"' in package_gate or
         'current_upstream_markers = ([b"OpenCE Build157 base / network26"' in package_gate or
         'current_upstream_markers = ([b"OpenCE Build157 base / network24"' in package_gate or
@@ -198,8 +199,8 @@ server = read("source/networking/network_server_manager.c")
 assert server.count("cache_files_map_version(server->game.map.name)") >= 3
 assert "cache_files_map_version(game->map.name)" in read("port/linux/game/network_pvp_session.c")
 map_identity = read("source/cache/cache_files.c")
-assert "custom_edition_level_name(map_name) ? custom_edition_map_checksum(map_name) : 0" in function(map_identity, "cache_files_map_version")
-assert "if (checksum && identity.checksum != checksum)" in cache
+assert "custom_edition_level_name(map_name) ? custom_edition_map_version(map_name) : 0" in function(map_identity, "cache_files_map_version")
+assert "if (legacy && version && identity.checksum != version)" in cache  # Test68: a host before network 29 sends the checksum
 stock_load = function(map_identity, "scenario_tags_load")
 assert stock_load.index("tag_validate_tags(") < stock_load.index("cache_file_globals.tag_header = tag_cache_base_address")
 bsp_load = function(map_identity, "scenario_structure_bsp_load")

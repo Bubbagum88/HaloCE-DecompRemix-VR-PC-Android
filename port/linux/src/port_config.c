@@ -563,14 +563,14 @@ static const struct config_setting config_settings[] =
 		"Hosting: proximity voice range in world units (5 to 100)." },
     { "network.legacy_coop", _config_boolean, "false", "HALO_NET_LEGACY_COOP", _environment_value, _platform_all,
         "Opt in to legacy network12-14 campaign clients. Old hosts omit scripted team allegiance; marine reticles/team behavior may be wrong.\n"
-        "Uses old native presentation behavior without invented allegiance. Prefer network15-28. Hosting stays28." },
+        "Uses old native presentation behavior without invented allegiance. Prefer network15-29. Hosting stays29." },
 	{ "network.protocol_version", _config_integer, "0", "HALO_NETWORK_PROTOCOL_VERSION", _environment_value,
 		_platform_all,
 		"Client protocol target: 0 (the default) lists/joins all compatible PvP\n"
-		"versions 11-28; 11-28 selects one exact server version. This build always\n"
-		"hosts as 28. Campaign needs15+, or consented legacy12-14; Custom Edition\n"
+		"versions 11-29; 11-29 selects one exact server version. This build always\n"
+		"hosts as 29. Campaign needs15+, or consented legacy12-14; Custom Edition\n"
 		"needs23+. This is read once when the game starts; restart after changing\n"
-		"it. Invalid values fall back to the build's own version, 28." },
+		"it. Invalid values fall back to the build's own version, 29." },
 	{ "network.join_from_clipboard", _config_boolean, "true", "HALO_NET_JOIN_FROM_CLIPBOARD", _environment_value,
 		_platform_all,
 		"Join the game of an invite link found on the clipboard when the game\n"
@@ -595,18 +595,18 @@ static const struct config_setting config_settings[] =
 		"encrypted); comma-separated host:port, up to 4. The first is upstream's\n"
 		"own broker (its brokers.txt); the earlier default list moves to this one." },
 	/* HaloCE-Quest-VR: the OpenCE fork jcompto95-tech's network extras
-	(network_extras.c): their own message kinds, which OpenCE network 28
+	(network_extras.c): their own message kinds, which OpenCE network 29
 	builds drop as unknown; no network version change */
 	{ "network.community_extras", _config_boolean, "true", "HALO_NET_COMMUNITY_EXTRAS", _environment_value,
 		_platform_all,
 		"Community extras in network games: the players' Armor choices shared,\n"
 		"text chat, and votes to kick or ban with a reason. Players without\n"
-		"them (OpenCE network 28) play as ever; false sends and reads none." },
+		"them (OpenCE network 29) play as ever; false sends and reads none." },
     { "net.physical_interactions", _config_boolean, "false", "HALO_NET_PHYSICAL_INTERACTIONS", _environment_value, _platform_all,
         "Host permission for enhanced campaign physical interactions. Requires every peer to negotiate this port's optional extension.\n"
         "Off by default; unsupported or mixed peers retain ordinary campaign behavior." },
 	/* OpenCE Build 201: votes to kick and map sharing (no network version
-	change: network 28, which this build hosts and joins, carries them) */
+	change: network 28 carries them, and 29, which this build hosts, since) */
 	{ "network.votekick", _config_boolean, "true", "HALO_NET_VOTEKICK", _environment_value, _platform_all,
 		"Hosting: let the players vote to kick a player (the scoreboard's\n"
 		"right-click, or the console's votekick). More than half of the players\n"

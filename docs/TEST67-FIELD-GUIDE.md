@@ -209,8 +209,8 @@ section has:
   of MCC and are not bundled.
 - **Remove all MCC maps.**
 
-In game: **New Game** (campaign) or **Multiplayer**, then pick the map kind **MCC
-SINGLEPLAYER** or **MCC MULTIPLAYER**. Hosting a network game skips the MCC kinds;
+In game: **New Game** (campaign) or **Multiplayer**, then pick the map kind
+**MCC SINGLEPLAYER** or **MCC MULTIPLAYER**. Hosting a network game skips the MCC kinds;
 local split screen keeps them. This is experimental on the Quest (memory, texture
 decoding on the CPU). Some MCC models may draw wrong.
 

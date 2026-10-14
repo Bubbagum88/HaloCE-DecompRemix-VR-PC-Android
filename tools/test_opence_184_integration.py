@@ -77,6 +77,6 @@ functions = functions[:functions.index("};")]
 assert '"new campaign decision",' in functions, "dispatched by name: it must be one of the port's functions"
 
 limits = read("port/linux/include/halo_port_limits.h")
-assert "#define HALO_PORT_NETWORK_VERSION 28" in limits and "OpenCE\nBuild201" in limits  # Test59: network 28
+assert "#define HALO_PORT_NETWORK_VERSION 29" in limits and "OpenCE\nBuild206" in limits  # Test68: network 29
 print("PASS: selected OpenCE Build184 fixes integrated (co-op stale handles and elevators, joining, vehicles, "
       "HUD digits, CE map listing, profile-less Settings); network 28 hosting (Test59)")

@@ -583,7 +583,8 @@ identity = identity_match.group(1)
 # The identity banner now explicitly names the candidate's upstream network.
 # Keep the history assertion and accept the verified Build201 merge identity.
 assert 'test26 candidate 1.0.8' in frame or 'test26:' in frame
-assert ('OpenCE Build201 merged / network28' in identity or
+assert ('OpenCE Build206 merged / network29' in identity or
+        'OpenCE Build201 merged / network28' in identity or
         'OpenCE Build157 base / network28' in identity or 'OpenCE Build157 base / network26' in identity or
         'OpenCE Build157 base / network24' in identity or
         'OpenCE Build 157 base / network 24' in identity)

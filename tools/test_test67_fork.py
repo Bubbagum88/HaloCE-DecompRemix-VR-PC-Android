@@ -1,9 +1,9 @@
 """Test67: the OpenCE fork jcompto95-tech's branches (HALOFREAK95's videos),
 as this port took them: what must hold so they never regress the port.
 
-1. Network: the host still advertises network 28 (11..28 joined); the
+1. Network: the host advertises network 29 (Test68: OpenCE Build206; 11..29 joined); the
    community extras use only their own kinds 87-92 (votes, chat, Armor), each
-   behind network.community_extras (on by default), so OpenCE network 28 peers
+   behind network.community_extras (on by default), so OpenCE network 28 and 29 peers
    without them drop them as unknown kinds; the stock vote messages 78/79 are
    unchanged; the launcher's Server Browser turns the extras on or off.
 2. Every visual extra off (or "classic") by default, so the stock game is
@@ -24,8 +24,8 @@ read = lambda path: (ROOT / path).read_text(encoding='utf-8', errors='replace')
 
 # 1. network
 limits = read('port/linux/include/halo_port_limits.h')
-assert re.search(r'#define HALO_PORT_NETWORK_VERSION 28\b', limits)
-assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MAXIMUM 28\b', limits)
+assert re.search(r'#define HALO_PORT_NETWORK_VERSION 29\b', limits)
+assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MAXIMUM 29\b', limits)
 header = read('port/linux/game/network_distributed.h')
 kinds = dict((name, int(value)) for name, value in re.findall(r'_distributed_message_(\w+) = (\d+),', header))
 assert kinds['votekick'] == 78 and kinds['votekick_status'] == 79 and kinds['map_share_progress'] == 86
@@ -44,7 +44,7 @@ browser = read('port/android/app/src/main/java/com/halo/decomp/ServerBrowser.jav
 profile = read('port/android/app/src/main/java/com/halo/decomp/NetworkProfile.java')
 assert 'Community extras (armor, chat, vote bans): ' in browser and 'NetworkProfile.setCommunityExtras(' in browser
 assert 'ConfigSettings.write(root, "network", Collections.singletonMap("community_extras"' in profile
-print('PASS: network 28 kept; the extras only on their own kinds 87-92, each behind network.community_extras; launcher switch')
+print('PASS: network 29 (OpenCE Build206); the extras only on their own kinds 87-92, each behind network.community_extras; launcher switch')
 
 # 2. defaults and rows
 defaults = {

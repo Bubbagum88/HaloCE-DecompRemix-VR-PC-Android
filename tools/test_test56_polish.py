@@ -126,7 +126,7 @@ assert "if (tracked_fingers || grip_blend[controller] > 0.0f)" in render
 # game in progress (network_game_server_start_late_joiner).
 server = read("source/networking/network_server_manager.c")
 limits = read("port/linux/include/halo_port_limits.h")
-assert "#define HALO_PORT_NETWORK_VERSION 28" in limits
+assert "#define HALO_PORT_NETWORK_VERSION 29" in limits
 # (Test66: map sharing itself, OpenCE Build 201's map_share.c: the server
 # waits for a machine still downloading the map)
 assert "map_share_machine_needs_map(" in server and '#include "map_share.h"' in server

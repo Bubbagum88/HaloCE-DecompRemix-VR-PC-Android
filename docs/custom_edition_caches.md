@@ -81,6 +81,18 @@ characters, so a map whose file name is longer than 25 characters is left
 out, as is one named as an Xbox level, which that level already offers. Two
 optional files beside the map give it what the Xbox levels have:
 
+> **Map names and versions (OpenCE Build206, network 29; this port too).** Maps
+> keep their names: a network game's level name is the map's own
+> (`custom_maps\hugeass`), and its game record's map version is the first 32
+> bits of the map's hash (`map_share_hash_version`), by which a client finds
+> its file (`custom_edition_map_find_version`). A map of a name another version
+> has is `<name>_<hash>.map`, shown as "Name (2)"; one an earlier build named
+> for its hash gets its name back. This port's client of a host before 29
+> (which named maps for their hash and sent the header checksum) finds the
+> map by its name and checks the checksum, as before
+> (`custom_edition_map_version_is_checksum`, `custom_edition_cache.c`).
+
+
 - `<name>.bmp`, its picture: an uncompressed 24-bit or 32-bit Windows
   bitmap (Paint saves one), up to 8192 pixels a side. The menus show the
   middle of it with the shape of their level pictures, 140 by 114, so a
@@ -203,9 +215,11 @@ Loading, step by step (`custom_edition_cache_load`):
    its lightmaps and their materials: every block within the BSP and aligned,
    every material's uncompressed environment vertices (56 bytes) and
    lightmap vertices (20 bytes) within the BSP and of the size their counts
-   give, lightmap vertices exactly when the lightmap has a bitmap, and every
-   normal, binormal, tangent and incident radiosity within ±1.005 (the game's
-   vertex compressor asserts on anything further out).
+   give, at most 64000 of each (the game's limit, to which the validator
+   cuts a material's counts), lightmap vertices exactly when the lightmap
+   has a bitmap, and every normal, binormal, tangent and incident radiosity
+   within ±1.005 (the game's vertex compressor asserts on anything further
+   out).
 5. The header checksum is computed as OpenSauce computes it, before anything
    changes the tag data; a mismatch is reported, not refused.
 6. The tags held by resource maps are read into the tag cache after the tag

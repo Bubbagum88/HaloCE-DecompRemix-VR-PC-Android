@@ -15,6 +15,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 TESTS = ['tools/harness/tests/test_map_share_names.py', 'tools/harness/tests/test_map_share_trust.py',
+         'tools/harness/tests/test_map_share_restart.py',
          'tools/harness/tests/test_geometry_bytes.py']
 # single tests left out natively, each with its reason
 DESELECTED_NATIVE = {
@@ -37,6 +38,10 @@ if m32.returncode:
     sys.exit('FAIL: OpenCE harness tests, -m32 (pytest exit %d)' % m32.returncode)
 passed = re.search(r'(\d+) passed', native.stdout)
 not_run = re.search(r'M32-NOT-RUN: (\d+)', m32.stdout)
-print('PASS: OpenCE testing harness tests: %s passed 64-bit (%d left out: %s); -m32: %s compiled but NOT RUN here'
+qemu_run = re.search(r'M32-QEMU-RUN: (\d+)', m32.stdout)
+m32_passed = re.search(r'(\d+) passed', m32.stdout)
+print('PASS: OpenCE harness tests: %s passed 64-bit (%d left out: %s); -m32: %s passed (%s of them run under '
+      'qemu-i386), %s compiled but NOT RUN here'
       % (passed.group(1) if passed else '0', len(DESELECTED_NATIVE), '; '.join(DESELECTED_NATIVE.values()),
+         m32_passed.group(1) if m32_passed else '0', qemu_run.group(1) if qemu_run else '0',
          not_run.group(1) if not_run else '0'))

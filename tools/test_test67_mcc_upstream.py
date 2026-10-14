@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # whole files left out, each with its reason
 EXCLUDED = {
     "test_mcc_network.py": "GulchCE's online MCC (network 42 messages, MCC_DISTRIBUTED_SEND, speed packet); "
-                           "this port plays MCC maps solo only on network 28 (online MCC deferred by the owner)",
+                           "this port plays MCC maps solo only on network 29 (online MCC deferred by the owner)",
     "test_mcc_ui_teams.py": "the MCC in-game team request is GulchCE's network_server_message_handler.c hook "
                             "(an online MCC game's); this port keeps its own handler, MCC solo only",
 }

@@ -22,9 +22,9 @@ def function(source, name):
 
 
 limits = read("port/linux/include/halo_port_limits.h")
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 28$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 29$", limits, re.M)
 assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MINIMUM 11$", limits, re.M)
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MAXIMUM 28$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MAXIMUM 29$", limits, re.M)
 assert re.search(r"^#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15$", limits, re.M)
 assert re.search(r"^#define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23$", limits, re.M)
 assert "int halo_port_active_network_version(void);" in limits
@@ -106,9 +106,9 @@ fixture = r'''#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define HALO_PORT_NETWORK_VERSION 28
+#define HALO_PORT_NETWORK_VERSION 29
 #define HALO_PORT_NETWORK_VERSION_MINIMUM 11
-#define HALO_PORT_NETWORK_VERSION_MAXIMUM 28
+#define HALO_PORT_NETWORK_VERSION_MAXIMUM 29
 #define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15
 #define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23
 #define HALO_PORT_ADVERTISED_DISTRIBUTED_FLAG 0x01

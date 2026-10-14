@@ -1,3 +1,16 @@
+## Active private Test68 (2026-10-14)
+
+OpenCE Build 206 on Test67, 1.0.35-test68 / code80. Read docs/TEST68-CHECKLIST.md,
+TEST68-FIELD-GUIDE.md, TEST68-DEVICE-CHECKLIST.md and TEST68-DELIVERY-STATUS.md.
+Owner: "update everything to match the details of it [OpenCE] and build new apks".
+Network 29 (hosts 29, joins 11..29): Custom Edition maps keep their names, the
+game record's map version is the map's hash's; a client of a host before 29
+finds the map by name and checks the header checksum
+(custom_edition_map_version_is_checksum; test_test68_network29). Map sharing
+restart and validation hardening, stb_vorbis floor fix. Everything of Test67
+kept (VR, MCC maps solo, the fork's features, community extras on 87-92).
+Private only: no push/publish/install/launch. Device acceptance pending.
+
 ## Active private Test67 (2026-10-13)
 
 Precision polish on Test66, 1.0.34-test67 / code79. Read docs/TEST67-CHECKLIST.md,

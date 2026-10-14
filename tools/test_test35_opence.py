@@ -23,9 +23,10 @@ def function(source, name):
 
 # Preserve the released Build 148 fixes while the candidate moves to Build 157.
 limits = read("port/linux/include/halo_port_limits.h")
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 28$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 29$", limits, re.M)
 gradle = read("port/android/app/build.gradle")
-assert ("versionCode Math.max(79, buildNumber)" in gradle or
+assert ("versionCode Math.max(80, buildNumber)" in gradle or
+        "versionCode Math.max(79, buildNumber)" in gradle or
         "versionCode Math.max(78, buildNumber)" in gradle or
         "versionCode Math.max(77, buildNumber)" in gradle or
         "versionCode Math.max(76, buildNumber)" in gradle or
@@ -46,7 +47,8 @@ assert ("versionCode Math.max(79, buildNumber)" in gradle or
         "versionCode Math.max(61, buildNumber)" in gradle or
         "versionCode Math.max(60, buildNumber)" in gradle)
 frame = read("port/linux/src/vr_frame.c")
-assert ("HaloCE Quest test67 candidate 1.0.34-test67 code79" in frame or
+assert ("HaloCE Quest test68 candidate 1.0.35-test68 code80" in frame or
+        "HaloCE Quest test67 candidate 1.0.34-test67 code79" in frame or
         "HaloCE Quest test66 candidate 1.0.33-test66 code78" in frame or
         "HaloCE Quest test65 candidate 1.0.32-test65 code77" in frame or
         "HaloCE Quest test64 candidate 1.0.31-test64 code76" in frame or
@@ -66,18 +68,21 @@ assert ("HaloCE Quest test67 candidate 1.0.34-test67 code79" in frame or
         "HaloCE Quest test51 candidate 1.0.32-test51 code62" in frame or
         "HaloCE Quest test50 candidate 1.0.31-test50 code61" in frame or
         "HaloCE Quest test49 candidate 1.0.30-test49 code60" in frame)
-assert ("OpenCE Build201 merged / network28" in frame or
+assert ("OpenCE Build206 merged / network29" in frame or
+        "OpenCE Build201 merged / network28" in frame or
         "OpenCE Build157 base / network28; selected fixes through Build201" in frame or
         "OpenCE Build157 base / network26; selected fixes through Build184" in frame or
         "OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176" in frame or
         "OpenCE Build 157 base / network 24; selected Build167 compatibility fixes" in frame)
 updater = read('port/android/app/src/main/java/com/halo/decomp/Updater.java')
-assert ('Engine base: OpenCE Build 157 / network 28. Selected fixes through Build 201' in updater or
+assert ('Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 206' in updater or
+        'Engine base: OpenCE Build 157 / network 28. Selected fixes through Build 201' in updater or
         'Engine base: OpenCE Build 157 / network 26. Selected fixes through Build 184' in updater or
         'Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177' in updater or
         'Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167' in updater)
 package_script = read("tools/package-quest.py")
-assert ('b"Engine base: OpenCE Build 157 / network 28. Selected fixes through Build 201' in package_script or
+assert ('b"Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 206' in package_script or
+        'b"Engine base: OpenCE Build 157 / network 28. Selected fixes through Build 201' in package_script or
         'b"Engine base: OpenCE Build 157 / network 26. Selected fixes through Build 184' in package_script or
         'b"Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177' in package_script or
         'b"Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167"' in package_script)
