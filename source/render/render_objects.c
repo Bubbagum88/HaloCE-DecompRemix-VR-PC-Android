@@ -404,6 +404,8 @@ short render_objects_rendered(
 	*object_indices = render_object_globals.rendered_object_indices;
 	return render_object_globals.rendered_object_count;
 }
+/* port: port/linux/game/spartan_colors.c */
+real_rgb_color const *spartan_colors_change_colors(long object_index, real_rgb_color const *colors);
 
 void render_object_shadows(
 	void)
@@ -672,7 +674,9 @@ static void render_object_list(
 						network_vr_pose_render(object_index, ITEM_NODE_MATRICES(object_index)),
 #endif
 						object->object.region_permutations,
-						object->object.outgoing_change_colors,
+						/* port: a Spartan's armor in the color chosen
+						(port/linux/game/spartan_colors.c) */
+						spartan_colors_change_colors(object_index, object->object.outgoing_change_colors),
 						object->object.outgoing_function_values,
 						data->lighting,
 						&object->object.bounding_sphere_center,
@@ -694,7 +698,9 @@ static void render_object_list(
 						level_of_detail_pixels * 0.3f,
 						network_vr_pose_render(object_index, ITEM_NODE_MATRICES(object_index)),
 						object->object.region_permutations,
-						object->object.outgoing_change_colors,
+						/* port: a Spartan's armor in the color chosen
+						(port/linux/game/spartan_colors.c) */
+						spartan_colors_change_colors(object_index, object->object.outgoing_change_colors),
 						object->object.outgoing_function_values,
 						data->lighting,
 						&object->object.bounding_sphere_center,

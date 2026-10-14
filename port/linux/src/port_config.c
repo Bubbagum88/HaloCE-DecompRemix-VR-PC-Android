@@ -361,10 +361,36 @@ static const struct config_setting config_settings[] =
 		"How far the shield glow reaches: \"default\" or \"light_show\" (three\n"
 		"times as far, and at full strength from a third of the flare)." },
 	{ "display.shield_color", _config_string, "\"default\"", "HALO_SHIELD_COLOR", _environment_value, _platform_all,
-		"Your energy shield's color, as this machine draws it: \"default\" (the\n"
-		"shield's own) or a multiplayer armor color: white, black, red, blue,\n"
-		"gray, yellow, green, pink, purple, cyan, cobalt, orange, teal, sage,\n"
-		"brown, tan, maroon or salmon." },
+		"Your energy shield's color: \"default\" (the shield's own) or a\n"
+		"multiplayer armor color: white, black, red, blue, gray, yellow, green,\n"
+		"pink, purple, cyan, cobalt, orange, teal, sage, brown, tan, maroon or\n"
+		"salmon. In a network game the other players see it if they show\n"
+		"players' custom armor (display.others_custom_armor)." },
+	{ "display.spartan_armor_color", _config_string, "\"default\"", "HALO_SPARTAN_ARMOR_COLOR", _environment_value,
+		_platform_all,
+		"Your Spartan's armor in a multiplayer armor color (\"white\", \"black\",\n"
+		"\"red\"...) or \"blackout\" (deeper than black); \"default\": the game's\n"
+		"own (in multiplayer, the profile's color). A team game keeps the team's." },
+	{ "display.spartan_lights_color", _config_string, "\"default\"", "HALO_SPARTAN_LIGHTS_COLOR", _environment_value,
+		_platform_all,
+		"Your Spartan's armor lights (the glow above the knees) in a multiplayer\n"
+		"armor color; \"default\": the game's own." },
+	{ "display.visor_color", _config_string, "\"default\"", "HALO_VISOR_COLOR", _environment_value, _platform_all,
+		"Your Spartan's visor in a multiplayer armor color (\"white\", \"black\",\n"
+		"\"red\"... as the profile's colors; black a deep, glossy black), or\n"
+		"\"default\", its gold." },
+	{ "display.flashlight_color", _config_string, "\"default\"", "HALO_FLASHLIGHT_COLOR", _environment_value,
+		_platform_all,
+		"Your Spartan's flashlight in a multiplayer armor color; \"default\": the\n"
+		"game's own." },
+	{ "display.others_custom_armor", _config_boolean, "false", "HALO_OTHERS_CUSTOM_ARMOR", _environment_value,
+		_platform_all,
+		"Other players' Spartans as they chose them (Pause > Armor): their armor,\n"
+		"lights, visor and shield (and flashlight, display.others_custom_flashlights);\n"
+		"false: every one as stock." },
+	{ "display.others_custom_flashlights", _config_boolean, "false", "HALO_OTHERS_CUSTOM_FLASHLIGHTS",
+		_environment_value, _platform_all,
+		"Other players' flashlights in the colors they chose; false: as stock." },
 	{ "display.high_res_hud", _config_boolean, "true", "HALO_HIGH_RES_HUD", _environment_value, _platform_all,
 		"Draw the HUD (meters, counters, panels, motion sensor, reticles,\n"
 		"waypoints, scopes) from the high-res assets (8x the maps' bitmaps);\n"
@@ -556,6 +582,14 @@ static const struct config_setting config_settings[] =
 		"other and the server browser's listings travel (its messages are\n"
 		"encrypted); comma-separated host:port, up to 4. The first is upstream's\n"
 		"own broker (its brokers.txt); the earlier default list moves to this one." },
+	/* HaloCE-Quest-VR: the OpenCE fork jcompto95-tech's network extras
+	(network_extras.c): their own message kinds, which OpenCE network 28
+	builds drop as unknown; no network version change */
+	{ "network.community_extras", _config_boolean, "true", "HALO_NET_COMMUNITY_EXTRAS", _environment_value,
+		_platform_all,
+		"Community extras in network games: the players' Armor choices shared,\n"
+		"text chat, and votes to kick or ban with a reason. Players without\n"
+		"them (OpenCE network 28) play as ever; false sends and reads none." },
     { "net.physical_interactions", _config_boolean, "false", "HALO_NET_PHYSICAL_INTERACTIONS", _environment_value, _platform_all,
         "Host permission for enhanced campaign physical interactions. Requires every peer to negotiate this port's optional extension.\n"
         "Off by default; unsupported or mixed peers retain ordinary campaign behavior." },

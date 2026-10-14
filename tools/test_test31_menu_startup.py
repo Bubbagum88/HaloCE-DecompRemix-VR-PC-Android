@@ -217,7 +217,8 @@ int main(int argc,char **argv){
   if(expect_fail){assert(!menu_tags.loaded);assert(!strcmp(pc_menus_root_name(),"ui\\shell\\main_menu\\main_menu"));}
   else{assert(menu_tags.loaded);assert(current!=stock_instances&&current_count>original_count);
    if(!mp_mode)assert(!strcmp(pc_menus_root_name(),"pc\\main_menu\\main_menu"));
-   if(mp_mode)assert(pause_list->child_widgets.count==(mp_mode==2?3:2));
+   /* (Test67: ARMOR, SETTINGS and the host's END GAME before LEAVE GAME: the OpenCE fork's armor menu) */
+   if(mp_mode)assert(pause_list->child_widgets.count==(mp_mode==2?4:3));
    assert(menu_tags.setting_count>=35);
   }
   if(expect_fail&&mp_mode){assert(pause_list->child_widgets.address==pause_children&&pause_list->child_widgets.count==1&&pause_list->bounds.y1==200);assert(pause_screen_children[0].vertical_offset==73);}

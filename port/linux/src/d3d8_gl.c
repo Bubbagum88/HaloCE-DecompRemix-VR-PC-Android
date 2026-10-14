@@ -404,6 +404,12 @@ struct program_entry
 	GLint screen_offset;
 	/* (the overshield's rise: d3d8_gl_set_height_fade) */
 	GLint height_fade;
+	/* (the OpenCE fork's armor menu) d3d8_gl_set_recolor's and d3d8_gl_set_glow's,
+	and what each last had */
+	GLint recolor;
+	float recolor_value[4];
+	GLint glow;
+	float glow_value[4];
 	/* the lights of a draw lit for each pixel (XGPU_MODEL_LIGHT_COUNT), and
 	constants_serial at their last upload */
 	GLint model_lights;
@@ -2684,6 +2690,10 @@ static struct program_entry *program_get(GLuint vertex_shader, GLuint fragment_s
 	entry->texture_lod_bias = glGetUniformLocation(entry->program, "texture_lod_bias");
 	entry->screen_offset = glGetUniformLocation(entry->program, "screen_offset");
 	entry->height_fade = glGetUniformLocation(entry->program, "height_fade");
+	entry->recolor = glGetUniformLocation(entry->program, "recolor");
+	entry->recolor_value[3] = -1.0f;
+	entry->glow = glGetUniformLocation(entry->program, "glow");
+	entry->glow_value[3] = -1.0f;
 	entry->model_lights = glGetUniformLocation(entry->program, "model_lights");
 	for (stage = 0; stage < D3DTSS_MAXSTAGES; stage++)
 	{
@@ -3208,6 +3218,29 @@ colors are scaled by clamp((height - z) * inverse_softness, 0, 1), where z,
 its height in the model's space, is (oT0.z - offset) / scale (the plasma
 shader's noise coordinate, rasterizer_xbox_plasma_energy.c). A scale of zero
 turns it off, as it is for every other draw. */
+/* (the OpenCE fork jcompto95-tech's armor menu: spartan_colors.c, visor_color.c)
+the recolor of the draws that follow (a Spartan's visor, armor; off while its
+curve is zero), and their glow (a Spartan's armor lights; off while it has no
+color; its alpha the halo's strength) */
+static float recolor_value[4];
+static float glow_value[4];
+
+void d3d8_gl_set_recolor(float red, float green, float blue, float curve)
+{
+	recolor_value[0] = red;
+	recolor_value[1] = green;
+	recolor_value[2] = blue;
+	recolor_value[3] = curve;
+}
+
+void d3d8_gl_set_glow(float red, float green, float blue, float halo)
+{
+	glow_value[0] = red;
+	glow_value[1] = green;
+	glow_value[2] = blue;
+	glow_value[3] = halo;
+}
+
 void d3d8_gl_set_height_fade(float inverse_softness, float height, float offset, float scale)
 {
 	height_fade_value[0] = inverse_softness;
@@ -3323,6 +3356,8 @@ static struct program_entry *prepare_draw(BOOL immediate)
 		key.alpha_test_samples = (unsigned char)target_samples;
 #endif
 	key.fog_enable = D3D__RenderState[D3DRS_FOGENABLE] != 0;
+	key.recolor = recolor_value[3] > 0.0f;
+	key.glow = glow_value[0] > 0.0f || glow_value[1] > 0.0f || glow_value[2] > 0.0f;
 	key.fog_table_mode = (unsigned char)D3D__RenderState[D3DRS_FOGTABLEMODE];
 #ifdef HALO_ANDROID
 	key.count_samples = device.visibility_test_active && xgpu_capabilities.atomic_counters;
@@ -3358,6 +3393,16 @@ static struct program_entry *prepare_draw(BOOL immediate)
 		stats.draws++;
 	upload_perf.draws++;
 	state_program(entry->program);
+	if (key.glow && entry->glow >= 0 && memcmp(entry->glow_value, glow_value, sizeof(glow_value)))
+	{
+		memcpy(entry->glow_value, glow_value, sizeof(glow_value));
+		glUniform4fv(entry->glow, 1, glow_value);
+	}
+	if (key.recolor && entry->recolor >= 0 && memcmp(entry->recolor_value, recolor_value, sizeof(recolor_value)))
+	{
+		memcpy(entry->recolor_value, recolor_value, sizeof(recolor_value));
+		glUniform4fv(entry->recolor, 1, recolor_value);
+	}
 #ifdef HALO_ANDROID
 	if (key.count_samples)
 		glBindBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0, device.visibility_counters,
@@ -4510,6 +4555,18 @@ void WINAPI D3DDevice_Clear(DWORD count, CONST D3DRECT *rectangles, DWORD flags,
 /* display.anti_aliasing's pass over a window's 3D view, before the HUD and
 menus are drawn over it (source/render/render.c); the window's bounds in the
 game's units of the screen */
+/* (the OpenCE fork's armor menu: render.c) the armor lights' bloom over the 3D
+view; the fork draws it on desktops only, its ES builds none: this port's
+renderer (ES on Android and the Quest) none either; the lights themselves
+glow in the model shader (d3d8_gl_set_glow) */
+void halo_screen_light_bloom(short x0, short y0, short x1, short y1)
+{
+	(void)x0;
+	(void)y0;
+	(void)x1;
+	(void)y1;
+}
+
 void halo_screen_anti_alias(short x0, short y0, short x1, short y1)
 {
 	struct render_target_entry *target;

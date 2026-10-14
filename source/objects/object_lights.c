@@ -184,10 +184,13 @@ symbols in this file:
 #include "tag_files/tag_groups.h"
 #include "units/units.h"
 #include "cache/cache_files.h" /* port: (tag_iterator: light_port_glow_definition_get) */
+/* port: port/linux/game/spartan_colors.c */
+void spartan_colors_light(long object_index, real_rgb_color *color);
 void shield_glow_update(void); /* port: port/linux/game/shield_glow.c */
 /* port: port/linux/game/projectile_lights.c */
 boolean projectile_lights_dynamic(long definition_index, long object_index);
 void projectile_lights_color(long object_index, real_rgb_color *color);
+void spartan_colors_glow_update(void); /* port: port/linux/game/spartan_colors.c */
 
 /* port: port/linux/src (halo.log) */
 void platform_log(const char *format, ...);
@@ -979,6 +982,7 @@ void lights_preprocess_scene(
 	between ticks: lights_port_recover) */
 	lights_port_recover();
 	shield_glow_update(); /* port: port/linux/game/shield_glow.c */
+	spartan_colors_glow_update(); /* port: port/linux/game/spartan_colors.c */
 	for (light_index = data_next_index(light_data, NONE);
 		light_index != NONE;
 		light_index = data_next_index(light_data, light_index))
@@ -1079,6 +1083,9 @@ void lights_preprocess_scene(
 			/* port: a needle's light dimmer than a bolt's
 			(port/linux/game/projectile_lights.c) */
 			projectile_lights_color(light->object_index, &light->color);
+			/* port: a Spartan's flashlight in the color chosen
+			(port/linux/game/spartan_colors.c) */
+			spartan_colors_light(light->object_index, &light->color);
 		}
 		else
 		{

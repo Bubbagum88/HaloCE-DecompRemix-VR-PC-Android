@@ -63,6 +63,9 @@ static struct director view;
 static int changes, interpolated;
 static void first_person_camera_update(void *a,void *b,void *c){(void)a;(void)b;(void)c;}
 static void following_camera_update(void *a,void *b,void *c){(void)a;(void)b;(void)c;}
+/* (Test67: the OpenCE fork's third-person camera, off here: the director as before) */
+static boolean third_person_camera_wanted(short i){(void)i;return FALSE;}
+static void third_person_camera_update(void *a,void *b,void *c){(void)a;(void)b;(void)c;}
 static void first_person_camera_new(struct first_person_camera *p){(void)p;}
 static void following_camera_new(struct following_camera *p){(void)p;}
 static struct director *director_get(short i){(void)i;return &view;}

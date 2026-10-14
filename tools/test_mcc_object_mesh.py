@@ -41,7 +41,13 @@ struct model_vertex_uncompressed {struct point position;short nodes[2];real node
 struct vertex_buffer {short type;long count;void *hardware_format;};
 struct triangle_buffer {short type;long count;void *hardware_format;};
 struct object_mesh_vertex {struct point position;byte nodes[2];short weight;};
-struct object_mesh {long vertex_count,triangle_count;short node_count;struct object_mesh_vertex vertices[16];unsigned short triangles[16][3];};
+struct object_mesh {long vertex_count,triangle_count;short node_count;struct object_mesh_vertex vertices[16];unsigned short triangles[16][3];
+    byte triangle_flags[16];};
+/* (Test67: the OpenCE fork's projectile effects mark triangles a mark may not go on
+   (a visor, glass) and count why parts are left out; the opaque pass here) */
+#define OBJECT_MESH_TRIANGLE_NO_MARKS 1
+static struct {long parts,stripped,shaders_skipped,no_buffers,formats,unreadable,full,added;} object_mesh_why;
+static char *tag_get_name(long index) {(void)index;return "characters\\cyborg\\shaders\\cyborg";}
 struct object_mesh_model_geometry_part {unsigned flags;short shader_index,centroid_primary_node_index;struct vertex_buffer vertex_buffer;struct triangle_buffer triangle_buffer;};
 struct object_mesh_model_shader_reference {struct {long index;} shader;};
 struct model {struct {long count;void *address;} shaders;};
@@ -68,11 +74,11 @@ int main(void) {
     struct model model={{1,&ref}};
     struct object_mesh_model_geometry_part part={0,0,0,{0,3,vertices},{1,1,indices}};
     memset(&mesh,0,sizeof(mesh));mesh.node_count=64;
-    if(!object_mesh_add_part(&mesh,&model,&part)||mesh.vertices[0].nodes[0]!=0||mesh.vertices[0].nodes[1]!=1) return 1;
+    if(!object_mesh_add_part(&mesh,&model,&part,FALSE)||mesh.vertices[0].nodes[0]!=0||mesh.vertices[0].nodes[1]!=1) return 1;
     memset(&mesh,0,sizeof(mesh));mesh.node_count=64;palette_enabled=1;
-    if(!object_mesh_add_part(&mesh,&model,&part)||mesh.vertices[0].nodes[0]!=40||mesh.vertices[0].nodes[1]!=7||mesh.triangle_count!=1) return 2;
+    if(!object_mesh_add_part(&mesh,&model,&part,FALSE)||mesh.vertices[0].nodes[0]!=40||mesh.vertices[0].nodes[1]!=7||mesh.triangle_count!=1) return 2;
     memset(&mesh,0,sizeof(mesh));mesh.node_count=64;vertices[0].nodes[1]=6;
-    if(!object_mesh_add_part(&mesh,&model,&part)||mesh.vertices[0].nodes[1]!=40||mesh.vertices[0].weight!=32767) return 3;
+    if(!object_mesh_add_part(&mesh,&model,&part,FALSE)||mesh.vertices[0].nodes[1]!=40||mesh.vertices[0].weight!=32767) return 3;
     return 0;
 }
 ''')
