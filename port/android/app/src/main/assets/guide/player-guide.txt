@@ -150,12 +150,78 @@ resource layout stays unchanged. Altheros remains its author's 2019 beta with
 the existing level-specific notes.
 These file checks do not certify every level or modified map's runtime behavior.
 
+## New from the OpenCE fork (HALOFREAK95's videos)
+
+Everything from the fork by jcompto95-tech (HALOFREAK95 on YouTube) is in. Every
+visual option starts off (or Classic), so the game looks as before until you
+choose otherwise. Most live in a new screen:
+**Settings > Video Setup > EXTRA EFFECTS**.
+
+| Option | Where | What it does |
+| --- | --- | --- |
+| Shield Glow, Glow Intensity | Extra Effects | Moved here from Graphics, unchanged. |
+| Overshield | Extra Effects | The overshield rises up the body as it charges and stays lit in its own color. |
+| Dynamic Blood | Extra Effects | Hits throw blood on the wall behind, and it runs down. |
+| Vehicle Blood | Extra Effects | Blood stains vehicles and objects and rides with them. A vehicle that hits a body gets blood on it. |
+| Projectile Effects | Extra Effects | Bullet holes and burns on vehicles and armor; plasma sparks, smoke and light. |
+| Stencil Shadows | Extra Effects | Hard shadows from characters and vehicles. Costly on the Quest. In VR your own body casts none (it follows the headset, not the game). |
+| Weapons Physics | Extra Effects | Enhanced: dropped guns and grenades tumble and roll (the same physics as the ragdolls). A gun in your hand is never moved by it. |
+| Big Multiplayer Guns | Graphics | Classic: guns on the ground are oversized in multiplayer (the game's own). Enhanced: real size. Looks only. |
+| Corpse Duration, Corpse Limit | Graphics | Bodies stay longer, or many more of them. The host's setting decides online. |
+| Decal Duration | Graphics | Bullet holes and scorch marks stay until the limit instead of fading. |
+| Decals | Graphics, PC only | The fork keeps this one to computers (memory). |
+| Third Person | FOV and Viewmodels | Flat game only (phone, tablet): the camera over your shoulder, on foot, in a campaign or co-op. A keyboard's Keypad Enter toggles it, and Alt looks around. Never in VR. |
+| Spartan Armor | FOV and Viewmodels, and Pause > ARMOR | Your armor, armor lights, visor, flashlight and shield colors (Blackout for the armor). Show Players' Custom Armor and Flashlights: see other players' choices. Reset to Classic. |
+
+**Multiplayer extras.** The players' armor choices are shared, there is **text
+chat** (T opens a line: Enter sends it, Tab switches team/all, Escape cancels),
+and **votes to kick or ban for 12 hours with a reason** (F1 votes yes, F2 no).
+They travel in messages of their own. OpenCE players without them simply ignore
+those messages, so you join and host the same games as before (network 28).
+Turn them off in the launcher: **Server Browser > Community extras**. Chat's
+own options (show it, opacity, size) are in **Settings > Network Setup > Text
+Chat**.
+
+Typing chat and voting use keyboard keys. A Bluetooth keyboard paired with the
+Quest or phone works. Without one you still see chat lines and other players'
+votes.
+
+## VR controls: reset to default
+
+**VR SETTINGS > BUTTONS** now starts with **ALL TO DEFAULT** (the same reset as
+RESET BUTTONS at the bottom). Either row shows DONE for two seconds once pressed.
+
+## Halo 1 MCC maps (solo, experimental)
+
+From GulchCE (chestahh). MCC maps play **solo only** in this build; online MCC
+games are for later. The launcher's **HALO 1 MCC MAPS (SOLO, EXPERIMENTAL)**
+section has:
+
+- **Steam Workshop: download MCC maps.** Browse the Halo 1 Workshop in the
+  launcher. On a map's or collection's page, tap DOWNLOAD TO HALO. Downloading
+  needs a Steam account that owns Halo MCC: sign in with your name and password,
+  then approve in the Steam app or type the Steam Guard code. Only a sign-in
+  token is kept, never your password.
+- **Installed MCC maps:** see each one with its size; enable, disable, delete
+  (your saves are kept), check for updates, open its Workshop page.
+- **Import MCC maps from a folder** and **Import MCC's resource maps (from your
+  MCC).** Some maps need MCC's own shared resource maps; they come from your copy
+  of MCC and are not bundled.
+- **Remove all MCC maps.**
+
+In game: **New Game** (campaign) or **Multiplayer**, then pick the map kind **MCC
+SINGLEPLAYER** or **MCC MULTIPLAYER**. Hosting a network game skips the MCC kinds;
+local split screen keeps them. This is experimental on the Quest (memory, texture
+decoding on the CPU). Some MCC models may draw wrong.
+
 ## What to test
 
 See TEST67-DEVICE-CHECKLIST.md. Weapon pose comfort, combat balance, feedback and
 campaign playthroughs still need device results. This candidate has not been
-installed or launched by the agent. Network/protocol and voice chat are unchanged. Only optional campaign resource
-addressing and its converted-audio cache identity changed, as described above.
+installed or launched by the agent. The network version (28) and voice chat are
+unchanged; the community extras use new message kinds that stock OpenCE players
+ignore. Optional campaign resource addressing and its converted-audio cache
+identity changed, as described above.
 
 ---
 

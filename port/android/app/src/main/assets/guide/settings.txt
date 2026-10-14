@@ -200,6 +200,20 @@ Default: "V"
 Hold to transmit voice when audio.voice_chat is "push_to_talk". In VR,
 the BUTTONS page also lets you bind a Quest controller button.
 
+controls.third_person [string]
+Default: "Keypad Enter"
+The third-person camera on foot, on and off, in a campaign and co-op
+(controls.free_look held: free look; the wheel: nearer and further).
+
+controls.free_look [string]
+Default: "Left Alt, Right Alt"
+Held in the third-person camera: the camera turns alone, the player
+keeps on its way.
+
+controls.text_chat [string]
+Default: "T"
+Text chat: open a line to type (game.text_chat).
+
 debug.menu_open [string]
 Default: ""
 Start on this screen of the menus (port/assets/menus) instead of the main
@@ -293,10 +307,59 @@ Default: false
 The energy shield's flare on the first-person arms too, as on the body
 (the stock game draws it on the body only).
 
+display.third_person [boolean]
+Default: false
+The third-person camera on foot in a campaign and co-op, over the
+shoulder (the flat game's; not in VR). controls.third_person toggles it.
+
+display.stencil_shadows [boolean]
+Default: false
+Hard stencil shadows from characters and vehicles besides the game's
+own, as F.E.A.R. and Doom 3 cast them: on the level, on other objects
+and on themselves, your own body's and weapon's in first person too
+(not in VR, where your body follows the headset). Costly on a Quest.
+
 display.first_person_legs [boolean]
 Default: false
 Your own legs in first person, seen looking down: your body as others
 see it, drawn from the waist down, moving as it moves.
+
+display.big_multiplayer_guns [string]
+Default: "classic"
+Weapons and equipment lying about in multiplayer: "classic" (the
+game's, drawn larger than in the campaign) or "enhanced" (their real
+size, as in the campaign). Only how they are drawn changes.
+
+display.overshield_effect [boolean]
+Default: false
+The overshield as this machine draws it: its flare rising up the body as
+it charges (2 seconds, 3 from a shield that was down) and staying lit,
+its energy slower, in its own color (the powerup's), on the first-person
+arms too with viewmodel_shield; a hit on it plays what the projectile
+plays on an Elite's shield. Only what is drawn and heard changes.
+
+game.dynamic_blood [boolean]
+Default: false
+Blood thrown onto the wall behind a body hit, running down walls in
+drops, and landing on trees and fences (port/linux/game/blood.c).
+This machine's alone: nothing is sent. false: the game's own blood.
+
+game.vehicle_blood [boolean]
+Default: false
+Blood that stains vehicles and objects (rocks, crates, machines,
+dropped weapons), painted on their drawn models and riding with them,
+and runs down their sides (port/linux/game/blood.c). This machine's
+alone: nothing is sent. false: the game's own blood.
+
+game.projectile_effects [boolean]
+Default: false
+Bullet holes and plasma burns painted onto vehicles, objects, Spartans'
+bare armor and two-sided surfaces (trees, fences), moving with what
+they are on, and plasma's sparks and smoke lingering where a bolt
+struck a vehicle or bare armor (blood.c, plasma_embers.c); plasma
+bolts lighting the level and what they pass in their own color, needles
+more dimly (projectile_lights.c). This machine's alone: nothing is
+sent. false: the game's own.
 
 display.shield_glow [boolean]
 Default: false
@@ -310,10 +373,43 @@ times as far, and at full strength from a third of the flare).
 
 display.shield_color [string]
 Default: "default"
-Your energy shield's color, as this machine draws it: "default" (the
-shield's own) or a multiplayer armor color: white, black, red, blue,
-gray, yellow, green, pink, purple, cyan, cobalt, orange, teal, sage,
-brown, tan, maroon or salmon.
+Your energy shield's color: "default" (the shield's own) or a
+multiplayer armor color: white, black, red, blue, gray, yellow, green,
+pink, purple, cyan, cobalt, orange, teal, sage, brown, tan, maroon or
+salmon. In a network game the other players see it if they show
+players' custom armor (display.others_custom_armor).
+
+display.spartan_armor_color [string]
+Default: "default"
+Your Spartan's armor in a multiplayer armor color ("white", "black",
+"red"...) or "blackout" (deeper than black); "default": the game's
+own (in multiplayer, the profile's color). A team game keeps the team's.
+
+display.spartan_lights_color [string]
+Default: "default"
+Your Spartan's armor lights (the glow above the knees) in a multiplayer
+armor color; "default": the game's own.
+
+display.visor_color [string]
+Default: "default"
+Your Spartan's visor in a multiplayer armor color ("white", "black",
+"red"... as the profile's colors; black a deep, glossy black), or
+"default", its gold.
+
+display.flashlight_color [string]
+Default: "default"
+Your Spartan's flashlight in a multiplayer armor color; "default": the
+game's own.
+
+display.others_custom_armor [boolean]
+Default: false
+Other players' Spartans as they chose them (Pause > Armor): their armor,
+lights, visor and shield (and flashlight, display.others_custom_flashlights);
+false: every one as stock.
+
+display.others_custom_flashlights [boolean]
+Default: false
+Other players' flashlights in the colors they chose; false: as stock.
 
 display.high_res_hud [boolean]
 Default: true
@@ -416,6 +512,14 @@ Default: 256
 Megabytes a recording keeps in memory, 4 to 1024: two halves, each
 written out as a part when it fills.
 
+game.item_physics [string]
+Default: "classic"
+How weapons and grenades lying about move: "classic" (the game's own:
+they bounce, then lie flat) or "enhanced" (rigid bodies, Jolt Physics:
+they tumble, lean against what they meet and fall off ledges; pushed by
+shots and blasts as the game pushes them). An item a hand holds is the
+hand's. In a network game the host's moves them.
+
 game.death_physics [string]
 Default: "ragdoll"
 How bodies fall when they die: "classic" (the game's own death
@@ -431,6 +535,48 @@ in the air and in a vehicle's seat too), riders' hands leave the grips
 to throw and reload, and a player turns with the aim while throwing;
 false: the original animations, which freeze the legs and stand a
 rider up.
+
+game.corpse_duration [string]
+Default: "default"
+How long the dead lie in multiplayer: "default" (the game's own,
+30 seconds still) or "extended" (until the game's limit on its active
+garbage clears the oldest no one sees). In a network game the host's
+setting decides.
+
+game.corpse_limit [string]
+Default: "default"
+How many of the dead (and dropped weapons) stay about before those no
+player sees are cleared: "default" (the game's own, 50 for 16 players)
+or "insane" (eight times as many). In a network game the host's
+setting decides.
+
+game.decal_duration [string]
+Default: "default"
+How long marks the game keeps for minutes (bullet holes, scorch marks,
+blood) last: "default" (the game's own, about three minutes, then they
+fade) or "extended" (until the decal limit retires the oldest).
+
+game.decals [string]
+Default: "default"
+How many decals (bullet holes, scorch marks, blood) stay before the
+oldest give way: "default" (the game's own limit, 2048), "4x", "8x"
+or "insane" (twelve times). Takes effect as the next map begins.
+
+game.text_chat [boolean]
+Default: true
+Text chat in network games, in the lobby too: controls.text_chat (T)
+opens a line to type (Enter sends it, Tab: to your team or to all,
+Escape cancels), and the players' lines show at the left of the
+screen. Off: none shown, none typed.
+
+game.text_chat_opacity [integer]
+Default: 100
+How opaque text chat is drawn, in percent (25 to 100).
+
+game.text_chat_size [string]
+Default: "large"
+How large text chat is drawn: "small", "medium" or "large" (the HUD's
+own size).
 
 paths.data [string]
 Default: ""
@@ -537,6 +683,12 @@ Public MQTT brokers through which the machines of an invite find each
 other and the server browser's listings travel (its messages are
 encrypted); comma-separated host:port, up to 4. The first is upstream's
 own broker (its brokers.txt); the earlier default list moves to this one.
+
+network.community_extras [boolean]
+Default: true
+Community extras in network games: the players' Armor choices shared,
+text chat, and votes to kick or ban with a reason. Players without
+them (OpenCE network 28) play as ever; false sends and reads none.
 
 net.physical_interactions [boolean]
 Default: false
