@@ -8,10 +8,11 @@ are left out where this port deliberately differs; each names its reason
 below (and in TEST67-EVIDENCE.md).
 
 Many of GulchCE's tests compile with -m32 -Werror (long and pointers 4 bytes,
-as in the game). Here they are compiled, and must compile, but a machine that
-cannot run 32-bit programs (WSL1) cannot start them: tools/pytest_m32_not_run.py
-skips exactly those and counts them, and this summary reports them apart, as
-compiled but not run, never as passed.
+as in the game). A machine that cannot run 32-bit programs (WSL1) cannot
+start them: tools/pytest_m32_not_run.py then runs exactly those under qemu-i386
+(as test_test31_menu_startup does) and counts them (M32-QEMU-RUN); without
+qemu-i386 it skips them and this summary reports them apart, as compiled but
+not run, never as passed. The other skips are listed by their reasons.
 """
 from pathlib import Path
 import os
@@ -44,15 +45,23 @@ tests.append(str(ROOT / 'tools/test_viewmodel_shield.py'))
 deselect = [arg for test in DESELECTED for arg in ('--deselect', test)]
 env = dict(os.environ, PYTHONPATH=str(ROOT / 'tools') + os.pathsep + os.environ.get('PYTHONPATH', ''))
 result = subprocess.run([sys.executable, '-m', 'pytest', '-q', '-p', 'no:cacheprovider', '-p', 'pytest_m32_not_run',
-                         '-rfE', *deselect, *tests], cwd=ROOT, env=env, capture_output=True, text=True)
+                         '-rfEs', *deselect, *tests], cwd=ROOT, env=env, capture_output=True, text=True)
 sys.stdout.write(result.stdout[-6000:])
 sys.stderr.write(result.stderr[-3000:])
 counts = {kind: int(number) for number, kind in re.findall(r"(\d+) (passed|failed|skipped|errors?|deselected)", result.stdout)}
 not_run = re.search(r"M32-NOT-RUN: (\d+)", result.stdout)
 not_run = int(not_run.group(1)) if not_run else 0
+qemu_run = re.search(r"M32-QEMU-RUN: (\d+)", result.stdout)
+qemu_run = int(qemu_run.group(1)) if qemu_run else 0
+reasons = {}
+for number, reason in re.findall(r"^SKIPPED \[(\d+)\] [^\n]*?:\d+: ([^\n]*)$", result.stdout, re.M):
+    reasons[reason] = reasons.get(reason, 0) + int(number)
+for reason, number in sorted(reasons.items(), key=lambda item: -item[1]):
+    print('  skipped %d: %s' % (number, reason))
 if result.returncode or counts.get('failed') or counts.get('error') or counts.get('errors'):
     sys.exit('FAIL: GulchCE MCC tests (pytest exit %d)' % result.returncode)
-print('PASS: GulchCE MCC tests: %d files, %d passed; %d compiled with -m32 but NOT RUN (no 32-bit execution here); '
+print('PASS: GulchCE MCC tests: %d files, %d passed (%d of them 32-bit programs run under qemu-i386); '
+      '%d compiled with -m32 but NOT RUN (no 32-bit execution here); '
       '%d other skips; %d files and %d tests left out for this port (MCC solo only): %s'
-      % (len(tests), counts.get('passed', 0), not_run, counts.get('skipped', 0) - not_run,
+      % (len(tests), counts.get('passed', 0), qemu_run, not_run, counts.get('skipped', 0) - not_run,
          len(EXCLUDED), len(DESELECTED), ', '.join(sorted(EXCLUDED)) + '; ' + ', '.join(DESELECTED)))

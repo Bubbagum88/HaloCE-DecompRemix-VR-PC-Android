@@ -261,8 +261,13 @@ against this port; the commits name the source branch.
   hardened stb_vorbis (byte-identical). Found on the way: this port's own CE Ogg
   conversion could wrap its frame count; now bounded the same way.
 - GulchCE MCC maps: solo only. Its MCC tests were adapted to this port
-  (tools/test_test67_mcc_upstream.py): 750 pass; 140 compile but are not run on
-  WSL1 (32-bit programs; reported as M32-NOT-RUN, not as passes); the online-MCC
+  (tools/test_test67_mcc_upstream.py): 890 pass. 140 of them are -m32 programs
+  that WSL1 cannot start; tools/pytest_m32_not_run.py runs exactly those under
+  qemu-i386 with the existing WSL1 mmap shim (as test_test31_menu_startup does)
+  and counts them. Not run: 152 cases of GulchCE's scripts and geometry
+  harnesses, which GulchCE itself gates to Windows with clang (native x86
+  Windows headers; no Windows clang on this machine), and 1 opt-in case that
+  needs a local MCC map (MCC_TEST_MAP). The online-MCC
   files test_mcc_network and test_mcc_ui_teams excluded; deselected:
   test_mcc_identity session resolution (online), test_mcc_seats[replication]
   (online), test_viewmodel_shield[None] (fails on GulchCE's own source in 64-bit).

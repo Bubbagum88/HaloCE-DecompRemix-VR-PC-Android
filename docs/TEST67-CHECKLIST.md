@@ -52,8 +52,9 @@ request attachment e8b05ad6-8bcc-46f4-aaa1-54dc2e3d5a80. Both sessions exit0.
 - [x] Test68 merged in: GulchCE Halo 1 MCC maps, solo only (online MCC deferred;
   MCC's network 42 not supported), launcher Steam Workshop (JavaSteam 1.8.0,
   token only, no stored password), installed-map manager, folder and MCC
-  resource-map imports. GulchCE's MCC tests adapted (750 pass, 140 compiled but
-  not run on WSL1: 32-bit programs; 2 online files excluded, 3 cases deselected).
+  resource-map imports. GulchCE's MCC tests adapted: 890 pass (140 of them
+  32-bit programs run under qemu-i386); 152 Windows-only harness cases and 1
+  opt-in fixture not run; 2 online files excluded, 3 cases deselected.
 - [x] OpenCE testing 52e33a39 hardening (map sharing, Custom Edition geometry
   and Ogg limits, stb_vorbis); OpenCE main is still build 201.
 - [x] Every jcompto95-tech (HALOFREAK95) fork branch reviewed and taken, adapted

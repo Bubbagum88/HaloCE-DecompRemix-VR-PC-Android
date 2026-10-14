@@ -25,7 +25,7 @@ weapons physics on Jolt, Armor menu, text chat, vote-ban), visuals off/classic b
 default. Owner allowed the fork's community extras on new message kinds 87-92
 (network.community_extras, launcher Server Browser switch); stock peers ignore
 them. VR BUTTONS has ALL TO DEFAULT first. Suites: test_test67_fork,
-test_test67_mcc_upstream (140 MCC programs compiled but not run on WSL1),
+test_test67_mcc_upstream (890 pass, 140 of them 32-bit under qemu-i386),
 test_test67_upstream_harness.
 
 > **Published:** v1.0.31 (Test64/code76) is now Latest. See `docs/PUBLIC-RELEASE-1.0.31-HANDOFF.md` for source/publication and updater verification. Historical holds below are superseded for this release.
