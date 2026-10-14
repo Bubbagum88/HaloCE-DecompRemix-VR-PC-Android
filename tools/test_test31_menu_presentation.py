@@ -35,7 +35,7 @@ assert any('restarting' in n.get('text', '') for n in xml.iter('string'))
 assert 'game_variant_options_valid' in game
 assert 'statistic_buffer_in_game_only && player->quit_out_of_game' in fn(game, 'populate_statistic_buffer')
 assert 'game_engine_scoreboard_closed();' in fn(game, 'game_engine_post_rasterize_in_game')
-assert 'memset(fonts, 0, sizeof(fonts));' in fn(text, 'hires_text_font_get')
+assert 'memset(hires_text_fonts, 0, sizeof(hires_text_fonts));' in fn(text, 'hires_text_font_get')  # (Build 201's name for the cache)
 assert 'read_at != config_changes()' in fn(text, 'hires_text_font_get')
 pad = fn(xinput, 'XInputGetState')
 assert pad.index('platform_scoreboard_gamepad') > pad.index('vr_gamepad_state')
@@ -79,7 +79,7 @@ static long hud_get_font_index(void){return 0;}
 static struct font_header *font_definition_get(long n){(void)n;return &font;}
 static void offset_rectangle2d(rectangle2d *r,int x,int y){r->x0+=x;r->x1+=x;r->y0+=y;r->y1+=y;}
 struct statistic_buffer {long player_index;};
-struct player_datum {short team_index;int quit_out_of_game;wchar_t name[32];};
+struct player_datum {short team_index;int quit_out_of_game;wchar_t name[32];short local_player_index;struct {long machine_index;} network_player_data;};
 static struct player_datum players[128];
 static struct statistic_buffer input[128];
 static long count;static int teams,connection;
@@ -122,6 +122,31 @@ static long scoreboard_notches,scoreboard_pages;
 static int scoreboard_pad_direction;
 static long scoreboard_scroll;
 static boolean scoreboard_open;
+/* Test66: OpenCE Build 201's scoreboard picks players with the mouse (a vote
+   to kick, muting their voice, the host's Kick and Ban); Android has no such
+   pointer (halo_scoreboard_pointer_update -1), and this game no vote or voice */
+#define NUMBEROF(a) ((long)(sizeof(a)/sizeof((a)[0])))
+#define usnprintf swprintf
+static int pointer_calls,votekick_calls;
+int halo_scoreboard_pointer_update(int offered,struct halo_ui_pointer *p){(void)offered;pointer_calls++;memset(p,0,sizeof(*p));return -1;}
+struct network_votekick_status {long player_index;boolean voted,may_vote;long votes,needed,seconds_left;};
+static boolean network_votekick_available(void){return FALSE;}
+static boolean network_votekick_get_status(struct network_votekick_status *s){(void)s;return FALSE;}
+static boolean network_votekick_host(void){return FALSE;}
+static void network_votekick_request(short i){(void)i;votekick_calls++;}
+static void network_votekick_host_kick(short i,boolean ban){(void)i;(void)ban;votekick_calls++;}
+static boolean network_voice_available(void){return FALSE;}
+static boolean network_voice_machine_speaking(long m){(void)m;return FALSE;}
+static boolean network_voice_machine_muted(long m){(void)m;return FALSE;}
+static void network_voice_mute_machine(long m,boolean b){(void)m;(void)b;}
+static void network_voice_draw_icon(rectangle2d const *r,boolean muted,real alpha){(void)r;(void)muted;(void)alpha;assert(!"no voice in this game");}
+static void draw_string_set_draw_mode(long f,short s,short j,unsigned long fl,real_argb_color const *c){(void)f;(void)s;(void)j;(void)fl;(void)c;}
+static void draw_unicode_string_compute_bounds(rectangle2d const *b,wchar_t const *s,rectangle2d *t,rectangle2d *c){(void)s;*t=*b;*c=*b;}
+static short draw_unicode_string_capital_middle(rectangle2d const *b,wchar_t const *s){(void)s;return (short)((b->y0+b->y1)/2);}
+struct data_iterator {long index,datum_index;};
+static void *player_data;
+static void data_iterator_new(struct data_iterator *i,void *data){(void)data;i->index=0;}
+static void *data_iterator_next(struct data_iterator *i){if(i->index>=count)return NULL;i->datum_index=i->index;return &players[i->index++];}
 '''
 sdk = read('port/include/xdk/xdk_xbox.h')
 header += '\n'.join(re.search(r'^#define ' + name + r' .*$', sdk, re.M).group()
@@ -132,7 +157,11 @@ header += game[start:end]
 body = fn(hires, 'text_enabled') + fn(text, 'rasterizer_text_set_scale') + fn(text, 'rasterizer_text_draw_scaled_character')
 body += fn(platform, 'platform_scoreboard_scroll') + fn(platform, 'platform_scoreboard_gamepad')
 body += fn(game, 'scoreboard_background_color') + fn(game, 'scoreboard_team_columns')
-body += fn(game, 'game_engine_scoreboard_closed') + fn(game, 'game_engine_rasterize_scoreboard')
+# (Test66: Build 201's pointer menu of the scoreboard, its closing included)
+header = header.replace('#define usnprintf swprintf', read('port/linux/include/halo_ui_pointer.h') + '\n#define usnprintf swprintf')
+menu_start = game.index("/* a network game's scoreboard picks players with the mouse")
+body += game[menu_start:game.index('static void game_engine_rasterize_scoreboard(', menu_start)]
+body += fn(game, 'game_engine_rasterize_scoreboard')
 tests = r'''
 static void test_settings(void){
  assert(text_enabled()==1);int old=reads;assert(text_enabled()==1&&reads==old);

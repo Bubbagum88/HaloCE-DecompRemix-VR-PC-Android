@@ -2409,7 +2409,7 @@ static void text_field_begin_internal(struct widget_instance *row, char const *t
 		ui_play_audio_feedback_sound(SOUND_ERROR);
 	}
 #else
-	platform_text_field(TRUE);
+	platform_text_field(TRUE, masked);
 #endif
 }
 

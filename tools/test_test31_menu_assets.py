@@ -70,7 +70,8 @@ def check_assets():
         elements = []
 
         def visit(element):
-            if element.get("platform", platform) != platform:
+            # (Test66: Build 201 lists the platforms an element is for, separated by spaces)
+            if platform not in element.get("platform", platform).split():
                 return
             elements.append(element)
             for child in element:

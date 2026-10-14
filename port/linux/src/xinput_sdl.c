@@ -250,8 +250,11 @@ void platform_text_typing(int typing)
 	text_typing_update();
 }
 
-void platform_text_field(int typing)
+void platform_text_field(int typing, int password)
 {
+	/* (OpenCE Build 201's own: a password's field; its use, Steam's
+	on-screen keyboard, is the desktop's, deferred here) */
+	(void)password;
 	text_typing_field = typing != 0;
 	text_typing_update();
 }

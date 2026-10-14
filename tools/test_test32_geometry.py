@@ -51,6 +51,9 @@ static int fault_rename(const char *a,const char *b){
 #define rename fault_rename
 #ifndef HALO_ANDROID
 static const char *SDL_GetBasePath(void){return getenv("TEST_CONFIG_BASE");}
+#endif
+/* (Test66: OpenCE Build 201 reads and writes config.toml through SDL off
+the ARM64 guest: the Android builds here use these too) */
 static void *SDL_LoadFile(const char *path,size_t *size){
  FILE *f=fopen(path,"rb");char *p;long n;if(!f)return NULL;
  fseek(f,0,SEEK_END);n=ftell(f);rewind(f);p=malloc(n+1);
@@ -60,7 +63,6 @@ static int SDL_SaveFile(const char *path,const void *data,size_t size){
  FILE *f=fopen(path,"wb");int ok;if(!f)return 0;ok=fwrite(data,1,size,f)==size;return fclose(f)==0&&ok;
 }
 #define SDL_free free
-#endif
 '''
 main=r'''
 #include <assert.h>

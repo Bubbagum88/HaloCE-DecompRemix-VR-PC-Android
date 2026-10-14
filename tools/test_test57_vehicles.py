@@ -39,7 +39,8 @@ assert 'not taken by hand %d: %.1f cm away (reach %.1f cm)%s' in handles
 for key, label in (("vr.vehicle_control_glow", "CONTROL GLOW"), ("vr.vehicle_steer_haptics", "STEER HAPTICS"),
                    ("vr.vehicle_banshee_slide", "BANSH SLIDE")):
     assert '{ "%s", _config_boolean, "true",' % key in config, key
-    assert '{ "%s", "%s", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },' % (label, key) in menu, label
+    # (Test66: the vehicle rows are shared IMMERSION > VEHICLES rows, VR_IMMERSION_*)
+    assert '{ "%s", "%s", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }' % (label, key) in menu, label
 assert "&& vr_wheel.glow" in handles and "|| !vr_wheel.steer_haptics" in handles and "vr_wheel.kind==3 && vr_wheel.slide" in handles
 
 # Test57b: the Warthog's wheel from its node in the world (never the marker's
@@ -61,7 +62,7 @@ assert "if(vr_wheel.head_anchored || !(sqrtf(offset[0]*offset[0]+offset[1]*offse
 assert "if(vr_wheel.comfort && !vr_wheel.head_anchored && !vr_wheel.far && !(vr_wheel.kind==0 && !vr_wheel.wheel_front)) {" in place
 assert "if(gap>VR_COMFORT_REACH*units)" in place
 assert '{ "vr.vehicle_comfort_reach", _config_boolean, "true",' in config
-assert '{ "COMFORT REACH", "vr.vehicle_comfort_reach", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },' in menu
+assert '{ "COMFORT REACH", "vr.vehicle_comfort_reach", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }' in menu
 # Test59: real first-person hands in vehicles: the stowed weapon lends its
 # first-person rig while the immersive controls steer; drawn though the
 # seat's game camera is the chase camera; "vehicle hands" means that rig is
@@ -81,7 +82,7 @@ throttle = throttle[:throttle.index("\n}\n")]
 assert "vr_wheel.kind!=2" in throttle and "!vr_wheel.drive" in throttle and "!vr_vehicle_steering_split()" in throttle
 assert "if(fabsf(vr_wheel.throttle)>fabsf(throttle[0])) throttle[0]=vr_wheel.throttle;" in throttle
 assert '{ "vr.vehicle_tank_drive", _config_boolean, "true",' in config
-assert '{ "TANK DRIVE", "vr.vehicle_tank_drive", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },' in menu
+assert '{ "TANK DRIVE", "vr.vehicle_tank_drive", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }' in menu
 hands = handles[handles.index("int vr_render_vehicle_first_person_hands(void)"):]
 hands = hands[:hands.index("\n}\n")]
 assert "weapon=first_person_weapon_vr_weapon(0);" in hands and "current_weapon_index" not in hands
@@ -97,7 +98,7 @@ assert "static int vr_vehicle_handles_head_aims(void)" in handles and "vr_vehicl
 
 # Test57b: TANK HATCH, off by default (the owner likes the tank view as it is)
 assert '{ "vr.vehicle_tank_hatch", _config_boolean, "false",' in config
-assert '{ "TANK HATCH", "vr.vehicle_tank_hatch", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },' in menu
+assert '{ "TANK HATCH", "vr.vehicle_tank_hatch", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }' in menu
 assert "vr_seat_steady_anchor(anchor);\n\t\tvr_vehicle_hatch_lift(anchor);\n\t\tvr_vehicle_adjust_anchor(anchor);" in render
 hatch = render[render.index("static void vr_vehicle_hatch_lift("):]
 assert 'config_boolean("vr.vehicle_tank_hatch")' in hatch and 'strstr(name, "scorpion")' in hatch

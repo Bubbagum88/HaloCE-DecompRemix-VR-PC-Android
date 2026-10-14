@@ -87,7 +87,13 @@ def main():
 #define csmemmove memmove
 #define SPINNER_EXTRA_WIDTH 12
 #define MAXIMUM_NUMBER_OF_LOCAL_PLAYERS 4
+#include <stddef.h>
+#define SHORT_MIN (-32768)
+#define PIN(v,lo,hi) ((v)<(lo)?(lo):(v)>(hi)?(hi):(v))
+#define NUMBER_OF_TEXT_JUSTIFICATIONS 3
 typedef int boolean;
+typedef unsigned pixel32;
+typedef struct {float alpha,red,green,blue;} real_argb_color;
 typedef struct {short y0,x0,y1,x1;} rectangle2d;
 typedef struct {short x,y;} point2d;
 enum {_ui_widget_type_container,_ui_widget_type_text_box,_ui_widget_type_spinner_list,_ui_widget_type_column_list};
@@ -101,20 +107,23 @@ enum {_gamepad_analog_button_a=1,_gamepad_analog_button_b,_gamepad_analog_button
 #define _ui_audio_feedback_cursor 1
 struct ui_widget_definition {
  rectangle2d bounds,list_header_bounds,list_footer_bounds;
- struct {long index;}list_header_bitmap,list_footer_bitmap,text_label_string_list;
+ struct {long index;}list_header_bitmap,list_footer_bitmap,text_label_string_list,text_font;
  struct {int count;}child_widgets,event_handlers;
  unsigned flags;
+ short justification,horizontal_offset,vertical_offset;
 };
 struct widget_instance {
- struct widget_instance *parent,*child,*next,*focused_child;
+ struct widget_instance *parent,*child,*next,*previous,*focused_child;
  int type,disabled,visible,local_player_index;
  long definition_tag_index;
  short horizontal_offset,vertical_offset;
  char name[80];
- struct {struct {void*list_items;short selected_index,number_of_items;}list;}parameters;
+ struct {struct {void*list_items;short selected_index,number_of_items;}list;
+  struct {wchar_t const*text;short string_list_index;}text_box;}parameters;
 };
 static struct {int initialization_thread;struct widget_instance*active_widgets[4];}widget_globals;
-struct halo_ui_pointer {short x,y,click_x,click_y;int moved,left_clicks,right_clicks,wheel_steps;};
+/* (Test66: Build 201's pointer adds the touchscreen's fields) */
+struct halo_ui_pointer {short x,y,click_x,click_y;int moved,left_clicks,right_clicks,wheel_steps,touch,downs;short down_x,down_y;};
 static struct halo_ui_pointer pointer;
 static struct ui_widget_definition definitions[12];
 static const char *tags[12];
@@ -134,11 +143,26 @@ static int game_engine_showing_postgame(void){return 0;}
 static int halo_ui_pointer_update(int active,struct halo_ui_pointer*out){*out=pointer;return active;}
 static void virtual_keyboard_pointer(short x,short y,int a,int b){(void)x;(void)y;(void)a;(void)b;}
 static void event_manager_post_button(short controller,short button){assert(controller==0);posted=button;post_count++;}
+/* Test66: Build 201's router also draws the debug touch targets, times their
+   marks, lists the keyboard's keys and measures a label's text; the fixture
+   has no renderer or fonts (no text: the label is not measured) */
+static void draw_quad(rectangle2d const*b,pixel32 c){(void)b;(void)c;}
+static unsigned long system_milliseconds(void){return 0;}
+static long virtual_keyboard_target_rectangles(rectangle2d*r,long m){(void)r;(void)m;return 0;}
+static short halo_screen_width(void){return 640;}
+static boolean string_has_icons_to_draw(wchar_t const*t){(void)t;return 0;}
+static void draw_string_set_draw_mode(long f,short s,short j,unsigned long fl,real_argb_color const*c){(void)f;(void)s;(void)j;(void)fl;(void)c;}
+static void draw_unicode_string_compute_bounds(rectangle2d const*b,wchar_t const*s,rectangle2d*t,rectangle2d*c){(void)b;(void)s;(void)c;t->x1=SHORT_MIN;}
+static boolean widget_instance_port_is_label(struct widget_instance*w){
+ return (!w->child&&w->type!=_ui_widget_type_spinner_list&&!ui_widget_definition_get(w->definition_tag_index)->event_handlers.count)||!w->visible||w->disabled;}
 '''
     rows = ',\n'.join('{' + json.dumps(name) + ',{' + ','.join(map(str, bounds)) + '},{{' +
                            ','.join(map(str, arrows[0])) + '},{' + ','.join(map(str, arrows[1])) + '}}}'
                            for name, bounds, arrows in records)
     tests = r'''
+/* (the router's own declarations: the debug view of the touch targets is off) */
+int config_boolean(char const*name){assert(!strcmp(name,"debug.touch_targets"));return 0;}
+void platform_log(char const*format,...){(void)format;}
 struct record {const char*name;rectangle2d bounds,arrows[2];};
 static const struct record records[]={RECORDS};
 static struct widget_instance root,row,value,neighbor,button;

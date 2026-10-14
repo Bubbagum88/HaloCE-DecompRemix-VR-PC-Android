@@ -23,7 +23,10 @@ assert "return element_size <= TAG_EMPTY_DATA_SIZE ? tag_empty_data() : NULL;" i
 respawn = players[players.index("static long players_coop_respawn_unit(", players.index("static long players_coop_respawn_unit(") + 1):]
 assert "if (!players_coop_use_majority())" in respawn
 assert "players_coop_near_count(positions, count, index, radius_squared)" in respawn
-assert "return unit_indices[anchor_index];" in respawn
+# (Build 201 refined the pick: the safest member of the largest group, and
+# after the fallback wait a grounded, spawnable one, never someone mid-air)
+assert "return unit_indices[safe_index];" in respawn
+assert "players_coop_unit_grounded(unit_indices[index])" in respawn and "COOP_RESPAWN_FALLBACK_TICKS" in respawn
 
 # Builds170/175: guest callback threads detach their guest pthread, gamepad
 # handles close through SDL, and kernels treating MAP_FIXED_NOREPLACE as a

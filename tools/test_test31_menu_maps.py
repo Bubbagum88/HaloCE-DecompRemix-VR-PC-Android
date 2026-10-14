@@ -12,6 +12,17 @@ ROOT = Path(__file__).resolve().parents[1]
 maps = (ROOT / "port/linux/game/custom_edition_maps.c").read_text()
 header = (ROOT / "port/linux/game/custom_edition_maps.h").read_text()
 cache = (ROOT / "port/linux/game/custom_edition_cache.c").read_text()
+share_files = (ROOT / "port/linux/game/map_share_files.c").read_text()
+
+
+def function(text, name):
+    """a function of the source, whole (its definition to its closing brace)"""
+    match = re.search(r"^(?:static )?\w+\s+" + re.escape(name) + r"\(\n", text, re.M)
+    assert match, name
+    end = text.index("\n}\n", match.start()) + 3
+    return text[match.start():end]
+
+
 assert '"yelo"' in maps and "cache_files_map_directory()" in maps
 assert "CUSTOM_EDITION_INSTALL_MAP_DIRECTORY" not in maps
 assert "_scenario_type_solo" in cache[cache.index("boolean custom_edition_cache_campaign("):]
@@ -128,7 +139,14 @@ static const char *bmp_file_status_describe(enum bmp_file_status s){(void)s;retu
 static char *tag_get_name(long index){(void)index;return "ui\\shell\\bitmaps\\mp_map_grafix";}
 static long tag_loaded(long group,const char *name){(void)group;(void)name;return NONE;}
 static struct bitmap_data *bitmap_group_get_bitmap_from_sequence(long a,int b,int c){(void)a;(void)b;(void)c;return NULL;}
-'''
+/* Test66: Build 201's map sharing names a shared map for its hash
+   (name_1a2b3c4d.map); the real name helpers (map_share_files.c), and the
+   renaming that runs on a thread of its own recorded */
+#define _strnicmp strncasecmp
+#define MAP_SHARE_NAME_DIGITS 8
+static int renames;
+static void map_share_name_map(const char *folder,const char *name){(void)folder;(void)name;renames++;}
+''' + "".join(function(share_files, name) for name in ("hex_digit", "map_share_name_hashed", "map_share_name_base_length"))
 
 checks = r'''
 int main(void){
@@ -201,6 +219,20 @@ int main(void){
  assert(custom_edition_maps_display_index_of(0,128)==NONE);
  assert(custom_edition_maps_display_index_of(1,128)==NONE);
  custom_edition_maps_level_list(NULL,-1,NULL);assert(custom_edition_maps_globals.xbox_level_count==0);
+ /* Test66 map sharing: a map named for its hash shows without it (a stock
+    map's by Halo PC's name), is never renamed again, and an unhashed one is
+    renamed once; two versions of one map show their hashes to tell them apart */
+ entry_count=0;renames=0;
+ add("hugeass_1a2b3c4d","map",1);add("hugeass_9f8e7d6c","map",1);add("icefields_0123abcd","map",1);
+ add("plainmap","map",1);add("odd_1A2B3C4D","map",1);
+ custom_edition_maps_look_again();assert(custom_edition_maps_count(0)==5);
+ assert(renames==2);/* plainmap and odd_1A2B3C4D (uppercase digits are not a hash) */
+ {int seen_stock=0,seen_versions=0,seen_plain=0;
+  for(int n=0;n<5;n++){const wchar_t *shown_name=custom_edition_maps_name(0x4000+n);
+   if(!wcscmp(shown_name,L"Ice Fields"))seen_stock++;
+   if(wcsstr(shown_name,L"1a2b3c4d")||wcsstr(shown_name,L"9f8e7d6c"))seen_versions++;
+   if(!wcscmp(shown_name,L"Plainmap"))seen_plain++;}
+  assert(seen_stock==1&&seen_versions==2&&seen_plain==1);}
  enabled=0;custom_edition_maps_look_again();assert(custom_edition_maps_count(0)==0&&custom_edition_maps_count(1)==0);
  assert(custom_edition_maps_display_index("levels\\a10\\a10")==0x3000);
  assert(custom_edition_maps_display_index("custom_maps\\mp000")==NONE);

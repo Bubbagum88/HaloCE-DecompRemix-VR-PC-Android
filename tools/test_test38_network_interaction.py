@@ -141,28 +141,43 @@ subprocess.run([str(O/'network')],check=True)
 
 import xml.etree.ElementTree as ET
 xml=ET.parse(R/'port/assets/menus/ce/main_menu.multiplayer_type_select.server_settings.xml').getroot()
-labels=next(n for n in xml.findall('strings') if n.attrib['name'].endswith('/labels'))
-assert labels[15].attrib['text']=='PASSWORD:' and labels[16].attrib['text']=='VR INTERACTIONS:'
-row=next(n for n in xml.findall('widget') if n.attrib['name'].endswith('/physical_interactions_spinner'))
+# Test66: OpenCE Build 201's Server Setup groups co-op's options on their own
+# CO-OP OPTIONS screen (shown only when hosting co-op); VR INTERACTIONS and
+# HOST VR ACTIONS are its last two rows, after Build 201's own five, so the
+# upstream rows keep their label and help indices.
+strings={n.attrib['name'].rsplit('/',1)[-1]:n for n in xml.findall('strings')}
+widgets={n.attrib['name'].rsplit('/',1)[-1]:n for n in xml.findall('widget')}
+labels=strings['coop_options_labels']
+assert [n.attrib['text'] for n in labels][:5]==['FRIENDLY FIRE:','EXTRA ENEMIES:','PER PLAYER:','MULTIPLIER:','PLAYER COLLISIONS:']
+assert labels[5].attrib['text']=='VR INTERACTIONS:' and labels[6].attrib['text']=='HOST VR ACTIONS:'
+coop_menu=widgets['coop_options_menu']
+assert coop_menu.find('data').attrib['input']=='game settings lists text update'
+rows=[c.attrib['widget'].rsplit('/',1)[-1] for c in coop_menu.findall('child')]
+assert rows.index('op_coop_player_collisions')<rows.index('op_physical_interactions')<rows.index('op_host_vr_actions')<rows.index('coop_options_button_bar')
+row=widgets['physical_interactions_spinner']
 assert row.attrib['setting']=='net.physical_interactions' and row.attrib['values']=='false|true'
+assert widgets['physical_interactions_label'].attrib['string_index']=='5'
 assert 'NI_MAGIC=0x56494e31' in s and 'VR_POSE_MAGIC = 0x56525031' in (R/'port/linux/game/network_vr_pose.c').read_text()
 assert '#ifdef HALO_VR' not in s
-print('PASS: separate magic, common flat/VR authority and appended host setting retain existing label indices')
+print('PASS: separate magic, common flat/VR authority and the host setting appended to CO-OP OPTIONS (upstream indices kept)')
 
 # Test62: the new permission is an appended native co-op setup row; preserve
 # original indices, mouse navigation, persistence and PvP visibility.
-assert labels[17].attrib['text']=='HOST VR ACTIONS'
-widgets={n.attrib['name'].rsplit('/',1)[-1]:n for n in xml.findall('widget')}
 row=widgets['host_vr_actions_spinner']
 assert row.attrib['setting']=='net.host_vr_actions' and row.attrib['values']=='false|true'
-assert {(n.attrib['event'],n.attrib['run']) for n in row.findall('on')} >= {
-    ('created','port setting load'),('deleted','port setting save'),
-    ('left_mouse','mouse spinner 1wide click')}
-assert widgets['host_vr_actions_label'].attrib['string_index']=='17'
-help_strings=next(n for n in xml.findall('strings') if n.attrib['name'].endswith('/help_strings'))
-assert len(help_strings)>25 and 'host' in help_strings[25].attrib['text'].lower()
+for name in ('physical_interactions_spinner','host_vr_actions_spinner'):
+    assert {(n.attrib['event'],n.attrib['run']) for n in widgets[name].findall('on')} >= {
+        ('created','port setting load'),('deleted','port setting save'),
+        ('left_mouse','mouse spinner 1wide click')}, name
+assert widgets['host_vr_actions_label'].attrib['string_index']=='6'
+# (the screen's help is each row's values' helps in turn: Build 201's five
+# rows have 4+3+5+5+2 values, so VR INTERACTIONS' are 19-20, HOST's 21-22)
+help_strings=strings['cap_coop_options']
+assert len(help_strings)==23
+assert 'physical co-op' in help_strings[19].attrib['text'].lower() and 'physical co-op' in help_strings[20].attrib['text'].lower()
+assert 'host' in help_strings[21].attrib['text'].lower() and 'host' in help_strings[22].attrib['text'].lower()
+assert 'VR interactions' in strings['help_strings'][12].attrib['text']
 menu=(R/'port/linux/game/menu_functions.c').read_text()
-assert 'visible_set(named(list,"op_host_vr_actions",0),cooperative)' in menu
-assert 'list->focused_child==named(list,"op_host_vr_actions",0)' in menu
-assert 'string_list_index=25' in menu
+assert 'visible_set(named(list, "op_coop_options", 0), cooperative);' in menu
+assert 'index += spinner->parameters.list.number_of_items;' in menu
 print('PASS: Test62 host permission native row, help, saved setting, mouse and co-op visibility wiring')

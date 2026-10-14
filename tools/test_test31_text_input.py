@@ -70,7 +70,8 @@ static boolean virtual_keyboard_select(void);
 struct widget_instance {int unused;};
 struct key_stroke {int unused;};
 static int input_get_key(struct key_stroke *key){(void)key;return 0;}
-static void platform_text_field(int state){(void)state;}
+static void platform_text_field(int state,int password){(void)state;(void)password;}
+void platform_text_typing(int typing){(void)typing;} /* (Test66: Build 201 tells the platform the keyboard is up) */
 static void platform_log(const char *format,...){(void)format;}
 '''
     tests = r'''

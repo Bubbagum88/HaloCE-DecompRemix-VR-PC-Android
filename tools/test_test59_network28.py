@@ -58,7 +58,9 @@ for name, number in (("request", 83), ("offer", 84), ("sources", 85), ("progress
 distributed = read("port/linux/game/network_distributed.c")
 handle = distributed[distributed.index("void network_distributed_handle_message(\n"):]
 assert handle.index("map_share_handles_message(message, size)") < handle.index("if (size < sizeof(header) || !game_in_progress())")
-assert "map_share_handle_message(machine_index, message, size, distributed_handling_stream_message);" in handle
+# (OpenCE Build 201: a lobby message's reliability goes with it when it came over no stream)
+assert "map_share_handle_message(machine_index, message, size, machine_index != NONE ?" in handle
+assert "distributed_handling_stream_message : !network_connection_last_read_was_unreliable());" in handle
 server = read("source/networking/network_server_message_handler.c")
 stream = server[server.index("network_voice_handle_message(machine_index, message, message_buffer_size);"):]
 stream = stream[:stream.index("network_distributed_handle_stream_message(machine_index, message, message_buffer_size);")]
@@ -74,106 +76,19 @@ def function(text, name):
     return text[start.start():end]
 
 
-share = distributed[distributed.index("#define MAP_SHARE_LEVEL_NAME_BYTES 64"):distributed.index("boolean map_share_handles_message(")]
-share = share.replace("unsigned long version;", "unsigned int version;")
-harness = r'''
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
-typedef unsigned char byte;
-typedef unsigned short word;
-typedef int boolean;
-typedef unsigned short message_header;
-#define TRUE 1
-#define FALSE 0
-#define NONE (-1)
-#define FLAG(b) (1u << (b))
-#define HALO_PORT_MAXIMUM_NETWORK_MACHINES 128
-#define csmemcpy memcpy
-#define csmemset memset
-enum { _distributed_message_map_share_request = 83, _distributed_message_map_share_offer,
-	_distributed_message_map_share_sources, _distributed_message_map_share_progress };
-enum { _error_silent };
-struct distributed_message_header { message_header header; byte type; byte count; int game_time; };
-static int server, in_game, sends, sent_machine, logs;
-static byte sent[512];
-static word sent_size;
-static void *global_network_game_server_get(void) { return server ? &server : NULL; }
-static boolean game_in_progress(void) { return in_game; }
-static int game_time_get(void) { return 1234; }
-static void build_message_header(message_header *h, word size, int a, int b) { *h = (message_header)(size | 0x8000); (void)a; (void)b; }
-static boolean network_distributed_server_send_to_machine_reliably(long machine, void *message, word size)
-{ sends++; sent_machine = (int)machine; sent_size = size; memcpy(sent, message, size); return TRUE; }
-static void error(int kind, char const *format, ...) { (void)kind; (void)format; logs++; }
-''' + share + function(distributed, "map_share_handles_message") + function(distributed, "map_share_handle_message") + r'''
-static word request(byte *buffer, byte type, char const *name, int terminate, int extra)
-{
-	struct distributed_message_header h = { 0, type, 1, 0 };
-	struct distributed_map_share_request r;
-	memset(&r, 'x', sizeof(r));
-	if (terminate) { memset(r.level_name, 0, sizeof(r.level_name)); strcpy(r.level_name, name); }
-	r.version = 0x1234; r.wanted = 1;
-	memcpy(buffer, &h, sizeof(h)); memcpy(buffer + sizeof(h), &r, sizeof(r));
-	return (word)(sizeof(h) + sizeof(r) + extra);
-}
-int main(void)
-{
-	byte buffer[256];
-	word size;
-	struct distributed_message_header h;
-	struct distributed_map_share_offer offer;
-	int type;
-
-	assert(sizeof(struct distributed_message_header) == 8);
-	/* a joined machine's request over its connection: answered "not shared" */
-	server = 1; in_game = 0;
-	size = request(buffer, 83, "custom_maps\\hugeass_1a2b3c4d", 1, 0);
-	assert(map_share_handles_message((word const *)buffer, size));
-	map_share_handle_message(5, (word const *)buffer, size, TRUE);
-	assert(sends == 1 && sent_machine == 5 && sent_size == 8 + 68);
-	memcpy(&h, sent, 8); memcpy(&offer, sent + 8, sizeof(offer));
-	assert(h.type == 84 && h.count == 1 && h.game_time == 0 && h.header == (message_header)(76 | 0x8000));
-	assert(!strcmp(offer.level_name, "custom_maps\\hugeass_1a2b3c4d") && offer.result == 1 && offer.file_count == 0 && offer.flags == 0);
-	/* during a game: the in-progress flag and the game time */
-	in_game = 1;
-	map_share_handle_message(7, (word const *)buffer, size, TRUE);
-	assert(sends == 2 && sent_machine == 7);
-	memcpy(&h, sent, 8); memcpy(&offer, sent + 8, sizeof(offer));
-	assert(h.game_time == 1234 && offer.flags == 1 && offer.result == 1);
-	/* dropped: a datagram (anyone can send one as from anyone), a client (no
-	server), no machine, a bad size, a name without its end, the other three
-	kinds */
-	map_share_handle_message(5, (word const *)buffer, size, FALSE);
-	server = 0; map_share_handle_message(5, (word const *)buffer, size, TRUE); server = 1;
-	map_share_handle_message(NONE, (word const *)buffer, size, TRUE);
-	map_share_handle_message(128, (word const *)buffer, size, TRUE);
-	map_share_handle_message(5, (word const *)buffer, (word)(size + 4), TRUE);
-	map_share_handle_message(5, (word const *)buffer, (word)(size - 1), TRUE);
-	size = request(buffer, 83, "", 0, 0);
-	map_share_handle_message(5, (word const *)buffer, size, TRUE);
-	size = request(buffer, 83, "", 1, 0);
-	map_share_handle_message(5, (word const *)buffer, size, TRUE);
-	for (type = 84; type <= 86; type++) {
-		size = request(buffer, (byte)type, "custom_maps\\a", 1, 0);
-		assert(map_share_handles_message((word const *)buffer, size));
-		map_share_handle_message(5, (word const *)buffer, size, TRUE);
-		map_share_handle_message(NONE, (word const *)buffer, size, TRUE);
-	}
-	assert(sends == 2);
-	/* not map sharing's: voice 82, 87, a short message */
-	size = request(buffer, 82, "x", 1, 0); assert(!map_share_handles_message((word const *)buffer, size));
-	size = request(buffer, 87, "x", 1, 0); assert(!map_share_handles_message((word const *)buffer, size));
-	assert(!map_share_handles_message((word const *)buffer, 7));
-	puts("PASS: map sharing's request answered once per valid request (machine, 76 bytes, offer 84, not shared, level name, in-progress flag, game time); datagrams, clients, bad machines, sizes and names and the other kinds dropped");
-	return 0;
-}
-'''
-with tempfile.TemporaryDirectory() as directory:
-    path = Path(directory)
-    (path / "t.c").write_text(harness, encoding="utf-8")
-    subprocess.run(["clang", "-std=gnu11", "-Wall", "-Wno-unused-function", "-fsanitize=address,undefined",
-                    str(path / "t.c"), "-o", str(path / "t")], check=True)
-    subprocess.run([str(path / "t")], check=True)
+# Test66: map sharing itself (OpenCE Build 201's map_share.c, the owner's
+# "include EVERYTHING from opence ... INCLUDING map sharing") replaced the
+# stand-in that answered every request "not shared": the messages are the
+# same four (network 28 carries them; no protocol change), handled by the real
+# sharer; its own harness (tools/harness/tests/test_map_share_names.py, from
+# upstream) checks the names it accepts and sends.
+share_source = read("port/linux/game/map_share.c")
+assert "void map_share_handle_message(" in share_source and "boolean map_share_handles_message(" in share_source
+import os
+names = subprocess.run(["python3", "-m", "pytest", "-q", str(ROOT / "tools/harness/tests/test_map_share_names.py")],
+                       capture_output=True, text=True, env=dict(os.environ, HALO_HARNESS_NATIVE="1"))
+assert names.returncode == 0, names.stdout + names.stderr
+print("PASS: map sharing's names, upstream harness:", names.stdout.strip().splitlines()[-1])
 
 # 28: a multiplayer map's first scripted BSP kept, later switches ignored
 hs = read("source/hs/hs.c")

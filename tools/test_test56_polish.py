@@ -60,7 +60,9 @@ assert "VR_IMMERSION_NPC_RECOVERY," in advanced and '{ "ADVANCED", 8 }' in menu
 world = read("port/linux/game/vr_world_interaction.c")
 impact = read("port/linux/game/vr_interaction_impact.c")
 assert '{ "vr.throw_strength", _config_real, "2.0",' in config
-assert 'npc_setting("vr.throw_strength",2.0f,0.75f,2.0f)' in npc and "isfinite(strength) ? (float)strength : 2.0f" in world
+assert 'npc_setting("vr.throw_strength",2.0f,0.75f,2.0f)' in npc
+# Test66: props and vehicles throw at OBJECT THROW (2 as before; 0 lets them drop)
+assert 'config_real("vr.object_throw")' in world and "isfinite(strength) && strength > 0.0" in world
 assert "vr_world_throw_peak((float const (*)[3])npc.history[hand]" in npc
 assert "vr_world_throw_peak((float const (*)[3])held->history" in world
 collision = body(impact, "static void apply_collision(")
@@ -125,11 +127,15 @@ assert "if (tracked_fingers || grip_blend[controller] > 0.0f)" in render
 server = read("source/networking/network_server_manager.c")
 limits = read("port/linux/include/halo_port_limits.h")
 assert "#define HALO_PORT_NETWORK_VERSION 28" in limits
-assert "map_share" not in server
+# (Test66: map sharing itself, OpenCE Build 201's map_share.c: the server
+# waits for a machine still downloading the map)
+assert "map_share_machine_needs_map(" in server and '#include "map_share.h"' in server
 countdown = body(server, "boolean server_ok_to_countdown(")
 assert "server_has_a_player_on_each_machine" not in countdown and "server_has_enough_machines(server) &&" in countdown
 precached = body(server, "static boolean network_game_server_have_all_machines_have_precached(\n\tstruct network_game_server *server)\n{")
-assert "if (!network_game_server_machine_has_players(server, machine->machine_index))\n\t\t\t\tcontinue;" in precached
+# (Test66: and a machine still downloading the map, map_share.c, holds no start either)
+assert ("if (!network_game_server_machine_has_players(server, machine->machine_index) ||\n"
+        "\t\t\t\tmap_share_machine_needs_map(machine->machine_index))\n\t\t\t\tcontinue;") in precached
 
 code = r'''
 #include <assert.h>

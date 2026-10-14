@@ -84,7 +84,7 @@ int main(void) {
 config = (ROOT/'port/linux/src/port_config.c').read_text().replace('#include "platform.h"', 'static void platform_log(const char *s, ...) {(void)s;}').replace(
     '#include "halo_port_limits.h"',
     '#define HALO_PORT_NETWORK_VERSION 24\n#define HALO_PORT_NETWORK_VERSION_MINIMUM 11\n#define HALO_PORT_NETWORK_VERSION_MAXIMUM 24'
-).replace('#include <SDL3/SDL.h>', '')
+).replace('#include <SDL3/SDL.h>', '/* Test66: OpenCE Build 201 reads and writes config.toml through SDL (UTF-8 paths on Windows); stand-ins */\n#include <stdio.h>\n#include <stdlib.h>\nstatic void *SDL_LoadFile(const char *p, size_t *size){FILE *f=fopen(p,"rb");long n;void *d;if(!f)return NULL;fseek(f,0,SEEK_END);n=ftell(f);fseek(f,0,SEEK_SET);d=malloc((size_t)n+1);if(d&&fread(d,1,(size_t)n,f)!=(size_t)n){free(d);d=NULL;}fclose(f);if(d)*size=(size_t)n;return d;}\nstatic void SDL_free(void *p){free(p);}\nstatic int SDL_SaveFile(const char *p, const void *d, size_t n){FILE *f=fopen(p,"wb");int ok;if(!f)return 0;ok=fwrite(d,1,n,f)==n;return fclose(f)==0&&ok;}\n')
 test = r'''
 #include <assert.h>
 int main(void) {

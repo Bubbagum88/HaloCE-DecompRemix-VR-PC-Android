@@ -126,6 +126,11 @@ char *csstrcpy(char *a,const char *b){return strcpy(a,b);}
 char *csstrcat(char *a,const char *b){return strcat(a,b);}
 long csstrcmp(const char *a,const char *b){return strcmp(a,b);}
 long csstrncmp(const char *a,const char *b,unsigned long n){return strncmp(a,b,n);}
+long csstrcasecmp(const char *a,const char *b){for(;;a++,b++){int x=(unsigned char)*a,y=(unsigned char)*b;if(x>=65&&x<=90)x+=32;if(y>=65&&y<=90)y+=32;if(x!=y||!x)return x-y;}} /* (Test66: Build 201 sorts the audio devices) */
+/* (Test66: Build 201 tells a one-player campaign from co-op and split screen: the startup has none) */
+short game_connection(void){return 0;}
+unsigned char game_is_cooperative(void){return 0;}
+unsigned char network_game_is_active(void){return 0;}
 char *csstrncpy(char *a,const char *b,unsigned long n){return strncpy(a,b,n);}
 unsigned long csstrlen(const char *a){return strlen(a);}
 char *_strdup(const char *s){size_t n=strlen(s)+1;char *p=malloc(n);if(p)memcpy(p,s,n);return p;}
@@ -160,6 +165,7 @@ void config_folder(char *out,unsigned long size){snprintf(out,size,"%s/",overrid
 char const *config_string(char const *key){return !strcmp(key,"display.menus")?"pc":"";}
 int platform_display_resolutions(long *widths,long *heights,int n){return 0;}
 int platform_window_sizes(long *widths,long *heights,int n){return 0;}
+int platform_audio_devices(int recording,char (*names)[128],int maximum){(void)recording;(void)names;(void)maximum;return 0;} /* (Test66: Build 201 lists the audio devices on Audio Setup) */
 void *global_network_game_server_get(void){return mp_mode==2?(void*)1:NULL;}
 boolean pc_menu_profile_edit_begin(void){return TRUE;}
 void *cache_files_tag_instances(long *count){*count=current_count;return current;}

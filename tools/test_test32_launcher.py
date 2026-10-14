@@ -108,7 +108,7 @@ def main():
     widgets, strings = {}, {}
     for path in MENUS.glob('*.xml'):
         for e in ET.parse(path).getroot().iter():
-            if e.get('platform') == 'desktop':
+            if 'android' not in e.get('platform', 'android').split():
                 continue
             if e.tag == 'widget' and e.get('name'):
                 widgets[e.get('name')] = e
