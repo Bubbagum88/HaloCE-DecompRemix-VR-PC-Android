@@ -30,7 +30,7 @@ assert re.search(r"#define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23\b
 
 # The zoom scope plane follows the calibrated scope view while its center
 # stays on the physical gun, using the same extended-arm clamp. Ensure config
-# loading and the VR menu both accept the documented ±30 cm adjustment.
+# loading and the VR menu both accept the documented Â±30 cm adjustment.
 frame_vr = read("port/linux/src/vr_frame.c")
 menu_vr = read("port/linux/game/vr_menu.c")
 config_vr = read("port/linux/src/port_config.c")
@@ -47,7 +47,7 @@ assert "VR_SCOPE_ADJUST_LIMIT_METRES" in frame_vr
 assert "_vr_setting_scope_centimetres?VR_SCOPE_ADJUST_LIMIT_METRES" in scope_menu_change
 assert "_vr_setting_scope_centimetres" in menu_vr
 assert config_vr.count("(-0.30..0.30)") == 6
-assert "up to ±30 cm" in read("docs/CONTROLS-AND-OPTIONS.md")
+assert "up to Â±30 cm" in read("docs/CONTROLS-AND-OPTIONS.md")
 
 # The field report did not show an engine zoom state or scope compositor
 # layer. Keep the diagnostic path transition-only and make its gates legible.
@@ -68,7 +68,8 @@ assert "scope_path_log(5, zoom_level, shape)" in scope_window
 assert "state == previous_state" in scope_path_log
 assert "hold the off-hand index trigger" in scope_path_log
 package_gate = read("tools/package-quest.py")
-assert ('current_upstream_markers = ([b"OpenCE Build157 base / network28"' in package_gate or
+assert ('current_upstream_markers = ([b"OpenCE Build201 merged / network28"' in package_gate or
+        'current_upstream_markers = ([b"OpenCE Build157 base / network28"' in package_gate or
         'current_upstream_markers = ([b"OpenCE Build157 base / network26"' in package_gate or
         'current_upstream_markers = ([b"OpenCE Build157 base / network24"' in package_gate or
         'current_upstream_markers = ([b"OpenCE Build 157 base / network 24"' in package_gate)

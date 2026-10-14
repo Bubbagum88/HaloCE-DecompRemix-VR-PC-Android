@@ -91,3 +91,7 @@ key as a usable seed. It now refuses missing keys, so upstream clients are not
 sent unusable sources. The host download uses its established address separately;
 LAN sources are unaffected. A compiled test covers stopped signalling, missing
 peers, empty keys, valid keys and lock release. No wire format/version changed.
+
+The initial rerun finished with two stale identity pins (Test26 and Test34);
+both were updated for the Build201 banner, preserving their behavior checks.
+The final full runs below use the corrected pins.
