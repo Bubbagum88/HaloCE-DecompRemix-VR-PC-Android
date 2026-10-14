@@ -63,6 +63,14 @@ component this far past 1 stays within that after the packing's rounding
 (every vector of the maps examined is within 1.0001) */
 #define MAXIMUM_COMPRESSIBLE_COMPONENT 1.005f
 
+/* (OpenCE testing 52e33a39) the most room a map's models, or a structure
+BSP, are given for their compressed vertices and strip indices: several
+times what the largest maps take (some 470000 model vertices, 15 MB), and far
+less than the 4 GB past which the sizes would wrap. Parts and materials may
+name the same vertices, each checked alone (cache_file_formats.c), so the
+file's size does not bound what they add up to */
+#define MAXIMUM_GEOMETRY_BYTES 0x8000000
+
 /* ---------- structures */
 
 /* this build's model geometry and part, as models.c and rasterizer.c each
@@ -145,6 +153,8 @@ struct model_geometry_totals
 	long vertex_count;
 	long strip_index_count;
 	long largest_part_vertex_count;
+	/* the room the parts' compressed vertices and strips take */
+	unsigned long geometry_bytes;
 };
 
 struct custom_edition_geometry_globals
@@ -237,6 +247,32 @@ static boolean custom_edition_model_part_verify(
 	return TRUE;
 }
 
+/* Adds to `bytes` the room for `vertex_count` vertices of `vertex_size`
+bytes and `index_count` strip indices, unless the total would pass
+MAXIMUM_GEOMETRY_BYTES. */
+static boolean geometry_bytes_add(
+	unsigned long *bytes,
+	unsigned long vertex_count,
+	unsigned long vertex_size,
+	unsigned long index_count)
+{
+	unsigned long added;
+
+	if (vertex_count > MAXIMUM_GEOMETRY_BYTES / vertex_size ||
+		index_count > MAXIMUM_GEOMETRY_BYTES / sizeof(word))
+	{
+		return FALSE;
+	}
+	added = vertex_count * vertex_size + index_count * sizeof(word);
+	if (added > MAXIMUM_GEOMETRY_BYTES - *bytes)
+	{
+		return FALSE;
+	}
+	*bytes += added;
+
+	return TRUE;
+}
+
 /* Whether this build can draw `model`: its renderer skins at most
 RASTERIZER_MAXIMUM_NODES_PER_MODEL - 1 nodes, and every part must pass
 custom_edition_model_part_verify. Adds what its parts need to `totals`. */
@@ -287,6 +323,21 @@ static boolean custom_edition_model_verify(
 					part_index,
 					geometry_index,
 					name);
+				return FALSE;
+			}
+			if (!geometry_bytes_add(
+				&totals->geometry_bytes,
+				(unsigned long)part->vertex_count,
+				(unsigned long)rasterizer_geometry_get_vertex_size(_rasterizer_vertex_type_model_compressed),
+				(unsigned long)part->strip_triangle_count + 2))
+			{
+				error(
+					_error_silent,
+					"custom edition: the models' parts, to part %ld of geometry %ld of the model '%s', take more than 0x%X bytes of geometry",
+					part_index,
+					geometry_index,
+					name,
+					MAXIMUM_GEOMETRY_BYTES);
 				return FALSE;
 			}
 			totals->part_count++;
@@ -519,7 +570,7 @@ boolean custom_edition_models_convert(
 	byte const *model_data)
 {
 	struct custom_edition_geometry_globals *globals = &custom_edition_geometry_globals;
-	struct model_geometry_totals totals = { 0, 0, 0, 0 };
+	struct model_geometry_totals totals = { 0, 0, 0, 0, 0 };
 	struct model_vertex_uncompressed *scratch;
 	struct model_vertex_compressed *vertices;
 	struct model *model;
@@ -542,9 +593,9 @@ boolean custom_edition_models_convert(
 	}
 
 	globals->model_parts = malloc((totals.part_count + 1) * sizeof(*globals->model_parts));
-	globals->model_geometry = malloc(
-		totals.vertex_count * rasterizer_geometry_get_vertex_size(_rasterizer_vertex_type_model_compressed) +
-		totals.strip_index_count * sizeof(*strips) + 1);
+	/* (totals.geometry_bytes is the vertices' and strips' room, at most
+	MAXIMUM_GEOMETRY_BYTES) */
+	globals->model_geometry = malloc(totals.geometry_bytes + 1);
 	scratch = malloc(totals.largest_part_vertex_count * sizeof(*scratch) + 1);
 	if (!globals->model_parts || !globals->model_geometry || !scratch)
 	{
@@ -621,6 +672,7 @@ boolean custom_edition_structure_bsp_load(
 	unsigned long vertices_size = 0;
 	unsigned long vertices_offset = 0;
 	boolean success = TRUE;
+	boolean too_large = FALSE;
 	long lightmap_index;
 
 	assert(!globals->structure_bsp);
@@ -650,11 +702,25 @@ boolean custom_edition_structure_bsp_load(
 			material->vertices.count = vertex_count;
 			material->lightmap_vertices.type = _rasterizer_vertex_type_environment_lightmap_compressed;
 			material->lightmap_vertices.count = lightmap_vertex_count;
-			vertices_size += vertex_count * vertex_size + lightmap_vertex_count * lightmap_vertex_size;
+			/* (every material is still emptied when the sizes are past the
+			most there is room for, so that the failure releases nothing) */
+			if (!too_large &&
+				(!geometry_bytes_add(&vertices_size, (unsigned long)vertex_count, (unsigned long)vertex_size, 0) ||
+				!geometry_bytes_add(&vertices_size, (unsigned long)lightmap_vertex_count, (unsigned long)lightmap_vertex_size, 0)))
+			{
+				too_large = TRUE;
+			}
 		}
 	}
 
 	globals->structure_bsp = structure_bsp;
+	if (too_large)
+	{
+		error(_error_silent, "custom edition: the structure BSP's materials take more than 0x%X bytes of vertices",
+			MAXIMUM_GEOMETRY_BYTES);
+		custom_edition_structure_bsp_unload();
+		return FALSE;
+	}
 	globals->structure_bsp_vertices = malloc(vertices_size + 1);
 	if (!globals->structure_bsp_vertices)
 	{
@@ -706,7 +772,10 @@ void custom_edition_structure_bsp_unload(
 	if (globals->structure_bsp)
 	{
 		structure_bsp_buffers_release(globals->structure_bsp);
-		free(globals->structure_bsp_vertices);
+		/* (none when the load failed before they were made; the game's free,
+		debug_free, does not take NULL) */
+		if (globals->structure_bsp_vertices)
+			free(globals->structure_bsp_vertices);
 		globals->structure_bsp = NULL;
 		globals->structure_bsp_vertices = NULL;
 	}

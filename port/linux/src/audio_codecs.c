@@ -25,6 +25,15 @@ plays back as it predicts.
 #define XBOX_ADPCM_BLOCK_BYTES 36
 #define XBOX_ADPCM_BLOCK_FRAMES 65
 
+/* (as OpenCE's custom_edition_sounds.c, hardened in its testing 52e33a39)
+the most frames a stream is decoded to, at either rate: a stream that said
+it was at 1 Hz once made a count whose bytes wrapped, which the resampler
+then wrote past; the most bytes of Ogg Vorbis read (no stream of that many
+frames, stereo, is larger uncompressed); and the highest rate taken */
+#define MAXIMUM_FRAMES 0x1000000L
+#define MAXIMUM_OGG_BYTES (MAXIMUM_FRAMES * 2 * (long)sizeof(short))
+#define MAXIMUM_SAMPLE_RATE 192000
+
 void halo_audio_free(void *memory)
 {
 	free(memory);
@@ -40,11 +49,16 @@ long halo_ogg_decode(const void *data, long size, int channels, long sample_rate
 	int channel;
 
 	*samples = NULL;
-	if (channels < 1 || channels > 2 || sample_rate <= 0 || size <= 0)
+	if (channels < 1 || channels > 2 || sample_rate <= 0 || sample_rate > MAXIMUM_SAMPLE_RATE || size <= 0 ||
+		size > MAXIMUM_OGG_BYTES)
+	{
 		return -1;
+	}
 	source_frames = stb_vorbis_decode_memory((const unsigned char *)data, (int)size, &source_channels, &source_rate,
 		&source);
-	if (source_frames < 0 || !source || source_channels < 1 || source_rate <= 0)
+	if (source_frames < 0 || source_frames > MAXIMUM_FRAMES || !source || source_channels < 1 || source_rate <= 0 ||
+		source_rate > MAXIMUM_SAMPLE_RATE ||
+		(double)source_frames * (double)sample_rate / (double)source_rate > (double)MAXIMUM_FRAMES)
 	{
 		free(source);
 		return -1;
