@@ -252,3 +252,42 @@ assert view.count("if (vr_active())") >= 3
 legs = read("port/linux/game/first_person_legs.c")
 assert "if (vr_active())\n\t\treturn FALSE;" in legs
 print("PASS: Test66 wiring (seat eyes held per seat, the wheel's turn past half a circle, fist damage as the multiplier, block/parry, grab assist from the surface, held bodies kept, OBJECT THROW, LEFT-HAND MODE, waist grenades, the IMMERSION vehicle topics, OpenCE Build 201 display options with VR's own projection, gun and body)")
+
+# Host-only internet signalling has no several-join peer keys. Do not send
+# a fabricated all-zero seed to upstream clients. A real key still works.
+p2p = read("port/linux/src/p2p.c")
+start = p2p.index("int p2p_peer_key_hash(")
+end = p2p.index("/* Map sharing between", start)
+seed_check = r"""
+#include <assert.h>
+#include <string.h>
+#define P2P_IDENTIFIER_SIZE 16
+#define P2P_KEY_HASH_SIZE 32
+struct peer { unsigned char identifier[16], key_hash[32]; } seed;
+static struct { int running; } p2p;
+static int p2p_lock, locks;
+static void pthread_mutex_lock(int *p) { (void)p; ++locks; }
+static void pthread_mutex_unlock(int *p) { (void)p; --locks; }
+static struct peer *find_peer_by_address(unsigned long a) { return a == 7 ? &seed : 0; }
+""" + p2p[start:end] + r"""
+int main(void) {
+ unsigned char id[16], key[32];
+ memset(id, 0x55, sizeof(id)); memset(key, 0x55, sizeof(key));
+ assert(!p2p_peer_key_hash(7,id,key));
+ p2p.running=1;
+ assert(!p2p_peer_key_hash(8,id,key));
+ assert(!p2p_peer_key_hash(7,id,key));
+ assert(id[0]==0x55 && key[0]==0x55 && locks==0);
+ seed.identifier[0]=0x42; seed.key_hash[31]=0x77;
+ assert(p2p_peer_key_hash(7,id,key));
+ assert(id[0]==0x42 && key[31]==0x77 && locks==0);
+ return 0;
+}
+"""
+with tempfile.TemporaryDirectory(prefix="test66-seeds-") as temp:
+    source = Path(temp) / "seeds.c"
+    binary = Path(temp) / "seeds"
+    source.write_text(seed_check)
+    subprocess.run(["clang", "-std=gnu89", "-Wall", "-Wextra", "-Werror", str(source), "-o", str(binary)], check=True)
+    subprocess.run([str(binary)], check=True)
+print("PASS: map seed advertising rejects missing/zero keys, retains valid keys, and unlocks every path")

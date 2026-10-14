@@ -79,3 +79,10 @@ joins 11 to 28; map sharing and votes to kick travel in network 28 already.
 Upstream harness tests `test_server_teardown` and `test_cinematic_titles`
 fail even natively on Build 201 and are not in this project's suites;
 `test_map_share_names` runs (`HALO_HARNESS_NATIVE=1`).
+
+Resumed map-sharing audit: the host-only signalling code never fills another
+internet player's key hash. The newly added lookup previously returned that zero
+key as a usable seed. It now refuses missing keys, so upstream clients are not
+sent unusable sources. The host download uses its established address separately;
+LAN sources are unaffected. A compiled test covers stopped signalling, missing
+peers, empty keys, valid keys and lock release. No wire format/version changed.

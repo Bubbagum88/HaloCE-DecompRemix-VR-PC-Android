@@ -2668,9 +2668,19 @@ int p2p_peer_key_hash(unsigned long virtual_address, unsigned char *peer_identif
 	peer = find_peer_by_address(virtual_address);
 	if (peer)
 	{
-		memcpy(peer_identifier, peer->identifier, P2P_IDENTIFIER_SIZE);
-		memcpy(key_hash, peer->key_hash, P2P_KEY_HASH_SIZE);
-		result = 1;
+		int index, have_key = 0;
+
+		/* Our host-only signalling does not populate player keys. Do not
+		advertise an all-zero key as a reachable internet map seed; the
+		download's host source uses its established address separately. */
+		for (index = 0; index < P2P_KEY_HASH_SIZE; index++)
+			have_key |= peer->key_hash[index];
+		if (have_key)
+		{
+			memcpy(peer_identifier, peer->identifier, P2P_IDENTIFIER_SIZE);
+			memcpy(key_hash, peer->key_hash, P2P_KEY_HASH_SIZE);
+			result = 1;
+		}
 	}
 	pthread_mutex_unlock(&p2p_lock);
 	return result;
