@@ -21,6 +21,10 @@
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/op_per_pixel_lighting" x="54" y="193"/>
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/op_death_physics" x="54" y="223"/>
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/op_big_multiplayer_guns" x="54" y="253"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/op_corpse_duration" x="54" y="283"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/op_corpse_limit" x="54" y="313"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/op_decal_duration" x="54" y="343"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/op_decals" x="54" y="373" platform="desktop"/>
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/button_bar" y="414"/>
 	</widget>
 	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/button_bar" type="column_list" width="640" height="28" flags="pass_unhandled_to_focused_child left_right_tabs_items">
@@ -100,6 +104,42 @@
 	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/big_multiplayer_guns_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="CLASSIC|ENHANCED" setting="display.big_multiplayer_guns" values="classic|enhanced" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
 		<on event="created" run="port setting load"/>
 	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/op_corpse_duration" width="512" height="28" flags="pass_unhandled_to_focused_child" bitmap="bitmaps/option_bkds" color="#FF2896FF">
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/corpse_duration_label"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/corpse_duration_spinner" x="320" y="1"/>
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/corpse_duration_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/labels" string_index="8" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/corpse_duration_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="DEFAULT|EXTENDED" setting="game.corpse_duration" values="default|extended" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
+		<on event="created" run="port setting load"/>
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/op_corpse_limit" width="512" height="28" flags="pass_unhandled_to_focused_child" bitmap="bitmaps/option_bkds" color="#FF2896FF">
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/corpse_limit_label"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/corpse_limit_spinner" x="320" y="1"/>
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/corpse_limit_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/labels" string_index="9" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/corpse_limit_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="DEFAULT|INSANE" setting="game.corpse_limit" values="default|insane" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
+		<on event="created" run="port setting load"/>
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/op_decal_duration" width="512" height="28" flags="pass_unhandled_to_focused_child" bitmap="bitmaps/option_bkds" color="#FF2896FF">
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/decal_duration_label"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/decal_duration_spinner" x="320" y="1"/>
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/decal_duration_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/labels" string_index="10" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/decal_duration_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="DEFAULT|EXTENDED" setting="game.decal_duration" values="default|extended" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
+		<on event="created" run="port setting load"/>
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/op_decals" width="512" height="28" flags="pass_unhandled_to_focused_child" bitmap="bitmaps/option_bkds" color="#FF2896FF">
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/decals_label"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/decals_spinner" x="320" y="1"/>
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/decals_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/labels" string_index="11" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/decals_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="DEFAULT|4X|8X|INSANE" setting="game.decals" values="default|4x|8x|insane" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
+		<on event="created" run="port setting load"/>
+	</widget>
 	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/button_defaults" type="text" width="128" height="24" bitmap="bitmaps/text_button_background" string_list="strings/common_button_captions" string_index="3" font="ui\small_ui" color="#FFFFFFFF" align="center" text_y="2">
 		<on event="a" run="port settings defaults"/>
 		<on event="start" run="port settings defaults"/>
@@ -119,6 +159,10 @@
 		<string text="PER-PIXEL LIGHTING:"/>
 		<string text="PHYSICS:"/>
 		<string text="BIG MULTIPLAYER GUNS:"/>
+		<string text="CORPSE DURATION:"/>
+		<string text="CORPSE LIMIT:"/>
+		<string text="DECAL DURATION:"/>
+		<string text="DECALS:"/>
 	</strings>
 	<strings name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/graphics/help_strings">
 		<string text=""/>
@@ -130,5 +174,9 @@
 		<string text="Light models for each pixel, without the facets\nof the Xbox's lighting for each vertex."/>
 		<string text="Ragdoll: bodies fall limp, thrown by what killed\nthem. Classic: the game's own death animations."/>
 		<string text="Classic: guns and grenades on the ground are\nsupersized in multiplayer. Enhanced: real size."/>
+		<string text="Multiplayer bodies. Default: gone after 30\nseconds. Extended: they stay until the limit."/>
+		<string text="How many bodies and dropped weapons stay\nabout. Default: the game's. Insane: 8x."/>
+		<string text="Default: marks fade after about 3 minutes.\nExtended: they stay until the limit is reached."/>
+		<string text="How many bullet holes, scorch marks and blood\nstay. Insane: 12x the game's. From the next map."/>
 	</strings>
 </menus>

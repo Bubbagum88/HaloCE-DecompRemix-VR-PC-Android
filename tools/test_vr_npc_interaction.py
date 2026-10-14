@@ -401,7 +401,7 @@ update=objects[objects.index('boolean object_update('):objects.index('void objec
 assert update.index('object_compute_node_matrices(object_index)')<update.index('vr_npc_interaction_palette(object_index)')<update.index('object_update(object->object.first_child_object_index)')
 units=(ROOT/'source/units/units.c').read_text()
 update=units[units.index('boolean unit_update('):]
-assert update.index('persistent_control_timer>0')<update.index('vr_npc_interaction_controls(unit_index)')<update.index('if (cheat.jetpack')
+assert update.index('persistent_control_timer>0')<update.index('vr_npc_interaction_controls(unit_index)')<update.index('if ((cheat.jetpack')  # (Test67: GulchCE's MCC jetpack joins it)
 bipeds=(ROOT/'source/units/bipeds.c').read_text()
 assert bipeds.index('vr_npc_interaction_velocity(physics->biped_index')<bipeds.index('collision_count = collision_move_pill(')
 assert 'vr_controller(&buttons,triggers,thumbs)' in source

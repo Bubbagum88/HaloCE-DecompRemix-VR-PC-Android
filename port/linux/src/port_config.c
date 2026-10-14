@@ -428,6 +428,25 @@ static const struct config_setting config_settings[] =
 		"to throw and reload, and a player turns with the aim while throwing;\n"
 		"false: the original animations, which freeze the legs and stand a\n"
 		"rider up." },
+	/* (the OpenCE fork jcompto95-tech's corpse and decal limits) */
+	{ "game.corpse_duration", _config_string, "\"default\"", "HALO_CORPSE_DURATION", _environment_value, _platform_all,
+		"How long the dead lie in multiplayer: \"default\" (the game's own,\n"
+		"30 seconds still) or \"extended\" (until the game's limit on its active\n"
+		"garbage clears the oldest no one sees). In a network game the host's\n"
+		"setting decides." },
+	{ "game.corpse_limit", _config_string, "\"default\"", "HALO_CORPSE_LIMIT", _environment_value, _platform_all,
+		"How many of the dead (and dropped weapons) stay about before those no\n"
+		"player sees are cleared: \"default\" (the game's own, 50 for 16 players)\n"
+		"or \"insane\" (eight times as many). In a network game the host's\n"
+		"setting decides." },
+	{ "game.decal_duration", _config_string, "\"default\"", "HALO_DECAL_DURATION", _environment_value, _platform_all,
+		"How long marks the game keeps for minutes (bullet holes, scorch marks,\n"
+		"blood) last: \"default\" (the game's own, about three minutes, then they\n"
+		"fade) or \"extended\" (until the decal limit retires the oldest)." },
+	{ "game.decals", _config_string, "\"default\"", "HALO_DECALS", _environment_value, _platform_desktop,
+		"How many decals (bullet holes, scorch marks, blood) stay before the\n"
+		"oldest give way: \"default\" (the game's own limit, 2048), \"4x\", \"8x\"\n"
+		"or \"insane\" (twelve times). Takes effect as the next map begins." },
 
 	{ "paths.data", _config_string, "\"\"", "HALO_DATA_ROOT", _environment_value, _platform_desktop,
 		"The folder holding the game data's maps folder; empty looks in the\n"

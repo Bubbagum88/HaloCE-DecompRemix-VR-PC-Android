@@ -3639,6 +3639,24 @@ static boolean find_closest_player_callback(
 	return result;
 }
 
+/* port: game.corpse_duration (port/linux/src/port_config.c) */
+
+static boolean game_engine_corpses_last(
+	void)
+{
+	static unsigned long changes = (unsigned long)-1;
+	static boolean last = FALSE;
+
+	if (changes != config_changes())
+	{
+		const char *value = config_string("game.corpse_duration");
+
+		changes = config_changes();
+		last = value && !csstrcmp(value, "extended");
+	}
+	return last;
+}
+
 static void game_engine_update_purge(
 	void)
 {
@@ -3676,8 +3694,12 @@ static void game_engine_update_purge(
 			cutoff_time = 900;
 			object = object_get(biped_iterator.index);
 
+			/* port: with game.corpse_duration "extended", the dead stay until
+			the corpse limit (objects_garbage_collection) takes the oldest
+			no one sees */
 			if (object->object.idle_ticks > (short)cutoff_time &&
-				TEST_FLAG(object->object.damage_flags, _object_dead_bit))
+				TEST_FLAG(object->object.damage_flags, _object_dead_bit) &&
+				!game_engine_corpses_last())
 			{
 				object_delete(biped_iterator.index);
 			}
