@@ -969,6 +969,14 @@ vr.assisted_combat [boolean]
 Default: false
 Optional enemy-only gaze/punch combo assist, local play or a co-op host. Native collision and damage remain in use.
 
+vr.combat_moves [boolean]
+Default: true
+COMBAT MOVES: optional enemy-specific attack poses, physical duck/sidestep dodges, arm-control and jump-pummel openings within FIST COMBAT. Enemy-only; real contacts and native collision remain required.
+
+vr.projectile_parry [boolean]
+Default: false
+DEFLECT SHOTS: physically deflect moving projectiles or airborne grenades with a closed empty fist (Grip + Trigger), or deliberately swing the hand carrying your gun. Aiming/firing alone does not parry. Native fuse and damage remain intact. Enabled with FIST COMBAT; may be switched off separately. Local solo or compatible enabled co-op host only; no hitscan, attached or settled grenades.
+
 vr.combat_highlights [boolean]
 Default: true
 Highlight a locked enemy head/chest and show stun/impact feedback with assisted combat.
