@@ -2982,10 +2982,19 @@ static enum cache_file_status scenario_script_nodes_convert(
 	nodes = state->tag_cache + nodes_offset;
 	if (read_s16(nodes + DATA_ARRAY_MAXIMUM_COUNT_OFFSET) != MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO_UPGRADED ||
 		read_s16(nodes + DATA_ARRAY_ELEMENT_BYTES_OFFSET) != HS_SYNTAX_NODE_BYTES ||
-		read_s16(nodes + DATA_ARRAY_COUNT_OFFSET) > MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO ||
-		read_s16(nodes + DATA_ARRAY_FIRST_FREE_INDEX_OFFSET) > MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO)
+		read_s16(nodes + DATA_ARRAY_COUNT_OFFSET) > MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO_UPGRADED ||
+		read_s16(nodes + DATA_ARRAY_FIRST_FREE_INDEX_OFFSET) > MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO_UPGRADED)
 	{
 		return _cache_file_status_bad_script_nodes;
+	}
+	/* Test66: nodes in use past this build's number (The Altheros
+	Experience's a10): the upgraded array is kept as it is; hs.c and the
+	scenario's schema take either size */
+	if (read_s16(nodes + DATA_ARRAY_COUNT_OFFSET) > MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO ||
+		read_s16(nodes + DATA_ARRAY_FIRST_FREE_INDEX_OFFSET) > MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO)
+	{
+		report->problem_tag_index = NO_TAG_INDEX;
+		return _cache_file_status_ok;
 	}
 	report->problem_tag_index = NO_TAG_INDEX;
 	write_u16(nodes + DATA_ARRAY_MAXIMUM_COUNT_OFFSET, MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO);

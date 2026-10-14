@@ -37,6 +37,8 @@ import java.nio.channels.FileChannel;
 public class LauncherActivity extends Activity {
     private static final int PICK_IMAGE = 1;
     private static final int PICK_RESOURCES = 2;
+    /** Test66: an imported campaign mod's folder (The Altheros Experience) */
+    private static final int PICK_MOD_FOLDER = 3;
 
     private File dataRoot;
     private View launcherRoot;
@@ -145,9 +147,10 @@ public class LauncherActivity extends Activity {
     private boolean readyToPlay() {
         if (busy || (dataManager!=null&&dataManager.busy())) return false;
         if(!haveData()){dataManager().show();return false;}
-        if (new ModInstaller(gameRoot()).recoveryNeeded(ModInstaller.SPV1)) {
+        ModInstaller.Mod recovering = new ModInstaller(gameRoot()).recoveryMod();
+        if (recovering != null) {
             if (mods == null) buildMenu();
-            selectMod(ModInstaller.SPV1);
+            selectMod(recovering);
             status.setText("An interrupted mod change needs recovery. Restore the original campaign or uninstall before playing.");
             return false;
         }
@@ -260,7 +263,8 @@ public class LauncherActivity extends Activity {
     private ModInstaller mods;
     private ModInstaller.Mod selectedMod;
     private LinearLayout modDetails;
-    private TextView modState;
+    private TextView modState, campaignNow;
+    private Button originalCampaign, modImport;
     private Button play, modAction, modDelete, modResources, resetSettings, mainMenu3d, fontToggle;
     private boolean busy;
 
@@ -358,13 +362,18 @@ public class LauncherActivity extends Activity {
         menuButton(layout, "Multiplayer & co-op guide").setOnClickListener(v -> LauncherHelp.network(this));
         menuButton(layout, "Field guide • controls & help").setOnClickListener(v -> LauncherHelp.show(this));
 
-        TextView modsTitle = label(layout, "MODS", 18, HALO_BLUE);
+        // Test66: CUSTOM CAMPAIGNS: one campaign plays at a time (the
+        // original, SPV1 or The Altheros Experience); switching swaps the
+        // maps by renaming, the others kept aside to switch back at once
+        TextView modsTitle = label(layout, "CUSTOM CAMPAIGNS", 18, HALO_BLUE);
         modsTitle.setPadding(0, dp(24), 0, dp(4));
-
-        // SPV1's maps fit the current CE reader's file-size bounds, but this mod
-        // has not yet been verified in a real campaign on this port.
-        Button spv1 = menuButton(layout, ModInstaller.SPV1.title + " (experimental; unverified)");
-        spv1.setOnClickListener(v -> selectMod(ModInstaller.SPV1));
+        campaignNow = label(layout, "", 14, Color.rgb(200, 205, 210));
+        LauncherFont.keepNormal(campaignNow);
+        for (ModInstaller.Mod each : ModInstaller.MODS)
+            menuButton(layout, each.title).setOnClickListener(v -> selectMod(each));
+        originalCampaign = menuButton(layout, "Play the original campaign");
+        originalCampaign.setOnClickListener(v -> originalCampaignClicked());
+        refreshCampaignNow();
 
         // the selected mod: what it is, and what can be done with it
         modDetails = new LinearLayout(this);
@@ -423,12 +432,6 @@ public class LauncherActivity extends Activity {
     }
 
     /** Shows the mod's description and buttons (again: hides them). */
-    static final String SPV1_COMPATIBILITY_NOTE = "SPV1 is experimental and has not been verified in a campaign "
-        + "on this port. Its maps are about 157-253 MiB each, larger than the 128 MiB limit sometimes quoted. "
-        + "This Custom Edition reader accepts map files up to 384 MiB (576 MiB for OpenSauce-upgraded caches), "
-        + "so size alone does not rule SPV1 out; protected-map conversion, resources and gameplay still need "
-        + "testing. Keep a backup; Restore returns the original campaign.";
-
     private void selectMod(ModInstaller.Mod mod) {
         if (selectedMod == mod && modDetails.getVisibility() == View.VISIBLE) {
             modDetails.setVisibility(View.GONE);
@@ -443,12 +446,14 @@ public class LauncherActivity extends Activity {
         name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
         modDetails.addView(name);
 
-        TextView warning = new TextView(this);
-        warning.setText(SPV1_COMPATIBILITY_NOTE);
-        warning.setTextColor(Color.rgb(255, 190, 70));
-        warning.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        warning.setPadding(0, dp(8), 0, 0);
-        modDetails.addView(warning);
+        if (mod.note != null) {
+            TextView note = new TextView(this);
+            note.setText(mod.note);
+            note.setTextColor(Color.rgb(255, 190, 70));
+            note.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            note.setPadding(0, dp(8), 0, 0);
+            modDetails.addView(note);
+        }
 
         TextView description = new TextView(this);
         description.setText(mod.description);
@@ -472,6 +477,11 @@ public class LauncherActivity extends Activity {
             intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             startActivityForResult(intent, PICK_RESOURCES);
         });
+        modImport = menuButton(modDetails, "Import " + mod.title + " from a folder");
+        modImport.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+            startActivityForResult(intent, PICK_MOD_FOLDER);
+        });
         modAction = menuButton(modDetails, "");
         modAction.setOnClickListener(v -> modActionClicked());
         modDelete = menuButton(modDetails, "Delete the download (frees 2.2 GB)");
@@ -485,10 +495,26 @@ public class LauncherActivity extends Activity {
             return;
         boolean installed = mods.installed(selectedMod);
         boolean downloaded = mods.downloaded(selectedMod);
-        boolean resources = mods.haveResources();
+        boolean resources = !selectedMod.needsResources() || mods.haveResources();
 
+        refreshCampaignNow();
+        modImport.setVisibility(selectedMod.imported && !downloaded && !installed ? View.VISIBLE : View.GONE);
+        modImport.setEnabled(!busy);
         modResources.setVisibility(resources ? View.GONE : View.VISIBLE);
         modResources.setEnabled(!busy);
+        if (selectedMod.imported) {
+            ModInstaller.Mod other = mods.installedMod();
+            modState.setText((installed ? "Installed: the campaign plays as " + selectedMod.title + "."
+                : downloaded ? "Imported, not installed: " + (other != null ? other.title : "the original campaign") + " plays."
+                : "Not imported yet. Still needed: " + mods.missingImports(selectedMod))
+                + "\nAfter switching, start levels anew: a checkpoint of one campaign does not load into the other.");
+            modAction.setText(installed ? "Restore the original campaign" : "Install " + selectedMod.title);
+            modAction.setEnabled(!busy && (installed || downloaded));
+            modDelete.setText(installed ? "Uninstall and restore original campaign" : "Delete the imported mod files");
+            modDelete.setVisibility(installed || downloaded || mods.hasDownloadFiles(selectedMod) ? View.VISIBLE : View.GONE);
+            modDelete.setEnabled(!busy);
+            return;
+        }
         modState.setText((resources ? "" : "BEFORE INSTALLING: SPV1 needs three files from Halo Custom Edition "
                 + "for PC (a free download for owners of Halo PC). They come with the game, so they cannot come "
                 + "with this app; you only do this once.\n"
@@ -524,6 +550,7 @@ public class LauncherActivity extends Activity {
             fontToggle.setEnabled(!value);
         progress.setVisibility(value ? View.VISIBLE : View.GONE);
         refreshMod();
+        refreshCampaignNow();
     }
 
     private void modActionClicked() {
@@ -542,10 +569,91 @@ public class LauncherActivity extends Activity {
                 }
             } catch (Exception exception) {
                 report((installed ? "Restoring" : "Installing") + " failed: " + exception.getMessage()
-                    + (installed ? "" : " (the download resumes from the map it stopped at)"), -1);
+                    + (installed || mod.imported ? "" : " (the download resumes from the map it stopped at)"), -1);
             }
             handler.post(() -> setBusy(false));
         }).start();
+    }
+
+    /** Test66: which campaign plays now, and the way back to the original. */
+    private void refreshCampaignNow() {
+        if (campaignNow == null || mods == null)
+            return;
+        ModInstaller.Mod now = mods.installedMod();
+        campaignNow.setText("Campaign now: " + (now != null ? now.title : "the original Halo campaign")
+            + ". Choose one below to install or switch; only one plays at a time.");
+        originalCampaign.setVisibility(now != null ? View.VISIBLE : View.GONE);
+        originalCampaign.setEnabled(!busy);
+    }
+
+    private void originalCampaignClicked() {
+        ModInstaller.Mod now = mods.installedMod();
+        if (now == null || busy)
+            return;
+        setBusy(true);
+        new Thread(() -> {
+            try {
+                mods.restore(now, this::report);
+                report("The original campaign is back (" + now.title + " stays on this headset to switch back in).", 1000);
+            } catch (Exception exception) {
+                report("Restoring failed: " + exception.getMessage(), -1);
+            }
+            handler.post(() -> setBusy(false));
+        }, "mod-restore").start();
+    }
+
+    /** Test66: an imported mod's files copied in from the folder the player chose. */
+    private void importModFolder(ModInstaller.Mod mod, Uri tree) {
+        int copied = 0;
+        try {
+            java.util.List<String[]> found = new java.util.ArrayList<>();
+            collectFolder(tree, android.provider.DocumentsContract.getTreeDocumentId(tree), found, 0);
+            for (String[] entry : found) {
+                long[] expected = new long[1];
+                File target = mods.importTarget(mod, entry[1], expected);
+                if (target == null)
+                    continue;
+                Uri file = android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, entry[0]);
+                try (java.io.InputStream in = getContentResolver().openInputStream(file)) {
+                    if (in == null)
+                        throw new java.io.IOException("cannot open " + entry[1]);
+                    mods.importFile(mod, new java.io.BufferedInputStream(in, 1 << 16), target, expected[0],
+                        "Importing " + entry[1], this::report);
+                }
+                copied++;
+            }
+            String missing = mods.missingImports(mod);
+            report(missing.isEmpty() ? mod.title + " is imported (" + copied + " files): tap Install."
+                : "Imported " + copied + " files; still needed: " + missing + ". Choose the folder with the "
+                    + ".yelo files and data_files.", -1);
+        } catch (Exception exception) {
+            report("Importing failed: " + exception.getMessage(), -1);
+        }
+        handler.post(() -> setBusy(false));
+    }
+
+    /** The files of a chosen folder and its folders (up to three deep): id, name. */
+    private void collectFolder(Uri tree, String parent, java.util.List<String[]> found, int depth)
+            throws java.io.IOException {
+        Uri children = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(tree, parent);
+        String[] columns = { android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE };
+        try (android.database.Cursor cursor = getContentResolver().query(children, columns, null, null, null)) {
+            if (cursor == null)
+                throw new java.io.IOException("the folder cannot be read");
+            while (cursor.moveToNext()) {
+                if (found.size() > 4096)
+                    throw new java.io.IOException("the folder has too many files");
+                String id = cursor.getString(0), name = cursor.getString(1), mime = cursor.getString(2);
+                if (android.provider.DocumentsContract.Document.MIME_TYPE_DIR.equals(mime)) {
+                    if (depth < 3)
+                        collectFolder(tree, id, found, depth + 1);
+                } else {
+                    found.add(new String[] { id, name });
+                }
+            }
+        }
     }
 
     private void modDeleteClicked() {
@@ -781,6 +889,14 @@ public class LauncherActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if((requestCode==GameDataManager.PICK_ISO||requestCode==GameDataManager.PICK_FOLDER)&&dataManager().result(requestCode,resultCode,data))return;
+        if (requestCode == PICK_MOD_FOLDER && resultCode == RESULT_OK && data != null && data.getData() != null
+                && selectedMod != null) {
+            ModInstaller.Mod mod = selectedMod;
+            Uri tree = data.getData();
+            setBusy(true);
+            new Thread(() -> importModFolder(mod, tree), "mod-import").start();
+            return;
+        }
         if (requestCode == PICK_RESOURCES && resultCode == RESULT_OK && data != null) {
             java.util.List<Uri> files = new java.util.ArrayList<>();
 

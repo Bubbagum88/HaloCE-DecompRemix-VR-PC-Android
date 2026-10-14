@@ -29,5 +29,7 @@ void vr_npc_interaction_note_damage(long object,real_point3d const *point,real_v
 /* Test65: ticks a hand has held `index` (-1: not held); a living NPC knocked
  * off its feet along `direction` at `speed_mps` (TRUE when it went down) */
 long vr_npc_interaction_hold_age(long index);
+/* Test66: whether a hand's state has this body (OpenCE's ragdolls leave it alone) */
+int vr_npc_interaction_has(long index);
 int vr_npc_interaction_knock(long index,real_point3d const *point,real_vector3d const *direction,real speed_mps);
 #endif

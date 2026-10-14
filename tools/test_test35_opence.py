@@ -95,19 +95,25 @@ guide_generator = read("tools/generate-field-guide.py")
 assert "HALO_RELEASE_GUIDE" in guide_generator and "RELEASE-'+stable_release+'.md" in guide_generator
 
 # SPV1's ten map files are larger than 128 MiB, but fit the current bounded
-# Custom Edition cache reader. Keep that distinction visible and avoid
-# claiming the mod works without a device campaign test.
+# Custom Edition cache reader. Test66: the owner reports SPV1 working with
+# OpenCE's changes, so the launcher no longer warns; its maps still fit.
 installer = read("port/android/app/src/main/java/com/halo/decomp/ModInstaller.java")
-map_sizes = [int(size) for size in re.findall(r'new ModMap\("[a-z0-9]+",\s*\d+,\s*(\d+)L\)', installer)]
+spv1 = installer[installer.index("static final Mod SPV1"):installer.index("private static final String DETAIL_URL")]
+spv1 = spv1[:spv1.index("static final long[] ALTHEROS_DATA_SIZES")] if "ALTHEROS_DATA_SIZES" in spv1 else spv1
+map_sizes = [int(size) for size in re.findall(r'new ModMap\("[a-z0-9]+",\s*\d+,\s*(\d+)L\)', spv1)]
 assert len(map_sizes) == 10 and min(map_sizes) > 128 * 1024 * 1024
 cache_header = read("port/linux/game/cache_file_formats.h")
 assert "CUSTOM_EDITION_CACHE_FILE_MAXIMUM_BYTES 0x18000000UL" in cache_header
 assert "CUSTOM_EDITION_CACHE_FILE_MAXIMUM_BYTES_UPGRADED 0x24000000UL" in cache_header
 launcher = read("port/android/app/src/main/java/com/halo/decomp/LauncherActivity.java")
 for marker in ["(experimental; unverified)", "157-253 MiB each", "128 MiB limit",
-               "up to 384 MiB (576 MiB for OpenSauce-upgraded caches)",
                "protected-map conversion, resources and gameplay still need"]:
-    assert marker in launcher
+    assert marker not in launcher
+# Test66: The Altheros Experience's .yelo maps (the largest 425 MiB) fit the
+# OpenSauce-upgraded bound
+altheros = installer[installer.index("static final Mod ALTHEROS"):installer.index("static final Mod[] MODS")]
+yelo_sizes = [int(size) for size in re.findall(r'new ModMap\("[a-z0-9]+",\s*-?\d+,\s*(\d+)L\)', altheros)]
+assert len(yelo_sizes) == 10 and max(yelo_sizes) <= 0x24000000
 
 # Every upstream particle radius field used to make a collision radius is
 # checked at its tag-schema callback and wired into that tag's schema.

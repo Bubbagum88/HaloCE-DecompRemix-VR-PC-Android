@@ -155,6 +155,20 @@ VARIADIC_PROTOTYPE_FILES = {
 
 HOST_LIBRARIES = ["SDL3", "GLESv3", "EGL", "log", "android", "m", "dl"]
 
+# Test66: OpenCE's dynamic ragdolls (port/linux/game/ragdoll.c) simulate with
+# Jolt Physics (port/third_party/JoltPhysics, C++). The ILP32 guest cannot
+# build it: the host does (port/android/host/host_ragdoll.c with
+# port/linux/physics/ragdoll_physics.cpp), and the guest calls it through the
+# import table (port/linux/game/ragdoll_physics_guest.c). As OpenCE's desktop
+# build: C++17, no exceptions or RTTI, no fused multiply-add.
+JOLT_DIR = Path("port/third_party/JoltPhysics")
+RAGDOLL_PHYSICS_SOURCE = Path("port/linux/physics/ragdoll_physics.cpp")
+
+
+def jolt_present() -> bool:
+    """whether the ragdolls build: Jolt is in port/third_party/JoltPhysics"""
+    return (JOLT_DIR / "Jolt" / "Jolt.h").is_file() and RAGDOLL_PHYSICS_SOURCE.is_file()
+
 
 def _quote(path: Any) -> str:
     text = str(path).replace(os.sep, "/")
@@ -315,6 +329,7 @@ def generate_android_build(n: Writer, sln: Any) -> None:
     n.comment("Android build (ninja android); see port/android/README.md")
     n.variable("android_guest_cc", guest_cc)
     n.variable("android_host_cc", str(host_cc))
+    n.variable("android_host_cxx", str(host_cc) + "++")
     n.variable("android_ndk_bin", str(ndk_bin))
 
     # ---------- generated headers and sources
@@ -482,6 +497,8 @@ def generate_android_build(n: Writer, sln: Any) -> None:
         # game sources that call them
         f"-iquote {Path(config['game_sources'])}",
         game_defines_and_includes(config), *libc_includes, f"-idirafter {XDK_INCLUDE}",
+        # (Test66: the ragdolls, their physics in the host: ragdoll.h)
+        "-DHALO_JOLT" if jolt_present() else "",
     ])
     for source in game_sources(config):
         cflags = game_cflags
@@ -629,12 +646,29 @@ def generate_android_build(n: Writer, sln: Any) -> None:
         n.build(outputs=obj, rule="android_host_cc", inputs=source,
                 variables={"cflags": miniupnpc_cflags + (" -w" if source.name != "posix_upnp.c" else "")})
         host_objects.append(obj)
+    # Test66: Jolt and the ragdolls' C interface, in the host
+    if jolt_present():
+        n.rule(
+            name="android_host_cxx",
+            command="$android_host_cxx -MMD -MF $out.d $cflags -c $in -o $out",
+            description="ANDROID HOST CXX $out",
+            depfile="$out.d",
+            deps="gcc",
+        )
+        jolt_cflags = " ".join(["-O2", "-fPIC", "-std=c++17", "-fno-exceptions", "-fno-rtti", "-DNDEBUG",
+                                "-ffp-contract=off", "-w", f"-I{JOLT_DIR}", f"-I{Path(config['game_sources'])}"])
+        for source in [*sorted((JOLT_DIR / "Jolt").rglob("*.cpp")), RAGDOLL_PHYSICS_SOURCE]:
+            obj = host_obj_dir / "jolt" / (source.relative_to(JOLT_DIR if source.is_relative_to(JOLT_DIR) else source.parent)
+                                           .as_posix().replace("/", "_") + ".o")
+            n.build(outputs=obj, rule="android_host_cxx", inputs=source, variables={"cflags": jolt_cflags})
+            host_objects.append(obj)
     table_obj = host_obj_dir / "host_import_table.c.o"
     n.build(outputs=table_obj, rule="android_host_cc", inputs=host_table_c, variables={"cflags": host_cflags})
     host_objects.append(table_obj)
     n.rule(
         name="android_host_link",
-        command=(f"$android_host_cc -shared -o $out $in -L{sdl_build} "
+        command=(("$android_host_cxx -static-libstdc++ " if jolt_present() else "$android_host_cc ")
+                 + f"-shared -o $out $in -L{sdl_build} "
                  + (f"-L{OPENXR_DIR / 'lib'} -lopenxr_loader " if vr else "")
                  + " ".join(f"-l{lib}" for lib in HOST_LIBRARIES)
                  + " -Wl,-z,max-page-size=16384 -Wl,--no-undefined"),

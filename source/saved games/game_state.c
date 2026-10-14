@@ -137,6 +137,8 @@ symbols in this file:
 #include "network_campaign.h"
 #include "cluster_partitions.h"
 void platform_log(const char *format, ...);
+/* port: object_bounds_cache.c's (OpenCE Build 201, taken in Test66) */
+void object_bounds_cache_invalidate(void);
 
 /* ---------- constants */
 
@@ -333,6 +335,9 @@ void game_state_initialize_for_new_map(
 {
 	const char *name;
 
+	/* port: (the objects are put back: object_bounds_cache.c) */
+	object_bounds_cache_invalidate();
+
 	game_state_note_event("map start");
 	game_state_data_arrays_new_map();
 
@@ -395,6 +400,8 @@ void game_state_port_restamp_revert_time(
 void game_state_revert(
 	void)
 {
+	/* port: (the objects are put back: object_bounds_cache.c) */
+	object_bounds_cache_invalidate();
 	if (network_campaign_checkpoint_request(TRUE)) return;
 	if (!game_state_globals.saved_game_valid && !recover_saved_games_hack)
 	{
@@ -1052,6 +1059,9 @@ void game_state_try_and_load_from_persistent_storage(
 {
 	struct game_state_header header;
 
+	/* port: (the objects are put back: object_bounds_cache.c) */
+	object_bounds_cache_invalidate();
+
 	if (game_state_read_header_from_persistent_storage(
 			&header,
 			&header.checksum,
@@ -1080,6 +1090,9 @@ void game_state_load_core(
 	const char *name)
 {
 	struct game_state_header header;
+
+	/* port: (the objects are put back: object_bounds_cache.c) */
+	object_bounds_cache_invalidate();
 
 	if (game_state_read_core_header(name, &header, sizeof(header))
 		&& game_state_header_valid(&header, TRUE))

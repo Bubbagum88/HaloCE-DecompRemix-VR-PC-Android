@@ -55,6 +55,9 @@ OBJECTS.C
 #include "units/units.h"
 /* port: port/linux/game/first_person_legs.c's */
 void first_person_legs_reset(void);
+/* port: object_bounds_cache.c's (OpenCE Build 201, taken in Test66) */
+void object_bounds_cache_update(long object_index, real_point3d const *center, real radius);
+#include "ragdoll.h" /* port: port/linux/game/ragdoll.c */
 #include "vr_world_interaction.h"
 #include "vr_npc_interaction.h"
 #include "vr_npc_rescue.h"
@@ -2994,6 +2997,9 @@ void object_compute_node_matrices(
 	{
 		object->object.bounding_sphere_radius *= object->object.scale;
 	}
+	/* port: (and in the packed copy collision reads: object_bounds_cache.c,
+	OpenCE Build 201, taken in Test66) */
+	object_bounds_cache_update(object_index, &object->object.bounding_sphere_center, object->object.bounding_sphere_radius);
 
 	return;
 }
@@ -3426,6 +3432,12 @@ void object_set_position(
 	real_vector3d const *up)
 {
 	struct object_datum *object = object_get(object_index);
+
+#if RAGDOLLS
+	/* port: a ragdoll's body moves whole, in its pose (port/linux/game/ragdoll.c) */
+	if (ragdoll_object_set_position(object_index, position))
+		return;
+#endif
 
 	object_disconnect_from_map(object_index);
 

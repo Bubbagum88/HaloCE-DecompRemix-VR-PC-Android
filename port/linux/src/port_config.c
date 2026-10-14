@@ -377,6 +377,27 @@ static const struct config_setting config_settings[] =
 		"source says what works. On Android the launcher's mods turn it on while\n"
 		"one is installed." },
 	/* OpenCE Build 201 */
+#ifdef HALO_PROFILE
+	{ "debug.profile_record", _config_boolean, "false", "HALO_PROFILE_RECORD", _environment_value, _platform_all,
+		"Record a profile with no command (configure.py --profile builds): from\n"
+		"when profile_record_when says until profile_stop, a map change or the\n"
+		"end, into numbered part files in the data folder's profiles folder\n"
+		"(tools/net_report.py reads it)." },
+	{ "debug.profile_record_when", _config_string, "\"start\"", "HALO_PROFILE_RECORD_WHEN", _environment_value,
+		_platform_all,
+		"\"start\": from the first frame until the first map change; \"game\":\n"
+		"each game that is not the main menu, a recording each, until its map\n"
+		"goes." },
+	{ "debug.profile_memory", _config_integer, "256", "HALO_PROFILE_MEMORY", _environment_value, _platform_all,
+		"Megabytes a recording keeps in memory, 4 to 1024: two halves, each\n"
+		"written out as a part when it fills." },
+#endif
+	{ "game.death_physics", _config_string, "\"ragdoll\"", "HALO_DEATH_PHYSICS", _environment_value, _platform_all,
+		"How bodies fall when they die: \"classic\" (the game's own death\n"
+		"animations) or \"ragdoll\" (limp, thrown by what killed them, tumbling\n"
+		"down stairs and over ledges: OpenCE's dynamic ragdolls, Jolt Physics,\n"
+		"port/third_party/JoltPhysics; on Android the host runs Jolt). How this\n"
+		"machine draws its dead: nothing sent between machines changes." },
 	{ "game.enhanced_animations", _config_boolean, "true", "HALO_ENHANCED_ANIMATIONS", _environment_value, _platform_all,
 		"The player bipeds' grenade throws keep their legs moving (crouched,\n"
 		"in the air and in a vehicle's seat too), riders' hands leave the grips\n"

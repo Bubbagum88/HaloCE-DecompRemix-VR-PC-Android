@@ -31,6 +31,7 @@
 #include "vr_interaction_impact.h"
 #include "vr_npc_impulse.h"
 #include "vr_body_reactions.h"
+#include "ragdoll.h" /* Test66: OpenCE's dynamic ragdolls (Jolt) */
 #include <math.h>
 #include <string.h>
 void platform_log(char const *,...);
@@ -686,6 +687,13 @@ static int owns(long index)
     return TRUE;
 }
 int vr_npc_interaction_owned(long index) {return owns(index)&&npc.started;}
+/* Test66: whether a hand's state (held, thrown, knocked down, settling) has
+this body, for OpenCE's ragdolls (ragdoll.c), which leave it alone. No side
+effects: it neither validates nor cancels the state. */
+int vr_npc_interaction_has(long index)
+{
+    return index!=NONE&&state_for_object(index)!=NULL;
+}
 /* Pre-lift heavy restraint must suppress attacks too. Keep palette ownership
  * (started only) separate from the existing controls restraint rule. */
 int vr_npc_interaction_restrained(long index)
@@ -1334,6 +1342,29 @@ void vr_npc_interaction_palette(long index)
                     for(k=0;k<3;++k) node->previous[k]=node->position[k]-motion.n[k]*.6f;
             }
         }
+#if RAGDOLLS
+        /* Test66: a dead body let go of (dropped, thrown, killed while knocked
+         * down or held) is given to OpenCE's ragdoll, moving as the hands left
+         * it (its pelvis's motion, and its turn), instead of settling here */
+        if(npc.settling && !npc.held[0] && !npc.held[1] && TEST_FLAG(u->object.damage_flags,_object_dead_bit) &&
+           !npc.is_remote && ragdoll_takes_death(index)) {
+            int torso=npc.torso_node>=0&&npc.torso_node<npc.rig.body.count?npc.torso_node:0;
+            int restore_garbage=npc.was_garbage;
+            real_vector3d velocity;
+            for(k=0;k<3;++k) velocity.n[k]=npc.rig.body.nodes[torso].position[k]-npc.rig.body.nodes[torso].previous[k];
+            for(n=0;n<npc.rig.body.count;++n) native[n]=npc.rig.captured[n];
+            reset_one();
+            if(ragdoll_vr_take(index,&velocity,NULL)) {
+                platform_log("VR NPC: body handed to the dynamic ragdoll actor=%08lx speed_mps=%.1f",index,
+                    (float)(magnitude3d(&velocity)*TICKS_PER_SECOND/units));
+                if(restore_garbage) npc_defer_garbage(index,u);
+            } else {
+                if(restore_garbage) npc_defer_garbage(index,u);
+                biped_start_limp_body_physics(index);
+            }
+            return;
+        }
+#endif
         if(npc.settling) {
             real maximum=0;
             int overdue,dead=TEST_FLAG(u->object.damage_flags,_object_dead_bit);
@@ -1644,6 +1675,12 @@ void vr_npc_interaction_death(long index)
     int near=FALSE;
     if(!config_boolean("vr.death_ragdolls") || !vr_active() || !authority() || !(units>0.0f) ||
        state_for_object(index)) return;
+#if RAGDOLLS
+    /* Test66: OpenCE's dynamic ragdolls (Jolt, game.death_physics "ragdoll")
+     * are the dead's now: thrown by the killing blow, tumbling down stairs,
+     * pushed by later hits; the hands take them from there and give them back */
+    if(ragdoll_takes_death(index)) return;
+#endif
     u=(struct unit_datum *)object_try_and_get_and_verify_type(index,_object_mask_biped);
     if(!u || u->unit.player_index!=NONE || !TEST_FLAG(u->object.damage_flags,_object_dead_bit) ||
        u->object.parent_object_index!=NONE ||

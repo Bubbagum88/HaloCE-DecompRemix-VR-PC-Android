@@ -186,7 +186,7 @@ def main():
     for essential in ['"Play"', '"Versions & updates"', '"Network settings"',
                       '"Controller & touch settings"', '"Game files & versions"',
                       '"Game data & compatibility"', '"Geometry compatibility"',
-                      '"Reset settings to defaults"', 'RunLog.destination()', 'ModInstaller.SPV1']:
+                      '"Reset settings to defaults"', 'RunLog.destination()', 'ModInstaller.MODS']:  # Test66: every campaign mod
         assert essential in main_menu, essential
     assert 'menuButton(layout, gameDataButtonLabel())' in main_menu
     for marker in ['Picker-selected ISO/XISO files are imported as maps only',

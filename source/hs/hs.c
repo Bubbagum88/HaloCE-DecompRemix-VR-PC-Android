@@ -2843,6 +2843,7 @@ symbols in this file:
 #ifdef HALO_PROFILE
 #include "profile_console.h" /* port: port/linux/game/profile_console.c */
 #endif
+#include "ragdoll.h" /* port: port/linux/game/ragdoll.c */
 
 #include "network_campaign.h"
 
@@ -3643,6 +3644,12 @@ boolean hs_scenario_postprocess(
 /* ---------- constants */
 
 #define MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO 19001
+/* port: Test66: an OpenSauce map built with its memory upgrades (The Altheros
+Experience's a10) has room for 1.5 times as many script nodes
+(blam_memory_upgrades.hpp, k_maximum_hs_syntax_nodes_per_scenario_upgrade),
+and its scripts use more than 19001: the map's array is taken as it is,
+either size (the nodes live in the map's tag cache) */
+#define MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO_UPGRADED 28501
 /* port: the size of the "hs globals" array (hs_runtime_initialize), which
 holds the external globals and the map's */
 #define MAXIMUM_HS_GLOBALS 0x400
@@ -3681,7 +3688,7 @@ maps may not (hs_scenario_functions_check) */
 static unsigned long hs_scenario_disabled_scripts[BIT_VECTOR_SIZE_IN_LONGS(MAXIMUM_HS_SCRIPTS_PER_SCENARIO)];
 static unsigned long hs_scenario_disabled_globals[BIT_VECTOR_SIZE_IN_LONGS(MAXIMUM_HS_GLOBALS)];
 /* port: the nodes linked to, then walked (hs_scenario_functions_check) */
-static unsigned long hs_syntax_nodes_marked[BIT_VECTOR_SIZE_IN_LONGS(MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO)];
+static unsigned long hs_syntax_nodes_marked[BIT_VECTOR_SIZE_IN_LONGS(MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO_UPGRADED)];
 #define hs_token_enumerators hs_function_table.token_enumerators
 struct data_array *hs_syntax_data;
 extern long global_scenario_index;
@@ -12671,8 +12678,12 @@ script nodes it has room for. The shipped maps' all are, of 19001 nodes
 static boolean hs_scenario_syntax_data_valid(
 	struct scenario const *scenario)
 {
+	/* (Test66: or OpenSauce's upgraded number) */
+	long const maximum_count = scenario->hs_syntax_data.size ==
+		(long)(sizeof(struct data_array)+MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO_UPGRADED*sizeof(struct hs_syntax_node)) ?
+		MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO_UPGRADED : MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO;
 	long const syntax_data_size =
-		sizeof(struct data_array)+MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO*sizeof(struct hs_syntax_node);
+		sizeof(struct data_array)+maximum_count*sizeof(struct hs_syntax_node);
 	byte const *address = (byte const *)scenario->hs_syntax_data.address;
 	struct data_array const *data = (struct data_array const *)address;
 
@@ -12686,7 +12697,7 @@ static boolean hs_scenario_syntax_data_valid(
 	}
 
 	return data->signature == 'd@t@' &&
-		data->maximum_count == MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO &&
+		data->maximum_count == maximum_count &&
 		data->size == sizeof(struct hs_syntax_node) &&
 		data->valid &&
 		data->count >= 0 &&
@@ -12905,7 +12916,7 @@ static short hs_expression_refusal(
 	long root_expression_index,
 	char const **name)
 {
-	static long stack[MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO+1];
+	static long stack[MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO_UPGRADED+1];
 	long stack_count = 0;
 
 	*name = NULL;
@@ -13125,8 +13136,6 @@ static void hs_allocate(
 	scenario = global_scenario_index != NONE ? global_scenario_get() : NULL;
 	/* port: as the map holds it only when it is sound */
 	if (scenario &&
-		scenario->hs_syntax_data.size ==
-			sizeof(struct data_array)+MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO*sizeof(struct hs_syntax_node) &&
 		hs_scenario_syntax_data_valid(scenario))
 	{
 		return;
@@ -15320,6 +15329,17 @@ static boolean hs_compile_and_evaluate_command(
 			return network_votekick_player_named(name);
 		}
 	}
+#if RAGDOLLS
+	/* port: the ragdolls' own command (`ragdoll`, port/linux/game/ragdoll.c):
+	how this machine draws its dead, nothing of the game's, so in anyone's
+	game */
+	{
+		long ragdoll_result = ragdoll_console_command(expression);
+
+		if (ragdoll_result != NONE)
+			return (boolean)ragdoll_result;
+	}
+#endif
 	/* port: playing in another's game, the host decides the game: no
 	cheats, no game speed, nothing else a command changes of the game (the
 	game run each tick also puts back what was changed before joining,

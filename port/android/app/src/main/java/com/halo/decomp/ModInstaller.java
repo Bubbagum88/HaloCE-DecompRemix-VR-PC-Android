@@ -43,7 +43,9 @@ final class ModInstaller {
         void report(String text, int permille);
     }
 
-    /** A map of a mod: its file, halomaps.org's file id, its exact size. */
+    /** A map of a mod: its file, halomaps.org's file id (0: an extra level,
+     * with no campaign map of that name to put aside; -1: imported, not
+     * downloaded), its exact size. */
     static final class ModMap {
         final String name;
         final int fid;
@@ -61,12 +63,37 @@ final class ModInstaller {
         final String title;
         final String description;
         final ModMap[] maps;
+        /** Test66: ".map" (Custom Edition) or ".yelo" (an OpenSauce cache,
+         * which the game takes when no .map of that name is there) */
+        final String extension;
+        /** Test66: its maps are imported from a folder the player copied to
+         * the headset (not downloaded) */
+        final boolean imported;
+        /** Test66: the name of its own resource maps (OpenSauce mod data
+         * files, maps/data_files/&lt;name&gt;-bitmaps.map ...), or null: it
+         * takes Custom Edition's own (mods/ce) */
+        final String dataFiles;
+        /** a note shown first in its panel, or null */
+        final String note;
 
         Mod(String id, String title, String description, ModMap[] maps) {
+            this(id, title, description, maps, ".map", false, null, null);
+        }
+
+        Mod(String id, String title, String description, ModMap[] maps, String extension, boolean imported,
+                String dataFiles, String note) {
             this.id = id;
             this.title = title;
             this.description = description;
             this.maps = maps;
+            this.extension = extension;
+            this.imported = imported;
+            this.dataFiles = dataFiles;
+            this.note = note;
+        }
+
+        boolean needsResources() {
+            return dataFiles == null;
         }
 
         long totalBytes() {
@@ -109,6 +136,49 @@ final class ModInstaller {
             new ModMap("d20", 1913, 183851031L),
             new ModMap("d40", 1912, 264367517L),
         });
+
+    /** Test66: an OpenSauce mod's own resource maps (data_files), by type */
+    static final String[] DATA_FILE_NAMES = { "bitmaps", "sounds", "loc" };
+
+    /**
+     * Test66: The Altheros Experience (Altheros/Eric's Halo 1 campaign mod,
+     * private beta of 2019-10-24, moddb.com): ten OpenSauce caches (.yelo,
+     * with OpenSauce's memory upgrades) and their own resource maps, which
+     * its download names -bitmaps.map, -sounds.map, -loc.map and its maps
+     * look for as alsthetic-bitmaps.map and so on (their header's mod name).
+     * Not downloadable from here: the player copies its extracted folder to
+     * the headset and imports it once.
+     */
+    static final long[] ALTHEROS_DATA_SIZES = { 613838703L, 333893198L, 447783L };
+    static final Mod ALTHEROS = new Mod("altheros", "The Altheros Experience",
+        "Altheros's Halo 1 campaign mod (private beta, October 2019): reworked encounters, weapons, effects "
+            + "and scripts across the campaign, as OpenSauce maps with their own textures and sounds, plus F10 "
+            + "(a reworked Stockade).\n\n"
+            + "Not downloaded by the app: get \"Latest Altheros Experience 10.24.2019\" from moddb.com, extract it on "
+            + "a computer, and copy its folder (the .yelo files and data_files) to this headset's Download folder "
+            + "over USB or SideQuest. Then tap Import and choose that folder. About 3.4 GB once imported; up to "
+            + "about 1 GB more as each level converts its sounds the first time it loads. It does not need Halo "
+            + "Custom Edition's resource maps. Restoring puts the original campaign back; the mod stays imported "
+            + "to switch back in at once.",
+        new ModMap[] {
+            new ModMap("a10", -1, 445975615L),
+            new ModMap("a30", -1, 265656975L),
+            new ModMap("a50", -1, 282819945L),
+            new ModMap("b30", -1, 203202172L),
+            new ModMap("b40", -1, 286599712L),
+            new ModMap("c10", -1, 288881469L),
+            new ModMap("c20", -1, 130631356L),
+            new ModMap("c40", -1, 280472000L),
+            new ModMap("d20", -1, 225382362L),
+            new ModMap("f10", 0, 275791328L),
+        }, ".yelo", true, "alsthetic",
+        "A work-in-progress beta, as its author says (its ReadMe): in A10 do not skip the opening or closing "
+            + "cinematics; A30's first Banshees do not spawn and some areas load late; clear encounters before "
+            + "moving on in A30 and B30; B40's effects stop if many encounters are skipped; the C40 flamethrower "
+            + "is weak; D20's encounters are hard. A50, C10, C20 and D20 keep mostly stock encounters.");
+
+    /** Every campaign mod the launcher offers. */
+    static final Mod[] MODS = { SPV1, ALTHEROS };
 
     private static final String DETAIL_URL = "https://www.halomaps.org/hce/detail.cfm";
     private static final String USER_AGENT = "Mozilla/5.0 (Android; Halo CE VR launcher)";
@@ -154,6 +224,34 @@ final class ModInstaller {
 
     boolean installed(Mod mod) {
         return marker(mod).isFile() || recoveryNeeded(mod);
+    }
+
+    /** Test66: the campaign mod in the game now, or null (the original). */
+    Mod installedMod() {
+        for (Mod mod : MODS)
+            if (installed(mod))
+                return mod;
+        return null;
+    }
+
+    /** Test66: an interrupted change of any mod. */
+    Mod recoveryMod() {
+        for (Mod mod : MODS)
+            if (recoveryNeeded(mod))
+                return mod;
+        return null;
+    }
+
+    private File modDataFiles(Mod mod) {
+        return new File(new File(modsDirectory(), mod.id), "data_files");
+    }
+
+    private File gameDataFiles() {
+        return new File(gameMaps(), "data_files");
+    }
+
+    private String dataFileName(Mod mod, int type) {
+        return mod.dataFiles + "-" + DATA_FILE_NAMES[type] + ".map";
     }
 
     // ---------- Halo Custom Edition's resource maps
@@ -287,13 +385,21 @@ final class ModInstaller {
     /** Every map of the mod downloaded whole (in or out of the game). */
     boolean downloaded(Mod mod) {
         for (ModMap map : mod.maps) {
-            File out = new File(modMaps(mod), map.name + ".map");
-            File in = new File(gameMaps(), map.name + ".map");
+            File out = new File(modMaps(mod), map.name + mod.extension);
+            File in = new File(gameMaps(), map.name + mod.extension);
             boolean whole = (out.isFile() && out.length() == map.size) ||
                 (installed(mod) && in.isFile() && in.length() == map.size);
             if (!whole)
                 return false;
         }
+        if (mod.dataFiles != null)
+            for (int type = 0; type < DATA_FILE_NAMES.length; type++) {
+                File out = new File(modDataFiles(mod), dataFileName(mod, type));
+                File in = new File(gameDataFiles(), dataFileName(mod, type));
+                long size = ALTHEROS_DATA_SIZES[type];
+                if (!((out.isFile() && out.length() == size) || (installed(mod) && in.isFile() && in.length() == size)))
+                    return false;
+            }
         return true;
     }
 
@@ -301,11 +407,11 @@ final class ModInstaller {
     boolean hasDownloadFiles(Mod mod) {
         File directory = modMaps(mod);
         for (ModMap map : mod.maps) {
-            if (new File(directory, map.name + ".map").exists()
-                    || new File(directory, map.name + ".map.part").exists()
-                    || new File(directory, map.name + ".map.audio").exists()) return true;
+            if (new File(directory, map.name + mod.extension).exists()
+                    || new File(directory, map.name + mod.extension + ".part").exists()
+                    || new File(directory, map.name + mod.extension + ".audio").exists()) return true;
         }
-        return false;
+        return mod.dataFiles != null && modDataFiles(mod).isDirectory();
     }
 
     /** Downloads what is missing, then swaps the mod's maps in. */
@@ -315,7 +421,18 @@ final class ModInstaller {
 
         if (installed(mod))
             return;
-        if (!haveResources())
+        // Test66: one campaign mod at a time: another in the game goes back out first
+        Mod other = installedMod();
+        if (other != null && other != mod)
+            restore(other, progress);
+        if (mod.imported) {
+            if (!downloaded(mod))
+                throw new IOException("import " + mod.title + "'s folder first");
+            progress.report("Swapping the campaign's maps for " + mod.title + "...", 1000);
+            swapIn(mod);
+            return;
+        }
+        if (mod.needsResources() && !haveResources())
             throw new IOException("Custom Edition's resource maps are needed first (" + missingResources() + ")");
         if (!maps.isDirectory() && !maps.mkdirs())
             throw new IOException("cannot make " + maps);
@@ -438,7 +555,7 @@ final class ModInstaller {
         if (!originals.isDirectory() && !originals.mkdirs())
             throw new IOException("cannot make " + originals);
         for (ModMap map : mod.maps) {
-            if (!new File(originals, map.name + ".map").isFile()
+            if (map.fid != 0 && !new File(originals, map.name + ".map").isFile()
                     && !isXboxMap(new File(gameMaps(), map.name + ".map")))
                 throw new IOException("original Xbox campaign map missing: " + map.name);
         }
@@ -446,15 +563,25 @@ final class ModInstaller {
         for (ModMap map : mod.maps) {
             File game = new File(gameMaps(), map.name + ".map");
             File original = new File(originals, map.name + ".map");
+            File modded = new File(gameMaps(), map.name + mod.extension);
 
             // (an original already aside stays; the game's file is then a
-            // mod's, from an interrupted swap)
-            if (!original.exists())
+            // mod's, from an interrupted swap). Test66: a .yelo goes in beside
+            // where the original was: the game takes it when no .map is there
+            if (map.fid != 0 && !original.exists())
                 move(game, original);
-            move(new File(modMaps(mod), map.name + ".map"), game);
-            move(new File(modMaps(mod), map.name + ".map.audio"), new File(gameMaps(), map.name + ".map.audio"));
+            move(new File(modMaps(mod), map.name + mod.extension), modded);
+            move(new File(modMaps(mod), map.name + mod.extension + ".audio"),
+                new File(gameMaps(), map.name + mod.extension + ".audio"));
         }
-        resourcesIn();
+        if (mod.dataFiles != null) {
+            if (!gameDataFiles().isDirectory() && !gameDataFiles().mkdirs())
+                throw new IOException("cannot make " + gameDataFiles());
+            for (int type = 0; type < DATA_FILE_NAMES.length; type++)
+                move(new File(modDataFiles(mod), dataFileName(mod, type)), new File(gameDataFiles(), dataFileName(mod, type)));
+        }
+        if (mod.needsResources())
+            resourcesIn();
         touch(marker(mod));
         touch(customEditionMarker());
         deleteChecked(pendingMarker(mod));
@@ -469,7 +596,7 @@ final class ModInstaller {
         // stock map. Missing backup + a mod still active is not success.
         for (ModMap map : mod.maps) {
             File original = new File(originals(), map.name + ".map");
-            if (!original.isFile() && !isXboxMap(new File(gameMaps(), map.name + ".map")))
+            if (map.fid != 0 && !original.isFile() && !isXboxMap(new File(gameMaps(), map.name + ".map")))
                 throw new IOException("original backup missing for " + map.name
                         + "; mod files kept. Restore this map from your original Halo disc before retrying.");
         }
@@ -479,14 +606,26 @@ final class ModInstaller {
         for (ModMap map : mod.maps) {
             File game = new File(gameMaps(), map.name + ".map");
             File original = new File(originals(), map.name + ".map");
+            File modded = new File(gameMaps(), map.name + mod.extension);
 
-            if (original.exists()) {
-                move(game, new File(maps, map.name + ".map"));
-                move(new File(gameMaps(), map.name + ".map.audio"), new File(maps, map.name + ".map.audio"));
-                move(original, game);
+            if (original.exists() || map.fid == 0 || !mod.extension.equals(".map")) {
+                // (Test66: a .yelo is the mod's whether or not an original was put aside)
+                if (mod.extension.equals(".map") ? original.exists() || map.fid == 0 : modded.exists())
+                    move(modded, new File(maps, map.name + mod.extension));
+                move(new File(gameMaps(), map.name + mod.extension + ".audio"),
+                    new File(maps, map.name + mod.extension + ".audio"));
+                if (original.exists())
+                    move(original, game);
             }
         }
-        resourcesOut();
+        if (mod.dataFiles != null) {
+            if (!modDataFiles(mod).isDirectory() && !modDataFiles(mod).mkdirs())
+                throw new IOException("cannot make " + modDataFiles(mod));
+            for (int type = 0; type < DATA_FILE_NAMES.length; type++)
+                move(new File(gameDataFiles(), dataFileName(mod, type)), new File(modDataFiles(mod), dataFileName(mod, type)));
+        }
+        if (mod.needsResources())
+            resourcesOut();
         deleteChecked(customEditionMarker());
         deleteChecked(marker(mod));
         deleteChecked(pendingMarker(mod));
@@ -522,15 +661,99 @@ final class ModInstaller {
             // or an unexpected directory supplied by the user.
             for (ModMap map : mod.maps) {
                 String name = file.getName();
-                if (name.equals(map.name + ".map") || name.equals(map.name + ".map.audio")
-                        || name.equals(map.name + ".map.part")) {
+                if (name.equals(map.name + mod.extension) || name.equals(map.name + mod.extension + ".audio")
+                        || name.equals(map.name + mod.extension + ".part")) {
                     if (file.isDirectory()) throw new IOException("unexpected directory: " + file);
                     deleteChecked(file);
                     break;
                 }
             }
         }
+        if (mod.dataFiles != null)
+            for (int type = 0; type < DATA_FILE_NAMES.length; type++) {
+                deleteChecked(new File(modDataFiles(mod), dataFileName(mod, type)));
+                deleteChecked(new File(modDataFiles(mod), dataFileName(mod, type) + ".part"));
+            }
         progress.report("Original campaign restored; downloaded mod maps removed.", 1000);
+    }
+
+    /**
+     * Test66: where an imported mod's file goes, by its name as the player's
+     * folder has it: a map (a10.yelo) or one of its resource maps (the
+     * download's -bitmaps.map, or alsthetic-bitmaps.map), else null.
+     * expected: its exact size.
+     */
+    File importTarget(Mod mod, String name, long[] expected) {
+        String lower = name.toLowerCase(java.util.Locale.ROOT);
+        for (ModMap map : mod.maps)
+            if (lower.equals(map.name + mod.extension)) {
+                expected[0] = map.size;
+                return new File(modMaps(mod), map.name + mod.extension);
+            }
+        if (mod.dataFiles != null)
+            for (int type = 0; type < DATA_FILE_NAMES.length; type++)
+                if (lower.equals("-" + DATA_FILE_NAMES[type] + ".map") || lower.equals(dataFileName(mod, type))) {
+                    expected[0] = ALTHEROS_DATA_SIZES[type];
+                    return new File(modDataFiles(mod), dataFileName(mod, type));
+                }
+        return null;
+    }
+
+    /** Test66: an imported file copied in (to .part, kept only when whole). */
+    void importFile(Mod mod, InputStream in, File target, long expected, String label, Progress progress)
+            throws IOException {
+        File directory = target.getParentFile();
+        File partial = new File(target.getPath() + ".part");
+
+        if (target.isFile() && target.length() == expected)
+            return;
+        if (installed(mod))
+            throw new IOException(mod.title + " is in the game: restore the original campaign before importing again");
+        if (!directory.isDirectory() && !directory.mkdirs())
+            throw new IOException("cannot make " + directory);
+        try (OutputStream out = new FileOutputStream(partial)) {
+            byte[] buffer = new byte[1 << 16];
+            long written = 0, reported = 0;
+            int read;
+
+            while ((read = in.read(buffer)) > 0) {
+                out.write(buffer, 0, read);
+                written += read;
+                if (written - reported > (8 << 20)) {
+                    reported = written;
+                    progress.report(label + ": " + (written >> 20) + " of " + (expected >> 20) + " MB",
+                        (int) Math.min(1000, written * 1000 / Math.max(1, expected)));
+                }
+            }
+        }
+        if (partial.length() != expected) {
+            long size = partial.length();
+            partial.delete();
+            throw new IOException(target.getName() + " is " + size + " bytes, not the " + expected + " expected");
+        }
+        if (!partial.renameTo(target))
+            throw new IOException("cannot keep " + target);
+    }
+
+    /** Test66: what an imported mod still lacks, for the player. */
+    String missingImports(Mod mod) {
+        StringBuilder missing = new StringBuilder();
+        for (ModMap map : mod.maps) {
+            File out = new File(modMaps(mod), map.name + mod.extension);
+            File in = new File(gameMaps(), map.name + mod.extension);
+            if (!((out.isFile() && out.length() == map.size) || (installed(mod) && in.isFile() && in.length() == map.size)))
+                missing.append(missing.length() > 0 ? ", " : "").append(map.name).append(mod.extension);
+        }
+        if (mod.dataFiles != null)
+            for (int type = 0; type < DATA_FILE_NAMES.length; type++) {
+                File out = new File(modDataFiles(mod), dataFileName(mod, type));
+                File in = new File(gameDataFiles(), dataFileName(mod, type));
+                long size = ALTHEROS_DATA_SIZES[type];
+                if (!((out.isFile() && out.length() == size) || (installed(mod) && in.isFile() && in.length() == size)))
+                    missing.append(missing.length() > 0 ? ", " : "").append("data_files/-")
+                        .append(DATA_FILE_NAMES[type]).append(".map");
+            }
+        return missing.toString();
     }
 
     private static void touch(File file) throws IOException {

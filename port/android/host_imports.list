@@ -65,3 +65,23 @@ host_gl_frame_done
 host_android_path
 
 host_errno
+# Test66: the ragdolls' physics (port/android/host/host_ragdoll.c)
+host_ragdoll_initialize
+host_ragdoll_reset
+host_ragdoll_create
+host_ragdoll_destroy
+host_ragdoll_exists
+host_ragdoll_set_environment
+host_ragdoll_step
+host_ragdoll_get_bone
+host_ragdoll_get_bone_velocity
+host_ragdoll_active
+host_ragdoll_hit
+host_ragdoll_add_velocity
+host_ragdoll_add_spin
+host_ragdoll_translate
+host_ragdoll_bounds
+host_ragdoll_vehicles_begin
+host_ragdoll_vehicle
+host_ragdoll_vehicles_end
+host_ragdoll_vehicle_contacts

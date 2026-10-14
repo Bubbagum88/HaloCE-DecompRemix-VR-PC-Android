@@ -156,4 +156,29 @@ none of their images acquired, and describes them in info again; 0 on
 success, else the old ones stay */
 int host_xr_resize_eyes(struct halo_xr_info *info, unsigned int width, unsigned int height);
 
+/* ---------- Test66: the ragdolls' physics (port/android/host/host_ragdoll.c,
+Jolt Physics behind port/linux/game/ragdoll_physics.h; the guest's side is
+port/linux/game/ragdoll_physics_guest.c) */
+
+int host_ragdoll_initialize(void);
+void host_ragdoll_reset(void);
+int host_ragdoll_create(int slot, const void *bones, int bone_count, const void *settings);
+void host_ragdoll_destroy(int slot);
+int host_ragdoll_exists(int slot);
+void host_ragdoll_set_environment(int slot, int layer, const float *triangles, int triangle_count);
+void host_ragdoll_step(int collision_steps, float gravity);
+void host_ragdoll_get_bone(int slot, int bone, float *position, float *rotation);
+void host_ragdoll_get_bone_velocity(int slot, int bone, float *velocity);
+int host_ragdoll_active(int slot);
+void host_ragdoll_hit(int slot, int bone, const float *point, const float *velocity, float share);
+void host_ragdoll_add_velocity(int slot, const float *velocity);
+void host_ragdoll_add_spin(int slot, const float *spin);
+void host_ragdoll_translate(int slot, const float *offset);
+void host_ragdoll_bounds(int slot, float *center, float *radius);
+void host_ragdoll_vehicles_begin(void);
+void host_ragdoll_vehicle(int key, const float *points, int point_count, const float *position,
+	const float *rotation, const float *velocity, const float *angular_velocity);
+void host_ragdoll_vehicles_end(void);
+int host_ragdoll_vehicle_contacts(void *contacts, int maximum);
+
 #endif

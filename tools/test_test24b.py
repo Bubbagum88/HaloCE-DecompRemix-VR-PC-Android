@@ -81,15 +81,16 @@ assert 'if (!vr.aiming)\n\t\tvr.vignette_amount = vr.snap_pulse = 0.0f;' in fn(f
 aim = fn(frame, 'vr_aim')
 assert aim.index('if (hand_may_aim >= 0) turn();') < aim.index('comfort_update(vr.frame.predicted_display_period * 1e-9);')
 
-# --- SPV1 remains explicitly unverified; document its actual Custom Edition file bounds
-assert 'menuButton(layout, ModInstaller.SPV1.title + " (experimental; unverified)")' in launcher
-assert 'Its maps are about 157-253 MiB each, larger than the 128 MiB limit sometimes quoted.' in launcher
-assert 'accepts map files up to 384 MiB (576 MiB for OpenSauce-upgraded caches)' in launcher
-assert 'protected-map conversion, resources and gameplay still need "\n        + "testing.' in launcher
+# --- Test66: SPV1 works with OpenCE's Custom Edition support (the owner): its
+# "experimental; unverified" warnings are gone; the CUSTOM CAMPAIGNS section
+# lists every campaign mod (SPV1, The Altheros Experience), a mod's own note
+# (if any) first in its panel
+assert '(experimental; unverified)' not in launcher and 'SPV1_COMPATIBILITY_NOTE' not in launcher
+assert 'for (ModInstaller.Mod each : ModInstaller.MODS)' in launcher and '"CUSTOM CAMPAIGNS"' in launcher
 select = fn(launcher.replace('    private void selectMod', 'void selectMod'), 'selectMod')
-assert select.index('modDetails.addView(name);') < select.index('warning.setText(SPV1_COMPATIBILITY_NOTE);') < \
-    select.index('description.setText(mod.description);'), 'the warning first in the SPV1 panel'
-assert 'SPV1 is experimental and unverified' in guide
+assert select.index('modDetails.addView(name);') < select.index('note.setText(mod.note);') < \
+    select.index('description.setText(mod.description);'), 'a mod\'s note first in its panel'
+assert 'SPV1 is experimental' not in guide and 'The Altheros Experience' in guide
 
 # --- version
 # (1.0.6 / 32 or later)

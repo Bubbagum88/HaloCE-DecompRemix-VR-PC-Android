@@ -73,6 +73,9 @@ enum
 	/* hs.c */
 	MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO = 19001,
 	HS_SYNTAX_DATA_SIZE = 0x38 + MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO * 0x14,
+	/* Test66: OpenSauce's memory upgrades (hs.c, cache_file_formats.c) */
+	MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO_UPGRADED = 28501,
+	HS_SYNTAX_DATA_SIZE_UPGRADED = 0x38 + MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO_UPGRADED * 0x14,
 	HS_SYNTAX_DATA_SIGNATURE = 'd@t@',
 	/* hs.c: the map's globals share the 0x400 globals with the game's 443
 	(hs_globals_external.c) */
@@ -317,8 +320,8 @@ typedef char verify_scenario_size[sizeof(struct scenario) == 0x5B0 ? 1 : -1];
 
 /* the script nodes reached so far, and those still to walk
 (scenario_check_scripts) */
-static unsigned long hs_nodes_reached[(MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO + 31) / 32];
-static short hs_nodes_to_walk[MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO];
+static unsigned long hs_nodes_reached[(MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO_UPGRADED + 31) / 32];
+static short hs_nodes_to_walk[MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO_UPGRADED];
 
 /* ---------- private code */
 
@@ -473,9 +476,11 @@ static boolean scenario_check_scripts(
 
 	/* (hs.c finds a header that is not its own damaged, and runs no
 	scripts) */
-	if (scenario->hs_syntax_data.size != HS_SYNTAX_DATA_SIZE ||
+	if (!((scenario->hs_syntax_data.size == HS_SYNTAX_DATA_SIZE &&
+			nodes->maximum_count == MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO) ||
+		  (scenario->hs_syntax_data.size == HS_SYNTAX_DATA_SIZE_UPGRADED &&
+			nodes->maximum_count == MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO_UPGRADED)) ||
 		nodes->signature != HS_SYNTAX_DATA_SIGNATURE ||
-		nodes->maximum_count != MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO ||
 		nodes->size != sizeof(struct hs_syntax_node) ||
 		nodes->count < 0 || nodes->count > nodes->maximum_count)
 	{
@@ -1336,7 +1341,7 @@ static struct tag_schema_field const scenario_fields[] =
 	TAG_SCHEMA_BLOCK(struct scenario, ai_recording_references, ai_recording_reference_schema,
 		MAXIMUM_AI_REFERENCES_PER_SCENARIO),
 	TAG_SCHEMA_BLOCK(struct scenario, ai_conversations, conversation_schema, MAXIMUM_CONVERSATIONS_PER_SCENARIO),
-	TAG_SCHEMA_DATA(struct scenario, hs_syntax_data, HS_SYNTAX_DATA_SIZE),
+	TAG_SCHEMA_DATA(struct scenario, hs_syntax_data, HS_SYNTAX_DATA_SIZE_UPGRADED),
 	TAG_SCHEMA_DATA(struct scenario, hs_string_constants, MAXIMUM_HS_STRING_CONSTANTS_SIZE),
 	TAG_SCHEMA_BLOCK(struct scenario, hs_scripts, hs_script_schema, MAXIMUM_HS_SCRIPTS_PER_SCENARIO),
 	TAG_SCHEMA_BLOCK(struct scenario, hs_globals, hs_global_schema, MAXIMUM_HS_GLOBALS_PER_SCENARIO),

@@ -831,7 +831,14 @@ def main():
                 for marker in [b"COMFORT", b"VIGNETTE ON", b"SNAP ANGLE", b"SMOOTH SPEED", b"vr.vignette",
                                b"vr.snap_turn_amount", b"vr: comfort: turning"]:
                     if marker not in guest: raise SystemExit("Test24b comfort marker missing: " + repr(marker))
-            if candidate_at_least(args.label, 24, "b"):
+            if candidate_at_least(args.label, 66):
+                # Test66: SPV1 works (the owner); CUSTOM CAMPAIGNS with The Altheros Experience
+                for marker in [b"CUSTOM CAMPAIGNS", b"The Altheros Experience", b"Play the original campaign"]:
+                    if marker not in dex:
+                        raise SystemExit("Test66 custom campaigns marker missing: " + repr(marker))
+                if b"SPV1 is experimental and has not been verified in a campaign" in dex:
+                    raise SystemExit("the SPV1 warning should be gone in Test66")
+            elif candidate_at_least(args.label, 24, "b"):
                 for marker in [b"SPV1 is experimental and has not been verified in a campaign",
                                b"128 MiB limit sometimes quoted", b"size alone does not rule SPV1 out"]:
                     if marker not in dex:

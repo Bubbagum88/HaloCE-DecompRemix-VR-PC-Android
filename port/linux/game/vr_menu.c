@@ -323,6 +323,10 @@ now for everything a hand lifts (NPCs, props, turrets, vehicles) */
 /* Test65: bodies that give when touched, held or hit, keep some posture as
 they stagger and slump as they die (Euphoria-like); a living body taken by a
 limb stays itself until the hands lift it */
+/* Test66: OpenCE's dynamic ragdolls (Jolt Physics: thrown by the killing blow,
+tumbling down stairs and over ledges, pushed by later hits) or the game's own
+deaths; the flat build's Graphics > PHYSICS row is the same setting */
+#define VR_IMMERSION_DEATH_PHYSICS { "DEATH PHYSICS", "game.death_physics", _vr_setting_string, 2, { { "DYNAMIC", "ragdoll" }, { "CLASSIC", "classic" } } }
 #define VR_IMMERSION_ACTIVE_RAGDOLL { "ACTIVE RAGDOLL", "vr.active_ragdoll", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_GRAB_RAGDOLL { "GRAB RAGDOLL", "vr.npc_lift_to_ragdoll", _vr_setting_boolean, 2, { { "AT ONCE", "false" }, { "ON LIFT", "true" } } }
 /* Test59: how hard a killing burst or blast throws a death ragdoll
@@ -385,6 +389,7 @@ static struct vr_menu_setting const vr_menu_controls[] =
     VR_IMMERSION_THROW_STRENGTH,
     VR_IMMERSION_OBJECT_THROW,
     VR_IMMERSION_ONE_HAND_HEAVY,
+    VR_IMMERSION_DEATH_PHYSICS,
     VR_IMMERSION_DEATH_RAGDOLLS,
     VR_IMMERSION_ACTIVE_RAGDOLL,
     VR_IMMERSION_GRAB_RAGDOLL,
@@ -847,6 +852,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
     VR_IMMERSION_BANSH_UP,
     VR_IMMERSION_BANSHEE_SIZE,
 	/* RAGDOLLS */
+	VR_IMMERSION_DEATH_PHYSICS,
 	VR_IMMERSION_DEATH_RAGDOLLS,
 	VR_IMMERSION_ACTIVE_RAGDOLL,
 	VR_IMMERSION_GRAB_RAGDOLL,
@@ -869,7 +875,7 @@ static struct vr_menu_section const vr_menu_immersion_sections[] =
 	{ "WEAPONS", 7 }, { "PICKUPS", 4 }, { "FIST COMBAT", 7 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
 	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 8 },
 	{ "VEHICLES", 8 }, { "VEHICLE OPTIONS", 6 }, { "WARTHOG + GHOST", 8 }, { "TANK + BANSHEE", 8 },
-	{ "RAGDOLLS", 6 }, { "ADVANCED", 8 },
+	{ "RAGDOLLS", 7 }, { "ADVANCED", 8 },
 };
 
 
