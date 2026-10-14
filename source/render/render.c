@@ -91,6 +91,7 @@ symbols in this file:
 /* port: static transparent part links for the newly loaded model tags. */
 #include "models/models.h"
 #include "blood.h" /* port: port/linux/game/blood.c */
+void stencil_shadows_render(void); /* port: port/linux/game/stencil_shadows.c */
 
 /* ---------- constants */
 
@@ -445,6 +446,7 @@ static void render_window(
 		structure_render_detail_objects();
 		rasterizer_transparent_geometry_draw(FALSE);
 		rasterizer_transparent_geometry_stop();
+		stencil_shadows_render(); /* port: port/linux/game/stencil_shadows.c (display.stencil_shadows) */
 		/* the fog's screen layers assume a symmetric frustum facing the
 		game's camera: not for the headset's eyes or scope */
 		if (!VR_RENDER_VIEW())

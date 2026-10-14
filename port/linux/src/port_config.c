@@ -316,6 +316,14 @@ static const struct config_setting config_settings[] =
 	{ "display.third_person", _config_boolean, "false", "HALO_THIRD_PERSON", _environment_value, _platform_all,
 		"The third-person camera on foot in a campaign and co-op, over the\n"
 		"shoulder (the flat game's; not in VR). controls.third_person toggles it." },
+	/* (the OpenCE fork jcompto95-tech's stencil shadows, stencil_shadows.c: the
+	fork keeps them to desktops; this port draws them on Android and Quest too,
+	one face a draw, off by default) */
+	{ "display.stencil_shadows", _config_boolean, "false", "HALO_STENCIL_SHADOWS", _environment_value, _platform_all,
+		"Hard stencil shadows from characters and vehicles besides the game's\n"
+		"own, as F.E.A.R. and Doom 3 cast them: on the level, on other objects\n"
+		"and on themselves, your own body's and weapon's in first person too\n"
+		"(not in VR, where your body follows the headset). Costly on a Quest." },
 	{ "display.first_person_legs", _config_boolean, "false", "HALO_FIRST_PERSON_LEGS", _environment_value, _platform_all,
 		"Your own legs in first person, seen looking down: your body as others\n"
 		"see it, drawn from the waist down, moving as it moves." },

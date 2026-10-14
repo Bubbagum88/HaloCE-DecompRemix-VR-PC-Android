@@ -4348,6 +4348,36 @@ void WINAPI D3DDevice_End(void)
 	gl_check_errors("immediate draw");
 }
 
+/* port (the OpenCE fork jcompto95-tech's stencil shadows,
+port/linux/game/stencil_shadows.c): a triangle list of positions alone
+(three floats each), drawn with the state as it is set, as immediate mode
+would draw it with no other attribute (the others hold the values immediate
+mode last had): tens of thousands of vertices a frame in one upload and one
+draw, not a vertex at a time. again: the positions of the draw before, drawn
+again without a second upload (the volumes' two faces, one a draw) */
+void d3d8_gl_draw_positions(const float *positions, unsigned long vertex_count, int again)
+{
+	static unsigned long last_offset = 0;
+	static unsigned long last_count = 0;
+	unsigned long offset;
+	unsigned long index;
+
+	if (!vertex_count || !positions || !prepare_draw(TRUE))
+		return;
+	if (again && last_count == vertex_count)
+		offset = last_offset;
+	else
+		offset = stream_upload(positions, vertex_count * 3 * sizeof(float));
+	last_offset = offset;
+	last_count = vertex_count;
+	state_attribute_pointer(0, device.stream_buffer, 3, GL_FLOAT, GL_FALSE, FALSE, (GLsizei)(3 * sizeof(float)),
+		offset);
+	for (index = 1; index < XGPU_VERTEX_ATTRIBUTE_COUNT; index++)
+		state_attribute_value((GLuint)index, device.attributes[index]);
+	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)vertex_count);
+	gl_check_errors("positions draw");
+}
+
 static void set_attribute(INT reg, float a, float b, float c, float d)
 {
 	BOOL emit = FALSE;

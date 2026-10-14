@@ -76,7 +76,10 @@ char *nv2a_pixel_shader_to_glsl_baseline(const struct nv2a_pixel_shader_key *);
 #endif
 """
 (OUT/'shim.h').write_text(shim)
-for name in ('xgpu_text.c','nv2a_vsh.c','nv2a_psh.c'):
+# (Test67: GulchCE's MCC environment shader helper, which nv2a_psh.c's
+# combiners call for an MCC bump stage; never set in these keys)
+(OUT/'mcc_environment_shader.h').write_text((ROOT/'port/linux/include/mcc_environment_shader.h').read_text())
+for name in ('xgpu_text.c','nv2a_vsh.c','nv2a_psh.c','mcc_environment_shader_gl.c'):
     (OUT/name).write_text(read(name).replace('#include "xgpu.h"','#include "shim.h"').replace('#include "port_config.h"',''))
 for name,func in (('nv2a_vsh.c','nv2a_vertex_shader_to_glsl'),('nv2a_psh.c','nv2a_pixel_shader_to_glsl')):
     base=subprocess.check_output(['git','show',BASE+':port/linux/src/'+name],cwd=ROOT).decode()
@@ -114,11 +117,21 @@ static void context(void){
 }
 """
 checks=r"""
+/* Test67: the animated overshield's height fade (nv2a_vsh.c, the OpenCE fork's
+   overshield-effect): every vertex shader declares its uniform and fades by it
+   only while its scale (w) is not zero, as no draw here sets; the rest of the
+   text must be the baseline's exactly */
+static void strip_height_fade(char *text){
+ static const char *const parts[]={"uniform vec4 height_fade;\n",
+  "\tif (height_fade.w != 0.0)\n\t{\n\t\tfloat faded = clamp((height_fade.y - (oT0.z - height_fade.z) / height_fade.w) * height_fade.x, 0.0, 1.0);\n\t\toD0 *= faded;\n\t\toD1 *= faded;\n\t}\n"};
+ for(unsigned i=0;i<2;i++){char *at=strstr(text,parts[i]);assert(at);memmove(at,at+strlen(parts[i]),strlen(at+strlen(parts[i]))+1);}
+}
 static void shaders(void){
  unsigned recognized=0;
  for(unsigned i=0;i<sizeof(entries)/sizeof(entries[0]);i++){
   const DWORD *instructions=shader_blob+entries[i][0]/4+1;unsigned count=(entries[i][1]-4)/16;
   char *old=nv2a_vertex_shader_to_glsl_baseline(instructions,count,0),*now=nv2a_vertex_shader_to_glsl(instructions,count,0,NULL);
+  strip_height_fade(now);
   assert(!strcmp(old,now));assert(!strstr(now,"xWorldNormal"));free(old);free(now);
   struct nv2a_vertex_lighting lighting={0};int found=nv2a_vertex_shader_lighting(instructions,count,&lighting);
   if(i==9||i==10||i==17||i==27){
@@ -264,7 +277,7 @@ static void failure_checks(void){
 checks=checks.replace('multisample_checks();return 0;', 'multisample_checks();failure_checks();return 0;')
 main=OUT/'graphics.c';main.write_text(support+fault_support+post.replace('#include "xgpu.h"','#include "shim.h"')+msaa+bind_support+fault_checks+shader_data+checks)
 exe=OUT/'graphics'
-subprocess.run(['clang','-std=gnu11','-O1','-DHALO_ANDROID','-D__GBM__','-I',str(headers),'-I',str(OUT),str(main),str(OUT/'xgpu_text.c'),str(OUT/'nv2a_vsh.c'),str(OUT/'nv2a_psh.c'),str(OUT/'baseline_nv2a_vsh.c'),str(OUT/'baseline_nv2a_psh.c'),'-Wl,-l:libEGL.so.1','-Wl,-l:libGL.so.1','-lm','-o',str(exe)],check=True)
+subprocess.run(['clang','-std=gnu11','-O1','-DHALO_ANDROID','-D__GBM__','-I',str(headers),'-I',str(OUT),str(main),str(OUT/'xgpu_text.c'),str(OUT/'mcc_environment_shader_gl.c'),str(OUT/'nv2a_vsh.c'),str(OUT/'nv2a_psh.c'),str(OUT/'baseline_nv2a_vsh.c'),str(OUT/'baseline_nv2a_psh.c'),'-Wl,-l:libEGL.so.1','-Wl,-l:libGL.so.1','-lm','-o',str(exe)],check=True)
 for version in ('300 es','310 es'):
     subprocess.run([str(exe),version],env={**os.environ,'LIBGL_ALWAYS_SOFTWARE':'1'},check=True)
 

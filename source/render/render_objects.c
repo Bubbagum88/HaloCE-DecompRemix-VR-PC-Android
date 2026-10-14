@@ -397,6 +397,13 @@ display.big_multiplayer_guns "enhanced"; any other object's nodes as they are) *
 real_rgb_color const *shield_color_colors(long unit_index, real_rgb_color const *colors);
 /* port: port/linux/game/overshield_effect.c */
 real const *overshield_effect_values(long unit_index, real const *values, boolean arms);
+/* port: the objects drawn this frame (port/linux/game/stencil_shadows.c) */
+short render_objects_rendered(
+	long const **object_indices)
+{
+	*object_indices = render_object_globals.rendered_object_indices;
+	return render_object_globals.rendered_object_count;
+}
 
 void render_object_shadows(
 	void)

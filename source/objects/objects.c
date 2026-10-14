@@ -76,6 +76,8 @@ void object_bounds_cache_update(long object_index, real_point3d const *center, r
 #include "active_garbage_limit_math.h"
 #endif
 void projectile_lights_reset(void); /* port: port/linux/game/projectile_lights.c */
+#include "object_mesh.h" /* port: port/linux/game/object_mesh.c */
+void stencil_shadows_reset(void); /* port: port/linux/game/stencil_shadows.c */
 
 /* ---------- constants */
 
@@ -1109,6 +1111,8 @@ void objects_initialize_for_new_map(
 	(port/linux/game/first_person_legs.c) */
 	first_person_legs_reset();
 	projectile_lights_reset(); /* port: (port/linux/game/projectile_lights.c) */
+	/* port: the last map's shadow volumes forgotten (port/linux/game/stencil_shadows.c) */
+	stencil_shadows_reset();
 	
 	data_make_valid(object_header_data);
 	object_name_list_clear();
