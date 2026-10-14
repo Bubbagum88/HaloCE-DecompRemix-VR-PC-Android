@@ -42,6 +42,10 @@ instead of converting again; a file left incomplete is converted afresh.
 
 #include <stdlib.h>
 #include <time.h>
+#include "map_share.h"
+
+#include <stdlib.h>
+#include <xtl.h>
 
 /* ---------- constants */
 
@@ -126,13 +130,18 @@ struct custom_edition_file
 struct custom_edition_cache_globals
 {
 	boolean tags_loaded;
+	/* the loaded map's file (custom_edition_cache_loaded_path), while it
+	is open */
+	char map_path[MAP_PATH_SIZE];
+	/* the Halo PC behaviours the loaded map relies on (enum
+	custom_edition_behaviour, flags) */
+	uint32_t behaviours;
 	/* the tag cache and the bytes of it the loaded tags use */
 	uint8_t *tag_cache;
 	uint32_t loaded_bytes;
 	uint32_t tag_cache_bytes;
 	uint32_t file_length;
 	struct custom_edition_file map;
-	char map_path[MAP_PATH_SIZE];
 	/* the map's converted sounds, and the file the game reads them from */
 	struct custom_edition_audio_cache audio;
 	struct custom_edition_file audio_file;
@@ -203,26 +212,108 @@ static boolean file_path_exists(
 	return file_exists(file_reference_create_from_path(&reference, path, FALSE));
 }
 
-/* the file that holds the map `map_name` names: <maps>\<name>.map, or the
-OpenSauce <maps>\<name>.yelo when there is no .map */
+/* the maps folders looked in: this port's one, the active managed game
+set's maps folder (cache_files_map_directory). The managed active set
+remains the sole source: upstream's custom_maps and a Custom Edition
+install's folder are not looked in behind the launcher's selection, and
+shared maps (map_share.c) are saved to the active set's folder too. */
+static char const *maps_folder(
+	short index)
+{
+	(void)index;
+	return cache_files_map_directory();
+}
+#define NUMBER_OF_MAPS_FOLDERS 1
+
+/* whether <folder><name><extension>, made in path, exists */
+static boolean maps_folder_has(
+	char const *folder,
+	char const *name,
+	char const *extension,
+	char *path)
+{
+	if (strlen(folder) + strlen(name) + strlen(extension) >= MAP_PATH_SIZE)
+		return FALSE;
+	sprintf(path, "%s%s%s", folder, name, extension);
+
+	return file_path_exists(path);
+}
+
+/* The custom_maps folder's one map named <name>_<hash>.map, for a name
+without the hash its file has: its file name (without the extension) in
+`hashed` (MAP_PATH_SIZE characters). Maps there are named for their hash as
+the map lists find them (map_share_name_map), so a level name of before (a
+saved last map, a test's) still finds its map; FALSE if there are more. */
+static boolean maps_folder_hashed_name(
+	char const *name,
+	char *hashed)
+{
+	char pattern[MAP_PATH_SIZE];
+	WIN32_FIND_DATAA data;
+	HANDLE find;
+	short count = 0;
+
+	if (map_share_name_hashed(name) ||
+		strlen(maps_folder(0)) + strlen(name) + 1 + MAP_SHARE_NAME_DIGITS + 4 >= MAP_PATH_SIZE)
+	{
+		return FALSE;
+	}
+	sprintf(pattern, "%s%s_*%s", maps_folder(0), name, MAP_FILE_EXTENSION);
+	find = FindFirstFileA(pattern, &data);
+	if (find == INVALID_HANDLE_VALUE)
+		return FALSE;
+	do
+	{
+		char found[sizeof(data.cFileName) + 1];
+		size_t length;
+
+		memcpy(found, data.cFileName, sizeof(data.cFileName));
+		found[sizeof(data.cFileName)] = 0;
+		length = strlen(found);
+		if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || length <= strlen(MAP_FILE_EXTENSION))
+			continue;
+		found[length - strlen(MAP_FILE_EXTENSION)] = 0;
+		/* (the name and a hash: not a longer name that starts the same) */
+		if (!map_share_name_hashed(found) || (size_t)map_share_name_base_length(found) != strlen(name) ||
+			_strnicmp(found, name, strlen(name)))
+		{
+			continue;
+		}
+		if (count++)
+			break;
+		strcpy(hashed, found);
+	} while (FindNextFileA(find, &data));
+	CloseHandle(find);
+
+	return count == 1;
+}
+
+/* the file that holds the map `map_name` names (a level name or a file
+name): <maps>\<name>.map, or the OpenSauce <maps>\<name>.yelo when there
+is no .map, or a shared map's <maps>\<name>_<hash>.map for a name without
+the hash, if it has one map of that name (map_share.c) */
 static boolean custom_edition_map_path(
 	char const *map_name,
 	char *path)
 {
 	char const *directory = cache_files_map_directory();
 	char const *name = tag_name_strip_path(map_name);
+	char hashed[MAP_PATH_SIZE];
 
 	if (strlen(directory) + strlen(name) + strlen(OPENSAUCE_MAP_FILE_EXTENSION) >= MAP_PATH_SIZE)
 	{
 		return FALSE;
 	}
 	sprintf(path, "%s%s%s", directory, name, MAP_FILE_EXTENSION);
-	if (!file_path_exists(path))
-	{
-		sprintf(path, "%s%s%s", directory, name, OPENSAUCE_MAP_FILE_EXTENSION);
-	}
+	if (file_path_exists(path))
+		return TRUE;
+	sprintf(path, "%s%s%s", directory, name, OPENSAUCE_MAP_FILE_EXTENSION);
+	if (file_path_exists(path))
+		return TRUE;
+	sprintf(path, "%s%s%s", directory, name, MAP_FILE_EXTENSION);
 
-	return file_path_exists(path);
+	return maps_folder_hashed_name(name, hashed) &&
+		maps_folder_has(maps_folder(0), hashed, MAP_FILE_EXTENSION, path);
 }
 
 /* A cache's resource map of `type`: <maps>\bitmaps.map and so on, or for an
@@ -269,6 +360,7 @@ static void custom_edition_cache_files_close(
 		custom_edition_file_close(&globals->resource_files[type]);
 	}
 	custom_edition_file_close(&globals->map);
+	globals->map_path[0] = 0;
 	custom_edition_file_close(&globals->audio_file);
 	if (globals->audio.stream)
 	{
@@ -825,6 +917,54 @@ boolean custom_edition_level_name(
 		!_strnicmp(level_name, CUSTOM_EDITION_LEVEL_NAME_PREFIX, csstrlen(CUSTOM_EDITION_LEVEL_NAME_PREFIX));
 }
 
+boolean custom_edition_map_file_path(
+	char const *map_name,
+	char *path)
+{
+	return custom_edition_map_path(map_name, path);
+}
+
+boolean custom_edition_resource_map_file_path(
+	short type,
+	char *path)
+{
+	short folder;
+
+	if (type <= _resource_map_none || type >= NUMBER_OF_RESOURCE_MAP_TYPES)
+		return FALSE;
+	for (folder = 0; folder < NUMBER_OF_MAPS_FOLDERS; folder++)
+	{
+		if (maps_folder_has(maps_folder(folder), resource_map_type_describe((enum resource_map_type)type),
+			MAP_FILE_EXTENSION, path))
+		{
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+unsigned long custom_edition_map_resource_maps_needed(
+	char const *level_name)
+{
+	char path[MAP_PATH_SIZE];
+	struct custom_edition_file file;
+	uint32_t types = 0;
+
+	if (custom_edition_map_path(level_name, path) && custom_edition_file_open(&file, path))
+	{
+		if (cache_file_resource_maps_needed(&file.source, &types) != _cache_file_status_ok)
+			types = 0;
+		custom_edition_file_close(&file);
+	}
+	return types;
+}
+
+char const *custom_edition_cache_loaded_path(
+	void)
+{
+	return custom_edition_cache_globals.map.stream ? custom_edition_cache_globals.map_path : NULL;
+}
+
 boolean custom_edition_map_file_present(
 	char const *map_name)
 {
@@ -867,6 +1007,7 @@ boolean custom_edition_cache_present(
 	struct custom_edition_file file;
 	struct cache_file_identity identity;
 	enum cache_file_status status = _cache_file_status_read_failed;
+	uint32_t needed = 0;
 	short type;
 
 	if (!custom_edition_map_path(level_name, path))
@@ -886,6 +1027,13 @@ boolean custom_edition_cache_present(
 	if (custom_edition_file_open(&file, path))
 	{
 		status = cache_file_identify(&file.source, &identity);
+		/* (the resource maps the map's tags are read from: those its tag
+		index says it holds tags in) */
+		if (status == _cache_file_status_ok && identity.format == _cache_file_format_custom_edition_cache &&
+			cache_file_resource_maps_needed(&file.source, &needed) != _cache_file_status_ok)
+		{
+			needed = (1u << _resource_map_bitmaps) | (1u << _resource_map_sounds) | (1u << _resource_map_locale);
+		}
 		custom_edition_file_close(&file);
 	}
 	if (status != _cache_file_status_ok || identity.format != _cache_file_format_custom_edition_cache)
@@ -903,15 +1051,18 @@ boolean custom_edition_cache_present(
 		error(_error_silent, "custom edition: '%s' is another version of the host's map (checksum %08lX, the host's %08lX)",
 			path, (unsigned long)identity.checksum, checksum);
 		snprintf(message, message_size,
-			"Your %.64s.map is a different version from the host's. Copy the host's into custom_maps.", name);
+			"Your %.64s.map is a different version from the host's. Copy the host's into the active game set maps folder.", name);
 		return FALSE;
 	}
-	/* (the resource maps every Custom Edition map's tags are read from) */
 	for (type = _resource_map_bitmaps; type < NUMBER_OF_RESOURCE_MAP_TYPES; type++)
 	{
 		char const *resource_name = resource_map_type_describe((enum resource_map_type)type);
 		char resource_path[MAP_PATH_SIZE];
 
+		/* (only those its tags are read from: map sharing sends those with
+		the map; an OpenSauce mod set's are its own data files) */
+		if (!(needed & (1u << type)))
+			continue;
 		if (!custom_edition_resource_map_path(&identity, (enum resource_map_type)type, resource_path) ||
 			!file_path_exists(resource_path))
 		{
@@ -970,6 +1121,7 @@ struct cache_file_tag_header *custom_edition_cache_tags_load(
 		error(_error_silent, "custom edition: cannot open the map '%s'", map_name);
 		return NULL;
 	}
+	strcpy(globals->map_path, path);
 	status = cache_file_identify(&globals->map.source, &identity);
 	if (status != _cache_file_status_ok ||
 		identity.format != _cache_file_format_custom_edition_cache ||

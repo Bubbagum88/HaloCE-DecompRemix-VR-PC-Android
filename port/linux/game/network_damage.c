@@ -1163,10 +1163,10 @@ static short distributed_grenade_throw(
 	return oldest;
 }
 
-/* whether an explosion of the grenade's damage is among the player's this
-tick (distributed_report_paid): at the epicenter, or (NULL) anywhere. A
-single grenade projectile may create multiple damage effects, e.g. a frag
-blast and its shock wave. */
+/* whether an explosion of the type of grenade is among the player's this
+tick (distributed_report_paid), of any damage the grenade deals (one
+explosion deals more than one, each reported: a frag grenade's explosion
+and its shock wave): at the epicenter, or (NULL) anywhere */
 static boolean distributed_explosion_this_tick(
 	short player_index,
 	short grenade_type,
@@ -1197,10 +1197,11 @@ static boolean distributed_explosion_this_tick(
 
 /* how many hits a second the player could deal of the damage: their
 weapons, lately, a grenade the host saw them throw that has not gone off
-(or one going off this tick, hitting more than one object), the vehicle
-they drove lately; 0 when none of them deals it; how they deal it (the
-_damage_source flags); how far from them what they fire deals it; and the
-type of grenade when nothing but a grenade of theirs deals it, else NONE */
+(or one going off this tick, hitting more than one object, dealing more
+than one damage), the vehicle they drove lately; 0 when none of them deals
+it; how they deal it (the _damage_source flags); how far from them what
+they fire deals it; and the type of grenade when nothing but a grenade of
+theirs deals it, else NONE */
 static real distributed_player_deals(
 	short player_index,
 	long damage_index,
@@ -1843,8 +1844,8 @@ static boolean distributed_report_valid(
 		return FALSE;
 	/* what only a grenade of theirs deals, from one the host saw them throw
 	that has not gone off: its explosion once (the explosion's other objects
-	that tick come free, distributed_report_paid), and its other same-tick
-	damage effects, what it hits at a point while it is about */
+	that tick come free, distributed_report_paid, and its other damage takes
+	no throw of its own), what it hits at a point while it is about */
 	if (grenade_type != NONE &&
 		!distributed_explosion_this_tick(player_index, grenade_type, &report->damage.epicenter))
 	{

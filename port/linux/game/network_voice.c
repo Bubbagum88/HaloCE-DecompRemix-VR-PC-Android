@@ -48,6 +48,10 @@ game_engine.c), which it does not tell anyone.
 #include "objects/objects.h"
 #include "network_distributed.h"
 #include "network_voice.h"
+#include "bitmaps/bitmap_group.h"
+#include "bitmaps/bitmap_group_lookup.h"
+#include "interface/ui_widget.h"
+#include "tag_files/tag_groups.h"
 #include "../src/voice_audio.h"
 
 #include <math.h>
@@ -1168,8 +1172,15 @@ boolean network_voice_available(
 	return voice_session && voice_settings_heard;
 }
 
-/* a speaker drawn in the rectangle (its height the icon's size, at its left;
-muted: grey, struck through in red), fading with alpha */
+/* the speaker's bitmap (network_voice_draw_icon): the menus' voice/speaker,
+as their bitmaps are named (menu_tags.c; OpenCE a7c8eac3) */
+#define VOICE_ICON_BITMAP "pc\voice\speaker"
+
+/* a speaker drawn in the rectangle (a square of its height, at its left;
+muted: struck through, in red), fading with alpha: Lucide's icons
+(port/assets/icons/lucide), drawn white as the menus' bitmap voice/speaker,
+a frame each, and tinted (OpenCE a7c8eac3); without the menus' bitmaps, the
+speaker drawn in squares as before */
 void network_voice_draw_icon(
 	rectangle2d const *bounds,
 	boolean muted,
@@ -1182,9 +1193,24 @@ void network_voice_draw_icon(
 	pixel32 color = a | (muted ? 0x00909090 : 0x0050E050);
 	rectangle2d part;
 	short slice;
+	long bitmap_index;
 
 	if (size < 4)
 		return;
+	bitmap_index = tag_loaded(BITMAP_GROUP_TAG, VOICE_ICON_BITMAP);
+	if (bitmap_index != NONE)
+	{
+		struct bitmap_data *bitmap = bitmap_group_try_and_get_bitmap(bitmap_index, muted ? 1 : 0);
+
+		if (bitmap)
+		{
+			rectangle2d square = *bounds;
+
+			square.x1 = (short)(square.x0 + size);
+			draw_bitmap_in_rect(bitmap, &square, NULL, NULL, a | (muted ? 0x00E05A5A : 0x0050E050), NULL, TRUE);
+			return;
+		}
+	}
 	/* (the body, the cone in slices widening, and two waves) */
 	part.x0 = x;
 	part.x1 = (short)(x + size * 3 / 10);

@@ -38,13 +38,37 @@ layout: saved games of builds before it no longer load. */
 
 The texture cache holds the textures being drawn in 16 KB pages, 22 MB of
 them on the Xbox, which Xbox maps were made to fit. Halo Custom Edition maps
-were made for Halo PC, which has no such bound: a frame of
-beavercreek_halo3.yelo draws more than 22 MB of textures, and a texture that
-does not fit is drawn as the default one. The native builds' cache is twice
-the Xbox's; with that map loaded 52 MB of the memory window were free. */
+were made for Halo PC, which has no such bound: a texture that does not fit
+is drawn as the default one ("YOU GOT STABBED" in debug.txt; Elite_Alpha_Siege
+did at 22 MB), and a frame of bigass_v3 draws more than 64 MB (DamnationCE's
+measurement). The desktop builds' cache is 256 MB, half their 512 MB memory
+window (port/linux/src/platform.h), whose pages are backed as they are used.
+Android's window is 128 MB, as the web build's, and its cache the Xbox's. */
 
+#if defined(HALO_ARM64_GUEST) || defined(HALO_WEB)
+/* (this port's Android builds keep twice the Xbox's, as before Build 201:
+beavercreek_halo3.yelo left 52 MB of the window free with it) */
 #define HALO_PORT_TEXTURE_CACHE_PAGE_COUNT 0xB00 /* (0x580) */
+#else
+#define HALO_PORT_TEXTURE_CACHE_PAGE_COUNT 0x4000 /* (0x580) */
+#endif
 #define HALO_PORT_TEXTURE_CACHE_SIZE (HALO_PORT_TEXTURE_CACHE_PAGE_COUNT*0x4000) /* (0x1600000) */
+
+/* ---------- sounds
+
+The sound cache holds the sounds being played in 4 KB pages, 4 MB of them on
+the Xbox. Halo Custom Edition maps' sounds, converted when they load
+(port/linux/game/custom_edition_sounds.c), and those of sound tags loaded
+over a map's (loose_sounds.c), are longer than the Xbox maps' and fill it (a
+campaign map's dialogue and music did, "SOUND CACHE BLOWN" in debug.txt).
+The desktop builds' cache is 16 MB; Android's and the web build's windows keep
+the Xbox's. */
+
+#if defined(HALO_ARM64_GUEST) || defined(HALO_WEB)
+#define HALO_PORT_SOUND_CACHE_SIZE 0x400000 /* (0x400000) */
+#else
+#define HALO_PORT_SOUND_CACHE_SIZE 0x1000000 /* (0x400000) */
+#endif
 
 /* ---------- AI
 

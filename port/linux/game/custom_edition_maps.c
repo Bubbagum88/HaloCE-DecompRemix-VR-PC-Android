@@ -25,6 +25,7 @@ are read only from the same active set as the map, never a desktop install.
 #include "bmp_files.h"
 #include "custom_edition_cache.h"
 #include "custom_edition_maps.h"
+#include "map_share.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,6 +103,10 @@ struct custom_edition_map
 	/* saved_game_file_remember_last_used_multiplayer_map writes
 	MAXIMUM_FILENAME_LENGTH+1 characters of a level name */
 	char level_name[MAXIMUM_FILENAME_LENGTH + 1];
+	/* the folder it is in (the active set's maps folder), with its
+	separator: where its picture and description are, and what map
+	sharing names it in (map_share_files.c) */
+	char folder[MAXIMUM_FILENAME_LENGTH + 1];
 	wchar_t display_name[MAXIMUM_MAP_NAME_LENGTH + 1];
 	wchar_t description[MAXIMUM_DESCRIPTION_LENGTH + 1];
 	boolean picture_read;
@@ -237,6 +242,13 @@ static void custom_edition_map_description_read(
 		return;
 	}
 	stream = fopen(path, "rb");
+	/* (a map named for its hash: its description named without it too) */
+	if (!stream && map_share_name_hashed(map->name))
+	{
+		csprintf(path, "%s%.*s%s", map->folder, (int)map_share_name_base_length(map->name), map->name,
+			DESCRIPTION_EXTENSION);
+		stream = fopen(path, "rb");
+	}
 	if (stream)
 	{
 		text_size = (long)fread(text, 1, sizeof(text), stream);
@@ -294,6 +306,7 @@ static void custom_edition_map_description_read(
 /* Adds a CE map from the active set. The existing loader selects .map
 before .yelo when both names exist, so classification and later loading agree. */
 static void custom_edition_map_add(
+	char const *folder,
 	char const *name,
 	char const *extension)
 {
@@ -361,9 +374,13 @@ static void custom_edition_map_add(
 	}
 	csmemset(map, 0, sizeof(*map));
 	csstrcpy(map->name, name);
-	csprintf(map->level_name, LEVEL_NAME_FORMAT, name);
-	display_name_make(name, map->display_name);
+	csstrncpy(map->folder, folder, sizeof(map->folder) - 1);
+	csprintf(map->level_name, "%s%s", CUSTOM_EDITION_LEVEL_NAME_PREFIX, name);
+	display_name_make(name, FALSE, map->display_name);
 	custom_edition_map_description_read(map);
+	/* (named for its hash, renamed: map_share_files.c) */
+	if (!map_share_name_hashed(name))
+		map_share_name_map(folder, name);
 
 	return;
 }
@@ -377,13 +394,34 @@ static int custom_edition_map_compare(
 		((struct custom_edition_map const *)second)->name);
 }
 
+/* Two versions of a map (its name the same but for its hash) listed: each
+shown with its hash, to tell them apart. The maps are sorted by name. */
+static void custom_edition_maps_tell_versions_apart(
+	struct custom_edition_map *maps,
+	short count)
+{
+	short index;
+
+	for (index = 0; index + 1 < count; index++)
+	{
+		struct custom_edition_map *map = &maps[index];
+		struct custom_edition_map *next = &maps[index + 1];
+		short length = map_share_name_base_length(map->name);
+
+		if (length == map_share_name_base_length(next->name) && !_strnicmp(map->name, next->name, length))
+		{
+			display_name_make(map->name, TRUE, map->display_name);
+			display_name_make(next->name, TRUE, next->display_name);
+		}
+	}
+}
+
 static void custom_edition_maps_look_for(
 	void)
 {
 	struct custom_edition_maps_globals *globals = &custom_edition_maps_globals;
-	char pattern[MAXIMUM_FILENAME_LENGTH + 1];
-	WIN32_FIND_DATAA data;
-	HANDLE find;
+	char const *folders[1];
+	short folder_index;
 
 	custom_edition_maps_forget();
 	globals->looked_for = TRUE;
@@ -393,17 +431,24 @@ static void custom_edition_maps_look_for(
 
 	/* The managed active set remains the sole source. Do not add upstream's
 	custom_maps or desktop install folders behind the launcher's selection. */
-	/* (OpenCE a845bbf5, Build184) Listed through a handle of its own, never
-	with find_files_start and find_files_next: those keep their place in one
-	global, and as the game starts a thread of the menus' deletes the files
-	of folders with them (ui_widget.c's file system checks,
-	directory_create_or_delete_contents). A listing here at the same time
-	took that one's place, and the thread then deleted this folder's files:
-	the active set's maps. */
-	csprintf(pattern, "%s*.*", cache_files_map_directory());
-	find = FindFirstFileA(pattern, &data);
-	if (find != INVALID_HANDLE_VALUE)
+	folders[0] = cache_files_map_directory();
+	for (folder_index = 0; folder_index < NUMBEROF(folders); folder_index++)
 	{
+		char pattern[MAXIMUM_FILENAME_LENGTH + 1];
+		WIN32_FIND_DATAA data;
+		HANDLE find;
+
+		/* A folder is listed through a handle of its own, never with
+		find_files_start and find_files_next: those keep their place in one
+		global, and as the game starts a thread of the menus' deletes the
+		files of folders with them (perform_filesystem_initialization in
+		ui_widget.c, directory_create_or_delete_contents). A listing here at
+		the same time takes that one's place, and the thread then deletes
+		the files of this folder: the maps. */
+		csprintf(pattern, "%s*.*", folders[folder_index]);
+		find = FindFirstFileA(pattern, &data);
+		if (find == INVALID_HANDLE_VALUE)
+			continue;
 		do
 		{
 			char name[sizeof(data.cFileName) + 1];
@@ -417,15 +462,17 @@ static void custom_edition_maps_look_for(
 			if (extension)
 			{
 				*extension++ = 0;
-				custom_edition_map_add(name, extension);
+				custom_edition_map_add(folders[folder_index], name, extension);
 			}
 		} while (FindNextFileA(find, &data));
 		CloseHandle(find);
 	}
 	qsort(globals->maps, globals->map_count, sizeof(globals->maps[0]), custom_edition_map_compare);
 	qsort(globals->campaigns, globals->campaign_count, sizeof(globals->campaigns[0]), custom_edition_map_compare);
-	error(_error_silent, "custom edition: %d multiplayer maps and %d campaign headers for the active set's menus",
-		globals->map_count, globals->campaign_count);
+	custom_edition_maps_tell_versions_apart(globals->maps, globals->map_count);
+	custom_edition_maps_tell_versions_apart(globals->campaigns, globals->campaign_count);
+	error(_error_silent, "custom edition: %d multiplayer maps for the level list, %d campaign maps", globals->map_count,
+		globals->campaign_count);
 }
 
 static void custom_edition_maps_ensure_current(
@@ -453,6 +500,13 @@ static struct bitmap_data *custom_edition_map_picture_read(
 	if (snprintf(path, sizeof(path), "%s%s%s", cache_files_map_directory(), map->name, PICTURE_EXTENSION) >= sizeof(path))
 		return NULL;
 	stream = fopen(path, "rb");
+	/* (a map named for its hash: its picture named without it too) */
+	if (!stream && map_share_name_hashed(map->name))
+	{
+		csprintf(path, "%s%.*s%s", map->folder, (int)map_share_name_base_length(map->name), map->name,
+			PICTURE_EXTENSION);
+		stream = fopen(path, "rb");
+	}
 	if (!stream)
 	{
 		return NULL;

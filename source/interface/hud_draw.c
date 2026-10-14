@@ -104,6 +104,8 @@ symbols in this file:
 #include "render/render.h"
 #include "units/unit_definitions.h"
 #include "units/units.h"
+#include "cache_file_formats.h" /* port: port/linux/game/cache_file_formats.c */
+#include "custom_edition_cache.h"
 #include "view_fov.h" /* port: port/linux/game/view_fov.c */
 
 /* ---------- constants */
@@ -2073,11 +2075,12 @@ void hud_draw_numbers(
 						kilometers ? _hud_number_kilometers_index : _hud_number_meters_index,
 						&number_bitmap,
 						&clip);
-					match_assert(
-						"c:\\halo\\SOURCE\\interface\\hud_draw.c",
-						515,
-						!digits_on_one_bitmap || source_bitmap==number_bitmap);
 					if (number_bitmap)
+					{
+						match_assert(
+							"c:\\halo\\SOURCE\\interface\\hud_draw.c",
+							515,
+							!digits_on_one_bitmap || source_bitmap==number_bitmap);
 						hud_draw_bitmap_direct(
 							number_bitmap,
 							absolute_placement->corner,
@@ -2087,6 +2090,7 @@ void hud_draw_numbers(
 							0.0f,
 							color,
 							bitmap_group->type == _bitmap_group_type_interface_bitmaps);
+					}
 					cursor.x = (short)(cursor.x - hud_number->screen_width*scale);
 				}
 
@@ -2115,11 +2119,12 @@ void hud_draw_numbers(
 							decimal_value % 10,
 							&number_bitmap,
 							&clip);
-						match_assert(
-							"c:\\halo\\SOURCE\\interface\\hud_draw.c",
-							539,
-							!digits_on_one_bitmap || source_bitmap==number_bitmap);
 						if (number_bitmap)
+						{
+							match_assert(
+								"c:\\halo\\SOURCE\\interface\\hud_draw.c",
+								539,
+								!digits_on_one_bitmap || source_bitmap==number_bitmap);
 							hud_draw_bitmap_direct(
 								number_bitmap,
 								absolute_placement->corner,
@@ -2129,6 +2134,7 @@ void hud_draw_numbers(
 								0.0f,
 								color,
 								bitmap_group->type == _bitmap_group_type_interface_bitmaps);
+						}
 						cursor.x = (short)(cursor.x - hud_number->screen_width*scale);
 						decimal_value /= 10;
 					}
@@ -2151,11 +2157,12 @@ void hud_draw_numbers(
 							_hud_number_decimal_index,
 							&number_bitmap,
 							&clip);
-						match_assert(
-							"c:\\halo\\SOURCE\\interface\\hud_draw.c",
-							556,
-							!digits_on_one_bitmap || source_bitmap==number_bitmap);
 						if (number_bitmap)
+						{
+							match_assert(
+								"c:\\halo\\SOURCE\\interface\\hud_draw.c",
+								556,
+								!digits_on_one_bitmap || source_bitmap==number_bitmap);
 							hud_draw_bitmap_direct(
 								number_bitmap,
 								absolute_placement->corner,
@@ -2165,6 +2172,7 @@ void hud_draw_numbers(
 								0.0f,
 								color,
 								bitmap_group->type == _bitmap_group_type_interface_bitmaps);
+						}
 						cursor.x = (short)(cursor.x - hud_number->screen_width*scale);
 					}
 				}
@@ -2189,11 +2197,12 @@ void hud_draw_numbers(
 						digit,
 						&number_bitmap,
 						&clip);
-					match_assert(
-						"c:\\halo\\SOURCE\\interface\\hud_draw.c",
-						575,
-						!digits_on_one_bitmap || source_bitmap==number_bitmap);
 					if (number_bitmap)
+					{
+						match_assert(
+							"c:\\halo\\SOURCE\\interface\\hud_draw.c",
+							575,
+							!digits_on_one_bitmap || source_bitmap==number_bitmap);
 						hud_draw_bitmap_direct(
 							number_bitmap,
 							absolute_placement->corner,
@@ -2203,6 +2212,7 @@ void hud_draw_numbers(
 							0.0f,
 							color,
 							bitmap_group->type == _bitmap_group_type_interface_bitmaps);
+					}
 					cursor.x = (short)(cursor.x - hud_number->screen_width*scale);
 					value /= 10;
 				}
@@ -2223,11 +2233,12 @@ void hud_draw_numbers(
 						_hud_number_negative_sign_index,
 						&number_bitmap,
 						&clip);
-					match_assert(
-						"c:\\halo\\SOURCE\\interface\\hud_draw.c",
-						595,
-						!digits_on_one_bitmap || source_bitmap==number_bitmap);
 					if (number_bitmap)
+					{
+						match_assert(
+							"c:\\halo\\SOURCE\\interface\\hud_draw.c",
+							595,
+							!digits_on_one_bitmap || source_bitmap==number_bitmap);
 						hud_draw_bitmap_direct(
 							number_bitmap,
 							absolute_placement->corner,
@@ -2237,6 +2248,7 @@ void hud_draw_numbers(
 							0.0f,
 							color,
 							bitmap_group->type == _bitmap_group_type_interface_bitmaps);
+					}
 				}
 			}
 		}

@@ -238,9 +238,17 @@ static int report_custom_edition_cache(
 	};
 	struct stdio_source resource_sources[NUMBER_OF_RESOURCE_MAP_TYPES];
 	struct resource_map resource_map_storage[NUMBER_OF_RESOURCE_MAP_TYPES];
+	static char const *const resource_map_names[NUMBER_OF_RESOURCE_MAP_TYPES] =
+	{
+		"none",
+		"bitmaps",
+		"sounds",
+		"loc",
+	};
 	struct resource_map *resource_maps[NUMBER_OF_RESOURCE_MAP_TYPES];
 	struct custom_edition_load_report report;
 	uint32_t tag_cache_bytes = custom_edition_tag_cache_bytes(identity);
+	uint32_t needed;
 	uint8_t *tag_cache;
 	enum cache_file_status status;
 	int type;
@@ -252,6 +260,13 @@ static int report_custom_edition_cache(
 	{
 		printf("resource_maps_substituted: stock files instead of mod set '%s'\n", identity->opensauce.mod_name);
 	}
+	/* the resource maps its tag index says it needs (map sharing sends
+	them with the map) */
+	status = cache_file_resource_maps_needed(source, &needed);
+	if (status == _cache_file_status_ok)
+		print_flags("resource_maps_needed", needed, resource_map_names, NUMBER_OF_RESOURCE_MAP_TYPES);
+	else
+		printf("resource_maps_needed: %s\n", cache_file_status_describe(status));
 	for (type = _resource_map_bitmaps; type < NUMBER_OF_RESOURCE_MAP_TYPES; type++)
 	{
 		char path[PATH_BYTES];

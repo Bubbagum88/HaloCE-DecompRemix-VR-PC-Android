@@ -1047,6 +1047,18 @@ unsigned long cache_files_map_version(
 	return custom_edition_level_name(map_name) ? custom_edition_map_checksum(map_name) : 0;
 }
 
+/* port: whether this machine has the map a network game is on (a client
+joining it: network_client_manager.c); when not, tells the player which map
+is missing and where to copy it, in the error the main menu shows next,
+rather than the damaged disc error that precaching a map that is not there
+gives (cache_files_give_time_to_precache).
+A Halo Custom Edition map (custom_maps\<name>) is looked for in the Custom
+Edition maps folders (port/linux/game/custom_edition_cache.c), and must be
+the host's version (`version`, cache_files_map_version's on the host); any
+other map in the game's own. One this machine lacks (or whose resource maps
+it lacks) is asked of the host instead, if it may be (map sharing:
+port/linux/game/map_share.c): it is taken as present, and downloaded before
+it is precached. */
 boolean cache_files_map_present(
 	char const *map_name,
 	unsigned long version)
@@ -1062,10 +1074,6 @@ boolean cache_files_map_present(
 	name = tag_name_strip_path(map_name);
 	if (custom_edition_level_name(map_name))
 	{
-		/* port: one this machine lacks (or whose resource maps it lacks) is
-		asked of the host instead, if it may be (map sharing:
-		port/linux/game/map_share.c): taken as present, and downloaded before
-		it is precached */
 		if (custom_edition_cache_present(map_name, version, message, sizeof(message)) ||
 			map_share_download_begin(map_name, version, message))
 		{
@@ -1273,6 +1281,13 @@ long scenario_tags_load(
 				extern void hud_hires_tags_loaded(void);
 
 				hud_hires_tags_loaded();
+			}
+			/* port: the powerups' render spheres, grown to hold their meshes
+			(port/linux/game/powerup_render_bounds.c, OpenCE) */
+			{
+				extern void powerup_render_bounds_tags_loaded(void);
+
+				powerup_render_bounds_tags_loaded();
 			}
 			{ extern void menu_tags_loaded(char const *map_name); menu_tags_loaded(cache_file_globals.header.name); }
 #ifdef HALO_VR

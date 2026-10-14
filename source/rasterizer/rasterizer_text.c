@@ -89,7 +89,8 @@ struct text_hires_glyph
 };
 
 unsigned long config_changes(void);
-long text_hires_font(char const *tag_name, float cap_height);
+#define TEXT_HIRES_FIT_LETTERS 52
+long text_hires_font(char const *tag_name, float cap_height, short const *letter_widths, float oversample);
 int text_hires_covers(long font, unsigned long code);
 int text_hires_glyph(long font, unsigned long code, struct text_hires_glyph *glyph);
 void text_hires_register_atlas(unsigned long const *texture, unsigned long width, unsigned long height);
@@ -209,7 +210,8 @@ static void rasterizer_draw_character_with_dropshadow(
 	short dx,
 	short dy);
 static long hires_text_font_get(
-	long font_index);
+	long font_index,
+	real oversample);
 static void rasterizer_draw_hires_character(
 	struct parse_string_state *state,
 	struct font_header *font,
@@ -239,6 +241,16 @@ static void rasterizer_draw_hires_character_with_dropshadow(
 static struct hardware_character_cache hardware_character_cache;
 static struct bitmap_data *hires_text_atlas = NULL;
 static long hires_text_font = NONE;
+/* port: the high-res text's fonts of the font tags of the map (forgotten
+when its tags are, by rasterizer_text_cache_flush) */
+static struct
+{
+	struct font_header *font;
+	real oversample;
+	long hires_font;
+} hires_text_fonts[MAXIMUM_HIRES_TEXT_FONTS];
+static short hires_text_next_font = 0;
+/* port: the text's scale about a point (rasterizer_text_set_scale) */
 static real text_scale = 1.0f;
 static real text_scale_origin_x, text_scale_origin_y;
 static pixel32 global_shadow_color = 0;
@@ -345,6 +357,9 @@ rasterizer_text_cache_flush(
 			hardware_character++;
 		} while (--hardware_character_count);
 	}
+	/* port: the next map's font tags may be at the same addresses */
+	memset(hires_text_fonts, 0, sizeof(hires_text_fonts));
+	hires_text_next_font = 0;
 
 	return;
 }
@@ -382,6 +397,10 @@ rasterizer_draw_character(
 	short dx,
 	short dy)
 {
+	/* port: the string's characters so far drawn before a character is
+	cached, which can give another's place in the cache to it */
+	if (font_character->hardware_character_index == NONE)
+		rasterizer_text_flush();
 	cache_hardware_format_character(font, font_character);
 
 	if (font_character->hardware_character_index != NONE)
@@ -454,7 +473,7 @@ rasterizer_draw_string(
 			}
 
 			/* port: from the font's atlas, when it has every character */
-			hires_text_font = hires_text_atlas ? hires_text_font_get(draw_string_get_font()) : NONE;
+			hires_text_font = hires_text_atlas ? hires_text_font_get(draw_string_get_font(), MAX(text_scale, 1.0f)) : NONE;
 			if (hires_text_font != NONE)
 			{
 				long character_index;
@@ -583,7 +602,7 @@ rasterizer_draw_unicode_string(
 			}
 
 			/* port: from the font's atlas, when it has every character */
-			hires_text_font = hires_text_atlas ? hires_text_font_get(draw_string_get_font()) : NONE;
+			hires_text_font = hires_text_atlas ? hires_text_font_get(draw_string_get_font(), MAX(text_scale, 1.0f)) : NONE;
 			if (hires_text_font != NONE)
 			{
 				long character_index;
@@ -683,6 +702,10 @@ rasterizer_draw_character_with_dropshadow(
 	short dx,
 	short dy)
 {
+	/* port: the string's characters so far drawn before a character is
+	cached, which can give another's place in the cache to it */
+	if (font_character->hardware_character_index == NONE)
+		rasterizer_text_flush();
 	cache_hardware_format_character(font, font_character);
 
 	if (font_character->hardware_character_index != NONE)
@@ -776,40 +799,46 @@ static void rasterizer_text_draw_scaled_character(
 
 
 /* port: the high-res text's font for a font tag, sized by the height of its
-capital H (its rows with ink), or NONE */
+capital H (its rows with ink) and fitted to the widths of its letters, its
+glyphs drawn with oversample times the pixels (for text scaled up), or NONE */
 static long hires_text_font_get(
-	long font_index)
+	long font_index,
+	real oversample)
 {
-	static struct
-	{
-		struct font_header *font;
-		long hires_font;
-	} fonts[MAXIMUM_HIRES_TEXT_FONTS];
-	static short next_font = 0;
-	static unsigned long read_at = (unsigned long)-1;
 	struct font_header *font;
 	struct font_character *capital;
+	short letter_widths[TEXT_HIRES_FIT_LETTERS];
 	short font_slot;
+	short letter;
 	short top = NONE;
 	short bottom = NONE;
 	short row;
 	long hires_font;
+	static unsigned long read_at = (unsigned long)-1;
 
 	/* Cached NONE while disabled must not survive re-enabling, and a cached
 	font must not bypass the current text setting. */
 	if (read_at != config_changes())
 	{
 		read_at = config_changes();
-		memset(fonts, 0, sizeof(fonts));
-		next_font = 0;
+		memset(hires_text_fonts, 0, sizeof(hires_text_fonts));
+		hires_text_next_font = 0;
 	}
 	if (font_index == NONE)
 		return NONE;
 	font = font_definition_get(font_index);
 	for (font_slot = 0; font_slot < MAXIMUM_HIRES_TEXT_FONTS; font_slot++)
 	{
-		if (fonts[font_slot].font == font)
-			return fonts[font_slot].hires_font;
+		if (hires_text_fonts[font_slot].font == font && hires_text_fonts[font_slot].oversample == oversample)
+			return hires_text_fonts[font_slot].hires_font;
+	}
+	/* (A to Z, then a to z; none where the tag has not the letter) */
+	for (letter = 0; letter < TEXT_HIRES_FIT_LETTERS; letter++)
+	{
+		struct font_character *character = font_get_character_by_ascii_code(font,
+			(word)(letter < 26 ? 'A' + letter : 'a' + letter - 26));
+
+		letter_widths[letter] = character ? character->character_width : 0;
 	}
 	capital = font_get_character_by_ascii_code(font, 'H');
 	if (capital)
@@ -833,12 +862,13 @@ static long hires_text_font_get(
 		}
 	}
 	hires_font = top == NONE ? NONE :
-		text_hires_font(tag_get_name(font_index), (float)(bottom - top + 1));
+		text_hires_font(tag_get_name(font_index), (float)(bottom - top + 1), letter_widths, (float)oversample);
 	if (hires_font < 0)
 		hires_font = NONE;
-	fonts[next_font].font = font;
-	fonts[next_font].hires_font = hires_font;
-	next_font = (short)((next_font + 1) % MAXIMUM_HIRES_TEXT_FONTS);
+	hires_text_fonts[hires_text_next_font].font = font;
+	hires_text_fonts[hires_text_next_font].oversample = oversample;
+	hires_text_fonts[hires_text_next_font].hires_font = hires_font;
+	hires_text_next_font = (short)((hires_text_next_font + 1) % MAXIMUM_HIRES_TEXT_FONTS);
 
 	return hires_font;
 }

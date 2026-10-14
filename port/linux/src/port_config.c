@@ -40,9 +40,9 @@ enum config_environment
 	/* the variable's text is the value ("0", "false", "no" and "off" are
 	false for a boolean) */
 	_environment_value,
-	/* the variable being set at all makes it true */
+	/* the variable being set (not empty, "0", "false", "no" or "off") makes it true */
 	_environment_set_is_true,
-	/* the variable being set at all makes it false */
+	/* the variable being set (not empty, "0", "false", "no" or "off") makes it false */
 	_environment_set_is_false,
 };
 
@@ -64,11 +64,20 @@ struct config_setting
 	enum config_type type;
 	/* as it is written in the file */
 	const char *default_value;
+	/* NULL: none, for a setting the Android app reads from the file itself */
 	const char *environment;
 	enum config_environment environment_style;
 	unsigned platforms;
 	const char *comment;
 };
+
+/* crouching's keys (in a browser C alone: a page cannot keep Ctrl+W, Ctrl+S or
+Ctrl+D, which moving and crouching would press, from the browser) */
+#ifdef HALO_WEB
+#define CROUCH_KEYS "\"C\""
+#else
+#define CROUCH_KEYS "\"Left Ctrl, C\""
+#endif
 
 static const struct config_setting config_settings[] =
 {
@@ -367,6 +376,13 @@ static const struct config_setting config_settings[] =
 		"otherwise refused. Experimental: docs/custom_edition_caches.md in the\n"
 		"source says what works. On Android the launcher's mods turn it on while\n"
 		"one is installed." },
+	/* OpenCE Build 201 */
+	{ "game.enhanced_animations", _config_boolean, "true", "HALO_ENHANCED_ANIMATIONS", _environment_value, _platform_all,
+		"The player bipeds' grenade throws keep their legs moving (crouched,\n"
+		"in the air and in a vehicle's seat too), riders' hands leave the grips\n"
+		"to throw and reload, and a player turns with the aim while throwing;\n"
+		"false: the original animations, which freeze the legs and stand a\n"
+		"rider up." },
 
 	{ "paths.data", _config_string, "\"\"", "HALO_DATA_ROOT", _environment_value, _platform_desktop,
 		"The folder holding the game data's maps folder; empty looks in the\n"
@@ -445,6 +461,43 @@ static const struct config_setting config_settings[] =
     { "net.physical_interactions", _config_boolean, "false", "HALO_NET_PHYSICAL_INTERACTIONS", _environment_value, _platform_all,
         "Host permission for enhanced campaign physical interactions. Requires every peer to negotiate this port's optional extension.\n"
         "Off by default; unsupported or mixed peers retain ordinary campaign behavior." },
+	/* OpenCE Build 201: votes to kick and map sharing (no network version
+	change: network 28, which this build hosts and joins, carries them) */
+	{ "network.votekick", _config_boolean, "true", "HALO_NET_VOTEKICK", _environment_value, _platform_all,
+		"Hosting: let the players vote to kick a player (the scoreboard's\n"
+		"right-click, or the console's votekick). More than half of the players\n"
+		"must vote, counted once per address." },
+	{ "network.votekick_minutes", _config_integer, "5", "HALO_NET_VOTEKICK_MINUTES", _environment_value,
+		_platform_all,
+		"Hosting: the minutes a player must have played on this server to start\n"
+		"a vote to kick (0 to 60); to vote, 2 minutes or this, the less." },
+	{ "network.votekick_ban_minutes", _config_integer, "30", "HALO_NET_VOTEKICK_BAN_MINUTES", _environment_value,
+		_platform_all,
+		"Hosting: the minutes a player kicked by a vote cannot join again (1 to\n"
+		"1440)." },
+	{ "network.map_share", _config_boolean, "true", "HALO_NET_MAP_SHARE", _environment_value, _platform_all,
+		"Hosting: send a player who joins without the game's Custom Edition map\n"
+		"the map (from the active game set's maps folder), and the resource maps\n"
+		"it needs that the player lacks (bitmaps.map, sounds.map, loc.map). The\n"
+		"game's other players help (network.map_seed)." },
+	{ "network.map_share_upload", _config_integer, "1024", "HALO_NET_MAP_SHARE_UPLOAD", _environment_value,
+		_platform_all,
+		"Hosting: the most kilobytes a second the host sends of maps (16 to\n"
+		"65536), so that the game's own traffic keeps the rest of the upload." },
+	{ "network.map_seed", _config_boolean, "true", "HALO_NET_MAP_SEED", _environment_value, _platform_all,
+		"Playing in another's game: help send its map to players who join\n"
+		"without it, as a torrent's peers do (the pieces this machine has, at\n"
+		"most network.map_seed_upload)." },
+	{ "network.map_seed_upload", _config_integer, "256", "HALO_NET_MAP_SEED_UPLOAD", _environment_value,
+		_platform_all,
+		"Playing in another's game: the most kilobytes a second this machine\n"
+		"sends of maps to other players (16 to 65536)." },
+	{ "network.map_download", _config_boolean, "true", "HALO_NET_MAP_DOWNLOAD", _environment_value, _platform_all,
+		"Joining a game on a Custom Edition map this machine does not have:\n"
+		"download it (and the resource maps it needs) from the game's players\n"
+		"into the active game set's maps folder, if its host shares it\n"
+		"(network.map_share); false leaves the game, saying which map is\n"
+		"missing." },
 	{ "network.coop_public", _config_boolean, "false", "HALO_NET_COOP_PUBLIC", _environment_value, _platform_all,
 		"Whether an online co-op game (Create Game > Internet, a SINGLEPLAYER\n"
 		"map) starts as PUBLIC or, false, PRIVATE: Server Setup's LISTING in\n"
@@ -452,27 +505,27 @@ static const struct config_setting config_settings[] =
 	{ "network.coop_friendly_fire", _config_string, "\"on\"", "HALO_NET_COOP_FRIENDLY_FIRE", _environment_value,
 		_platform_all,
 		"Whether the players of an online co-op game hurt each other: \"off\",\n"
-		"\"on\", \"shields_only\" or \"explosives_only\" (Server Setup's FRIENDLY\n"
-		"FIRE in co-op, which writes its choice here). Their AI allies they\n"
-		"always can, as in the campaign." },
+		"\"on\", \"shields_only\" or \"explosives_only\" (FRIENDLY FIRE in\n"
+		"co-op's Server Setup > Co-op Options writes its choice here). Their AI\n"
+		"allies they always can, as in the campaign." },
 	{ "network.coop_player_collisions", _config_boolean, "true", "HALO_NET_COOP_PLAYER_COLLISIONS", _environment_value,
 		_platform_all,
 		"Whether the players of an online co-op game bump into each other;\n"
 		"false, they walk through each other (the AI's characters they still\n"
-		"bump into). Server Setup's PLAYER COLLISIONS in co-op writes its\n"
-		"choice here." },
+		"bump into). PLAYER COLLISIONS in co-op's Server Setup > Co-op Options\n"
+		"writes its choice here." },
 	{ "network.coop_enemies_mode", _config_string, "\"per_player\"", "HALO_NET_COOP_ENEMIES_MODE", _environment_value,
 		_platform_all,
 		"Online co-op's extra enemies: \"none\", \"per_player\" (each squad of\n"
 		"enemies grows by coop_enemies for each player past the first) or\n"
 		"\"multiplier\" (each is coop_enemies_multiplier times as large, for any\n"
-		"number of players). Server Setup's EXTRA ENEMIES in co-op writes its\n"
-		"choice here." },
+		"number of players). EXTRA ENEMIES in co-op's Server Setup > Co-op\n"
+		"Options writes its choice here." },
 	{ "network.coop_enemies", _config_integer, "50", "HALO_NET_COOP_ENEMIES", _environment_value, _platform_all,
 		"Online co-op's extra enemies per player, a percentage: for each player\n"
 		"past the first, each squad of enemies a level places gets this much of\n"
-		"itself more (100: as many again; 25 to 200). Server Setup's PER PLAYER\n"
-		"in co-op writes its choice here." },
+		"itself more (100: as many again; 25 to 200). PER PLAYER in co-op's\n"
+		"Server Setup > Co-op Options writes its choice here." },
 	{ "network.coop_enemies_multiplier", _config_integer, "2", "HALO_NET_COOP_ENEMIES_MULTIPLIER", _environment_value,
 		_platform_all,
 		"Online co-op's static multiplier of its enemies: each squad of enemies\n"
@@ -493,8 +546,9 @@ static const struct config_setting config_settings[] =
 
 	{ "debug.network_test", _config_string, "\"\"", "HALO_NETWORK_TEST", _environment_value, _platform_all,
 		"Automated system link sessions for testing (port/linux/game/network_test.c):\n"
-		"\"host:<map>\" hosts a game on that map, \"join\" joins the first game found;\n"
-		"empty for none." },
+		"\"host:<map>\" hosts a game on that map, \"join\" joins the first game found,\n"
+		"\"browse\" the one with the most players the server browser lists (not\n"
+		"co-op, if it can); empty for none." },
 	{ "debug.network_test_start", _config_real, "15.0", "HALO_NETWORK_TEST_START", _environment_value, _platform_all,
 		"Seconds after hosting that an automated test game starts." },
 	{ "debug.network_test_kill", _config_real, "0.0", "HALO_NETWORK_TEST_KILL", _environment_value, _platform_all,
@@ -518,6 +572,10 @@ static const struct config_setting config_settings[] =
 		"name has this in it (\"sniper\", say); empty any." },
 	{ "debug.voice_test", _config_boolean, "false", "HALO_VOICE_TEST", _environment_set_is_true, _platform_all,
 		"Automated voice tests: use a generated tone instead of a microphone." },
+	{ "debug.network_test_public", _config_boolean, "false", "HALO_NETWORK_TEST_PUBLIC", _environment_value,
+		_platform_all,
+		"The network test's host lists its game in the server browser, as Create\n"
+		"Game > Internet's PUBLIC does (debug.network_test \"browse\" joins it)." },
 	{ "debug.telnet_console", _config_boolean, "false", "HALO_TELNET_CONSOLE", _environment_set_is_true, _platform_all,
 		"Listen on 127.0.0.1 (port telnet_console_port) for a script console that\n"
 		"runs what it is sent as the game's console does, with no password; false\n"
@@ -526,6 +584,12 @@ static const struct config_setting config_settings[] =
 		_platform_all,
 		"The port of the script console (telnet_console); the Xbox's was 23, which\n"
 		"only the administrator can listen on." },
+	{ "debug.touch_targets", _config_boolean, "false", "HALO_TOUCH_TARGETS", _environment_set_is_true, _platform_all,
+		"Outline the menus' tap targets (item green, value blue, list slot yellow,\n"
+		"legend button red, the band beside a list's slots orange; the virtual\n"
+		"keyboard's keys white), mark where the last finger went down and the\n"
+		"last tap landed for 3 seconds, and log each tap with the target it hit\n"
+		"(and a value's split); to judge touch accuracy." },
 	{ "debug.network_latency", _config_real, "0.0", "HALO_NETWORK_LATENCY", _environment_value, _platform_all,
 		"Milliseconds everything received is held back (a round trip between two\n"
 		"machines of twice it), to test the netcode as over the internet; 0 none." },
@@ -554,6 +618,9 @@ static const struct config_setting config_settings[] =
 		"Quit this many seconds after the window opens; 0 never." },
 	{ "debug.hidden_window", _config_boolean, "false", "HALO_HIDDEN_WINDOW", _environment_set_is_true, _platform_desktop,
 		"Keep the window hidden (and never fullscreen)." },
+	{ "debug.voice_test", _config_boolean, "false", "HALO_VOICE_TEST", _environment_set_is_true, _platform_all,
+		"Voice chat's automated tests: a tone instead of the microphone, and\n"
+		"each voice heard logged once a second." },
 	{ "debug.null_renderer", _config_boolean, "false", "HALO_NULL_RENDERER", _environment_set_is_true, _platform_all,
 		"Run without a window, drawing nothing." },
 	{ "debug.gl_debug", _config_boolean, "false", "HALO_GL_DEBUG", _environment_set_is_true, _platform_all,
@@ -1434,6 +1501,8 @@ static const struct config_setting config_settings[] =
 #define CONFIG_PLATFORM (_platform_android | _platform_vr)
 #elif defined(HALO_ANDROID)
 #define CONFIG_PLATFORM _platform_android
+#elif defined(HALO_WEB)
+#define CONFIG_PLATFORM (_platform_desktop | _platform_web)
 #elif defined(_WIN32)
 #define CONFIG_PLATFORM _platform_windows
 #else
@@ -1499,8 +1568,9 @@ int halo_port_active_network_version(void)
 
 static void config_path(char *path, size_t size)
 {
-#ifdef HALO_ANDROID
-	/* the data folder, which the app names (port/android/host/host_main.c) */
+#if defined(HALO_ANDROID) || defined(HALO_WEB)
+	/* the data folder, which the app names (port/android/host/host_main.c;
+	on the web, port/web/src/web_main.c) */
 	const char *root = getenv("HALO_DATA_ROOT");
 
 	snprintf(path, size, "%s/config.toml", root && *root ? root : ".");
@@ -1515,7 +1585,7 @@ static void config_path(char *path, size_t size)
 /* the whole file, NUL terminated, or NULL; free() it */
 static char *config_read_file(const char *path, size_t *size)
 {
-#ifdef HALO_ANDROID
+#ifdef HALO_ARM64_GUEST
 	FILE *file = fopen(path, "rb");
 	char *text = NULL;
 	long length;
@@ -1558,7 +1628,7 @@ static char *config_read_file(const char *path, size_t *size)
 
 static int config_write_file(const char *path, const char *text)
 {
-#ifdef HALO_ANDROID
+#ifdef HALO_ARM64_GUEST
 	FILE *file = fopen(path, "wb");
 	int written;
 
@@ -1676,6 +1746,9 @@ static char *config_default_text(void)
 		"# it to go back to them. Each setting can also be set for one run with\n"
 		"# the environment variable named with it, which wins over this file.\n");
 #endif
+	/* each section once, where its first setting is, with all of its
+	settings: TOML refuses a section twice, and the whole file would go
+	unread (config_join_sections) */
 	for (index = 0; index < NUMBER_OF_CONFIG_SETTINGS; index++)
 	{
 		const struct config_setting *setting = &config_settings[index];
@@ -1785,6 +1858,89 @@ static char *config_add_missing(const char *text, toml_datum_t table)
 	return result;
 }
 
+static int config_line_section(const char *line, const char *end, char *section, size_t size);
+
+/* text from start to end, appended */
+static void config_append_range(struct config_text *text, const char *start, const char *end)
+{
+	char *copy = config_copy(start, (size_t)(end - start));
+
+	if (copy)
+		config_append(text, copy);
+	free(copy);
+}
+
+/* a file with a section twice, which TOML refuses (the defaults of the
+versions from 2026-10-10 had a second [display] after [game]): each
+section's later parts moved to the end of its first, the rest kept as it
+is. Returns the new text, or NULL if no section is there twice */
+static char *config_join_sections(const char *text)
+{
+	enum { PARTS_MAXIMUM = 64 };
+	struct
+	{
+		char name[64];
+		const char *start, *end;
+	} parts[PARTS_MAXIMUM];
+	struct config_text joined = { NULL, 0, 0 };
+	const char *line;
+	const char *first_part = NULL;
+	int count = 0, repeated = 0, index, other;
+
+	/* the parts, each from its section's line to the next one's */
+	for (line = text; *line; )
+	{
+		size_t length = strcspn(line, "\n");
+		char name[64];
+
+		if (config_line_section(line, line + length, name, sizeof(name)))
+		{
+			if (count == PARTS_MAXIMUM)
+				return NULL;
+			if (count)
+				parts[count - 1].end = line;
+			else
+				first_part = line;
+			for (other = 0; other < count; other++)
+				repeated |= !strcmp(parts[other].name, name);
+			strcpy(parts[count].name, name);
+			parts[count].start = line;
+			count++;
+		}
+		line += length;
+		if (*line)
+			line++;
+	}
+	if (!repeated)
+		return NULL;
+	parts[count - 1].end = line;
+
+	config_append_range(&joined, text, first_part);
+	for (index = 0; index < count; index++)
+	{
+		for (other = 0; other < index && strcmp(parts[other].name, parts[index].name); other++)
+			;
+		if (other < index)
+			continue;
+		config_append_range(&joined, parts[index].start, parts[index].end);
+		for (other = index + 1; other < count; other++)
+		{
+			const char *body;
+
+			if (strcmp(parts[other].name, parts[index].name))
+				continue;
+			/* (its settings, without its section's line) */
+			body = memchr(parts[other].start, '\n', (size_t)(parts[other].end - parts[other].start));
+			if (!body)
+				continue;
+			if (joined.length && joined.buffer[joined.length - 1] != '\n')
+				config_append(&joined, "\n");
+			config_append_range(&joined, body + 1, parts[other].end);
+		}
+	}
+	return joined.buffer;
+}
+
 /* ---------- values */
 
 static int config_text_is_false(const char *text)
@@ -1796,6 +1952,13 @@ static int config_text_is_false(const char *text)
 		lower[index] = (char)tolower((unsigned char)text[index]);
 	lower[index] = 0;
 	return !strcmp(lower, "0") || !strcmp(lower, "false") || !strcmp(lower, "no") || !strcmp(lower, "off");
+}
+
+/* whether a variable that only has to be set (_environment_set_is_true or
+_environment_set_is_false) is: empty, "0", "false", "no" or "off" is not */
+static int config_environment_set(const char *text)
+{
+	return text[0] && !config_text_is_false(text);
 }
 
 static void config_set_from_text(struct config_value *value, enum config_type type, const char *text)
@@ -2010,8 +2173,16 @@ static void config_load(void)
 	text = config_read_file(path, &size);
 	if (text)
 	{
-		toml_result_t result = toml_parse(text, (int)size);
+		char *joined = config_join_sections(text);
+		toml_result_t result;
 
+		if (joined)
+		{
+			free(text);
+			text = joined;
+			size = strlen(text);
+		}
+		result = toml_parse(text, (int)size);
 		if (result.ok)
 		{
 			char *completed;
@@ -2043,6 +2214,13 @@ static void config_load(void)
             }
 #endif
 
+			if (joined)
+			{
+				if (config_write_file(path, text))
+					platform_log("settings: joined the sections %s had twice", path);
+				else
+					platform_log("settings: cannot write %s", path);
+			}
 			for (index = 0; index < NUMBER_OF_CONFIG_SETTINGS; index++)
 				config_set_from_file(&config_values[index], &config_settings[index], result.toptab);
 			config_report_unknown_keys(result.toptab);
@@ -2090,7 +2268,7 @@ static void config_load(void)
 			continue;
 		const char *environment = getenv(setting->environment);
 
-		if (!environment)
+		if (!environment || (setting->environment_style != _environment_value && !config_environment_set(environment)))
 			continue;
 		switch (setting->environment_style)
 		{

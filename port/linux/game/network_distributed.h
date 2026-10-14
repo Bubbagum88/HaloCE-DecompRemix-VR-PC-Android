@@ -137,8 +137,7 @@ enum
 	_distributed_message_voice_config = 82,
 	/* map sharing (map_share.c), in the lobby too, reliably: a client's
 	request for the game's map, the host's offer (the files, their sizes and
-	hashes) and the machines that may have them, and the client's progress
-	(Test66: shared as OpenCE Build 201 shares them) */
+	hashes) and the machines that may have them, and the client's progress */
 	_distributed_message_map_share_request = 83,
 	_distributed_message_map_share_offer = 84,
 	_distributed_message_map_share_sources = 85,
@@ -291,6 +290,31 @@ real distributed_angle_unpack(short value, boolean signed_angle);
 /* shields and health in 16 bits */
 word distributed_vitality_pack(real value);
 real distributed_vitality_unpack(word value);
+
+/* (the host) a text in red on every machine's console, or on one client's
+(machine_index; NONE: the host's own) */
+void distributed_send_notice(char const *text);
+void distributed_send_notice_to_machine(long machine_index, char const *text);
+/* (the host) the names of a client machine's players, in ASCII */
+void distributed_machine_player_names(long machine_index, char *names, long size);
+/* (the host) a client machine's real IPv4 address (host byte order): an
+internet play peer's endpoint, not its stand-in; 0 if not known */
+unsigned long distributed_machine_real_address(long machine_index);
+/* ... and the real address of a machine's address, as it joined from */
+unsigned long distributed_real_address(unsigned long address);
+
+/* ---------- prototypes/NETWORK_VOTEKICK.C */
+
+void network_votekick_new_game(void);
+/* after each tick, on the host */
+void network_votekick_host_tick(void);
+/* (the host) a client's vote; from_stream: it came over the machine's own
+stream (anything else is refused) */
+void network_votekick_handle_request(long machine_index, void const *entries, boolean from_stream);
+word network_votekick_request_entry_size(void);
+/* (a client) the host's count */
+void network_votekick_handle_status(void const *entries);
+word network_votekick_status_entry_size(void);
 
 /* ---------- prototypes/NETWORK_ACTORS.C */
 

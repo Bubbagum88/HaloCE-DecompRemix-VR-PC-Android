@@ -133,6 +133,7 @@
 		<string text="PLAYER NAME SIZE:"/>
 		<string text="SCOREBOARD LAYOUT:"/>
 		<string text="SCOREBOARD PANEL:"/>
+		<string text="MAP SHARING:"/>
 	</strings>
 	<strings platform="desktop" name="main_menu/settings_select/player_setup/player_profile_edit/network_setup/help_strings">
 		<string text=""/>
@@ -144,6 +145,7 @@
 		<string text="How large the players' names are drawn."/>
 		<string text="A team game's scoreboard: a column for each team,\nor every player in order of score."/>
 		<string text="Draw a panel behind the scoreboard, for clearer\ntext."/>
+		<string text="Downloading Custom Edition maps you do not have,\nand helping send them to other players."/>
 	</strings>
 	<strings platform="android" name="main_menu/settings_select/player_setup/player_profile_edit/network_setup/help_strings">
 		<string text=""/>

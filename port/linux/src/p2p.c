@@ -349,22 +349,6 @@ static struct
 	int reported_player_count;
 	int reported_player_maximum;
 
-	/* answering the other players of the game joined (map sharing:
-	p2p_set_answering_players): wanted, and doing (p2p_signal_host with the
-	token joined with) */
-	int answer_players;
-	int answering_players;
-	/* the other players of the game joined being reached (p2p_reach_player):
-	the hash of each one's key, and since when */
-	struct
-	{
-		int used;
-		int asked;
-		unsigned char hash[P2P_KEY_HASH_SIZE];
-		unsigned char identifier[P2P_IDENTIFIER_SIZE];
-		unsigned long time;
-	} reaching[P2P_MAXIMUM_PLAYER_JOINS];
-
 	/* joining: until the host is reached, or JOIN_TIMEOUT */
 	int join_requested;
 	int joining;
@@ -2692,54 +2676,21 @@ int p2p_peer_key_hash(unsigned long virtual_address, unsigned char *peer_identif
 	return result;
 }
 
+/* Map sharing between the players of a game (OpenCE Build 201 seeds a map
+from every player who has it): this build's internet signalling reaches the
+host alone (it asks in both message versions so older hosts answer, and has
+no several-join signalling), so a map comes from the host over the
+connection the joining player already has, and from players on the same LAN
+(map_share.c); no other internet player is reached for it. */
 void p2p_set_answering_players(int on)
 {
-	/* (only the game's thread writes it: unchanged, it need not wait for the
-	lock) */
-	if (!p2p.running || !on == !p2p.answer_players)
-		return;
-	pthread_mutex_lock(&p2p_lock);
-	p2p.answer_players = on != 0;
-	pthread_mutex_unlock(&p2p_lock);
+	(void)on;
 }
 
 int p2p_reach_player(const unsigned char *key_hash)
 {
-	unsigned char peer_identifier[P2P_IDENTIFIER_SIZE];
-	int free_index = -1;
-	int result = 0;
-	int index;
-
-	if (!p2p.running)
-		return 0;
-	p2p_identifier_from_hash(key_hash, peer_identifier);
-	pthread_mutex_lock(&p2p_lock);
-	if (!memcmp(peer_identifier, identifier, P2P_IDENTIFIER_SIZE) || !joined_host())
-	{
-		pthread_mutex_unlock(&p2p_lock);
-		return 0;
-	}
-	/* (reached, or being reached: by its offer, or by the request below) */
-	if (find_peer(peer_identifier))
-		result = 1;
-	for (index = 0; index < P2P_MAXIMUM_PLAYER_JOINS && !result; index++)
-	{
-		if (p2p.reaching[index].used && !memcmp(p2p.reaching[index].hash, key_hash, P2P_KEY_HASH_SIZE))
-			result = 1;
-		else if (!p2p.reaching[index].used && free_index < 0)
-			free_index = index;
-	}
-	if (!result && free_index >= 0)
-	{
-		memset(&p2p.reaching[free_index], 0, sizeof(p2p.reaching[free_index]));
-		p2p.reaching[free_index].used = 1;
-		memcpy(p2p.reaching[free_index].hash, key_hash, P2P_KEY_HASH_SIZE);
-		memcpy(p2p.reaching[free_index].identifier, peer_identifier, P2P_IDENTIFIER_SIZE);
-		p2p.reaching[free_index].time = p2p_now();
-		result = 1;
-	}
-	pthread_mutex_unlock(&p2p_lock);
-	return result;
+	(void)key_hash;
+	return 0;
 }
 
 int p2p_peer_reached(const unsigned char *peer_identifier, unsigned long *address)

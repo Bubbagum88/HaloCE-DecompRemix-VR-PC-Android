@@ -88,6 +88,7 @@ symbols in this file:
 #include "math/periodic_functions.h"
 #include "objects/widgets/widget_types.h"
 #include "render.h"
+#include "render/render_cameras_internal.h" /* port: render_frustum_sphere_visible */
 #include "scenario/scenario.h"
 #include "tag_files/tag_groups.h"
 #include "rasterizer_widgets.h"

@@ -15,15 +15,21 @@ cache_file_formats.c.
 #define __CUSTOM_EDITION_CACHE_H
 
 #define CUSTOM_EDITION_LEVEL_NAME_PREFIX "custom_maps\\"
+/* the game engine keeps 63 characters of a level name (game_engine.c,
+struct game_engine_stage) */
+#define CUSTOM_EDITION_MAXIMUM_LEVEL_NAME_LENGTH 63
+/* the folder Custom Edition maps and their resource maps are kept in, and
+shared maps are saved to (map_share.c): this port's active managed game
+set's maps folder, the sole source (upstream's custom_maps folder and a
+Custom Edition install's are not looked in behind the launcher's
+selection); a level name still says custom_maps\<name> on the network, as
+OpenCE's do */
+/* (cache_files.c's) */
+const char *cache_files_map_directory(void);
+#define CUSTOM_EDITION_MAP_DIRECTORY (cache_files_map_directory())
 
 boolean custom_edition_level_name(char const *level_name);
 boolean custom_edition_map_file_present(char const *map_name);
-unsigned long custom_edition_map_checksum(char const *level_name);
-boolean custom_edition_cache_present(
-	char const *level_name,
-	unsigned long checksum,
-	char *message,
-	long message_size);
 
 /* ---------- structures */
 
@@ -55,13 +61,52 @@ void opensauce_cache_path_find(
 it is then read in place, never copied to the cache partition. */
 boolean custom_edition_cache_playable(
 	char const *map_name);
+/* The checksum in the header of the level's map file, which differs between
+versions of a map; 0 if it has no file or the file is not a Custom Edition
+cache. */
+unsigned long custom_edition_map_checksum(
+	char const *level_name);
+/* The file of the map `map_name` (a level name or a file name) in the
+Custom Edition maps folders, into `path` (256 characters): the custom_maps
+folder's map named for its hash (<name>_<hash>.map, map_share.h) for a name
+without it, if there is one map of that name. FALSE if none. */
+boolean custom_edition_map_file_path(
+	char const *map_name,
+	char *path);
+/* The resource map of `type` (enum resource_map_type: bitmaps.map,
+sounds.map, loc.map) in the first maps folder that has it, into `path` (256
+characters); FALSE if none has it. */
+boolean custom_edition_resource_map_file_path(
+	short type,
+	char *path);
+/* The resource maps the level's map needs (a bit, 1 << type, for each
+resource map its tags are held in: cache_file_resource_maps_needed); 0 if
+it has no file, or none. */
+unsigned long custom_edition_map_resource_maps_needed(
+	char const *level_name);
+/* the file of the Custom Edition map loaded, or NULL */
+char const *custom_edition_cache_loaded_path(
+	void);
+/* Whether this machine can play the level `level_name` (custom_maps\<name>),
+as a network game's client must: its file present and a Custom Edition
+cache of the host's version (`checksum`, custom_edition_map_checksum's on
+the host; 0 for any), Custom Edition maps able to run, and the resource maps
+it needs present. When not, `message` (`message_size` characters) says why, for the
+player, and what to do. */
+boolean custom_edition_cache_present(
+	char const *level_name,
+	unsigned long checksum,
+	char *message,
+	long message_size);
+
+/* Whether the file `file_name` (custom_maps\<file_name>.map) is a Custom
+Edition cache of a campaign map (a solo scenario, played alone or as
+network co-op), or of a multiplayer map (custom_edition_maps.c). */
+boolean custom_edition_cache_campaign(
+	char const *file_name);
 /* The same, for a map of a multiplayer scenario (the multiplayer menus,
 custom_edition_maps.c). */
 boolean custom_edition_cache_multiplayer(
-	char const *map_name);
-/* Header classification for the in-game custom campaign list. This does
-not promise that a map's custom scripts or resources are supported. */
-boolean custom_edition_cache_campaign(
 	char const *map_name);
 
 /* Loads the Custom Edition map `map_name` names into its tag cache and

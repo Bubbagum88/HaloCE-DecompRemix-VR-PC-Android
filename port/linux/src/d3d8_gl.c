@@ -1773,6 +1773,16 @@ HRESULT WINAPI Direct3D_CreateDevice(UINT adapter, D3DDEVTYPE device_type, void 
 
 /* ---------- the menus' pointer */
 
+/* port: the open scoreboard's pointer (game_engine.c: OpenCE's votes to
+kick a player, picked by name): the desktop builds' mouse; none here, -1,
+where the controller picks (as OpenCE's Android build) */
+int halo_scoreboard_pointer_update(int offered, struct halo_ui_pointer *pointer)
+{
+	(void)offered;
+	memset(pointer, 0, sizeof(*pointer));
+	return -1;
+}
+
 #if defined(HALO_ANDROID) && defined(HALO_VR)
 int halo_ui_pointer_update(int menus_active, struct halo_ui_pointer *pointer)
 {

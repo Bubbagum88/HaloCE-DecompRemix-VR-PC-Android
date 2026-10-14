@@ -377,6 +377,7 @@ static int read_body(struct connection *connection, struct download *download, i
 		for (;;)
 		{
 			char line[128];
+			char *after;
 			unsigned long long remaining;
 
 			if (!connection_read_line(connection, line, sizeof(line)))

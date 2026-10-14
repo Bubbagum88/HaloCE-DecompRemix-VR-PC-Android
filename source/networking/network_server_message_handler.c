@@ -270,7 +270,7 @@ void network_distributed_handle_message(long machine_index, word const *message,
 /* port/linux/game/network_voice.c's: voice chat, in the lobby too */
 boolean network_voice_handles_message(word const *message, word size);
 void network_voice_handle_message(long machine_index, word const *message, word size);
-/* ... and its map sharing's answer, in the lobby too (OpenCE network 27) */
+/* port/linux/game/map_share.c's: map sharing, in the lobby too */
 boolean map_share_handles_message(word const *message, word size);
 void map_share_handle_message(long machine_index, word const *message, word size, boolean from_stream);
 void network_distributed_handle_stream_message(long machine_index, word const *message, word size);
@@ -1384,7 +1384,7 @@ boolean network_game_server_handle_client_message(
 					break;
 				}
 				/* (port: map sharing's from any machine that joined, in the
-				lobby too, from its stream alone: network_distributed.c) */
+				lobby too, from its stream alone: map_share.c) */
 				if (map_share_handles_message(message, message_buffer_size))
 				{
 					long machine_index;
@@ -2050,7 +2050,9 @@ static boolean network_game_server_handle_message_client_join_game_request(
 						struct message_server_machine_rejected rejection;
 						struct network_message *reply;
 
-						rejection.reason = _network_game_server_rejection_reason_game_not_open;
+						/* port: a banned machine is told so (it was told the
+						game is not open) */
+						rejection.reason = network_game_server_last_refusal_code();
 						network_event(
 							"server failed to accept valid client machine '%s' @%s into the game",
 							join_game_request.machine_name,

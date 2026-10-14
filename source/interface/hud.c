@@ -98,6 +98,7 @@ symbols in this file:
 #include "objects/object_definitions.h"
 #include "objects/objects.h"
 #include "rasterizer/rasterizer.h"
+#include "rasterizer/rasterizer_text.h" /* port: rasterizer_text_set_scale */
 #include "render/render.h"
 #include "render/render_camera_projection.h"
 #include "saved games/game_state.h"
@@ -998,7 +999,8 @@ static void hud_draw_players(
 }
 
 /* port: in multiplayer and network co-op, players' names above their heads
-(display.player_names: "all", "allies", "enemies" or "none"). An ally's goes
+(display.player_names: "all", "allies", "enemies" or "none"), a speaker
+beside the name of one talking in voice chat. An ally's goes
 above the triangle the game draws over teammates; an enemy's only within the
 motion sensor's reach, while the view sees them and they are not
 camouflaged, so that it never gives away where they hide. Whose names show
@@ -1009,6 +1011,10 @@ allies' if it shows only friends (game_engine_draw_object_in_motion_sensor). */
 const char *config_string(const char *name);
 double config_real(const char *name);
 unsigned long config_changes(void);
+/* port/linux/game/network_voice.c's: a player talking in voice chat (its
+machine), and its speaker drawn */
+boolean network_voice_machine_speaking(long machine_index);
+void network_voice_draw_icon(rectangle2d const *bounds, boolean muted, real alpha);
 
 enum
 {
@@ -1101,6 +1107,27 @@ static real hud_player_name_enemy_range(
 	return hud_globals ? hud_globals->defaults.motion_sensor_range : 0.0f;
 }
 
+/* port: a player's name's colour above their head, an ally's (the HUD's
+text) or an enemy's (red), whole (game_engine.c's list of who talks in
+voice chat colours its names the same) */
+void hud_player_name_color(
+	boolean ally,
+	real_argb_color *color)
+{
+	if (ally)
+	{
+		hud_get_text_color(color);
+		color->alpha = 1.0f;
+	}
+	else
+	{
+		color->alpha = 1.0f;
+		color->red = 1.0f;
+		color->green = 0.3f;
+		color->blue = 0.25f;
+	}
+}
+
 static void hud_draw_player_name(
 	long player_index,
 	boolean ally,
@@ -1156,18 +1183,15 @@ static void hud_draw_player_name(
 	for (index = 0; index < (short)NUMBEROF(player->name); index++)
 		name[index] = player->name[index];
 	name[NUMBEROF(player->name)] = 0;
+	hud_player_name_color(ally, &color);
 	if (ally)
 	{
-		hud_get_text_color(&color);
 		/* (whole up to 15 world units away, then fading to 0.4 at 75) */
 		depth_factor = 1.0f - (-view_position.z - 15.0f) / 60.0f;
 		color.alpha = PIN(depth_factor, 0.4f, 1.0f);
 	}
 	else
 	{
-		color.red = 1.0f;
-		color.green = 0.3f;
-		color.blue = 0.25f;
 		/* (whole up to four fifths of the range, then fading out) */
 		color.alpha = PIN((enemy_range - distance) / (0.2f * enemy_range), 0.0f, 1.0f);
 	}
@@ -1175,6 +1199,26 @@ static void hud_draw_player_name(
 	draw_string_set_draw_mode(font_index, NONE, 2, 0, &color);
 	(void)hud_player_name_scale;
 	rasterizer_draw_unicode_string(&bounds, NULL, NULL, 0, name);
+	rasterizer_text_set_scale(1.0f, 0.0f, 0.0f);
+	/* (talking in voice chat: the speaker just left of the name, centred on
+	its capitals, where they are drawn, scaled; fading with it) */
+	if (network_voice_machine_speaking(player->network_player_data.machine_index))
+	{
+		real scale = hud_player_name_scale();
+		rectangle2d text;
+		rectangle2d cursor;
+		rectangle2d icon;
+		short size = (short)((font->ascending_height + font->descending_height) * scale);
+		short middle;
+
+		draw_unicode_string_compute_bounds(&bounds, name, &text, &cursor);
+		middle = (short)(y + (draw_unicode_string_capital_middle(&bounds, name) - y) * scale);
+		icon.x1 = (short)(x + (text.x0 - x) * scale - 3.0f * scale);
+		icon.x0 = (short)(icon.x1 - size);
+		icon.y0 = (short)(middle - size / 2);
+		icon.y1 = (short)(icon.y0 + size);
+		network_voice_draw_icon(&icon, FALSE, color.alpha);
+	}
 
 	return;
 }
