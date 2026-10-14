@@ -82,7 +82,7 @@
                 android:value="game" />
         </activity>
 
-        <!-- Test68: the Steam Workshop's Halo 1 MCC maps, and the installed ones -->
+        <!-- Test67: the Steam Workshop's Halo 1 MCC maps, and the installed ones -->
         <activity
             android:name=".WorkshopActivity"
             android:exported="false"

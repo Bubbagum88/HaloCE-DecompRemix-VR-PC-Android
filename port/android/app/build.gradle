@@ -125,7 +125,7 @@ android {
     }
 }
 
-// Test68: the Steam Workshop (WorkshopActivity): JavaSteam (MIT), its content
+// Test67: the Steam Workshop (WorkshopActivity): JavaSteam (MIT), its content
 // downloader and the libraries it needs on Android (Bouncy Castle; XZ and
 // Zstd for Steam's compressed chunks, Zstd as Android's aar)
 dependencies {

@@ -34,7 +34,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Test68: Steam Workshop for Halo 1 MCC maps, inside the launcher (the owner:
+ * Test67: Steam Workshop for Halo 1 MCC maps, inside the launcher (the owner:
  * "similar implementation to the Qualyx quest port", "when your on the
  * workshop page for a mod, it lets you click another button that downloads it
  * directly in the launcher", "options to delete them, disable and enable them").

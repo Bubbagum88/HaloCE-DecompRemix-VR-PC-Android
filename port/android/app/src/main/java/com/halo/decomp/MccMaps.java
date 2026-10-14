@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Test68: Halo 1 MCC custom maps (GulchCE's loader, port/linux/game/mcc_maps.c),
+ * Test67: Halo 1 MCC custom maps (GulchCE's loader, port/linux/game/mcc_maps.c),
  * played solo only in this build. They live in the active game set's
  * mcc_maps folder: loose maps, one level of package folders (a campaign and
  * its own bitmaps.map / sounds.map), and MCC's two standard resource sets
@@ -243,11 +243,48 @@ final class MccMaps {
     void removeAll() throws IOException {
         delete(root);
         delete(disabledRoot());
+        delete(stagingRoot());
     }
 
     /** packages switched off: beside mcc_maps, which is all the game reads */
     File disabledRoot() {
         return new File(root.getParentFile(), "mcc_maps_disabled");
+    }
+
+    /**
+     * a Workshop item being installed, and a package being replaced by its
+     * update: beside mcc_maps, so the game never reads a half-copied package.
+     * What an interrupted install left here is removed (recover()).
+     */
+    File stagingRoot() {
+        return new File(root.getParentFile(), "mcc_maps_installing");
+    }
+
+    /**
+     * After an install was interrupted (the launcher closed mid-copy): a
+     * package replaced by its update and not yet removed comes back if its
+     * update never arrived; anything else left staged is removed.
+     */
+    void recover() {
+        File[] left = stagingRoot().listFiles();
+        if (left == null)
+            return;
+        for (File each : left) {
+            String name = each.getName();
+            if (name.endsWith(".previous")) {
+                String original = name.substring(0, name.length() - ".previous".length());
+                int at = original.indexOf('@');
+                File base = at > 0 && original.substring(at + 1).equals("disabled") ? disabledRoot() : root;
+                File back = new File(base, at > 0 ? original.substring(0, at) : original);
+                if (!back.exists() && (base.isDirectory() || base.mkdirs()) && each.renameTo(back))
+                    continue;
+            }
+            try {
+                delete(each);
+            } catch (IOException ignored) {
+            }
+        }
+        stagingRoot().delete();
     }
 
     static final String WORKSHOP_FILE = "workshop.properties";
@@ -279,6 +316,7 @@ final class MccMaps {
 
     /** every package, enabled first, each by name */
     List<Package> packages() {
+        recover();
         List<Package> result = new java.util.ArrayList<>();
         for (int pass = 0; pass < 2; pass++) {
             File base = pass == 0 ? root : disabledRoot();
@@ -417,8 +455,8 @@ final class MccMaps {
         File existing = new File(disabledRoot(), name);
         File base = existing.isDirectory() ? disabledRoot() : root;
         File folder = new File(base, name);
-        File staging = new File(base, name + ".installing");
-        delete(staging);
+        recover();
+        File staging = new File(stagingRoot(), name);
         if (!staging.mkdirs())
             throw new IOException("cannot make " + staging.getName());
         int resourceCount = 0, levelCount = 0;
@@ -456,11 +494,20 @@ final class MccMaps {
         try (OutputStream out = new FileOutputStream(new File(staging, WORKSHOP_FILE))) {
             info.store(out, "Steam Workshop item (MCC, Halo 1), installed by the launcher");
         }
-        delete(folder);
-        if (!staging.renameTo(folder)) {
+        // (the previous version is set aside, not deleted, until the update is in place)
+        File previous = new File(stagingRoot(), name + (base == root ? "" : "@disabled") + ".previous");
+        if (folder.exists() && !folder.renameTo(previous)) {
             delete(staging);
+            throw new IOException("cannot replace " + name);
+        }
+        if ((!base.isDirectory() && !base.mkdirs()) || !staging.renameTo(folder)) {
+            delete(staging);
+            if (previous.exists())
+                previous.renameTo(folder);
             throw new IOException("cannot install " + name);
         }
+        delete(previous);
+        stagingRoot().delete();
         return new Installed(name, levelCount, resourceCount, skipped);
     }
 

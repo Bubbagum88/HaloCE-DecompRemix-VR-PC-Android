@@ -43,7 +43,7 @@ import in.dragonbra.javasteam.steam.steamclient.configuration.SteamConfiguration
 import okhttp3.OkHttpClient;
 
 /**
- * Test68: the Steam Workshop for Halo 1 MCC maps (WorkshopActivity).
+ * Test67: the Steam Workshop for Halo 1 MCC maps (WorkshopActivity).
  *
  * Browsing and an item's details are Steam's public web pages and Web API
  * (ISteamRemoteStorage GetPublishedFileDetails / GetCollectionDetails, no key,

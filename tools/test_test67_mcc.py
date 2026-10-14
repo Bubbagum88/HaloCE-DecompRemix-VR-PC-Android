@@ -1,4 +1,4 @@
-"""Test68: Halo 1 MCC custom maps (GulchCE's loader), solo only.
+"""Test67: Halo 1 MCC custom maps (GulchCE's loader), solo only.
 
 Compiles the launcher's MccMaps (plain Java) with a check that drives it on a
 game folder: MCC version-13 headers recognized (campaign / multiplayer) and a
@@ -94,7 +94,7 @@ public class MccCheck {
         keep.getParentFile().mkdirs(); new FileOutputStream(keep).close();
         maps.removeAll();
         check(!new File(game, "mcc_maps").exists() && keep.exists(), "remove takes mcc_maps only");
-        System.out.println("PASS: Test68 MCC maps launcher: headers, packages, safe names, level-name limit, MCC's shared resources, non-MCC levels refused, counts and removal");
+        System.out.println("PASS: Test67 MCC maps launcher: headers, packages, safe names, level-name limit, MCC's shared resources, non-MCC levels refused, counts and removal");
 
         // A downloaded Workshop item: ModInfo.json, halo1/maps with a level, its
         // resources and description, and another game's map; installed as a
@@ -116,7 +116,8 @@ public class MccCheck {
         File folder = new File(game, "mcc_maps/" + installed.packageName);
         check(new File(folder, "a10.map").isFile() && new File(folder, "sounds.map").isFile() &&
             new File(folder, "a10.txt").isFile() && new File(folder, MccMaps.WORKSHOP_FILE).isFile(), "package files");
-        check(!new File(game, "mcc_maps/" + installed.packageName + ".installing").exists(), "no staging left");
+        check(!new File(game, "mcc_maps/" + installed.packageName + ".installing").exists() &&
+            !maps.stagingRoot().exists(), "no staging left");
         List<MccMaps.Package> list = maps.packages();
         check(list.size() == 1 && list.get(0).workshopId == 123456789L && list.get(0).workshopUpdated == 1000L &&
             list.get(0).title.equals("Mercury Rising: The Pillar (v2)!") && list.get(0).enabled && list.get(0).levels == 1 &&
@@ -133,6 +134,14 @@ public class MccCheck {
             "updated in place, still disabled");
         maps.setEnabled(maps.packages().get(0), true);
         check(folder.isDirectory() && maps.levels()[0] == 1, "enabled again");
+        // an install interrupted mid-copy: its half-copied files are removed;
+        // a package set aside for its update, which never arrived, comes back
+        File half = new File(maps.stagingRoot(), "Half_copied");
+        half.mkdirs();
+        MccMaps.copy(new ByteArrayInputStream(header(true, 13, 0, "half")), new File(half, "half.map"));
+        check(folder.renameTo(new File(maps.stagingRoot(), installed.packageName + ".previous")), "set aside");
+        check(maps.packages().size() == 1 && maps.packages().get(0).name.equals(installed.packageName) &&
+            folder.isDirectory() && !maps.stagingRoot().exists(), "interrupted install recovered");
         // another item of the same title gets its own package
         MccMaps.Installed other = maps.installWorkshop(item, 987L, "Mercury Rising: The Pillar (v2)!", 5L);
         check(other.packageName.equals(installed.packageName + "_2"), "a different item numbered: " + other.packageName);
@@ -145,12 +154,12 @@ public class MccCheck {
         check(refused && maps.packages().size() == 2, "no Halo 1 maps: refused, nothing installed");
         for (MccMaps.Package each : maps.packages()) maps.delete(each);
         check(maps.packages().isEmpty() && maps.levels()[0] == 0, "deleted");
-        System.out.println("PASS: Test68 MCC packages: Workshop install (Halo 1 levels, their resources and descriptions; other games skipped), listing with size and Workshop details, disable/enable kept whole, update in place, distinct items, refusal, delete");
+        System.out.println("PASS: Test67 MCC packages: Workshop install (Halo 1 levels, their resources and descriptions; other games skipped), listing with size and Workshop details, disable/enable kept whole, update in place, interrupted installs recovered, distinct items, refusal, delete");
     }
 }
 '''
 
-with tempfile.TemporaryDirectory(prefix="test68-mcc-") as directory:
+with tempfile.TemporaryDirectory(prefix="test67-mcc-") as directory:
     work = Path(directory)
     (work / "src").mkdir()
     (work / "src/MccCheck.java").write_text(CHECK, encoding="utf-8")
@@ -201,5 +210,5 @@ assert ".WorkshopActivity" in read("port/android/app/src/main/AndroidManifest.xm
 launcher = read("port/android/app/src/main/java/com/halo/decomp/LauncherActivity.java")
 assert '"Steam Workshop: download MCC maps"' in launcher and "WorkshopActivity.EXTRA_MANAGE" in launcher
 assert '"HALO 1 MCC MAPS (SOLO, EXPERIMENTAL)"' in launcher and "PICK_MCC_MAPS" in launcher and "PICK_MCC_SHARED" in launcher
-print("PASS: Test68 MCC engine wiring: GulchCE's loader dispatched, OpenCE network 28 unchanged (no MCC messages or "
+print("PASS: Test67 MCC engine wiring: GulchCE's loader dispatched, OpenCE network 28 unchanged (no MCC messages or "
       "fingerprint, sends compiled out, MCC hosting/joining refused, host chooser skips MCC kinds), port's stb_vorbis, bcdec")

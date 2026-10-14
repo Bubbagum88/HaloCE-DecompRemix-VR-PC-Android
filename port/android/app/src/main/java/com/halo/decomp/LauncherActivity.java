@@ -39,7 +39,7 @@ public class LauncherActivity extends Activity {
     private static final int PICK_RESOURCES = 2;
     /** Test66: an imported campaign mod's folder (The Altheros Experience) */
     private static final int PICK_MOD_FOLDER = 3;
-    /** Test68: Halo 1 MCC maps (a folder of maps), and MCC's own resource maps */
+    /** Test67: Halo 1 MCC maps (a folder of maps), and MCC's own resource maps */
     private static final int PICK_MCC_MAPS = 4;
     private static final int PICK_MCC_SHARED = 5;
     private TextView mccStatus;
@@ -391,7 +391,7 @@ public class LauncherActivity extends Activity {
         detailsLayout.topMargin = dp(8);
         layout.addView(modDetails, detailsLayout);
 
-        // Test68: Halo 1 MCC custom maps (GulchCE's loader), solo only
+        // Test67: Halo 1 MCC custom maps (GulchCE's loader), solo only
         TextView mccTitle = label(layout, "HALO 1 MCC MAPS (SOLO, EXPERIMENTAL)", 18, HALO_BLUE);
         mccTitle.setPadding(0, dp(24), 0, dp(4));
         TextView mccHelp = label(layout, "Halo 1 custom maps made for the Master Chief Collection (MCC). Copy a map's "
@@ -726,7 +726,7 @@ public class LauncherActivity extends Activity {
         handler.post(() -> setBusy(false));
     }
 
-    /** Test68: what the active game set holds of Halo 1 MCC maps. */
+    /** Test67: what the active game set holds of Halo 1 MCC maps. */
     private void refreshMcc() {
         if (mccStatus == null)
             return;
@@ -734,7 +734,7 @@ public class LauncherActivity extends Activity {
         mccStatus.setText(root == null ? "Choose game data first." : new MccMaps(root).summary());
     }
 
-    /** Test68: the files of a chosen folder (up to three deep) with the folders they are in. */
+    /** Test67: the files of a chosen folder (up to three deep) with the folders they are in. */
     private void collectFolderPaths(Uri tree, String parent, java.util.List<String> folders,
             java.util.List<Object[]> found, int depth) throws java.io.IOException {
         Uri children = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(tree, parent);
@@ -762,7 +762,7 @@ public class LauncherActivity extends Activity {
     }
 
     /**
-     * Test68: imports a folder of Halo 1 MCC maps (each folder of maps a
+     * Test67: imports a folder of Halo 1 MCC maps (each folder of maps a
      * package, as MccMaps.target names it), or MCC's own resource maps
      * (shared), into the active game set's mcc_maps folder. A .map that is
      * not a Halo 1 MCC map is not kept.

@@ -9,6 +9,7 @@
 #include "mcc_maps.h"
 #include "mcc_package.h"
 #include "mcc_precache.h"
+#include "mcc_ui_network.h"
 #include <string.h>
 
 #define MCC_IDENTITY_MAX_CANDIDATES 16
@@ -155,4 +156,19 @@ int mcc_identity_loaded(char const *name,struct mcc_runtime *runtime)
     if (!expected) return game_connection()!=_game_connection_network_client &&
         game_connection()!=_game_connection_network_server;
     return mcc_resources_fingerprint(runtime,actual) && !memcmp(actual,expected,32);
+}
+
+/* This port: GulchCE restarts an MCC map hosted online through the server's
+ * round transition (mcc_ui_network.inl, included by its server manager).
+ * An MCC map is never hosted here (mcc_offline.h), so there is no such game
+ * to restart: the pause menu's and the scripts' restarts of a solo game
+ * reset the map themselves. */
+boolean mcc_ui_restart_network_game(void)
+{
+    return FALSE;
+}
+
+boolean mcc_ui_network_restart_pregame(void)
+{
+    return FALSE;
 }
