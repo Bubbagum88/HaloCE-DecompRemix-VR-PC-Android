@@ -34,7 +34,12 @@ def main():
     assert len(records) >= 100, len(records)
 
     category = ET.parse(ASSETS/'main_menu.new_select.port.xml').getroot()
-    row, spinner = category.findall('widget')
+    widgets = {w.get('name').rsplit('/', 1)[-1]: w for w in category.findall('widget')}
+    # (Test67: GulchCE's two MCC folder text panels, beside the row and its spinner)
+    assert sorted(widgets) == ['list_item_0_map_kind', 'list_item_0_map_kind_spinner',
+                               'mcc_folder_help', 'mcc_folder_name'], sorted(widgets)
+    assert all(widgets[name].get('type') == 'text' for name in ('mcc_folder_help', 'mcc_folder_name'))
+    row, spinner = widgets['list_item_0_map_kind'], widgets['list_item_0_map_kind_spinner']
     child = row.find('child')
     assert rectangle(row) == rectangle(spinner) == [0, 0, 28, 256]
     assert int(child.get('x', '0')) == int(child.get('y', '0')) == 0

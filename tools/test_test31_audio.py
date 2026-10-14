@@ -59,6 +59,8 @@ double config_real(const char *key){
  assert(!strcmp(key,"audio.volume"));return master;
 }
 static real sound_class_get_gain(short c){return scripted_gain;}
+/* no MCC campaign loaded: its script muting changes nothing (mcc_campaign.c) */
+static real mcc_campaign_mix_gain(BOOL music){(void)music;return 1;}
 static void pthread_mutex_lock(int *lock){assert(lock==&mixer_lock && !locked);locked=1;locks++;}
 static void pthread_mutex_unlock(int *lock){assert(lock==&mixer_lock && locked);locked=0;unlocks++;}
 ''' + fn(sound, 'sound_manager_port_volume') + fn(sound, 'sound_manager_master_gain') + \
