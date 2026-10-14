@@ -65,6 +65,12 @@ static void capture(int reg,real *data){if(reg==-81)captured_offset=data[2];if(r
 #define shader_get_and_verify_type(shader,type) (shader)
 #define shield_color_override(colors,chosen) 0
 #define shield_color_apply(...) ((void)0)
+/* (Test67 port: the fork's animated overshield, display.overshield_effect,
+   off here: the stock draw this test was written for) */
+typedef int boolean;
+#define overshield_effect_color(...) 0
+#define overshield_effect_draw(...) 0
+#define d3d8_gl_set_height_fade(...) ((void)0)
 ''' + draw + r'''
 #define CHECK(c) do {if(!(c))return __LINE__;}while(0)
 static int near(real a,real b){return fabs(a-b)<0.000001;}
