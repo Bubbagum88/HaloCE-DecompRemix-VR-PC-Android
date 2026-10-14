@@ -122,9 +122,7 @@ public class WorkshopActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 // (the Workshop and Steam's own pages; nothing else opens here)
-                String host = request.getUrl().getHost();
-                return host == null || !(host.endsWith("steamcommunity.com") || host.endsWith("steampowered.com") ||
-                    host.endsWith("steamstatic.com") || host.endsWith("steamusercontent.com"));
+                return !steamHost(request.getUrl());
             }
 
             @Override
@@ -243,6 +241,17 @@ public class WorkshopActivity extends Activity {
         });
     }
 
+    /** Steam's own sites over https (a site of the same ending, such as notsteamcommunity.com, is not one) */
+    static boolean steamHost(Uri url) {
+        String host = url.getHost();
+        if (host == null || !"https".equals(url.getScheme()))
+            return false;
+        for (String steam : new String[] {"steamcommunity.com", "steampowered.com", "steamstatic.com", "steamusercontent.com"})
+            if (host.equals(steam) || host.endsWith("." + steam))
+                return true;
+        return false;
+    }
+
     private static long parse(String text) {
         try {
             return Long.parseLong(text);
@@ -279,7 +288,11 @@ public class WorkshopActivity extends Activity {
         }
     }
 
-    /** the account name and password, typed by the player; then (worker) the sign-in and next */
+    /**
+     * the account name and password, typed by the player; then (worker) the
+     * sign-in and next. Called when nothing is busy: the sign-in makes it busy,
+     * and next (a download) ends it.
+     */
     private void askCredentials(Runnable next) {
         LinearLayout form = new LinearLayout(this);
         form.setOrientation(LinearLayout.VERTICAL);
@@ -304,7 +317,7 @@ public class WorkshopActivity extends Activity {
                 String account = name.getText().toString().trim();
                 String secret = password.getText().toString();
                 password.setText("");
-                if (account.isEmpty() || secret.isEmpty())
+                if (account.isEmpty() || secret.isEmpty() || busy)
                     return;
                 setBusy(true);
                 new Thread(() -> {
@@ -377,6 +390,8 @@ public class WorkshopActivity extends Activity {
                     items.add(id);
                 status(isCollection ? "A collection of " + items.size() + " items." : "Reading the item...");
                 if (!steam.signedIn() && !steam.signInSaved(ui())) {
+                    status("Sign in to Steam to download.");
+                    setBusy(false);
                     handler.post(() -> askCredentials(() -> downloadAll(items)));
                     return;
                 }
@@ -538,6 +553,8 @@ public class WorkshopActivity extends Activity {
                 List<Long> one = new ArrayList<>();
                 one.add(item.workshopId);
                 if (!steam.signedIn() && !steam.signInSaved(ui())) {
+                    status("Sign in to Steam to download the update.");
+                    setBusy(false);
                     handler.post(() -> askCredentials(() -> downloadAll(one)));
                     return;
                 }

@@ -93,15 +93,29 @@ final class SteamWorkshop implements Closeable {
         }
     }
 
+    /**
+     * One connection to Steam: its client, its callbacks pumped by its own
+     * thread, and what it has answered. A new connection never shares these,
+     * so a late callback of an old one cannot touch the new sign-in.
+     */
+    private static final class Session {
+        final SteamClient client;
+        final CallbackManager manager;
+        final SteamUser user;
+        final CompletableFuture<Void> connected = new CompletableFuture<>();
+        final CompletableFuture<EResult> loggedOn = new CompletableFuture<>();
+        final CompletableFuture<List<License>> licenses = new CompletableFuture<>();
+        volatile boolean running = true;
+
+        Session(SteamConfiguration configuration) {
+            client = new SteamClient(configuration);
+            manager = new CallbackManager(client);
+            user = client.getHandler(SteamUser.class);
+        }
+    }
+
     private final SharedPreferences preferences;
-    private SteamClient client;
-    private CallbackManager manager;
-    private SteamUser user;
-    private Thread pump;
-    private volatile boolean running;
-    private volatile CompletableFuture<Void> connected = new CompletableFuture<>();
-    private volatile CompletableFuture<EResult> loggedOn = new CompletableFuture<>();
-    private volatile CompletableFuture<List<License>> licenses = new CompletableFuture<>();
+    private volatile Session session;
 
     SteamWorkshop(Context context) {
         preferences = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE);
@@ -186,52 +200,57 @@ final class SteamWorkshop implements Closeable {
 
     // ---------- signing in (JavaSteam)
 
-    private synchronized void connect() throws Exception {
-        if (client != null && running)
-            return;
+    /** the connection, made when there is none */
+    private synchronized Session connect() throws Exception {
+        Session current = session;
+        if (current != null && current.running)
+            return current;
         SteamConfiguration configuration = SteamConfiguration.create(builder -> builder.withHttpClient(
             new OkHttpClient.Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(60, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
                 .build()));
-        client = new SteamClient(configuration);
-        manager = new CallbackManager(client);
-        user = client.getHandler(SteamUser.class);
-        connected = new CompletableFuture<>();
-        loggedOn = new CompletableFuture<>();
-        licenses = new CompletableFuture<>();
-        manager.subscribe(ConnectedCallback.class, callback -> connected.complete(null));
-        manager.subscribe(DisconnectedCallback.class, callback -> {
-            connected.completeExceptionally(new IOException("disconnected from Steam"));
-            loggedOn.completeExceptionally(new IOException("disconnected from Steam"));
-            licenses.completeExceptionally(new IOException("disconnected from Steam"));
-            running = false;
+        Session made = new Session(configuration);
+        made.manager.subscribe(ConnectedCallback.class, callback -> made.connected.complete(null));
+        made.manager.subscribe(DisconnectedCallback.class, callback -> {
+            IOException lost = new IOException("disconnected from Steam");
+            made.connected.completeExceptionally(lost);
+            made.loggedOn.completeExceptionally(lost);
+            made.licenses.completeExceptionally(lost);
+            made.running = false;
         });
-        manager.subscribe(LoggedOnCallback.class, callback -> loggedOn.complete(callback.getResult()));
-        manager.subscribe(LoggedOffCallback.class, callback ->
-            loggedOn.completeExceptionally(new IOException("signed out of Steam: " + callback.getResult())));
-        manager.subscribe(LicenseListCallback.class, callback -> {
+        made.manager.subscribe(LoggedOnCallback.class, callback -> made.loggedOn.complete(callback.getResult()));
+        made.manager.subscribe(LoggedOffCallback.class, callback ->
+            made.loggedOn.completeExceptionally(new IOException("signed out of Steam: " + callback.getResult())));
+        made.manager.subscribe(LicenseListCallback.class, callback -> {
             if (callback.getResult() == EResult.OK)
-                licenses.complete(callback.getLicenseList());
+                made.licenses.complete(callback.getLicenseList());
             else
-                licenses.completeExceptionally(new IOException("Steam did not list the account's games"));
+                made.licenses.completeExceptionally(new IOException("Steam did not list the account's games"));
         });
-        running = true;
-        pump = new Thread(() -> {
-            while (running)
-                manager.runWaitCallbacks(500L);
-        }, "steam-callbacks");
-        pump.start();
-        client.connect();
-        connected.get(30, TimeUnit.SECONDS);
+        session = made;
+        new Thread(() -> {
+            while (made.running)
+                made.manager.runWaitCallbacks(500L);
+        }, "steam-callbacks").start();
+        made.client.connect();
+        try {
+            made.connected.get(30, TimeUnit.SECONDS);
+        } catch (Exception exception) {
+            disconnect();
+            throw exception;
+        }
+        return made;
     }
 
     private synchronized void disconnect() {
-        running = false;
-        if (client != null)
-            client.disconnect();
-        client = null;
+        Session current = session;
+        session = null;
+        if (current != null) {
+            current.running = false;
+            current.client.disconnect();
+        }
     }
 
     @Override
@@ -240,18 +259,19 @@ final class SteamWorkshop implements Closeable {
     }
 
     boolean signedIn() {
-        return running && loggedOn.isDone() && !loggedOn.isCompletedExceptionally() &&
-            loggedOn.getNow(EResult.Fail) == EResult.OK;
+        Session current = session;
+        return current != null && current.running && current.loggedOn.isDone() &&
+            !current.loggedOn.isCompletedExceptionally() && current.loggedOn.getNow(EResult.Fail) == EResult.OK;
     }
 
-    private void logOn(String account, String token) throws Exception {
+    private static void logOn(Session session, String account, String token) throws Exception {
         LogOnDetails details = new LogOnDetails();
         details.setUsername(account);
         details.setAccessToken(token);
         details.setShouldRememberPassword(true);
         details.setLoginID(0x48434551); /* "QECH": beside the player's own Steam client */
-        user.logOn(details);
-        EResult result = loggedOn.get(45, TimeUnit.SECONDS);
+        session.user.logOn(details);
+        EResult result = session.loggedOn.get(45, TimeUnit.SECONDS);
         if (result != EResult.OK)
             throw new IOException("Steam refused the sign-in (" + result + ")");
     }
@@ -263,9 +283,9 @@ final class SteamWorkshop implements Closeable {
             return false;
         try {
             ui.status("Signing in to Steam as " + account + "...");
-            connect();
+            Session current = connect();
             if (!signedIn())
-                logOn(account, token);
+                logOn(current, account, token);
             return true;
         } catch (Exception exception) {
             preferences.edit().remove("token").apply();
@@ -283,7 +303,7 @@ final class SteamWorkshop implements Closeable {
     synchronized void signIn(String account, String password, Ui ui) throws Exception {
         ui.status("Connecting to Steam...");
         disconnect();
-        connect();
+        Session current = connect();
         AuthSessionDetails details = new AuthSessionDetails();
         details.username = account;
         details.password = password;
@@ -313,11 +333,11 @@ final class SteamWorkshop implements Closeable {
             }
         };
         ui.status("Signing in to Steam as " + account + "...");
-        AuthPollResult result = client.getAuthentication().beginAuthSessionViaCredentials(details).get()
+        AuthPollResult result = current.client.getAuthentication().beginAuthSessionViaCredentials(details).get()
             .pollingWaitForResult().get();
         preferences.edit().putString("account", result.getAccountName())
             .putString("token", result.getRefreshToken()).apply();
-        logOn(result.getAccountName(), result.getRefreshToken());
+        logOn(current, result.getAccountName(), result.getRefreshToken());
         ui.status("Signed in to Steam as " + result.getAccountName() + ".");
     }
 
@@ -339,9 +359,12 @@ final class SteamWorkshop implements Closeable {
      * account that owns Halo: The Master Chief Collection download its items.
      */
     void download(long id, File folder, Progress progress) throws Exception {
-        List<License> owned = licenses.get(60, TimeUnit.SECONDS);
+        Session current = session;
+        if (current == null || !signedIn())
+            throw new IOException("not signed in to Steam");
+        List<License> owned = current.licenses.get(60, TimeUnit.SECONDS);
         final Throwable[] failure = new Throwable[1];
-        try (DepotDownloader downloader = new DepotDownloader(client, owned, false)) {
+        try (DepotDownloader downloader = new DepotDownloader(current.client, owned, false)) {
             downloader.addListener(new IDownloadListener() {
                 @Override public void onItemAdded(DownloadItem item) {}
                 @Override public void onDownloadStarted(DownloadItem item) { progress.progress(0f, "Downloading..."); }
