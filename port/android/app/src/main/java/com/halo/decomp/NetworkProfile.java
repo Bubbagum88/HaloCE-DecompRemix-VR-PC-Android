@@ -66,6 +66,23 @@ final class NetworkProfile {
         RunLog.line("Legacy network 12-14 co-op consent: " + enabled);
     }
 
+    /** Test67: the OpenCE fork jcompto95-tech's community extras (the players' Armor choices shared, text chat,
+     * votes to ban with a reason): message kinds of their own, which network 28 players without them ignore. */
+    static final String EXTRAS_HELP = "Community extras: players' armor, visor, lights and shield colors shared, "
+        + "text chat (T), and votes to kick or ban with a reason (F1 yes, F2 no). They travel in messages of their own, "
+        + "which OpenCE network 28 players without them simply ignore, so you join and host the same games as ever. "
+        + "OFF: this game sends and reads none of them.";
+
+    static boolean communityExtras(File root) {
+        return !"false".equalsIgnoreCase(ConfigSettings.read(root, "network", "community_extras", "true"));
+    }
+
+    static void setCommunityExtras(File root, boolean enabled) throws IOException {
+        if (gameRunning) throw new IOException("Close the game fully before changing the community extras.");
+        ConfigSettings.write(root, "network", Collections.singletonMap("community_extras", Boolean.toString(enabled)));
+        RunLog.line("Community extras: " + enabled);
+    }
+
     static void prepare(Context context, File root) throws IOException {
         int version = selected(context);
         if (gameRunning) {

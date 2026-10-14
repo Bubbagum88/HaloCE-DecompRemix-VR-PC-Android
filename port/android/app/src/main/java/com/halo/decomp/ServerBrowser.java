@@ -45,6 +45,7 @@ final class ServerBrowser {
     private final Button refresh;
     private final Button networkSelector;
     private final Button legacyCoop;
+    private final Button communityExtras;
     private final AlertDialog dialog;
     private volatile boolean closed;
     private volatile HttpsURLConnection connection;
@@ -127,6 +128,7 @@ final class ServerBrowser {
         LinearLayout content = column();
         networkSelector = button(content, "Network: All networks", this::selectNetwork);
         legacyCoop = button(content, "Legacy co-op 12-14: OFF", this::toggleLegacyCoop);
+        communityExtras = button(content, "Community extras: ON", this::toggleCommunityExtras);
         refresh = button(content, "Refresh populations & servers", this::refresh);
         status = text(content, "");
         text(content, "Choose a network above, then join a server or return to Play. Network changes apply on the next game launch. Counts are directory reports and may lag.");
@@ -255,6 +257,8 @@ final class ServerBrowser {
 
     private void render() {
         legacyCoop.setText("Legacy co-op 12-14: " + (NetworkProfile.legacyCoop(gameRoot()) ? "ON (old-host limitations)" : "OFF"));
+        communityExtras.setText("Community extras (armor, chat, vote bans): "
+            + (NetworkProfile.communityExtras(gameRoot()) ? "ON" : "OFF"));
         updateNetworkSelector();
         rows.removeAllViews();
         List<Entry> filtered = filteredDirectory();
@@ -334,6 +338,16 @@ final class ServerBrowser {
         new GamepadNavigation.Builder(activity).setTitle("Enable legacy co-op 12-14?")
             .setMessage(NetworkProfile.LEGACY_WARNING)
             .setPositiveButton("Enable legacy co-op",(d,w)->apply.run()).setNegativeButton("Cancel",null).show();
+    }
+
+    private void toggleCommunityExtras() {
+        boolean next = !NetworkProfile.communityExtras(gameRoot());
+        new GamepadNavigation.Builder(activity).setTitle(next ? "Turn community extras on?" : "Turn community extras off?")
+            .setMessage(NetworkProfile.EXTRAS_HELP)
+            .setPositiveButton(next ? "Turn on" : "Turn off", (d, w) -> {
+                try { NetworkProfile.setCommunityExtras(gameRoot(), next); render(); }
+                catch (java.io.IOException e) { LauncherHelp.page(activity, "Community extras", e.getMessage()); }
+            }).setNegativeButton("Cancel", null).show();
     }
 
     private void selectNetwork() {
