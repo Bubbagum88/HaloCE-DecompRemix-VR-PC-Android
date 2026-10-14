@@ -114,4 +114,24 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+
+    packaging {
+        resources {
+            // (the Kotlin libraries' duplicate metadata)
+            excludes += ["META-INF/*.kotlin_module", "META-INF/versions/**", "META-INF/INDEX.LIST",
+                         "META-INF/io.netty.versions.properties", "META-INF/DEPENDENCIES", "META-INF/LICENSE.md",
+                         "META-INF/NOTICE.md", "META-INF/AL2.0", "META-INF/LGPL2.1"]
+        }
+    }
+}
+
+// Test68: the Steam Workshop (WorkshopActivity): JavaSteam (MIT), its content
+// downloader and the libraries it needs on Android (Bouncy Castle; XZ and
+// Zstd for Steam's compressed chunks, Zstd as Android's aar)
+dependencies {
+    implementation "in.dragonbra:javasteam:1.8.0"
+    implementation "in.dragonbra:javasteam-depotdownloader:1.8.0"
+    implementation "org.bouncycastle:bcprov-jdk18on:1.83"
+    implementation "org.tukaani:xz:1.11"
+    implementation "com.github.luben:zstd-jni:1.5.7-6@aar"
 }

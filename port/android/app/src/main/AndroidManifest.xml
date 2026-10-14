@@ -82,6 +82,13 @@
                 android:value="game" />
         </activity>
 
+        <!-- Test68: the Steam Workshop's Halo 1 MCC maps, and the installed ones -->
+        <activity
+            android:name=".WorkshopActivity"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|screenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode" />
+
         <!-- the downloaded new version, for the package installer (Updater) -->
         <provider
             android:name=".UpdateProvider"

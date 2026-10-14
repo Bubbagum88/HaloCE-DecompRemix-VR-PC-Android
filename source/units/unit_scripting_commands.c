@@ -30,6 +30,7 @@ symbols in this file:
 
 #include "cseries/cseries.h"
 #include "network_campaign.h"
+#include "mcc_grenades.h"
 #include "hs/object_lists.h"
 #include "items/weapons.h"
 #include "objects/damage.h"
@@ -213,6 +214,8 @@ short unit_scripting_get_grenade_count(
 	struct unit_datum const *unit;
 	short grenade_count;
 	short grenade_index;
+	if (mcc_grenades_active())
+		return mcc_grenades_total(unit_index);
 	unit = unit_try_and_get(unit_index);
 	grenade_count = 0;
 	if (unit)

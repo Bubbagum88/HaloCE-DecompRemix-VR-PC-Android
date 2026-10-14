@@ -41,6 +41,8 @@ pause it as its pause menu does.
 #include "rasterizer/xbox/rasterizer_xbox_hardware_bitmaps.h"
 
 #include "halo_menus.h"
+#include "mcc_ui.h"
+#include "mcc_cache.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -363,6 +365,8 @@ static char const *const port_function_names[] =
 	"port setup edit",
 	"port setup options init", "port setup options save",
 	"port map list back",
+	"port mcc solo folder back",
+	"port mcc host folder back",
 	"port pause end game",
 	"port coop begin", "port coop player 2 list initialize", "port coop player 2",
 	"port lobby open", "port lobby add player", "port lobby join", "port lobby leave",
@@ -1707,6 +1711,9 @@ static void pause_patch(struct cache_file_tag_instance *instances)
 	short grow = 0;
 	boolean box_redrawn = FALSE;
 
+	/* MCC supplies its own Settings and game-options buttons. */
+	if (mcc_cache_tags_loaded())
+		return;
 	if (collection == NONE || quit_function == NONE)
 		return;
 	screens = tag_get('Soul', collection);
@@ -2097,6 +2104,17 @@ void menu_tags_loaded(
 	boolean game_map = strcmp(map_name, "ui") != 0;
 	boolean campaign = game_map && single_player_campaign_map();
 
+	/* MCC owns its pause menus and uses these native Settings screens.
+	Do not patch embedded MCC campaign widgets. */
+	if (mcc_cache_tags_loaded())
+	{
+		if (mcc_ui_settings_needed(map_name))
+		{
+			campaign = FALSE;
+			goto mcc_settings;
+		}
+		return;
+	}
 	/* (ui.map, and a multiplayer map: its pause menu's SETTINGS; a
 	single-player campaign's too, on the flat build: the headset's campaign
 	pause menu keeps its own VR SETTINGS, vr_menu.c) */
@@ -2108,6 +2126,7 @@ void menu_tags_loaded(
 	{
 		return;
 	}
+mcc_settings:
 	menus = halo_menus_load();
 	if (!menus)
 		return;
@@ -2199,6 +2218,10 @@ void menu_tags_loaded(
 		pause_patch(instances);
 		if (campaign)
 			pause_campaign_patch(instances);
+		/* MCC owns the pause layout; reuse only upstream's in-game Settings
+		filter and profile-save behavior, without patching map widgets. */
+		if (mcc_cache_tags_loaded())
+			pause_settings_patch();
 		if (build.failed)
 			goto failed;
 		/* (those it made) */
@@ -2275,6 +2298,11 @@ char const *pc_menus_root_name(
 boolean pc_menu_tag(
 	long tag_index)
 {
+	/* MCC's independently generated pause widgets use stock widget behavior. */
+	{
+		extern boolean mcc_pause_owns(long);
+		if (mcc_pause_owns(tag_index)) return FALSE;
+	}
 	return menu_tags.loaded && tag_index != NONE &&
 		DATUM_INDEX_TO_ABSOLUTE_INDEX(tag_index) >= menu_tags.original_count;
 }

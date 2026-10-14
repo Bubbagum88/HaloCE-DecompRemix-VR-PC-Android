@@ -118,6 +118,7 @@ symbols in this file:
 /* ---------- headers */
 
 #include "director.h"
+#include "mcc_camera.h" /* port: port/linux/game/mcc_camera.c */
 
 #include "camera_scripting.h"
 #include "dead_camera.h"
@@ -379,6 +380,14 @@ short director_desired_perspective(
 	if (vr_render_first_person_vehicles())
 		following = FALSE;
 #endif
+
+	/* port: MCC weapon cameras must select the same perspective for display
+	 * and deterministic aiming. The adapter leaves legacy maps and seats alone. */
+	if (mcc_camera_weapon_following(unit_index))
+	{
+		*perspective = _director_perspective_third_person;
+		following = TRUE;
+	}
 
 	return following;
 }

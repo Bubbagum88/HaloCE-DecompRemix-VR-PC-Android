@@ -65,6 +65,7 @@ symbols in this file:
 #include "interface/hud_weapon.h"
 #include "interface/unit_hud_interface_definition.h"
 #include "interface/weapon_hud_interface_definition.h"
+#include "mcc_grenades.h"
 #include "items/weapon_definitions.h"
 #include "items/weapons.h"
 #include "objects/objects.h"
@@ -76,6 +77,7 @@ symbols in this file:
 #include "tag_files/tag_groups.h"
 #include "units/unit_definitions.h"
 #include "units/units.h"
+#include "mcc_hud_draw.h" /* port: port/linux/game/mcc_hud_draw.c */
 
 #include <math.h>
 #include <string.h>
@@ -555,6 +557,11 @@ static void render_grenade_hud(
 	short local_player_index,
 	long unit_index)
 {
+	if (mcc_grenades_active())
+	{
+		mcc_grenades_hud(local_player_index, unit_index);
+		return;
+	}
 	long return_eip = get_return_eip();
 	long stack_buffer[STACK_BUFFER_LENGTH];
 	struct unit_datum *unit;
@@ -842,6 +849,7 @@ static void hud_update_weapon_local_player(
 					{
 						no_grenades = no_grenades && !unit->unit.grenade_counts[grenade_type];
 					}
+					if (mcc_grenades_active() && mcc_grenades_total(unit_index)) no_grenades = FALSE;
 					result = (no_grenades &&
 							!unit->unit.grenade_throw_state &&
 							TEST_FLAG(unit->unit.control_flags, _unit_control_throw_grenade_bit)) ||
@@ -1145,6 +1153,7 @@ static void crosshairs_draw(
 										{
 											no_grenades = no_grenades && !unit->unit.grenade_counts[grenade_type];
 										}
+										if (mcc_grenades_active() && mcc_grenades_total(unit_index)) no_grenades = FALSE;
 										firing_active = no_grenades &&
 											!unit->unit.grenade_throw_state &&
 											TEST_FLAG(unit->unit.control_flags, _unit_control_throw_grenade_bit);
@@ -1728,6 +1737,10 @@ static void render_weapon_hud(
 			&definition->statics,
 			element_index,
 			struct weapon_hud_static_element);
+		/* port: MCC child anchors; other formats retain their parent pointer. */
+		struct hud_absolute_placement_definition mcc_placement;
+		struct hud_absolute_placement_definition const *placement = mcc_hud_child_placement(
+			&definition->absolute_placement, element, &mcc_placement);
 
 		if (!TEST_FLAG(element->header.runtime_flags, _hud_element_runtime_invalid_bit) &&
 			TEST_FLAG(map_type_flags, element->header.use_on_map_type) &&
@@ -1742,7 +1755,7 @@ static void render_weapon_hud(
 			state_index = element->header.state_type;
 			hud_draw_static_element(
 				local_player_index,
-				&definition->absolute_placement,
+				placement,
 				&element->static_element,
 				state_flags[state_index],
 				hud_state->last_weapon_flash_time[state_index]);
@@ -1759,6 +1772,10 @@ static void render_weapon_hud(
 			&definition->meters,
 			element_index,
 			struct weapon_hud_meter_element);
+		/* port: MCC child anchors; other formats retain their parent pointer. */
+		struct hud_absolute_placement_definition mcc_placement;
+		struct hud_absolute_placement_definition const *placement = mcc_hud_child_placement(
+			&definition->absolute_placement, element, &mcc_placement);
 
 		if (!TEST_FLAG(element->header.runtime_flags, _hud_element_runtime_invalid_bit) &&
 			TEST_FLAG(map_type_flags, element->header.use_on_map_type) &&
@@ -1775,7 +1792,7 @@ static void render_weapon_hud(
 			value = (byte)number_values[state_index];
 			hud_draw_meter(
 				local_player_index,
-				&definition->absolute_placement,
+				placement,
 				&element->meter_element,
 				value,
 				value,
@@ -1795,6 +1812,10 @@ static void render_weapon_hud(
 			&definition->numbers,
 			element_index,
 			struct weapon_hud_number_element);
+		/* port: MCC child anchors; other formats retain their parent pointer. */
+		struct hud_absolute_placement_definition mcc_placement;
+		struct hud_absolute_placement_definition const *placement = mcc_hud_child_placement(
+			&definition->absolute_placement, element, &mcc_placement);
 
 		if (!TEST_FLAG(element->header.runtime_flags, _hud_element_runtime_invalid_bit) &&
 			TEST_FLAG(map_type_flags, element->header.use_on_map_type) &&
@@ -1853,7 +1874,7 @@ static void render_weapon_hud(
 				hud_zoomed_layout_begin(&window_bounds);
 			hud_draw_numbers(
 				local_player_index,
-				&definition->absolute_placement,
+				placement,
 				&element->number_element,
 				value,
 				decimal_value,
@@ -1873,6 +1894,10 @@ static void render_weapon_hud(
 			&definition->overlays,
 			element_index,
 			struct weapon_hud_overlays_element);
+		/* port: MCC child anchors; other formats retain their parent pointer. */
+		struct hud_absolute_placement_definition mcc_placement;
+		struct hud_absolute_placement_definition const *placement = mcc_hud_child_placement(
+			&definition->absolute_placement, element, &mcc_placement);
 
 		if (!TEST_FLAG(element->runtime_flags, _hud_element_runtime_invalid_bit) &&
 			TEST_FLAG(map_type_flags, element->use_on_map_type) &&
@@ -1881,7 +1906,7 @@ static void render_weapon_hud(
 			state_index = element->state_type;
 			hud_draw_weapon_overlays(
 				local_player_index,
-				&definition->absolute_placement,
+				placement,
 				&element->overlays,
 				overlay_flags[state_index],
 				hud_state->last_weapon_flash_time[state_index],
