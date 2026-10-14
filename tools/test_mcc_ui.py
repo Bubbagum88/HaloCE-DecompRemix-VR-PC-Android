@@ -168,6 +168,13 @@ static boolean main_menu_is_active(void){return FALSE;}
 static boolean pc_menu_event_function_invoke(struct widget_instance *widget,struct event_record *event,long function,boolean *deleted){(void)widget;(void)event;(void)function;(void)deleted;port_count++;return TRUE;}
 static boolean legacy_function(struct widget_instance *widget,struct event_record *event,boolean *deleted){(void)widget;(void)event;(void)deleted;legacy_count++;return TRUE;}
 static struct {boolean (*functions[102])(struct widget_instance *,struct event_record *,boolean *);char const *names[102];} event_handler_function_list;
+/* (Test67 port: the dispatcher keeps quiet about the System Link list's
+   "start server if none advertised" with the public browser on; neither is
+   used by these tests) */
+static boolean start_network_game_if_no_advertised_servers(struct widget_instance *w,struct event_record *e,boolean *d){(void)w;(void)e;(void)d;return FALSE;}
+static boolean network_browser_active(void){return FALSE;}
+/* (and a screen closed ends the menus' text field: menu_functions.c) */
+void pc_menu_text_input_reset(void){}
 static boolean hs_evaluate_by_name(char const *name){assert(!strcmp(name,"my_action"));script_count++;return TRUE;}
 static void widget_instance_give_focus_by_tag(struct widget_instance *widget,long tag,short controller){(void)widget;(void)tag;(void)controller;}
 static void widget_instance_reload_recursive(struct widget_instance *widget){(void)widget;}

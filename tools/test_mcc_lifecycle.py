@@ -95,6 +95,8 @@ static struct results {
         unloads,loads,verifies,modal,silent,menu,returned,index,scenario_index,pointers;
 } observed;
 static int mcc_cache_tags_loaded(void) {return mcc;}
+/* (Test67 port: network co-op told of a BSP switch, network_campaign.c; solo here) */
+static void network_campaign_bsp_switched(short bsp) {(void)bsp;}
 static void main_stop_time(void) {observed.stopped++;}
 static void main_start_time(void) {observed.started++;}
 static void collision_log_enable(int enabled) {

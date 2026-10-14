@@ -25,7 +25,9 @@ def menu_tool(tmp_path_factory):
     states = "\n".join(re.search(r"static struct\s*\{[^}]*\}\s*" + name + r";",
                                  implementation, re.S).group()
                        for name in ["mcc_solo_list", "level_list", "map_list", "mcc_host_list"])
-    names = ["map_kind_mcc", "map_kind_singleplayer", "map_kind_shown", "map_kind_first", "mcc_browser_focus", "mcc_solo_folder_choose",
+    # (Test67 port: map_kind_unavailable, the chooser's solo-only filter of
+    # the MCC kinds while hosting a network game)
+    names = ["map_kind_mcc", "map_kind_singleplayer", "map_kind_unavailable", "map_kind_shown", "map_kind_first", "mcc_browser_focus", "mcc_solo_folder_choose",
              "mcc_solo_choose", "mcc_solo_back", "mcc_host_list_choose", "level_list_update",
              "map_list_update", "map_list_back", "mcc_host_back", "level_list_initialize", "map_list_initialize"]
     source = r'''
@@ -113,8 +115,10 @@ static void mcc_maps_rescan_stub(void) {}
 static void campaign_levels_read(struct player_profile *p) {(void)p;campaign.saved_level=NONE;campaign.levels[0].available=TRUE;}
 static short ui_widget_port_multiplayer_maps(char const *const **names,short *last) {*names=NULL;*last=0;return 1;}
 static void map_kind_set(struct widget_instance *widget,short kind) {(void)widget;spinner.parameters.list.selected_index=kind;}
-static void *global_network_game_server_get(void) {return &list;}
-static boolean network_game_is_splitscreen_local(void) {return FALSE;}
+/* (Test67 port: MCC_MENU_HOSTING=0 is no network game, solo; split screen
+   by MCC_MENU_SPLITSCREEN=1; otherwise hosting, as GulchCE's stub) */
+static void *global_network_game_server_get(void) {char const *h=getenv("MCC_MENU_HOSTING");return h && !strcmp(h,"0") ? NULL : &list;}
+static boolean network_game_is_splitscreen_local(void) {char const *s=getenv("MCC_MENU_SPLITSCREEN");return s && !strcmp(s,"1");}
 static void custom_edition_maps_look_again(void) {}
 static short xbox_multiplayer_map_count(short count) {return count;}
 static short focused_row(struct widget_instance *widget) {(void)widget;return 0;}
@@ -275,15 +279,20 @@ int main(int argc,char **argv) {
     return executable
 
 
-def run(menu_tool, *args):
+def run(menu_tool, *args, hosting=True, splitscreen=False):
+    env = dict(os.environ, MCC_MENU_HOSTING="1" if hosting else "0", MCC_MENU_SPLITSCREEN="1" if splitscreen else "0")
     return subprocess.run([str(menu_tool), *map(str, args)], check=True,
-                          capture_output=True, text=True).stdout
+                          capture_output=True, text=True, env=env).stdout
 
 
 def test_kind_numbers_and_classification(menu_tool):
     assert run(menu_tool, "kinds").splitlines() == ["6", "1 0", "0 0", "1 0", "0 0", "1 1", "0 1"]
 
 
+# (Test67 port: GulchCE offers the MCC kinds when hosting its network 42;
+# this port plays MCC maps solo only, so its chooser offers them with no
+# network game (and in local split screen). GulchCE's chooser checks run
+# there; test_port_hosting_skips_mcc_kinds checks the hosting difference.)
 @pytest.mark.parametrize("singleplayer", [False, True])
 @pytest.mark.parametrize("direction", [-1, 1])
 def test_complete_spinner_cycles(menu_tool, singleplayer, direction):
@@ -291,17 +300,36 @@ def test_complete_spinner_cycles(menu_tool, singleplayer, direction):
     for previous in allowed:
         requested = (previous + direction) % 6
         expected = allowed[(allowed.index(previous) + direction) % len(allowed)]
-        assert run(menu_tool, "spinner", int(singleplayer), previous, requested, 0).split() == [str(expected)] * 2
+        assert run(menu_tool, "spinner", int(singleplayer), previous, requested, 0, hosting=False).split() == [str(expected)] * 2
 
 
 @pytest.mark.parametrize("singleplayer,expected", [(0, 1), (1, 0)])
 def test_absent_spinner_preserves_default(menu_tool, singleplayer, expected):
-    assert run(menu_tool, "spinner", singleplayer, 4, 4, 1).split()[0] == str(expected)
+    assert run(menu_tool, "spinner", singleplayer, 4, 4, 1, hosting=False).split()[0] == str(expected)
 
 
 @pytest.mark.parametrize("kind", range(6))
 def test_host_direct_category_selection(menu_tool, kind):
-    assert run(menu_tool, "spinner", 1, 0, kind, 0).split() == [str(kind)] * 2
+    assert run(menu_tool, "spinner", 1, 0, kind, 0, hosting=False).split() == [str(kind)] * 2
+
+
+@pytest.mark.parametrize("singleplayer", [False, True])
+@pytest.mark.parametrize("direction", [-1, 1])
+@pytest.mark.parametrize("splitscreen", [False, True])
+def test_port_hosting_skips_mcc_kinds(menu_tool, singleplayer, direction, splitscreen):
+    """Test67 port: hosting a network game, the chooser passes over the MCC
+    kinds (solo only); a local split-screen game keeps them."""
+    allowed = [0, 1, 2, 3, 4, 5] if singleplayer else [1, 3, 5]
+    if not splitscreen:
+        allowed = [kind for kind in allowed if kind < 4]
+    for previous in allowed:
+        requested = (previous + direction) % 6
+        expected = allowed[(allowed.index(previous) + direction) % len(allowed)]
+        assert run(menu_tool, "spinner", int(singleplayer), previous, requested, 0,
+                   splitscreen=splitscreen).split() == [str(expected)] * 2
+    if not splitscreen:
+        for kind in (4, 5):
+            assert int(run(menu_tool, "spinner", int(singleplayer), kind - 1, kind, 0).split()[0]) < 4
 
 
 @pytest.mark.parametrize("route", ["solo", "host", "empty"])
@@ -321,7 +349,18 @@ def test_coop_back_restores_filtered_row_and_then_exits(menu_tool):
 @pytest.mark.parametrize("host", [0, 1])
 @pytest.mark.parametrize("target", [1, 3, 4, 5])
 def test_category_change_resets_mcc_state_and_preserves_legacy_dispatch(menu_tool, host, target):
-    run(menu_tool, "switch", host, target)
+    # (Test67 port: the solo list has no network game; the host list's MCC
+    # kinds are this port's in a local split-screen game)
+    run(menu_tool, "switch", host, target, hosting=bool(host), splitscreen=bool(host))
+
+
+@pytest.mark.parametrize("target", [4, 5])
+def test_port_network_host_list_refuses_mcc_kinds(menu_tool, target):
+    """Test67 port: hosting a network game, turning the host list's chooser to
+    an MCC kind leaves it on another kind (check 21: not the kind asked for)."""
+    result = subprocess.run([str(menu_tool), "switch", "1", str(target)], capture_output=True, text=True,
+                            env=dict(os.environ, MCC_MENU_HOSTING="1", MCC_MENU_SPLITSCREEN="0"))
+    assert result.returncode == 21, (result.returncode, result.stderr)
 
 
 def test_folder_activation_stays_in_menu(menu_tool):
@@ -331,23 +370,28 @@ def test_folder_activation_stays_in_menu(menu_tool):
 def test_recreated_mcc_lists_restore_selection(menu_tool):
     run(menu_tool, "recreate")
 
+# (Test67 port: this port's menu XML is maintained by hand, not generated by
+# GulchCE's tools/port_settings.py (never taken), so the two checks below
+# keep every assertion on the XML itself and drop only the comparison with
+# that generator's output)
+MT = "main_menu/multiplayer_type_select"
+
+
 def test_generated_folder_back_controls_and_descriptions():
     import xml.etree.ElementTree as ET
-    import port_settings
     base = ROOT / "port/assets/menus/ce"
     tree = ET.parse(base / "main_menu.solo_level_select.xml")
     name = "main_menu/solo_level_select/solo_level_select_list"
     widget = tree.find(f".//widget[@name='{name}']")
-    expected = [ET.fromstring(line).attrib for line in port_settings.WIDGET_PATCHES[name]["handlers"]]
-    assert [node.attrib for node in widget.findall("on")] == expected
     for event in ("b", "back"):
         handler = widget.find(f"on[@event='{event}']")
         assert handler.attrib == {"event": event, "run": "port mcc solo folder back"}
-    generated = "\n".join(port_settings.multiplayer_files()["main_menu.new_select.port.xml"])
-    assert (base / "main_menu.new_select.port.xml").read_text() == generated
+    for label in ("name", "help"):
+        assert ET.parse(base / "main_menu.new_select.port.xml").find(
+            f".//widget[@name='main_menu/new_select/mcc_folder_{label}']") is not None
     for filename, parent in [
         ("main_menu.solo_level_select.xml", "main_menu/solo_level_select/replay_level_right_item"),
-        ("main_menu.multiplayer_type_select.mp_map_select.xml", port_settings.MT + "/mp_map_select/mp_map_right_item"),
+        ("main_menu.multiplayer_type_select.mp_map_select.xml", MT + "/mp_map_select/mp_map_right_item"),
     ]:
         widget = ET.parse(base / filename).find(f".//widget[@name='{parent}']")
         for label in ("name", "help"):
@@ -356,15 +400,15 @@ def test_generated_folder_back_controls_and_descriptions():
 
 def test_screen_back_handlers_reach_mcc_lists_before_default_back():
     import xml.etree.ElementTree as ET
-    import port_settings
     base = ROOT / "port/assets/menus/ce"
     for filename, name, handler in [
         ("main_menu.solo_level_select.xml", "main_menu/solo_level_select/solo_level_select_screen", "solo"),
-        ("main_menu.multiplayer_type_select.mp_map_select.xml", port_settings.MT + "/mp_map_select/mp_map_select_screen", "host"),
-        ("main_menu.multiplayer_type_select.connected.xml", port_settings.MT + "/connected/connected_map_select_wrapper", "host"),
+        ("main_menu.multiplayer_type_select.mp_map_select.xml", MT + "/mp_map_select/mp_map_select_screen", "host"),
+        ("main_menu.multiplayer_type_select.connected.xml", MT + "/connected/connected_map_select_wrapper", "host"),
     ]:
         widget = ET.parse(base / filename).find(f".//widget[@name='{name}']")
-        expected = [ET.fromstring(line).attrib for line in port_settings.WIDGET_PATCHES[name]["handlers"]]
-        assert [node.attrib for node in widget.findall("on")] == expected
+        events = [node.attrib.get("event") for node in widget.findall("on")]
+        # (the MCC lists' back comes before any default back of the screen)
+        assert events.index("b") == min(i for i, e in enumerate(events) if e in ("b", "back"))
         for event in ("b", "back"):
             assert widget.find(f"on[@event='{event}']").attrib == {"event": event, "run": f"port mcc {handler} folder back"}

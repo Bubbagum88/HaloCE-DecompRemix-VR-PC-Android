@@ -54,6 +54,9 @@ struct game_state_allocation {int kind;void *address;long maximum_count,element_
 static struct game_state_allocation game_state_allocations[1];
 static long game_state_allocation_count;
 static int native_valid=1;
+/* (Test67 port: a network co-op host or client hands checkpoints to network_campaign.c;
+   these tests are solo, where it takes none) */
+static int network_campaign_checkpoint_request(int restore) {(void)restore;return 0;}
 ''' + '#include "' + (ROOT / "port/linux/game/mcc_checkpoint.c").as_posix() + '"\n' + r'''
 boolean mcc_cache_tags_loaded(void) {return loaded;}
 static int campaign_restores;

@@ -25,6 +25,10 @@ def names_tool(tmp_path_factory):
         "object_name_list_clear", "object_name_list_new", "object_claim_scenario_name",
         "object_name_list_delete", "object_name_list_lookup"))
     source = (ROOT / "tools/harness/tests/mcc_object_names.c").read_text()
+    # (Test67 port: production compiles the MCC sends out, solo only
+    # (mcc_offline.h); here they go to the harness's capture, so that
+    # GulchCE's snapshot logic is still checked as written)
+    implementations = "#define MCC_DISTRIBUTED_SEND distributed_send\n" + implementations
     source = source.replace("/* IMPLEMENTATION */", implementations + "\n" + hooks)
     (work / "names.c").write_text(source)
     output = work / ("names.exe" if os.name == "nt" else "names")
