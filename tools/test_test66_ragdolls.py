@@ -26,7 +26,10 @@ read = lambda path: (ROOT / path).read_text(encoding="utf-8", errors="replace")
 
 names = ["initialize", "reset", "create", "destroy", "exists", "set_environment", "step", "get_bone",
          "get_bone_velocity", "active", "hit", "add_velocity", "add_spin", "translate", "bounds",
-         "vehicles_begin", "vehicle", "vehicles_end", "vehicle_contacts"]
+         "vehicles_begin", "vehicle", "vehicles_end", "vehicle_contacts",
+         # (Test67: the items Jolt moves, the OpenCE fork's item physics)
+         "item_create", "item_destroy", "item_exists", "item_get", "item_add_velocity", "item_set_environment",
+         "items_any"]
 imports = read("port/android/host_imports.list").split()
 guest_host = read("port/android/guest/runtime/guest_host.h")
 shim = read("port/linux/game/ragdoll_physics_guest.c")
@@ -109,6 +112,23 @@ int main(void)
     if (!(position[2] < start - 0.3f) || !(position[2] > -0.01f) || !(position[2] < 0.1f)) return 1;
     ragdoll_physics_destroy(0);
     if (ragdoll_physics_exists(0)) return 1;
+    /* Test67: an item (a box's corners, its hull) dropped over the floor lands on it */
+    {
+        static const float box[24] = { -.05f,-.02f,-.01f, .05f,-.02f,-.01f, .05f,.02f,-.01f, -.05f,.02f,-.01f,
+                                       -.05f,-.02f,.01f, .05f,-.02f,.01f, .05f,.02f,.01f, -.05f,.02f,.01f };
+        const float at[3] = { 0, 0, 0.4f }, turn[4] = { 0, 0, 0, 1 }, still[3] = { 0, 0, 0 };
+        float p[3], r[4], v[3], w[3];
+        if (!ragdoll_physics_item_create(3, box, 8, at, turn, still, still, 1.f)) { puts("no item"); return 1; }
+        ragdoll_physics_item_set_environment(3, floor, 2);
+        if (!ragdoll_physics_items_any() || !ragdoll_physics_item_exists(3)) return 1;
+        for (tick = 0; tick < 300; tick++)
+            ragdoll_physics_step(2, settings.gravity);
+        ragdoll_physics_item_get(3, p, r, v, w);
+        printf("item fell from 0.400 to %.3f\n", p[2]);
+        if (!(p[2] < 0.1f) || !(p[2] > -0.01f)) return 1;
+        ragdoll_physics_item_destroy(3);
+        if (ragdoll_physics_item_exists(3) || ragdoll_physics_items_any()) return 1;
+    }
     ragdoll_physics_reset();
     puts("PASS: Test66 Jolt ragdoll (host flags): dropped, landed on the floor, at rest above it, destroyed");
     return 0;

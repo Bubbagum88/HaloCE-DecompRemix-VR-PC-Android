@@ -142,3 +142,40 @@ int32_t host_ragdoll_vehicle_contacts(void *contacts, int32_t maximum)
 	}
 	return count;
 }
+
+/* Test67: the items Jolt moves (item_physics.c, the OpenCE fork jcompto95-tech's) */
+int32_t host_ragdoll_item_create(int32_t slot, const float *points, int32_t point_count, const float *position,
+	const float *rotation, const float *velocity, const float *spin, float gravity_factor)
+{
+	return ragdoll_physics_item_create(slot, points, point_count, position, rotation, velocity, spin, gravity_factor);
+}
+
+void host_ragdoll_item_destroy(int32_t slot)
+{
+	ragdoll_physics_item_destroy(slot);
+}
+
+int32_t host_ragdoll_item_exists(int32_t slot)
+{
+	return ragdoll_physics_item_exists(slot);
+}
+
+int32_t host_ragdoll_item_get(int32_t slot, float *position, float *rotation, float *velocity, float *spin)
+{
+	return ragdoll_physics_item_get(slot, position, rotation, velocity, spin);
+}
+
+void host_ragdoll_item_add_velocity(int32_t slot, const float *velocity, const float *spin)
+{
+	ragdoll_physics_item_add_velocity(slot, velocity, spin);
+}
+
+void host_ragdoll_item_set_environment(int32_t slot, const float *triangles, int32_t triangle_count)
+{
+	ragdoll_physics_item_set_environment(slot, triangles, triangle_count);
+}
+
+int32_t host_ragdoll_items_any(void)
+{
+	return ragdoll_physics_items_any();
+}

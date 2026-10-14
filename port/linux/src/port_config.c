@@ -441,6 +441,15 @@ static const struct config_setting config_settings[] =
 		"Megabytes a recording keeps in memory, 4 to 1024: two halves, each\n"
 		"written out as a part when it fills." },
 #endif
+	/* (the OpenCE fork jcompto95-tech's item physics, item_physics.c: the fork
+	keeps it to desktops; this port runs it on Android and Quest too, Jolt in
+	the host as the ragdolls) */
+	{ "game.item_physics", _config_string, "\"classic\"", "HALO_ITEM_PHYSICS", _environment_value, _platform_all,
+		"How weapons and grenades lying about move: \"classic\" (the game's own:\n"
+		"they bounce, then lie flat) or \"enhanced\" (rigid bodies, Jolt Physics:\n"
+		"they tumble, lean against what they meet and fall off ledges; pushed by\n"
+		"shots and blasts as the game pushes them). An item a hand holds is the\n"
+		"hand's. In a network game the host's moves them." },
 	{ "game.death_physics", _config_string, "\"ragdoll\"", "HALO_DEATH_PHYSICS", _environment_value, _platform_all,
 		"How bodies fall when they die: \"classic\" (the game's own death\n"
 		"animations) or \"ragdoll\" (limp, thrown by what killed them, tumbling\n"

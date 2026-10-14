@@ -85,3 +85,10 @@ host_ragdoll_vehicles_begin
 host_ragdoll_vehicle
 host_ragdoll_vehicles_end
 host_ragdoll_vehicle_contacts
+host_ragdoll_item_create
+host_ragdoll_item_destroy
+host_ragdoll_item_exists
+host_ragdoll_item_get
+host_ragdoll_item_add_velocity
+host_ragdoll_item_set_environment
+host_ragdoll_items_any

@@ -34,6 +34,14 @@ void host_ragdoll_vehicle(int key, const float *points, int point_count, const f
 	const float *rotation, const float *velocity, const float *angular_velocity);
 void host_ragdoll_vehicles_end(void);
 int host_ragdoll_vehicle_contacts(void *contacts, int maximum);
+int host_ragdoll_item_create(int slot, const float *points, int point_count, const float *position,
+	const float *rotation, const float *velocity, const float *spin, float gravity_factor);
+void host_ragdoll_item_destroy(int slot);
+int host_ragdoll_item_exists(int slot);
+int host_ragdoll_item_get(int slot, float *position, float *rotation, float *velocity, float *spin);
+void host_ragdoll_item_add_velocity(int slot, const float *velocity, const float *spin);
+void host_ragdoll_item_set_environment(int slot, const float *triangles, int triangle_count);
+int host_ragdoll_items_any(void);
 
 int ragdoll_physics_initialize(void) { return host_ragdoll_initialize(); }
 void ragdoll_physics_reset(void) { host_ragdoll_reset(); }
@@ -78,5 +86,27 @@ int ragdoll_physics_vehicle_contacts(struct ragdoll_physics_contact *contacts, i
 	/* (long is 32 bits here: the host fills this layout) */
 	return host_ragdoll_vehicle_contacts(contacts, maximum);
 }
+
+/* Test67: the items Jolt moves (item_physics.c, the OpenCE fork jcompto95-tech's) */
+int ragdoll_physics_item_create(int slot, float const *points, int point_count, float const position[3],
+	float const rotation[4], float const velocity[3], float const spin[3], float gravity_factor)
+{
+	return host_ragdoll_item_create(slot, points, point_count, position, rotation, velocity, spin, gravity_factor);
+}
+void ragdoll_physics_item_destroy(int slot) { host_ragdoll_item_destroy(slot); }
+int ragdoll_physics_item_exists(int slot) { return host_ragdoll_item_exists(slot); }
+int ragdoll_physics_item_get(int slot, float position[3], float rotation[4], float velocity[3], float spin[3])
+{
+	return host_ragdoll_item_get(slot, position, rotation, velocity, spin);
+}
+void ragdoll_physics_item_add_velocity(int slot, float const velocity[3], float const spin[3])
+{
+	host_ragdoll_item_add_velocity(slot, velocity, spin);
+}
+void ragdoll_physics_item_set_environment(int slot, float const *triangles, int triangle_count)
+{
+	host_ragdoll_item_set_environment(slot, triangles, triangle_count);
+}
+int ragdoll_physics_items_any(void) { return host_ragdoll_items_any(); }
 
 #endif

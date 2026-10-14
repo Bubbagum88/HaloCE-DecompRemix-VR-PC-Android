@@ -180,5 +180,14 @@ void host_ragdoll_vehicle(int key, const float *points, int point_count, const f
 	const float *rotation, const float *velocity, const float *angular_velocity);
 void host_ragdoll_vehicles_end(void);
 int host_ragdoll_vehicle_contacts(void *contacts, int maximum);
+/* Test67: the items Jolt moves (item_physics.c, the OpenCE fork's) */
+int host_ragdoll_item_create(int slot, const float *points, int point_count, const float *position,
+	const float *rotation, const float *velocity, const float *spin, float gravity_factor);
+void host_ragdoll_item_destroy(int slot);
+int host_ragdoll_item_exists(int slot);
+int host_ragdoll_item_get(int slot, float *position, float *rotation, float *velocity, float *spin);
+void host_ragdoll_item_add_velocity(int slot, const float *velocity, const float *spin);
+void host_ragdoll_item_set_environment(int slot, const float *triangles, int triangle_count);
+int host_ragdoll_items_any(void);
 
 #endif
