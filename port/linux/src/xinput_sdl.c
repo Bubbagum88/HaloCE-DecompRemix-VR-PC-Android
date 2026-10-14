@@ -270,8 +270,8 @@ void platform_text_field(int typing, int password)
 	text_typing_update();
 }
 
-/* the game's own line of text, text chat's (platform_game_typing: the OpenCE
-fork's network_chat.c), in play and in the lobby: as with the console, the
+/* the game's own line of text, text chat's or a vote's reason (platform_game_typing:
+the OpenCE fork's network_chat.c, game_engine.c), in play and in the lobby: as with the console, the
 keys type into it (escape too, which cancels it) and move nothing */
 static BOOL game_typing;
 
@@ -295,6 +295,33 @@ int platform_chat_key(void)
 }
 
 static void chat_key_update(const struct platform_input_state *input, BOOL playing);
+
+/* F1 and F2 in play, a vote's yes and no (platform_vote_key: game_engine.c,
+the OpenCE fork's vote-ban): pressed since last asked */
+static BOOL vote_key_down[2];
+static int vote_key_pressed;
+
+int platform_vote_key(void)
+{
+	int key = vote_key_pressed;
+
+	vote_key_pressed = 0;
+	return key;
+}
+
+static void vote_keys_update(const struct platform_input_state *input, BOOL playing)
+{
+	int index;
+
+	for (index = 0; index < 2; index++)
+	{
+		BOOL down = playing && input->keys[index ? SDL_SCANCODE_F2 : SDL_SCANCODE_F1];
+
+		if (down && !vote_key_down[index])
+			vote_key_pressed = index + 1;
+		vote_key_down[index] = down;
+	}
+}
 
 static void typing_gamepad(const struct platform_input_state *input, XINPUT_GAMEPAD *pad)
 {
@@ -1111,6 +1138,8 @@ DWORD WINAPI XInputGetState(HANDLE device, PXINPUT_STATE state)
 		/* (the OpenCE fork's text chat: its key, in play and in the lobby, not
 		while a line or a menu's text is typed) */
 		chat_key_update(&input, !console_is_active() && !game_typing && !text_typing);
+		/* (and a vote's F1 yes and F2 no, in play) */
+		vote_keys_update(&input, !console_is_active() && !game_typing && !input.menus);
 		if (!console_is_active() && !game_typing)
 		{
 			if (input.menus)

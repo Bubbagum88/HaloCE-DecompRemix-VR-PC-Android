@@ -54,6 +54,26 @@ for path,digest in UPSTREAM_201:
     if path in test52_additions:
         assert data.count(test52_additions[path])==1, path
         data=data.replace(test52_additions[path],b'')
+    if path == 'source/networking/network_server_message_handler.c':
+        # Test67: the OpenCE fork jcompto95-tech's community extras hook the
+        # server's lobby handler (the Armor choices, text chat: their own
+        # message kinds, 91-92 and 89-90): exactly these declarations and
+        # blocks, once each, the rest Build 201's byte for byte
+        declarations = (b"/* port/linux/game/armor_sync.c's: the Armor choices, in the lobby too */\n"
+            b"boolean armor_sync_handles_message(word const *message, word size);\n"
+            b"void armor_sync_handle_message(long machine_index, word const *message, word size, boolean from_stream);\n"
+            b"/* port/linux/game/network_chat.c's: text chat, in the lobby too */\n"
+            b"boolean network_chat_handles_message(word const *message, word size);\n"
+            b"void network_chat_handle_message(long machine_index, word const *message, word size, boolean from_stream);\n")
+        assert data.count(declarations) == 1, path
+        data = data.replace(declarations, b'')
+        for start, call in ((b"\t\t\t\t/* (port: the Armor choices from any machine that joined, in\n", b"armor_sync_handle_message("),
+                            (b"\t\t\t\t/* (port: text chat's from any machine that joined, in the\n", b"network_chat_handle_message(")):
+            assert data.count(start) == 1, path
+            begin = data.index(start)
+            end = data.index(b"\t\t\t\t\tbreak;\n\t\t\t\t}\n", begin) + len(b"\t\t\t\t\tbreak;\n\t\t\t\t}\n")
+            assert call in data[begin:end] and data[begin:end].count(b"break;") == 1, path
+            data = data[:begin] + data[end:]
     if path == 'source/networking/network_client_manager.h':
         # Test38 adds only this query declaration; preserve the upstream header guard.
         addition=b'unsigned int network_game_client_joined_version(void);\n'

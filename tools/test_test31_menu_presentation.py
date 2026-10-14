@@ -129,7 +129,18 @@ static boolean scoreboard_open;
 #define usnprintf swprintf
 static int pointer_calls,votekick_calls;
 int halo_scoreboard_pointer_update(int offered,struct halo_ui_pointer *p){(void)offered;pointer_calls++;memset(p,0,sizeof(*p));return -1;}
-struct network_votekick_status {long player_index;boolean voted,may_vote;long votes,needed,seconds_left;};
+/* (and the fork's vote-ban: a vote's kind and reason, no votes, F1/F2, a ban's
+   reason typed; no vote runs here) */
+#define VOTE_REASON_SIZE 64
+enum {_network_vote_kick,_network_vote_ban};
+struct network_votekick_status {long player_index;boolean voted,may_vote;long votes,needed,seconds_left;
+ boolean voted_no;short no_votes;short kind;char reason[VOTE_REASON_SIZE];};
+static boolean network_votekick_vote(boolean yes){(void)yes;votekick_calls++;return FALSE;}
+static boolean network_votekick_request_ban(short i,char const *r){(void)i;(void)r;votekick_calls++;return FALSE;}
+struct key_stroke {unsigned char modifier_flags;char ascii_code;short key_code;};
+enum {_key_escape=0,_key_backspace=29,_key_return=56,_keypad_enter=102};
+static boolean input_get_key(struct key_stroke *key){(void)key;return FALSE;}
+static void rasterizer_draw_unicode_string(rectangle2d const *bounds,rectangle2d const *clip,void *cursor,short height,wchar_t const *text){(void)bounds;(void)clip;(void)cursor;(void)height;(void)text;}
 static boolean network_votekick_available(void){return FALSE;}
 static boolean network_votekick_get_status(struct network_votekick_status *s){(void)s;return FALSE;}
 static boolean network_votekick_host(void){return FALSE;}

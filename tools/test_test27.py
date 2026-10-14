@@ -116,11 +116,15 @@ expected = {'player_prediction': 1, 'unit_states': 2, 'player_statistics': 3, 'i
             'coop_object_transforms': 72, 'actor_damage': 73, 'coop_object_looks': 74, 'damage_animations': 75,
             'coop_screen_effect': 76, 'coop_device_states': 77, 'voice_up': 80,
             'voice_down': 81, 'voice_config': 82, 'map_share_request': 83, 'map_share_offer': 84,
-            'map_share_sources': 85, 'map_share_progress': 86, 'NUMBER': 87}  # Test59: OpenCE network 27's map sharing
+            'map_share_sources': 85, 'map_share_progress': 86,  # Test59: OpenCE network 27's map sharing
+            # Test67: the OpenCE fork jcompto95-tech's community extras after them (dropped as unknown kinds by
+            # network 28 builds without them): votes 87-88, text chat 89-90, the Armor choices 91-92
+            'vote_choice': 87, 'vote_details': 88, 'chat_up': 89, 'chat': 90, 'armor': 91, 'armors': 92,
+            'NUMBER': 93}
 checks = ''.join('\tassert(_distributed_message_%s == %d);\n' % (k, v) for k, v in expected.items() if k != 'NUMBER')
 run('message_numbers', '#include <assert.h>\n#include <stdio.h>\n' + enum + '\nint main(void){\n' + checks +
-    '\tassert(NUMBER_OF_DISTRIBUTED_MESSAGES == 87);\n\tassert(_distributed_message_voice_up == 80 && _distributed_message_voice_down == 81 && _distributed_message_voice_config == 82);\n'
-    '\tputs("PASS: OpenCE message IDs retained, voice chat uses upstream 80-82, map sharing 83-86, and the existing VR avatar IDs remain unchanged");\n}\n')
+    '\tassert(NUMBER_OF_DISTRIBUTED_MESSAGES == 93);\n\tassert(_distributed_message_voice_up == 80 && _distributed_message_voice_down == 81 && _distributed_message_voice_config == 82);\n'
+    '\tputs("PASS: OpenCE message IDs retained, voice chat uses upstream 80-82, map sharing 83-86, the community extras 87-92, and the existing VR avatar IDs remain unchanged");\n}\n')
 
 # --- 4. the receive path: OpenCE's (every co-op kind decoded), the VR avatars first
 assert 'header.type > _distributed_message_pings &&' not in distributed_c, 'no filter drops OpenCE\'s co-op kinds'
