@@ -1,3 +1,15 @@
+## Active private Test67 (2026-10-13)
+
+Precision polish on Test66, 1.0.34-test67 / code79. Read docs/TEST67-CHECKLIST.md,
+TEST67-EVIDENCE.md, TEST67-FIELD-GUIDE.md and TEST67-DEVICE-CHECKLIST.md.
+Owner confirms Test66 Sniper grip, Warthog/Ghost/tank and improved ragdolls/parkour;
+other device checks remain pending. Changes: stable authored reload grips (Sniper
+preserved), 3x optional sprint range, skeletal grab contact, deliberate fist strokes,
+melee difficulty and readable guard/parry, empty-hand reticle suppression, optional
+campaign preparation and hash verification. Saved settings preserved. No network
+or voice changes. Private only: no push/publish/install/launch. Delivery status is
+in docs/TEST67-DELIVERY-STATUS.md. Public v1.0.31 remains unchanged.
+
 > **Published:** v1.0.31 (Test64/code76) is now Latest. See `docs/PUBLIC-RELEASE-1.0.31-HANDOFF.md` for source/publication and updater verification. Historical holds below are superseded for this release.
 
 > **Public promotion authorized 2026-10-12:** the owner requested Test64 as

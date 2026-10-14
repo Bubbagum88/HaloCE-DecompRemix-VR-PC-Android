@@ -9501,6 +9501,12 @@ void unit_cause_player_melee_damage(
 /* Test65: the blow a fist combat lunge or counter carries, landed on
 arrival: the fist's own blow (unit_vr_impact_melee: the same damage, effects
 and combo), swept into `target` along `direction` from just outside it */
+void unit_vr_guard_feedback(long unit, boolean parry)
+{
+    /* Reuse Halo's authored armour impacts; no new asset or audio pipeline. */
+    unit_melee_sound(unit, parry ? _material_thick_metal : _material_hollow_metal, NONE);
+}
+
 boolean unit_vr_combat_strike(
 	long unit_index,
 	long target_index,
@@ -9705,6 +9711,8 @@ boolean unit_vr_impact_melee(
 				&collision.plane.n);
 		}
 	}
+
+	vr_combat_damage_end();
 
 	if (hit_material_type != NONE)
 	{

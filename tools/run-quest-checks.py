@@ -12,7 +12,7 @@ OUT = ROOT / 'build/quest-regressions'
 # (test27: test_campaign_actors tested the retired CE01/CE02 co-op's actor
 # messages, replaced by OpenCE's co-op; it is kept in tools/ for the record)
 SUITES = [
-    'test_android_asm_convert', 'test_android_guest_prototypes', 'test_voice_encode_hardening', 'test_contact_acquisition', 'test_vr_tick_head_view', 'test_vr_immersion_menu', 'test_network26_signalling', 'test_opence_184_integration', 'test_test54_interactions', 'test_test55_polish', 'test_test56_ragdoll', 'test_test60_toggles', 'test_test61_vehicle_hold', 'test_test61_fixes', 'test_test62_fixes', 'test_test62_extra', 'test_test62_contact', 'test_test63', 'test_test65', 'test_test66', 'test_test66_campaigns', 'test_test66_ragdolls', 'test_test56_polish', 'test_test57_vehicles', 'test_test57b_vehicle_anchor',
+    'test_android_asm_convert', 'test_android_guest_prototypes', 'test_voice_encode_hardening', 'test_contact_acquisition', 'test_vr_tick_head_view', 'test_vr_immersion_menu', 'test_network26_signalling', 'test_opence_184_integration', 'test_test54_interactions', 'test_test55_polish', 'test_test56_ragdoll', 'test_test60_toggles', 'test_test61_vehicle_hold', 'test_test61_fixes', 'test_test62_fixes', 'test_test62_extra', 'test_test62_contact', 'test_test63', 'test_test65', 'test_test66', 'test_test66_campaigns', 'test_test66_ragdolls', 'test_test67', 'test_test67_campaigns', 'test_test56_polish', 'test_test57_vehicles', 'test_test57b_vehicle_anchor',
     'test_test59_network28', 'test_test59_reload_ragdoll', 'test_test49_haptics_melee',
     'test_test17_network_data', 'test_test16_actions',
     'test_campaign_lifecycle', 'test_campaign_capacity', 'test_quest_browser',

@@ -34,6 +34,7 @@ built from the game's camera and the headset's pose (port/linux/src/vr.h).
 #include "vr_gun_anchor.h"
 #include "vr_arm_ik_math.h"
 #include "vr_manual_reload.h"
+#include "vr_reload_grip_profile.h"
 #include "vr_sprint_melee_math.h"
 #include "physics/collision_models.h"
 #include "physics/collision_bsp.h"
@@ -2249,11 +2250,12 @@ void vr_render_impact_melee(
 					sweep.j *= extend;
 					sweep.k *= extend;
 					scale = scale < 0.5f ? 0.5f : scale > 1.5f ? 1.5f : scale;
-                    if (!armed) vr_combat_punch(unit_index,hand,&point,&sweep);
-					if (unit_vr_impact_melee(unit_index, &last[hand][index], &sweep, scale, armed,
+                    int assisted = !armed && vr_combat_punch(unit_index,hand,&point,&sweep);
+                    if (!assisted && unit_vr_impact_melee(unit_index, &last[hand][index], &sweep, scale, armed,
 						(armed && index ? 0.05f : 0.035f) * units))
 					{
 						rest[hand] = 0.35f;
+                        if (!armed) vr_combat_swing_hit(hand);
 						vr_haptic(hand, 1.0f, 0.08f);
 						platform_log("vr: %s hand struck at %.1f m/s (blow %.2f, %s)", hand ? "right" : "left", speed, scale,
 							!armed ? "fist" : index == 0 ? "the gun's grip" : index == 1 ? "the gun's middle" : "the gun's end");
@@ -4315,7 +4317,8 @@ static void vr_reload_grip_learn(struct animation_graph *graph, long weapon)
 	static struct real_orientation orientations[MAXIMUM_NODES_PER_ANIMATION];
 	static real_matrix4x3 m[MAXIMUM_NODES_PER_ANIMATION];
 	struct object_datum *object = weapon != NONE ? object_try_and_get(weapon) : NULL;
-	long graph_index, definition;
+	long graph_index, definition, model_index;
+	struct vr_reload_grip_profile const *profile;
 	short magazine = NONE, chamber = NONE, gun = NONE, wrist, index;
 	real_point3d origin = { 0, 0, 0 };
 	real_vector3d forward = { 1, 0, 0 }, up = { 0, 0, 1 };
@@ -4334,15 +4337,17 @@ static void vr_reload_grip_learn(struct animation_graph *graph, long weapon)
 	vr_reload_grip.definition = definition;
 	vr_reload_grip.distance[0] = vr_reload_grip.distance[1] = 1e9f;
 	graph_index = weapon_definition_get(definition)->weapon.interface_definition.first_person_animations.index;
+	model_index = weapon_definition_get(definition)->weapon.interface_definition.first_person_model.index;
+	profile = vr_reload_grip_profile_for(model_index != NONE ? tag_get_name(model_index) : NULL);
 	wrist = vr_find_node(graph, "l ", "wrist");
 	if (wrist == NONE)
 		wrist = vr_find_node(graph, "l ", "hand");
 	for (index = 0; index < graph->nodes.count && index < MAXIMUM_NODES_PER_ANIMATION; index++)
 	{
 		char const *name = TAG_BLOCK_GET_ELEMENT(&graph->nodes, index, struct vr_animation_graph_node)->name;
-		if (!strcmp(name, "frame magazine"))
+		if (!strcmp(name, profile ? profile->ammo : "frame magazine"))
 			magazine = index;
-		else if (!strcmp(name, "frame ophandle") || !strcmp(name, "frame slide"))
+		else if (profile ? !strcmp(name, profile->charge) : (!strcmp(name, "frame ophandle") || !strcmp(name, "frame slide")))
 			chamber = index;
 		else if (!strcmp(name, "frame gun"))
 			gun = index;
@@ -4410,6 +4415,52 @@ static void vr_reload_grip_learn(struct animation_graph *graph, long weapon)
 	}
 	vr_reload_grip.part_valid[0] = vr_reload_grip.distance[0] <= 0.18f * units;
 	vr_reload_grip.part_valid[1] = vr_reload_grip.distance[1] <= 0.12f * units;
+	if (profile && graph->nodes.count == profile->nodes && magazine != NONE)
+	{
+		short pose_index = animation_graph_get_animation_by_name(graph_index, profile->animation);
+		struct animation const *pose = pose_index != NONE ?
+			TAG_BLOCK_GET_ELEMENT(&graph->animations, pose_index, struct animation) : NULL;
+		if (pose && pose->node_count == profile->nodes && pose->frame_count == profile->frames &&
+			profile->frame > 0 && profile->frame + 1 < pose->frame_count)
+		{
+			real_matrix4x3 chosen, previous;
+			int stable = TRUE, sample;
+			/* A real held part stays fixed relative to the wrist. Reject a
+			 * passing/slapping hand and modified clips even with stock names. */
+			for (sample = profile->frame - 1; sample <= profile->frame + 1; sample++)
+			{
+				real_matrix4x3 inverse, relative;
+				animation_get_node_orientations(NULL, pose, sample, orientations);
+				animation_graph_node_matrices_from_orientations(graph_index, m, orientations, &origin, &forward, &up);
+				matrix4x3_inverse(&m[wrist], &inverse);
+				matrix4x3_multiply(&inverse, &m[magazine], &relative);
+				if (!vr_action_matrix_valid(&relative) ||
+					distance3d(&origin, &relative.position) > profile->max_origin_distance * units)
+					stable = FALSE;
+				if (sample > profile->frame - 1 &&
+					(distance3d(&previous.position, &relative.position) > .01f * units ||
+					 dot_product3d(&previous.forward, &relative.forward) < .98f ||
+					 dot_product3d(&previous.up, &relative.up) < .98f)) stable = FALSE;
+				previous = relative;
+				if (sample == profile->frame) chosen = relative;
+			}
+			if (stable)
+			{
+				real_matrix4x3 inverse;
+				animation_get_node_orientations(NULL, pose, profile->frame, orientations);
+				animation_graph_node_matrices_from_orientations(graph_index, m, orientations, &origin, &forward, &up);
+				matrix4x3_inverse(&m[wrist], &inverse);
+				vr_reload_grip.part[0] = chosen;
+				vr_reload_grip.part_valid[0] = TRUE;
+				vr_reload_grip.frame[0] = profile->frame;
+				vr_reload_grip.distance[0] = distance3d(&origin, &chosen.position);
+				for (int f = 0; f < vr_reload_grip.finger_count; f++)
+					matrix4x3_multiply(&inverse, &m[vr_reload_grip.fingers[f]], &vr_reload_grip.finger[0][f]);
+				platform_log("vr: manual reload verified hold: %s / %s frame %d", profile->model, profile->animation, profile->frame);
+			}
+			else platform_log("vr: manual reload verified hold rejected: changed/unstable pose; keeping sampled grip");
+		}
+	}
 	platform_log("vr: manual reload grip from the reload animation: magazine %s (frame %d, %.0f cm from the wrist), handle %s (frame %d, %.0f cm), %d finger joints",
 		vr_reload_grip.part_valid[0] ? "held as authored" : "not found", vr_reload_grip.frame[0],
 		(double)(vr_reload_grip.distance[0] < 1e8f ? vr_reload_grip.distance[0] / units * 100.0f : -1.0f),
@@ -4782,11 +4833,9 @@ void vr_render_first_person_ik(
 						real_point3d tracked_hand = hand;
 						boolean world_grip = vr_interaction_client_hand(controller, hand.n) || vr_world_interaction_hand(controller, hand.n);
 						boolean climbing_grip = !world_grip && vr_parkour_hand(controller, hand.n);
-						/* Keep the first-person arm driven by the tracked controller.
-						 * The NPC's articulated contact node is simulation state and can
-						 * lag behind the hand while the native body collision resolves;
-						 * using that lagging node as the render target visibly stretches
-						 * the player's arm away from the controller. */
+						/* Test67: the captured NPC surface gently attracts the hand.
+						 * Solver lag cannot stretch the arm: controller authority and
+						 * the shared 6 cm displacement cap remain below. */
 						npc_contact = hand;
 						boolean npc_grip = !world_grip && !climbing_grip &&
 							vr_npc_interaction_hand(controller, npc_contact.n);
@@ -4802,7 +4851,18 @@ void vr_render_first_person_ik(
 						 * onto its contact by at most 6 cm; beyond that the hand
 						 * stays that far toward the contact from the controller
 						 * rather than the arm stretching to an anchor left behind. */
-						if (world_grip || climbing_grip || reload_grip || vehicle_grip)
+                        if(npc_grip) {
+                            /* The tracked wrist remains authoritative: ease toward the
+                             * captured body contact, then use the SAME 6 cm hard cap as
+                             * other grips. Never reintroduce solver-lag arm stretching. */
+                            static real blend[2];static double last_time[2];
+                            double now=vr_pose_time();real dt=(real)(now-last_time[controller]);
+                            if(!(dt>0&&dt<.1f))blend[controller]=0;
+                            else blend[controller]=MIN(1,blend[controller]+dt/.10f);
+                            last_time[controller]=now;
+                            for(int k=0;k<3;k++)hand.n[k]+=blend[controller]*(npc_contact.n[k]-hand.n[k]);
+                        }
+                        if (world_grip || climbing_grip || npc_grip || reload_grip || vehicle_grip)
 						{
 							real_vector3d pull;
 							real length, limit = (vehicle_grip ? 0.10f : 0.06f) * units;
@@ -4880,7 +4940,7 @@ void vr_render_first_person_ik(
 						static float grip_blend[2];
 						static double grip_time[2];
 						int owner = vr_interaction_owner(controller);
-						int gripping = owner == VR_INTERACTION_RELOAD || owner == VR_INTERACTION_VEHICLE || owner == VR_INTERACTION_GRENADE;
+						int gripping = owner == VR_INTERACTION_RELOAD || owner == VR_INTERACTION_VEHICLE || owner == VR_INTERACTION_GRENADE || owner == VR_INTERACTION_NPC;
 						int tracked_fingers = vr_finger_pose(controller, curls);
 						double now = vr_pose_time();
 						real step = (real)(now - grip_time[controller]);

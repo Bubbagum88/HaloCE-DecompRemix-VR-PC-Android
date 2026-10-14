@@ -121,6 +121,9 @@ static struct model*model_definition_get(long i){(void)i;return &model;}
 static real_matrix4x3 *node_pose;static real_matrix4x3*object_get_node_matrices(long i){(void)i;return node_pose;}
 static int swings;static long swinger=NONE;
 static boolean unit_melee_attack_begin(long u,boolean c,real_vector2d const*a){(void)c;(void)a;swings++;swinger=u;return 1;}
+static int difficulty=1,guard_sounds;
+static int game_difficulty_level_get(void){return difficulty;}
+static void unit_vr_guard_feedback(long unit,boolean parry){(void)unit;(void)parry;guard_sounds++;}
 int vr_combat_stunned(long unit);
 """
 extra_stubs=r"""
@@ -150,6 +153,7 @@ static void render_model(long m,float px,real_matrix4x3 const*n,char const*r,voi
 """
 checks=r"""
 static void setup(void){
+ difficulty=1;guard_sounds=0;hand_speed=3;
  memset(bodies,0,sizeof bodies);memset(actors,0,sizeof actors);memset(owners,0,sizeof owners);memset(grip,0,sizeof grip);
  for(int i=0;i<4;i++){bodies[i].object.parent_object_index=NONE;bodies[i].object.type=_object_type_biped;bodies[i].unit.player_index=NONE;bodies[i].unit.actor_index=i;bodies[i].object.forward.i=1;bodies[i].object.bounding_sphere_radius=.3f;bodies[i].object.node_matrices.size=3*sizeof(real_matrix4x3);actors[i].meta.active=1;actors[i].meta.team_index=i?1:0;}
  bodies[0].unit.player_index=0;bodies[0].unit.actor_index=NONE;
@@ -351,7 +355,7 @@ int main(void){
  setup();combat=1;enabled=0;grip[0]=1;tick();actors[1].meta.type=_actor_elite;bodies[1].object.shield_vitality=1;
  {real_point3d body_hit={.n={1.2f,0,.8f}};int before=swings;
   vr_combat_hit(0,1,&body_hit,NULL,.8f,0);tick();tick();tick();vr_combat_hit(0,1,&body_hit,NULL,.8f,0);
-  for(int t=0;t<5;t++){tick();assert(swings==before);}tick();assert(swings==before+1&&swinger==1);}
+  for(int t=0;t<6;t++){tick();assert(swings==before);}tick();assert(swings==before+1&&swinger==1);}
  /* 4. BLOCK: an enemy's swing meets a hand held up between the face and it:
   *    most of the blow stopped, the guard tiring blow on blow, never all */
  setup();combat=1;enabled=0;grip[0]=1;tick();hand_speed=.5f;
@@ -362,7 +366,7 @@ int main(void){
  hands[0]=(real_point3d){.n={.3f,0,1.45f}};
  {float first=vr_combat_defend(0,1),second=vr_combat_defend(0,1);
   assert(fabsf(first-.35f)<1e-5f&&second>first&&second<1);
-  for(int i=0;i<8;i++)second=vr_combat_defend(0,1);assert(second<=1&&second>.9f);}
+  for(int i=0;i<8;i++)second=vr_combat_defend(0,1);assert(fabsf(second-.83f)<1e-5f);}
  combat=0;assert(vr_combat_defend(0,1)==1);combat=1;
  assert(vr_combat_defend(1,0)==1); /* the enemy is never defended */
  /* 5. PARRY: a hand swiped hard while the swing comes: none of the blow,
@@ -396,6 +400,48 @@ int main(void){
   node_pose=drawn;real_point3d head,chest;assert(combat_regions(1,&head,&chest));
   assert(fabsf(chest.x-2)<1e-5f&&fabsf(chest.z-1.2f)<1e-5f&&fabsf(head.z-1.58f)<1e-5f&&fabsf(head.y-1)<1e-5f);
   node_pose=NULL;assert(combat_regions(1,&head,&chest)&&fabsf(chest.x-1.2f)<1e-5f);}
+ /* Test67: one acquisition/damage owner for a sustained fast swing, including
+  * its landing tick. Rest/release rearms; the other hand can switch targets. */
+ setup();combat=1;enabled=0;grip[0]=grip[1]=1;lunge_setting=8;tick();
+ bodies[1].object.position.x=5;bodies[1].object.bounding_sphere_center.x=5;
+ bodies[2].object.position.x=9;bodies[2].object.bounding_sphere_center.x=9;
+ {real_point3d fist={.n={.3f,0,1.2f}};real_vector3d jab={.n={.2f,0,0}};int before=strikes;
+  assert(vr_combat_punch(0,0,&fist,&jab)==1&&extra.strike_pending);
+  bodies[0].object.position.x=4.4f;tick();assert(strikes==before+1&&!extra.strike_pending);
+  for(int i=0;i<8;i++){assert(vr_combat_punch(0,0,&fist,&jab)==1&&!extra.strike_pending);tick();}
+  assert(strikes==before+1);
+  bodies[1].object.damage_flags=FLAG(_object_dead_bit);
+  assert(vr_combat_punch(0,1,&fist,&jab)==1&&extra.target==2&&extra.strike_pending);
+  hand_speed=.1f;for(int i=0;i<3;i++)tick();assert(!extra.swing_used[0]);
+  hand_speed=3;assert(vr_combat_punch(0,0,&fist,&jab)==1&&extra.strike_hand==0);
+  owners[0]=VR_INTERACTION_NPC;tick();assert(!extra.strike_pending&&!extra.approach_until);
+ }
+ lunge_setting=0;
+ /* Difficulty is a fist multiplier, scoped to this owner/target/tick; native
+  * bullets and armed melee retain their damage and rear-kill rules. */
+ for(int d=0;d<4;d++) {
+  setup();combat=1;enabled=0;grip[0]=1;difficulty=d;health_setting=3;tick();
+  real_point3d body_hit={.n={1.2f,0,.8f}};float durability[]={.85f,1,1.25f,1.5f};
+  assert(vr_combat_hit(0,1,&body_hit,NULL,.8f,0)==1);
+  assert(fabsf(vr_combat_damage_share()-1/(3*durability[d]))<1e-5f);
+  assert(vr_combat_regular_blow(0,1)&&!vr_combat_regular_blow(0,2)&&!vr_combat_regular_blow(1,1));
+  vr_combat_damage_end();assert(!vr_combat_regular_blow(0,1));
+  assert(vr_combat_hit(0,1,&body_hit,NULL,.8f,1)==1&&!vr_combat_regular_blow(0,1));
+  assert((combat_parry_ticks()==(int[]){8,6,5,4}[d]));
+ }
+ health_setting=1;
+ /* A parry has stronger feedback plus a short opening, a block a shorter
+  * amber impact. Switching to an incompatible session clears authority. */
+ setup();combat=1;enabled=0;grip[0]=1;tick();
+ bodies[1].object.position.x=.6f;bodies[1].object.bounding_sphere_center=(real_point3d){.n={.6f,0,1.2f}};
+ bodies[1].object.forward=(real_vector3d){.n={-1,0,0}};vr_combat_note_melee(1);
+ bodies[1].unit.melee_attack_state=1;hands[0]=(real_point3d){.n={.4f,.1f,1.3f}};hand_speed=4;tick();
+ assert(vr_combat_defend(0,1)==0&&guard_sounds==1&&extra.defence_parry&&extra.defence_until==now+8);
+ network=1;assert(vr_combat_defend(0,1)==1);network=0;
+ setup();combat=1;enabled=0;grip[0]=1;hand_speed=.1f;tick();
+ bodies[1].object.position.x=.6f;bodies[1].unit.melee_attack_state=1;hands[0]=(real_point3d){.n={.3f,0,1.45f}};
+ assert(vr_combat_defend(0,1)<1&&guard_sounds==1&&!extra.defence_parry&&extra.defence_until==now+4);
+ puts("PASS: Test67 stroke ownership/rearm/opposite-hand switching, four difficulties, scoped melee durability and block/parry feedback/authority");
  puts("PASS: Test66 fist combat: ENEMY HEALTH divides the blow (the multiplier, once), Grunts/Jackals/Elites/Hunters fight their own ways, an Elite answers a flurry, BLOCK (tiring) and PARRY (the swing undone, an opening), the lunge rises and dives in the air, lights on the drawn bones");
  setup();real_point3d camera;unit_get_camera_position(0,&camera);assert(vr_extra_render(camera.n)&&draws>0);enabled=0;assert(!vr_extra_render(camera.n));
  puts("PASS: production Test62 grenade ownership/ammo/release/tracking/network gates; enemy acquisition, lock, collision velocity, stun, rear takedown and pose invariants");

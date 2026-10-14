@@ -990,7 +990,7 @@ Default: true
 PULL GLOW: the weapon a hand can pull is outlined (pulsing; brighter while it flies to the hand).
 
 vr.combat_lunge_reach [real]
-Default: 6.0
+Default: 8.0
 LUNGE (FIST COMBAT): how far a punch carries you to the enemy you look at or throw it at, in metres (Arkham Shadow's punch across the room: a dash up to 10 m/s, the blow landing on arrival); 0 keeps FIST REACH's short step only.
 
 vr.combat_enemy_health [real]
@@ -1002,7 +1002,7 @@ Default: true
 COUNTERS (FIST COMBAT): an enemy swinging at you shows a blue warning over its head and taps both hands; a punch toward it counters (its blow undone, it is knocked down, the combo goes on).
 
 vr.combat_reach [real]
-Default: 2.5
+Default: 3.0
 How far from the eyes a punch picks an enemy (metres, 0.75..3); short of striking range a short step closes the gap.
 
 vr.physical_grenades [boolean]
@@ -1275,7 +1275,7 @@ vr.arm_run [boolean]
 Default: false
 Run by swinging the arms as in running, ahead where the head faces, as
 fast as the swing (both arms; holding the gun in both hands, the gun's
-bob). Offline, strong forward pumping raises movement speed up to 1.5x.
+bob). Offline, strong forward pumping uses SPRINT SPEED (1x to 3x; default 1.5x).
 Network games retain stock speed. Deliberate stick movement takes priority.
 
 vr.arm_run_speed [real]
@@ -1295,7 +1295,7 @@ and click again to stop. Off keeps the hold-to-sprint behavior.
 
 vr.sprint_speed [real]
 Default: 1.5
-Maximum offline sprint movement multiplier, bounded from 1.0x to 1.5x.
+Maximum offline sprint movement multiplier, bounded from 1.0x to 3.0x; default 1.5x.
 
 vr.melee_requires_fist [boolean]
 Default: false

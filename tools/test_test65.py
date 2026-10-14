@@ -125,10 +125,10 @@ assert "int vr_npc_interaction_knock(long index," in npc and "npc.knocked=1;" in
 assert "int limit=dead?NPC_SETTLE_LIMIT_TICKS:npc_recovery_ticks()" in settle
 
 # 7. the fists (behaviour compiled in test_test62_extra)
-default("vr.combat_lunge_reach", "_config_real", "6.0")
+default("vr.combat_lunge_reach", "_config_real", "8.0")
 default("vr.combat_enemy_health", "_config_real", "3.0")
 default("vr.combat_counters", "_config_boolean", "true")
-assert "vr_head_view_recent(camera.n,unit_get(unit)->object.forward.n,head.n,gaze.n,up.n)" in fn(extra, "void vr_combat_punch(")
+assert "vr_head_view_recent(camera.n,unit_get(unit)->object.forward.n,head.n,gaze.n,up.n)" in fn(extra, "int vr_combat_punch(")
 begin = fn(units, "boolean unit_melee_attack_begin(")
 assert "vr_combat_note_melee(unit_index);" in begin
 assert "vr_combat_note_damage(object_index);" in damage

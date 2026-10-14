@@ -61,6 +61,11 @@ static struct {
     real damage_share;
     long share_tick,parry_tick[2],guard_strain_until,answer_unit,answer_at,answer_ready,flurry_unit,flurry_until;
     int guard_strain,flurry_hits;
+    /* One physical stroke owns either its sweep or a carried lunge blow. */
+    int swing_acquired[2],swing_used[2];
+    long swing_at[2],damage_target,damage_tick,defence_until;
+    int damage_regular,defence_parry;
+    real_point3d defence_point;
 } extra={.unit=NONE,.tick=NONE,.target=NONE,.grenade_release_tick=NONE,.counter_enemy=NONE,.countered=NONE,.knock_target=NONE,
     .damage_share=1,.share_tick=NONE,.answer_unit=NONE,.flurry_unit=NONE};
 /* Brief semantic pulses must finish before continuous surface contact resumes. */
@@ -113,10 +118,24 @@ int vr_combat_enabled(void)
 /* Test65: LUNGE (how far a punch carries the player to an enemy; 0: FIST
  * REACH's short step only), ENEMY HEALTH (enemies take this many more
  * punches; takedowns and guns as they were), COUNTERS */
-static real combat_lunge_reach(void){return extra_bound("vr.combat_lunge_reach",6.0f,0.0f,10.0f);}
-static real combat_reach(void){return MAX(extra_bound("vr.combat_reach",2.5f,.75f,3),combat_lunge_reach());}
+static real combat_lunge_reach(void){return extra_bound("vr.combat_lunge_reach",8.0f,0.0f,10.0f);}
+static real combat_reach(void){return MAX(extra_bound("vr.combat_reach",3.0f,.75f,3),combat_lunge_reach());}
 static real combat_health(void){return extra_bound("vr.combat_enemy_health",3.0f,1.0f,6.0f);}
 static boolean combat_counters_on(void){return config_boolean("vr.combat_counters");}
+/* Melee-only tuning; Halo still owns AI difficulty and projectile damage. */
+static int combat_difficulty(void){return PIN(game_difficulty_level_get(),0,3);}
+static real combat_durability(void){static real const d[]={.85f,1.0f,1.25f,1.5f};return d[combat_difficulty()];}
+static int combat_parry_ticks(void){static int const t[]={8,6,5,4};return t[combat_difficulty()];}
+int vr_combat_regular_blow(long owner,long target)
+{
+    return extra.damage_regular&&extra.damage_tick==game_time_get()&&
+        extra.unit==owner&&extra.damage_target==target&&extra_combat_on();
+}
+void vr_combat_damage_end(void){extra.damage_regular=0;extra.damage_target=NONE;}
+void vr_combat_swing_hit(int hand)
+{
+    if(extra_combat_on()&&hand>=0&&hand<2){extra.swing_used[hand]=1;extra.swing_at[hand]=game_time_get();}
+}
 /* combo hits for a takedown (Arkham's full meter) */
 #define COMBAT_SPECIAL 8
 /* level gap between two bodies' roots, and where a blow is in reach */
@@ -273,6 +292,12 @@ static boolean chest_forward(real_point3d const *camera,real_vector3d *forward)
 static void combat_tick(long unit)
 {
     long now=game_time_get();real units=vr_units_per_metre();
+    for(int h=0;h<2;h++){
+        real speed=vr_hand_speed(h),threshold=vr_melee_speed();
+        if(now-extra.swing_at[h]>=3&&!(extra.strike_pending&&extra.strike_hand==h)&&
+           (!vr_physical_melee_hand_allowed(h)||(isfinite(speed)&&speed<.55f*threshold)))
+            extra.swing_acquired[h]=extra.swing_used[h]=0;
+    }
     if(extra.combo&&now>extra.combo_until){
         if(extra.combo>=3)platform_log("VR fist combat: combo of %d ended",extra.combo);
         extra.combo=0;
@@ -287,7 +312,7 @@ static void combat_tick(long unit)
         extra.answer_unit=NONE;
         if(extra_enemy(unit,elite)&&!vr_combat_stunned(elite)&&!vr_npc_interaction_owned(elite)&&
            combat_gap(unit,elite)<=2.2f*units&&unit_melee_attack_begin(elite,FALSE,NULL)){
-            extra.answer_ready=now+(5*TICKS_PER_SECOND)/2;
+            extra.answer_ready=now+(long)((3.0f-.4f*combat_difficulty())*TICKS_PER_SECOND);
             platform_log("VR fist combat: enemy=%ld answers the flurry with a swing (block, parry or counter it)",elite);
         }
     }
@@ -358,7 +383,7 @@ void vr_extra_tick(long unit)
             int o=vr_interaction_owner(h);
             if(o==VR_INTERACTION_NPC||o==VR_INTERACTION_WORLD||o==VR_INTERACTION_PARKOUR){
                 if(extra.approach_until||extra.hold_until)platform_log("VR fist combat: hand %d grabbed; the assist lets go",h);
-                extra.approach_until=extra.hold_until=0;
+                extra.approach_until=extra.hold_until=0;extra.strike_pending=0;
             }
         }
     }
@@ -459,7 +484,7 @@ void vr_extra_tick(long unit)
  * swing shows a blue warning and a punch toward him counters it; a full
  * meter's hard punch is a takedown. Here: a deliberate punch (a closed fist
  * faster than MELEE SPEED) picks the enemy the head looks at or the fist is
- * thrown at, within LUNGE (6 m by default; FIST REACH's short step when
+ * thrown at, within LUNGE (8 m by default; FIST REACH's short step when
  * off), in sight; out of reach, a Spartan dash (up to 10 m/s) carries the
  * player there and the blow lands on arrival. Test63 never acquired: the
  * head was refused to this tick (vr_head_view_recent). */
@@ -477,6 +502,10 @@ static void combat_engage(long unit,long target,int hand,boolean counter)
     if(normalize3d(&along)<.0001f)along=unit_get(unit)->object.forward;
     extra.strike_dir=along;extra.strike_hand=hand;extra.strike_counter=counter;
     extra.strike_scale=scale*(counter?1.5f:1.0f);
+    extra.swing_acquired[hand]=1;extra.swing_at[hand]=now;
+    /* A new deliberate punch may choose a different enemy. Cancel a queued
+     * old blow before assigning this stroke; never deliver it to the new one. */
+    extra.strike_pending=0;extra.approach_until=0;
     if(counter){
         extra.countered=target;extra.countered_until=now+TICKS_PER_SECOND;extra.counter_enemy=NONE;
         extra_pulse(hand,.8f,.05f);
@@ -497,20 +526,22 @@ static void combat_engage(long unit,long target,int hand,boolean counter)
             target,hand,(float)(gap/units),extra.combo);
     }
 }
-void vr_combat_punch(long unit,int hand,real_point3d const *point,real_vector3d const *sweep)
+int vr_combat_punch(long unit,int hand,real_point3d const *point,real_vector3d const *sweep)
 {
     struct object_iterator it;struct unit_datum *u;real_point3d camera,head;
     real_vector3d gaze,up,punch=*sweep,level;real units=vr_units_per_metre();
     long choice=NONE,now=game_time_get();real best=-1e9f,reach=combat_reach()*units;
     int seen=0;real nearest=1e9f,nearest_angle=0;int nearest_visible=0;
     boolean level_punch;
-    if(!extra_combat_on()||unit!=extra_player(TRUE)||!(units>0))return;
-    if(unit!=extra.unit){combat_reason("the combat tick has not run for this body yet");return;}
-    if(hand<0||hand>1||!vr_physical_melee_hand_allowed(hand)||(hand==vr_weapon_hand()&&!vr_hand_empty()))return;
+    if(!extra_combat_on()||unit!=extra_player(TRUE)||!(units>0))return 0;
+    if(unit!=extra.unit){combat_reason("the combat tick has not run for this body yet");return 0;}
+    if(hand<0||hand>1||!vr_physical_melee_hand_allowed(hand)||(hand==vr_weapon_hand()&&!vr_hand_empty()))return 0;
     /* one acquisition per punch: the sweep runs every tick of it */
-    if(extra.target!=NONE&&now<extra.approach_until)return;
+    if(extra.swing_used[hand])return 1;
+    if(extra.strike_pending&&extra.strike_hand==hand)return 1;
+    if(extra.swing_acquired[hand])return 0;
     if(!vr_render_drawn_camera(camera.n))unit_get_camera_position(unit,&camera);
-    if(!vr_head_view_recent(camera.n,unit_get(unit)->object.forward.n,head.n,gaze.n,up.n)){combat_reason("no tracked head");return;}
+    if(!vr_head_view_recent(camera.n,unit_get(unit)->object.forward.n,head.n,gaze.n,up.n)){combat_reason("no tracked head");return 0;}
     level=punch;level.k=0;
     level_punch=normalize3d(&level)>.0001f&&magnitude3d(sweep)>.0001f;
     /* COUNTERS: a punch toward the attacker whose swing is warned counters it */
@@ -521,7 +552,8 @@ void vr_combat_punch(long unit,int hand,real_point3d const *point,real_vector3d 
         if(normalize3d(&to)>.001f&&normalize3d(&to_level)>.001f&&
            ((level_punch&&dot_product3d(&level,&to_level)>.2f)||dot_product3d(&gaze,&to)>.5f)){
             combat_engage(unit,extra.counter_enemy,hand,TRUE);
-            return;
+            extra.swing_used[hand]=1;
+            return 1;
         }
     }
     object_iterator_new(&it,_object_mask_biped,0);
@@ -545,7 +577,10 @@ void vr_combat_punch(long unit,int hand,real_point3d const *point,real_vector3d 
          * still counts; a punch back and away does not */
         vector_from_points3d(point,&chest,&from_hand);from_hand.k=0;
         if(level_punch&&normalize3d(&from_hand)>.0001f&&dot_product3d(&level,&from_hand)<-.2f)continue;
-        score=2.0f*MAX(facing,thrown)-distance/reach+(it.index==extra.target?.35f:0);
+        /* Directional intent wins over the previous target; a nearby attacker
+         * gains a small urgency bonus, never an unconditional lock. */
+        score=1.4f*facing+.9f*MAX(0,thrown)-distance/reach+
+            (u->unit.melee_attack_state?.15f:0)+(it.index==extra.target?.08f:0);
         if(score>best){best=score;choice=it.index;}
     }
     if(choice!=NONE)combat_engage(unit,choice,hand,FALSE);
@@ -555,6 +590,8 @@ void vr_combat_punch(long unit,int hand,real_point3d const *point,real_vector3d 
             (float)(nearest/units),(float)nearest_angle,nearest_visible?"in sight":"not in sight",(float)(reach/units));
         else platform_log("VR fist combat: punch took no target (no enemy within %.1f m)",(float)(reach/units));
     }
+    if(extra.strike_pending&&extra.strike_hand==hand){extra.swing_used[hand]=1;return 1;}
+    return 0;
 }
 /* Test65: an enemy's swing (units.c unit_melee_attack_begin) at the player,
  * within 4 m and facing him, opens a counter window until its blow lands
@@ -623,9 +660,9 @@ real vr_combat_hit(long unit,long target,real_point3d const *point,real_vector3d
          * shield and a Hunter's armour take most of a blow from the front */
         real armour=front>.35f?kind->front_share:front<-.35f?kind->back_share:1.0f;
         if(kind->type==_actor_jackal&&now<extra.stun_until)armour=1.0f;
-        extra.damage_share=(1.0f+.08f*(real)MIN(extra.combo-1,10))/combat_health()*armour;
+        extra.damage_share=(1.0f+.08f*(real)MIN(extra.combo-1,10))/(combat_health()*combat_durability())*armour;
         head=target_head;vector_from_points3d(point,&head,&delta);
-        if(kind->stun_hits<99&&(++extra.hit_count>=kind->stun_hits||
+        if(kind->stun_hits<99&&(++extra.hit_count>=kind->stun_hits+(combat_difficulty()>=2?1:0)||
             (magnitude3d(&delta)<.22f*units&&(kind->type!=_actor_elite||unit_get(target)->object.shield_vitality<=0)))){
             extra.stun_until=now+(9*TICKS_PER_SECOND)/10;extra.hit_count=0;
             platform_log("VR fist combat: enemy=%ld stunned 0.9 s; rear hit or physical grab available",target);
@@ -634,10 +671,11 @@ real vr_combat_hit(long unit,long target,real_point3d const *point,real_vector3d
         if(kind->answers&&now>=extra.answer_ready&&now>=extra.stun_until){
             if(extra.flurry_unit!=target||now>extra.flurry_until){extra.flurry_unit=target;extra.flurry_hits=0;}
             extra.flurry_until=now+(3*TICKS_PER_SECOND)/2;
-            if(++extra.flurry_hits>=2){extra.answer_unit=target;extra.answer_at=now+6;extra.flurry_hits=0;}
+            if(++extra.flurry_hits>=2){extra.answer_unit=target;extra.answer_at=now+8-combat_difficulty();extra.flurry_hits=0;}
         }
     }
     extra.share_tick=now;
+    extra.damage_target=target;extra.damage_tick=now;extra.damage_regular=!takedown;
     result=1.0f; /* the swing's own strength stays the damage scale */
     /* the body answers the blow: knocked down by a takedown, a counter, a
      * long lunge's blow or a hard punch to a stunned enemy (a short
@@ -683,7 +721,7 @@ real vr_combat_defend(long victim,long attacker)
     long now=game_time_get();real units=vr_units_per_metre();
     struct unit_datum *a;struct combat_kind const *kind;
     real_point3d camera,head,chest;real_vector3d to;int guard=-1,parry=-1;
-    if(victim==NONE||victim!=extra.unit||attacker==NONE||!extra_combat_on()||!(units>0)||!extra_enemy(victim,attacker))return 1;
+    if(victim==NONE||victim!=extra.unit||victim!=extra_player(TRUE)||attacker==NONE||!extra_combat_on()||!(units>0)||!extra_enemy(victim,attacker))return 1;
     a=unit_get(attacker);
     if(!a->unit.melee_attack_state&&!(attacker==extra.counter_enemy&&now<=extra.counter_until+3))return 1;
     if(!vr_render_drawn_camera(camera.n))unit_get_camera_position(victim,&camera);
@@ -696,15 +734,20 @@ real vr_combat_defend(long victim,long attacker)
         if(!vr_hand_pose(h,camera.n,p.n,f.n,u.n))continue;
         vector_from_points3d(&camera,&p,&d);distance=normalize3d(&d);
         if(distance<.10f*units||distance>.60f*units||dot_product3d(&d,&to)<.35f)continue;
-        if(extra.parry_tick[h]>0&&now>=extra.parry_tick[h]&&now-extra.parry_tick[h]<=6)parry=h;
+        if(extra.parry_tick[h]>0&&now>=extra.parry_tick[h]&&now-extra.parry_tick[h]<=combat_parry_ticks())parry=h;
         /* a guard: raised to the face (within 30 cm of the eyes' height), squarely between */
         if(p.z>camera.z-.30f*units&&distance<=.55f*units&&dot_product3d(&d,&to)>=.5f)guard=h;
     }
     if(parry>=0){
+        /* Parrying a different attacker must not retarget an old carried punch. */
+        if(extra.target!=attacker){extra.strike_pending=0;extra.approach_until=extra.hold_until=0;}
         extra.countered=attacker;extra.countered_until=now+TICKS_PER_SECOND;extra.counter_enemy=NONE;
         extra.target=attacker;extra.lock_until=now+3*TICKS_PER_SECOND;extra.stun_until=now+TICKS_PER_SECOND;extra.hit_count=0;
         extra.parry_tick[0]=extra.parry_tick[1]=0;
         extra_pulse(parry,1.0f,.07f);extra_pulse(1-parry,.5f,.04f);
+        extra.defence_point=camera;point_from_line3d(&camera,&to,.35f*units,&extra.defence_point);
+        extra.defence_until=now+8;extra.defence_parry=1;
+        unit_vr_guard_feedback(victim,TRUE);
         if(kind->knocked&&config_boolean("vr.active_ragdoll")){
             real_vector3d back=to;back.k=0;
             if(normalize3d(&back)>.001f){extra.knock_pending=1;extra.knock_target=attacker;extra.knock_speed=2.5f;extra.knock_dir=back;extra.knock_point=chest;}
@@ -713,10 +756,13 @@ real vr_combat_defend(long victim,long attacker)
         return 0;
     }
     if(guard>=0){
-        real share=PIN(kind->block_share+.15f*(real)extra.guard_strain,0,1);
+        real share=PIN(kind->block_share+.04f*(combat_difficulty()-1)+.12f*(real)extra.guard_strain,.1f,.9f);
         real_vector3d push=to;
         extra.guard_strain=MIN(extra.guard_strain+1,4);extra.guard_strain_until=now+3*TICKS_PER_SECOND;
-        extra_pulse(guard,.75f,.05f);
+        extra_pulse(guard,.4f,.035f);
+        extra.defence_point=camera;point_from_line3d(&camera,&to,.30f*units,&extra.defence_point);
+        extra.defence_until=now+4;extra.defence_parry=0;
+        unit_vr_guard_feedback(victim,FALSE);
         /* the attacker rocked back a little by the guard */
         push.k=0;
         if(normalize3d(&push)>.001f&&kind->type!=_actor_hunter){
@@ -737,7 +783,7 @@ int vr_combat_stunned(long unit)
     if(!extra_combat_on()||extra.unit!=extra_player(TRUE)||extra.tick==NONE||now<extra.tick||now>extra.tick+1||
        !extra_enemy(extra.unit,unit)||vr_npc_interaction_restrained(unit))return FALSE;
     if(unit==extra.countered&&now<extra.countered_until&&extra.countered_until-now<=TICKS_PER_SECOND)return TRUE;
-    return unit==extra.target&&now<extra.stun_until&&extra.stun_until-now<=(9*TICKS_PER_SECOND)/10;
+    return unit==extra.target&&now<extra.stun_until&&extra.stun_until-now<=TICKS_PER_SECOND;
 }
 void vr_combat_controls(long unit)
 {
@@ -927,6 +973,11 @@ int vr_extra_render(float const camera_position[3])
                 extra_shell(&point,.038f*units,&color,extra.hand[h].type);drawn=1;
             }
         }
+    }
+    if(extra_combat_on()&&game_time_get()<extra.defence_until){
+        real_argb_color color=extra.defence_parry?(real_argb_color){.9f,.2f,.8f,1}:(real_argb_color){.65f,1,.65f,.2f};
+        render_debug_sphere(TRUE,&extra.defence_point,(extra.defence_parry?.065f:.035f)*units,&color);
+        drawn=1;
     }
     /* Test65: COUNTERS: Arkham's blue warning over the attacker's head,
      * pulsing until its blow lands */

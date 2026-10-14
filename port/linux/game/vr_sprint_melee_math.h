@@ -72,7 +72,7 @@ static inline float vr_sprint_scale_for_effort(float configured_scale, float eff
 {
 	if (!isfinite(configured_scale)) configured_scale = 1.0f;
 	if (configured_scale < 1.0f) configured_scale = 1.0f;
-	if (configured_scale > 1.5f) configured_scale = 1.5f;
+	if (configured_scale > 3.0f) configured_scale = 3.0f;
 	if (!isfinite(effort)) effort = 0.0f;
 	if (effort < 0.0f) effort = 0.0f;
 	if (effort > 1.0f) effort = 1.0f;

@@ -264,7 +264,7 @@ public class LauncherActivity extends Activity {
     private ModInstaller.Mod selectedMod;
     private LinearLayout modDetails;
     private TextView modState, campaignNow;
-    private Button originalCampaign, modImport;
+    private Button originalCampaign, modImport, modPrepare;
     private Button play, modAction, modDelete, modResources, resetSettings, mainMenu3d, fontToggle;
     private boolean busy;
 
@@ -477,6 +477,26 @@ public class LauncherActivity extends Activity {
             intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             startActivityForResult(intent, PICK_RESOURCES);
         });
+        TextView setupHelp = new TextView(this);
+        setupHelp.setText("Included with this app: setup recipes, automatic folders, file verification and campaign switching. "
+            + "No Halo or third-party campaign assets are bundled.\n\n"
+            + (mod.imported ? "Required: the author's Latest Altheros Experience 10.24.2019 files (.yelo and data_files), from your own copy. "
+                : "Required: CMT's 2006 SPV1 maps (import your copy or use Download and install) and the original PC Halo Custom Edition bitmaps.map, sounds.map and loc.map. ")
+            + "\n1. Tap Prepare / verify mod files.\n2. Import the extracted folder (subfolders are scanned); use the file picker below for separate CE resources. "
+            + "Already valid files are reused.\n3. Tap Install. The normal campaign menu then plays this campaign. "
+            + "Play the original campaign restores your base maps. Start a fresh level after switching; checkpoints are campaign-specific.");
+        setupHelp.setTextColor(Color.rgb(200, 205, 210));
+        setupHelp.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        modDetails.addView(setupHelp);
+        modPrepare = menuButton(modDetails, "Prepare / verify mod files");
+        modPrepare.setOnClickListener(v -> {
+            setBusy(true);
+            new Thread(() -> {
+                try { prepareMod(mod); }
+                catch (Exception exception) { report("Preparation failed: " + exception.getMessage(), -1); }
+                handler.post(() -> setBusy(false));
+            }, "mod-prepare").start();
+        });
         modImport = menuButton(modDetails, "Import " + mod.title + " from a folder");
         modImport.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
@@ -498,7 +518,8 @@ public class LauncherActivity extends Activity {
         boolean resources = !selectedMod.needsResources() || mods.haveResources();
 
         refreshCampaignNow();
-        modImport.setVisibility(selectedMod.imported && !downloaded && !installed ? View.VISIBLE : View.GONE);
+        modPrepare.setEnabled(!busy);
+        modImport.setVisibility(!installed ? View.VISIBLE : View.GONE);
         modImport.setEnabled(!busy);
         modResources.setVisibility(resources ? View.GONE : View.VISIBLE);
         modResources.setEnabled(!busy);
@@ -564,6 +585,7 @@ public class LauncherActivity extends Activity {
                     mods.restore(mod, this::report);
                     report("The original campaign is back.", 1000);
                 } else {
+                    prepareMod(mod);
                     mods.install(mod, this::report);
                     report(mod.title + " is installed: play the campaign.", 1000);
                 }
@@ -602,10 +624,23 @@ public class LauncherActivity extends Activity {
         }, "mod-restore").start();
     }
 
+    private void prepareMod(ModInstaller.Mod mod) throws java.io.IOException {
+        try (java.io.InputStream recipe = getAssets().open("campaigns/" + mod.id + ".properties")) {
+            mods.prepare(mod, recipe, this::report);
+        }
+    }
+
+    private void prepareModForImport(ModInstaller.Mod mod) throws java.io.IOException {
+        try (java.io.InputStream recipe = getAssets().open("campaigns/" + mod.id + ".properties")) {
+            mods.prepare(mod, recipe, this::report, false);
+        }
+    }
+
     /** Test66: an imported mod's files copied in from the folder the player chose. */
     private void importModFolder(ModInstaller.Mod mod, Uri tree) {
         int copied = 0;
         try {
+            prepareModForImport(mod);
             java.util.List<String[]> found = new java.util.ArrayList<>();
             collectFolder(tree, android.provider.DocumentsContract.getTreeDocumentId(tree), found, 0);
             for (String[] entry : found) {
@@ -622,10 +657,12 @@ public class LauncherActivity extends Activity {
                 }
                 copied++;
             }
-            String missing = mods.missingImports(mod);
+            mods.validatePrepared(mod, false, this::report);
+            String missing = mods.missingForSetup(mod);
+            if (missing.equals("none")) missing = "";
             report(missing.isEmpty() ? mod.title + " is imported (" + copied + " files): tap Install."
                 : "Imported " + copied + " files; still needed: " + missing + ". Choose the folder with the "
-                    + ".yelo files and data_files.", -1);
+                    + "campaign maps and their required resource files.", -1);
         } catch (Exception exception) {
             report("Importing failed: " + exception.getMessage(), -1);
         }

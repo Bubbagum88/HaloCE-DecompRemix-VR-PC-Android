@@ -1,3 +1,91 @@
+# Test67: reload grips, fist flow and simpler campaign setup
+
+Private 1.0.34-test67 / code79. Install the matching Quest VR or Android APK over
+Test66; the package IDs and signing certificate are unchanged. Keep your saved
+settings. No uninstall is needed. No public release is being changed.
+
+## Weapon handling and empty hands
+
+- Holstering both weapons hides the weapon reticle. Taking a weapon back out
+  restores it, subject to your reticle toggle. Vehicle reticles still work;
+  fist-combat target markers are separate.
+- The AR uses a steady native magazine-holding pose rather than the later slap
+  pose. Pistol magazines, shotgun shells and rocket tubes get verified native
+  holding poses as well. The accepted Sniper magazine pose is unchanged.
+- Extraction, insertion, charging travel, magazine storage, ammo accounting,
+  cancellation, native reload fallback and existing haptic clicks stay intact.
+  Flamethrower/Needler retain their working generic grip where their native
+  animations do not contain a verified left-hand hold.
+- Left-Hand Mode mirrors the same profiles. No new reload button binding.
+
+## Sprint and assisted fists
+
+- SPRINT SPEED now offers 1x through 3x, including 1.75x, 2.25x and 2.75x.
+  Default remains 1.5x. Button Sprint and Arm Run share this speed setting.
+  Existing hold/toggle sprint choices stay. Network safety gates stay.
+- Fresh settings use COMBAT REACH 3 m / LUNGE REACH 8 m, matching the owner's
+  useful starting point. Existing saved values are retained.
+- A deliberate swing owns one assisted strike. Continuing the same fast arm
+  motion cannot repeatedly lunge/damage; slow or release the fist to rearm.
+  A fresh opposite-hand punch can select a different enemy by gaze/direction.
+- ENEMY HEALTH remains a fist-damage divisor, not a global health increase.
+  Easy/Normal/Heroic/Legendary add melee durability factors .85/1/1.25/1.5.
+  Regular assisted punches cannot accidentally invoke the native instant rear
+  melee kill. Deliberate takedowns and ordinary weapon melee retain their rules.
+- Block: raise a hand between your face and the melee attacker. A short amber
+  impact, lighter pulse and native impact sound mark reduced damage.
+- Parry: swipe into the attack shortly before contact. A blue impact, stronger
+  haptic response and different native impact sound mark the interruption and
+  short counter/grab opportunity. Timing tightens with difficulty. No giant UI.
+- Grunts remain easier to stagger; Jackal shields reward angles; shielded Elites
+  withstand combinations and answer flurries; Hunters keep armor/heavy rules.
+  Bullets and global NPC health are unchanged. Native reactions, bounded living
+  knockdowns and Jolt death ragdolls remain distinct.
+
+## Grabs, vehicles and parkour
+
+NPC grabs choose a point on the touched skeletal segment once, then retain it
+until release. Fingers close on the hold. The visible hand eases toward contact
+with the existing 6 cm controller displacement cap to prevent arm stretching.
+Allies remain grabbable; heavy two-hand requirements and release/recovery remain.
+The accepted vehicle behavior and curved-wall parkour are preserved.
+
+## Optional campaigns: Prepare / verify mod files
+
+Under CUSTOM CAMPAIGNS choose SPV1 or The Altheros Experience:
+
+1. Tap **Prepare / verify mod files**. The launcher creates the folders and
+   installs the app's own setup recipe. It checks files already present.
+2. Import your extracted campaign folder. SPV1 also accepts the original PC
+   Halo Custom Edition bitmaps.map, sounds.map and loc.map in that folder, or
+   through the separate multi-file picker. Altheros takes its .yelo files and
+   data_files; the launcher renames its resource files correctly.
+3. Tap **Install** once all required files are present. SPV1 can still download
+   missing maps from its existing HaloMaps source. Valid local files are reused.
+4. Use the normal in-game campaign menu. **Play the original campaign** restores
+   the base maps and keeps mod files for switching later. Start a fresh level
+   after switching campaigns; checkpoints belong to their original campaign.
+
+Included: our setup recipes, folder preparation, SHA-256 reference fingerprints,
+installation and restore code. No Halo game files or mod assets are bundled.
+Required: your complete supported mod version and its resource maps. Each panel
+explains the source/version and lists missing files. Size and SHA-256 are checked
+before newly prepared content is installed. A mismatch is an error, not proof
+that some other mod/version can never work. Select the supported files again to
+repair; base maps and existing valid imports are preserved on rejection.
+Altheros remains its author's 2019 beta with the existing level-specific notes.
+These file checks do not certify every level or modified map's runtime behavior.
+
+## What to test
+
+See TEST67-DEVICE-CHECKLIST.md. Weapon pose comfort, combat balance, feedback and
+campaign playthroughs still need device results. This candidate has not been
+installed or launched by the agent. Network/protocol and voice/audio are unchanged.
+
+---
+
+## Carried-forward Test66 features and controls
+
 # Test66 private candidate: 1.0.33-test66
 
 ## Test66: OpenCE Build 201, dynamic ragdolls, a second campaign mod

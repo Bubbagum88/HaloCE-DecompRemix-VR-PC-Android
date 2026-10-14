@@ -414,6 +414,99 @@ final class ModInstaller {
         return mod.dataFiles != null && modDataFiles(mod).isDirectory();
     }
 
+    /** Test67: app-authored recipes carry provenance and hashes, never game assets.
+     * Preparation is idempotent and only touches this mod's support directories. */
+    void prepare(Mod mod, InputStream bundledRecipe, Progress progress) throws IOException {
+        prepare(mod, bundledRecipe, progress, true);
+    }
+
+    void prepare(Mod mod, InputStream bundledRecipe, Progress progress, boolean verifyPresent) throws IOException {
+        java.util.Properties recipe = new java.util.Properties();
+        recipe.load(new java.io.InputStreamReader(bundledRecipe, StandardCharsets.UTF_8));
+        if (!mod.id.equals(recipe.getProperty("mod.id")) || !"1".equals(recipe.getProperty("recipe.version")))
+            throw new IOException("unsupported campaign setup recipe");
+        for (String name : requiredFiles(mod)) {
+            long[] size = new long[1];
+            if (importTarget(mod, name, size) == null ||
+                !Long.toString(size[0]).equals(recipe.getProperty("file." + name + ".size")) ||
+                !recipe.getProperty("file." + name + ".sha256", "").matches("[0-9a-f]{64}"))
+                throw new IOException("incomplete setup recipe for " + name);
+        }
+        File folder = modMaps(mod);
+        if (!folder.isDirectory() && !folder.mkdirs()) throw new IOException("cannot prepare " + folder);
+        if (mod.needsResources()) resourceDirectoryMade();
+        else if (!modDataFiles(mod).isDirectory() && !modDataFiles(mod).mkdirs())
+            throw new IOException("cannot prepare resource folder");
+        File recipeFile = recipeFile(mod), partial = new File(recipeFile.getPath() + ".part");
+        try (java.io.Writer out = new java.io.OutputStreamWriter(new FileOutputStream(partial), StandardCharsets.UTF_8)) {
+            recipe.store(out, "HaloCE-Quest-VR setup metadata only; no game assets");
+        }
+        Files.move(partial.toPath(), recipeFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        if (verifyPresent) validatePrepared(mod, false, progress);
+        progress.report("Setup prepared. Included: folder setup, file checks and installation support. "
+            + "Game/mod assets are supplied separately. Still needed: " + missingForSetup(mod), 1000);
+    }
+
+    private File recipeFile(Mod mod) {
+        return new File(new File(modsDirectory(), mod.id), "support.properties");
+    }
+
+    private String[] requiredFiles(Mod mod) {
+        java.util.ArrayList<String> names = new java.util.ArrayList<>();
+        for (ModMap map : mod.maps) names.add(map.name + mod.extension);
+        for (int t = 0; t < 3; t++) names.add(mod.needsResources() ? RESOURCE_NAMES[t] + ".map" : dataFileName(mod, t));
+        return names.toArray(new String[0]);
+    }
+
+    String missingForSetup(Mod mod) {
+        String missing = missingImports(mod);
+        if (mod.needsResources() && !missingResources().isEmpty())
+            missing += (missing.isEmpty() ? "" : ", ") + missingResources();
+        return missing.isEmpty() ? "none" : missing;
+    }
+
+    private String expectedHash(Mod mod, String name) throws IOException {
+        if (!recipeFile(mod).isFile()) return null; // older installations remain supported
+        java.util.Properties recipe = new java.util.Properties();
+        try (java.io.Reader in = new java.io.InputStreamReader(new FileInputStream(recipeFile(mod)), StandardCharsets.UTF_8)) {
+            recipe.load(in);
+        }
+        String hash = recipe.getProperty("file." + name + ".sha256");
+        if (hash == null || !hash.matches("[0-9a-f]{64}")) throw new IOException("prepare mod files again: missing hash for " + name);
+        return hash;
+    }
+
+    private static boolean hashMatches(File file, String expected) throws IOException {
+        if (expected == null) return true;
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            try (InputStream in = new BufferedInputStream(new FileInputStream(file), 1 << 16)) {
+                byte[] buffer = new byte[1 << 16]; int count;
+                while ((count = in.read(buffer)) != -1) digest.update(buffer, 0, count);
+            }
+            StringBuilder actual = new StringBuilder();
+            for (byte b : digest.digest()) actual.append(String.format(java.util.Locale.ROOT, "%02x", b & 255));
+            return actual.toString().equals(expected);
+        } catch (java.security.NoSuchAlgorithmException exception) { throw new IOException(exception); }
+    }
+
+    void validatePrepared(Mod mod, boolean requireAll, Progress progress) throws IOException {
+        for (String name : requiredFiles(mod)) {
+            long[] expected = new long[1]; File file = importTarget(mod, name, expected);
+            if (!file.isFile() && installed(mod)) file = new File(
+                mod.dataFiles != null && name.startsWith(mod.dataFiles + "-") ? gameDataFiles() : gameMaps(), name);
+            if (mod.needsResources()) for (int t = 1; t <= 3; t++)
+                if (name.equals(RESOURCE_NAMES[t - 1] + ".map") && presentResource(t) != null) file = presentResource(t);
+            if (!file.isFile()) {
+                if (requireAll) throw new IOException("missing " + name);
+                continue;
+            }
+            progress.report("Checking " + name + "...", -1);
+            if (file.length() != expected[0] || !hashMatches(file, expectedHash(mod, name)))
+                throw new IOException(name + " does not match the supported version (size/SHA-256). Import the complete original mod file again.");
+        }
+    }
+
     /** Downloads what is missing, then swaps the mod's maps in. */
     void install(Mod mod, Progress progress) throws IOException {
         File maps = modMaps(mod);
@@ -423,12 +516,12 @@ final class ModInstaller {
             return;
         // Test66: one campaign mod at a time: another in the game goes back out first
         Mod other = installedMod();
-        if (other != null && other != mod)
-            restore(other, progress);
         if (mod.imported) {
             if (!downloaded(mod))
                 throw new IOException("import " + mod.title + "'s folder first");
             progress.report("Swapping the campaign's maps for " + mod.title + "...", 1000);
+            validatePrepared(mod, true, progress);
+            if (other != null && other != mod) restore(other, progress);
             swapIn(mod);
             return;
         }
@@ -445,6 +538,8 @@ final class ModInstaller {
             done += map.size;
         }
         progress.report("Swapping the campaign's maps for " + mod.title + "...", 1000);
+        validatePrepared(mod, true, progress);
+        if (other != null && other != mod) restore(other, progress);
         swapIn(mod);
     }
 
@@ -696,6 +791,12 @@ final class ModInstaller {
                     expected[0] = ALTHEROS_DATA_SIZES[type];
                     return new File(modDataFiles(mod), dataFileName(mod, type));
                 }
+        if (mod.needsResources())
+            for (int type = 1; type <= 3; type++)
+                if (lower.equals(RESOURCE_NAMES[type - 1] + ".map")) {
+                    expected[0] = RESOURCE_SIZES[type - 1];
+                    return resourceFile(type);
+                }
         return null;
     }
 
@@ -705,7 +806,7 @@ final class ModInstaller {
         File directory = target.getParentFile();
         File partial = new File(target.getPath() + ".part");
 
-        if (target.isFile() && target.length() == expected)
+        if (target.isFile() && target.length() == expected && hashMatches(target, expectedHash(mod, target.getName())))
             return;
         if (installed(mod))
             throw new IOException(mod.title + " is in the game: restore the original campaign before importing again");
@@ -719,6 +820,7 @@ final class ModInstaller {
             while ((read = in.read(buffer)) > 0) {
                 out.write(buffer, 0, read);
                 written += read;
+                if (written > expected) throw new IOException(label + " exceeds the supported file size");
                 if (written - reported > (8 << 20)) {
                     reported = written;
                     progress.report(label + ": " + (written >> 20) + " of " + (expected >> 20) + " MB",
@@ -731,8 +833,11 @@ final class ModInstaller {
             partial.delete();
             throw new IOException(target.getName() + " is " + size + " bytes, not the " + expected + " expected");
         }
-        if (!partial.renameTo(target))
-            throw new IOException("cannot keep " + target);
+        if (!hashMatches(partial, expectedHash(mod, target.getName()))) {
+            partial.delete();
+            throw new IOException(target.getName() + " failed SHA-256 verification; existing files preserved");
+        }
+        Files.move(partial.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
 
     /** Test66: what an imported mod still lacks, for the player. */

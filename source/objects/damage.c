@@ -1494,7 +1494,8 @@ void object_cause_damage(
 	/* Test66: an enemy's blow blocked (most of it stopped) or parried
 	(none of it, nothing dealt) by the assisted fists' player */
 	{
-		real share = vr_combat_defend(object_index, damage->owner_object_index);
+		real share = damage_definition->category == _damage_category_melee ?
+            vr_combat_defend(object_index, damage->owner_object_index) : 1.0f;
 
 		if (!(share > 0.0f))
 			return;
@@ -1814,7 +1815,10 @@ void object_cause_damage(
 
 				if (damage_definition->side_effect ==
 						_damage_side_effect_lethal_to_the_unsuspecting &&
-					unit_unsuspecting(current_object_index, &damage->epicenter) &&
+#ifdef HALO_VR
+                    !vr_combat_regular_blow(damage->owner_object_index, current_object_index) &&
+#endif
+                    unit_unsuspecting(current_object_index, &damage->epicenter) &&
 					!TEST_FLAG(
 						current_object->object.damage_flags,
 						_object_cannot_take_damage_bit))

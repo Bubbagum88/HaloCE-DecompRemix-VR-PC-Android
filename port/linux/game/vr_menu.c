@@ -334,7 +334,7 @@ deaths; the flat build's Graphics > PHYSICS row is the same setting */
 #define VR_IMMERSION_RAGDOLL_RANGE { "RAGDOLL RANGE", "vr.death_ragdoll_range", _vr_setting_real, 4, { { "20 M", "20" }, { "40 M", "40" }, { "60 M", "60" }, { "80 M", "80" } } }
 #define VR_IMMERSION_DEATH_FORCE { "DEATH FORCE", "vr.death_force", _vr_setting_string, 3, { { "CLASSIC", "classic" }, { "STRONG", "strong" }, { "HUGE", "huge" } } }
 #define VR_IMMERSION_HAPTICS { "HAPTICS", "vr.haptics", _vr_setting_real, 11, { { "0%", "0.0" }, { "10%", "0.1" }, { "20%", "0.2" }, { "30%", "0.3" }, { "40%", "0.4" }, { "50%", "0.5" }, { "60%", "0.6" }, { "70%", "0.7" }, { "80%", "0.8" }, { "90%", "0.9" }, { "100%", "1.0" } } }
-#define VR_IMMERSION_SPRINT_SPEED { "SPRINT SPEED", "vr.sprint_speed", _vr_setting_real, 6, { { "1.0X", "1.0" }, { "1.1X", "1.1" }, { "1.2X", "1.2" }, { "1.3X", "1.3" }, { "1.4X", "1.4" }, { "1.5X", "1.5" } } }
+#define VR_IMMERSION_SPRINT_SPEED { "SPRINT SPEED", "vr.sprint_speed", _vr_setting_real, 12, { { "1.0X", "1.0" }, { "1.1X", "1.1" }, { "1.2X", "1.2" }, { "1.3X", "1.3" }, { "1.4X", "1.4" }, { "1.5X", "1.5" }, { "1.75X", "1.75" }, { "2.0X", "2.0" }, { "2.25X", "2.25" }, { "2.5X", "2.5" }, { "2.75X", "2.75" }, { "3.0X", "3.0" } } }
 /* Test55: calibration: where the pouches and holsters sit (1 cm steps,
 +-20 cm; a blue marker shows each zone while these rows are on screen) */
 /* Test56: how far past HAND CONTACT a hand still takes a charging handle or

@@ -776,13 +776,13 @@ static const struct config_setting config_settings[] =
         "PULL STYLE: \"flick\" (squeeze on the weapon, then snap the hand back, as Alyx's gloves) or \"grip\" (squeeze on it for about half a second)." },
     { "vr.weapon_pull_glow", _config_boolean, "true", "HALO_VR_WEAPON_PULL_GLOW", _environment_value, _platform_vr,
         "PULL GLOW: the weapon a hand can pull is outlined (pulsing; brighter while it flies to the hand)." },
-    { "vr.combat_lunge_reach", _config_real, "6.0", "HALO_VR_COMBAT_LUNGE_REACH", _environment_value, _platform_vr,
+    { "vr.combat_lunge_reach", _config_real, "8.0", "HALO_VR_COMBAT_LUNGE_REACH", _environment_value, _platform_vr,
         "LUNGE (FIST COMBAT): how far a punch carries you to the enemy you look at or throw it at, in metres (Arkham Shadow's punch across the room: a dash up to 10 m/s, the blow landing on arrival); 0 keeps FIST REACH's short step only." },
     { "vr.combat_enemy_health", _config_real, "3.0", "HALO_VR_COMBAT_ENEMY_HEALTH", _environment_value, _platform_vr,
         "ENEMY HEALTH (FIST COMBAT): enemies take this many times more punches, so fights flow as combos (each hit in a row adds 8%, up to +80%); takedowns, guns and grenades are unchanged." },
     { "vr.combat_counters", _config_boolean, "true", "HALO_VR_COMBAT_COUNTERS", _environment_value, _platform_vr,
         "COUNTERS (FIST COMBAT): an enemy swinging at you shows a blue warning over its head and taps both hands; a punch toward it counters (its blow undone, it is knocked down, the combo goes on)." },
-    { "vr.combat_reach", _config_real, "2.5", "HALO_VR_COMBAT_REACH", _environment_value, _platform_vr,
+    { "vr.combat_reach", _config_real, "3.0", "HALO_VR_COMBAT_REACH", _environment_value, _platform_vr,
         "How far from the eyes a punch picks an enemy (metres, 0.75..3); short of striking range a short step closes the gap." },
     { "vr.physical_grenades", _config_boolean, "false", "HALO_VR_PHYSICAL_GRENADES", _environment_value, _platform_vr,
         "Grab a chest grenade with a free hand and release Grip to throw. Local play and co-op host only; buttons remain available." },
@@ -949,7 +949,7 @@ static const struct config_setting config_settings[] =
 	{ "vr.arm_run", _config_boolean, "false", "HALO_VR_ARM_RUN", _environment_value, _platform_vr,
 		"Run by swinging the arms as in running, ahead where the head faces, as\n"
 		"fast as the swing (both arms; holding the gun in both hands, the gun's\n"
-		"bob). Offline, strong forward pumping raises movement speed up to 1.5x.\n"
+		"bob). Offline, strong forward pumping uses SPRINT SPEED (1x to 3x; default 1.5x).\n"
 		"Network games retain stock speed. Deliberate stick movement takes priority." },
 	{ "vr.arm_run_speed", _config_real, "0.6", "HALO_VR_ARM_RUN_SPEED", _environment_value, _platform_vr,
 		"With vr.arm_run: hand-motion threshold in metres per second. This is\n"
@@ -961,7 +961,7 @@ static const struct config_setting config_settings[] =
 		"When Button Sprint is enabled, click left stick once to start sprinting\n"
 		"and click again to stop. Off keeps the hold-to-sprint behavior." },
 	{ "vr.sprint_speed", _config_real, "1.5", "HALO_VR_SPRINT_SPEED", _environment_value, _platform_vr,
-		"Maximum offline sprint movement multiplier, bounded from 1.0x to 1.5x." },
+		"Maximum offline sprint movement multiplier, bounded from 1.0x to 3.0x; default 1.5x." },
 	{ "vr.melee_requires_fist", _config_boolean, "false", "HALO_VR_MELEE_REQUIRES_FIST", _environment_value, _platform_vr,
 		"Physical melee requires grip and index trigger together; an active hand\n"
 		"interaction takes priority over physical melee." },

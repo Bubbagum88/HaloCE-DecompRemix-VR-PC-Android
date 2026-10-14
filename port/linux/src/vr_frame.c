@@ -877,7 +877,7 @@ void vr_reload_settings(void)
 		vr.arm_run_speed = 0.1f;
 	vr.sprint_speed = (float)config_real("vr.sprint_speed");
 	if (!isfinite(vr.sprint_speed)) vr.sprint_speed = 1.0f;
-	vr.sprint_speed = fminf(1.5f, fmaxf(1.0f, vr.sprint_speed));
+	vr.sprint_speed = fminf(3.0f, fmaxf(1.0f, vr.sprint_speed));
 	vr.flashlight_distance = (float)config_real("vr.flashlight_distance");
 	/* test26: the head taps' reach (0 off), bounded */
 	if (!(vr.flashlight_distance >= 0.0f)) vr.flashlight_distance = 0.0f;
@@ -1043,7 +1043,7 @@ void vr_initialize(void)
 		return;
 	vr.initialized = 1;
 	config_vr_vehicle_defaults();
-	platform_log("vr: HaloCE Quest test66 candidate 1.0.33-test66 code78 (OpenCE Build201 merged / network28 (hosts 28, joins 11-28, All compatible by default); map sharing (host-sent over the internet), votes to kick, Server Setup sub-screens, display options, dynamic ragdolls (Jolt in the host); voice unchanged; test66: Warthog eyes held per seat and the wheel turned past half a circle; IMMERSION VEHICLES; LEFT-HAND MODE; reload grip poses and mag-well assist; fist ENEMY HEALTH, block/parry, enemy kinds, airborne lunge; grab assist from the body surface; held bodies kept; wall runs on curved walls; OBJECT THROW; waist grenades; WEAPON PULL gravity gloves; custom campaigns SPV1 and The Altheros Experience; device acceptance pending)");
+	platform_log("vr: HaloCE Quest test67 candidate 1.0.34-test67 code79 (OpenCE Build201 merged / network28 (hosts 28, joins 11-28, All compatible by default); map sharing (host-sent over the internet), votes to kick, Server Setup sub-screens, display options, dynamic ragdolls (Jolt in the host); voice unchanged; test66: Warthog eyes held per seat and the wheel turned past half a circle; IMMERSION VEHICLES; LEFT-HAND MODE; reload grip poses and mag-well assist; fist ENEMY HEALTH, block/parry, enemy kinds, airborne lunge; grab assist from the body surface; held bodies kept; wall runs on curved walls; OBJECT THROW; waist grenades; WEAPON PULL gravity gloves; custom campaigns SPV1 and The Altheros Experience; test67: stable authored AR/pistol/shell/tube grips; sniper grip preserved; 3x sprint range; skeletal surface grabs; deliberate fist strokes and difficulty-scaled melee; readable parry; empty-hand reticle hidden; verified campaign setup recipes; device acceptance pending)");
 	platform_log("vr: retained baseline history: HaloCE Quest test30 candidate 1.0.12 (the menus' face buttons as the Xbox's of the same letter: X deletes a profile; the co-op host's server name; test29: OpenCE build 144 netcode, network 21; the HUD head tap held by the temple, HUD and head tap on the HUD page, wrist HUD on the wrist and movable, moving with a hand while holding the gun in both, glasses FOV and resolution to 200%% (PR #1); test28: co-op games entered in progress keep their camera upright, release checks as OpenCE ships, co-op hosted for 2 to 128 players as OpenCE's Server Setup offers, gyro aim on phones as an option; test27: OpenCE build 138 netcode, network 20, with its co-op for up to 16 players; test26: co-op: death screams no longer stop the second player, cutscene characters placed and animated as on the first; HUD head tap, reticle toggle on the left stick click with crouch on the turning stick held down (or crouch kept on the click: Controls), optional wrist HUD, adjustable head taps; impact melee along the gun with a follow-through; fingers bend smoothly against walls; test25: vehicle seat and recentre diagnostics, first-person horizon option and seat glass, settings rows that fit, vehicle offset reset; test24b: comfort vignette, smooth speed and snap angle, SPV1 compatibility note; test24: co-op cutscenes animate for the second player; test23: remappable Quest buttons with the grenade on X; test22: co-op campaign host crash fixed, steady first-person vehicle view, left-hand ammo display, adjustable scopes, shot diagnostics; test21b: floating hands restored, torso-following arms, neck-pivot full body, auto two-hand lock, horn, online melee off, two-hand gun roll, pistol shots from the hand, reticle converges as shots do, per-gun aim, horn from either stick)");
 	if (!config_boolean("vr.enabled"))
 	{
@@ -4128,7 +4128,10 @@ void vr_set_reticle_world(const float anchor[3], const float hit[3])
 
 int vr_crosshair_enabled(void)
 {
-	return vr.crosshair_enabled && vr.crosshair_opacity > 0.0f && !vr.reticle_hidden;
+	/* A holstered gun still has a native HUD. Empty fists must not display
+	 * that weapon reticle; mounted weapons retain their aiming reticle. */
+	return vr.crosshair_enabled && vr.crosshair_opacity > 0.0f && !vr.reticle_hidden &&
+		(!vr_hand_empty() || vr.seated);
 }
 
 int vr_hud_hidden(void)

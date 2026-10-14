@@ -12,9 +12,13 @@ int vr_extra_feedback_active(int hand);
 real_matrix4x3 *vr_combat_render(long unit,real_matrix4x3 *stock);
 int vr_combat_enabled(void);
 int vr_combat_stunned(long unit);
-void vr_combat_punch(long unit,int hand,real_point3d const *point,real_vector3d const *sweep);
+int vr_combat_punch(long unit,int hand,real_point3d const *point,real_vector3d const *sweep);
 real vr_combat_hit(long unit,long target,real_point3d const *point,real_vector3d const *direction,real scale,boolean armed);
 real vr_combat_damage_share(void);
+int vr_combat_regular_blow(long owner,long target);
+void vr_combat_damage_end(void);
+void vr_combat_swing_hit(int hand);
+void unit_vr_guard_feedback(long unit,boolean parry);
 real vr_combat_defend(long victim,long attacker);
 /* Test65: an enemy's swing begun (a counter window); a hit the player took
  * (breaks the combo); units.c: the blow a lunge or counter carries */

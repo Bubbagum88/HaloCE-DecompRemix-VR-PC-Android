@@ -404,6 +404,31 @@ static int npc_body_touch(struct vr_articulated_native const *rig,real_point3d c
        rig->body.nodes[best].parent!=other_node)best=rig->body.nodes[best].parent;
     return best;
 }
+/* Choose once at acquisition: a point on the touched skeletal capsule, not
+ * the possibly distant controller position allowed by GRAB ASSIST. The
+ * bone-local offset then rotates with that same articulated segment. */
+static boolean npc_contact_surface(struct vr_articulated_native const *rig,int node,
+    real_point3d const *hand,real units,real_point3d *contact)
+{
+    real_vector3d axis,radial;real_point3d a,b,on;real length2,t,radius;
+    int parent;
+    if(!rig||node<=0||node>=rig->body.count||!valid_real_point3d(hand)||!(units>0))return FALSE;
+    parent=rig->body.nodes[node].parent;
+    if(parent<0||parent>=rig->body.count)return FALSE;
+    memcpy(a.n,rig->body.nodes[parent].position,sizeof(a.n));
+    memcpy(b.n,rig->body.nodes[node].position,sizeof(b.n));
+    if(!valid_real_point3d(&a)||!valid_real_point3d(&b))return FALSE;
+    vector_from_points3d(&a,&b,&axis);length2=dot_product3d(&axis,&axis);
+    vector_from_points3d(&a,hand,&radial);
+    t=length2>1e-8f?PIN(dot_product3d(&radial,&axis)/length2,0,1):1;
+    point_from_line3d(&a,&axis,t,&on);
+    vector_from_points3d(&on,hand,&radial);
+    if(normalize3d(&radial)<.0001f)radial=rig->captured[node].forward;
+    radius=rig->body.nodes[node].radius;
+    if(!isfinite(radius)||radius<=0)return FALSE;
+    point_from_line3d(&on,&radial,radius,contact);
+    return valid_real_point3d(contact);
+}
 static void surface_offset(int hand,real_vector3d *offset)
 {
     matrix4x3_transform_vector(&npc.rig.captured[npc.node[hand]],&npc.offset[hand],offset);
@@ -995,6 +1020,9 @@ static void tick_player(int use_remote,long player)
                 node=npc_contact_node(&destination->rig,(short)node,&contact,units,
                     destination->held[1-h]?destination->node[1-h]:NONE,&mapped);
                 if(node==NONE){++node_rejects;continue;}
+                if(!npc_contact_surface(&destination->rig,node,&point,units,&contact)){
+                    ++node_rejects;continue;
+                }
                 if(!use_remote&&!vr_interaction_claim(h,VR_INTERACTION_NPC)) break;
                 {
                     real_vector3d velocity=npc.velocity[h];
@@ -1008,6 +1036,8 @@ static void tick_player(int use_remote,long player)
                 if(!npc.held[0]&&!npc.held[1]) npc.grab_tick=tick;
                 npc.grab_point[h]=point;
                 npc.active=1;npc.index=it.index;npc.node[h]=node;npc.held[h]=1;npc.root=candidate->object.position;
+                platform_log("VR NPC: latched body segment actor=%08lx hand=%d node=%d contact=(%.3f,%.3f,%.3f); held until release",
+                    it.index,h,node,(float)contact.x,(float)contact.y,(float)contact.z);
                 object_activate(it.index);object_set_garbage(it.index,FALSE);
                 if(!existing) {
                     npc.restraint_root=candidate->object.position;
