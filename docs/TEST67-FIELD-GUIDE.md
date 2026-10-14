@@ -154,8 +154,8 @@ These file checks do not certify every level or modified map's runtime behavior.
 
 Everything from the fork by jcompto95-tech (HALOFREAK95 on YouTube) is in. Every
 visual option starts off (or Classic), so the game looks as before until you
-choose otherwise. Most live in a new screen: **Settings > Video Setup > EXTRA
-EFFECTS**. The flat game's settings screens are also reachable in the headset.
+choose otherwise. Most live in a new screen:
+**Settings > Video Setup > EXTRA EFFECTS**.
 
 | Option | Where | What it does |
 | --- | --- | --- |
