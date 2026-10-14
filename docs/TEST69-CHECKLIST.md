@@ -60,8 +60,8 @@ Owner's report (2026-10-14): "altheros still gives a blue screen, investigate"
   converter, as the headset did). Full suite: 145 suites passed before the
   identity change.
 - [x] docs/custom_edition_caches.md updated.
-- [ ] Full suite, both builds, package identity/signature/hash checks.
-- [ ] Delivery record, memory, local commits.
+- [x] Both builds: 145 suites each; exact APK identity/signature/native audit and packaging preflight passed. Final packaging repeats checks with the completed delivery record.
+- [x] Delivery record completed; local runtime and delivery commits. Continuity memory updated at delivery.
 
 ## Not known until the headset
 

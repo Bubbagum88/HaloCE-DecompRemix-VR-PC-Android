@@ -1,5 +1,10 @@
 ## Active private Test69 (2026-10-14)
 
+Packaged candidate: `D:\HaloQuest\builds\test69-20261014-v1.0.36-test69`.
+Runtime `03c364ea`; both 145-suite build runs passed.
+See the delivery record for hashes and pending device checks; this is not
+headset acceptance.
+
 Test68 + The Altheros Experience's scripts, 1.0.36-test69 / code81. Read
 docs/TEST69-CHECKLIST.md, TEST69-FIELD-GUIDE.md, TEST69-DEVICE-CHECKLIST.md and
 TEST69-DELIVERY-STATUS.md. Owner: Altheros "still gives a blue screen"; the
