@@ -711,7 +711,13 @@ static int owns(long index)
     }
     return TRUE;
 }
-int vr_npc_interaction_owned(long index) {return owns(index)&&npc.started;}
+int vr_npc_interaction_owned(long index)
+{
+    struct npc_state *saved=npc_current;
+    int result=owns(index)&&npc.started;
+    npc_current=saved;
+    return result;
+}
 /* Test66: whether a hand's state (held, thrown, knocked down, settling) has
 this body, for OpenCE's ragdolls (ragdoll.c), which leave it alone. No side
 effects: it neither validates nor cancels the state. */
@@ -754,6 +760,27 @@ int vr_npc_interaction_hand(int hand,float point[3])
 long vr_npc_interaction_object(int hand)
 {
     float point[3];return vr_npc_interaction_hand(hand,point)?npc.index:NONE;
+}
+int vr_npc_interaction_contact(int hand,long *object,short *node,float point[3])
+{
+    struct npc_state *saved=npc_current;
+    int result=FALSE;
+    if(hand<0||hand>1||!object||!node||!point||!authority()||!feature_enabled())return FALSE;
+    for(int n=0;n<NPC_POOL_SIZE;n++){
+        struct npc_state *state=&npc_pool[n];real_vector3d offset;real_point3d contact;
+        if(!state->active||state->is_remote||!state->held[hand]||!continuable(state->index)||
+           state->rig.body.count<=0||state->rig.body.count>VR_ARTICULATED_NODES||
+           state->node[hand]<=0||state->node[hand]>=state->rig.body.count)continue;
+        npc_current=state;surface_offset(hand,&offset);
+        for(int k=0;k<3;k++)contact.n[k]=state->rig.body.nodes[state->node[hand]].position[k]+offset.n[k];
+        if(valid_real_point3d(&contact)){
+            *object=state->index;*node=(short)state->node[hand];
+            memcpy(point,contact.n,sizeof(contact.n));result=TRUE;
+        }
+        break;
+    }
+    npc_current=saved;
+    return result;
 }
 int vr_npc_interaction_remote_contact(long player,int hand,long *object,float point[3])
 {

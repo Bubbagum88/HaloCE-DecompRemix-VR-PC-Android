@@ -76,7 +76,7 @@ typedef char verify_custom_edition_validator_cache_size[
 words, then the samples, then the index */
 #define AUDIO_CACHE_EXTENSION ".audio"
 #define AUDIO_CACHE_SIGNATURE 0x44415848UL /* "HXAD" */
-#define AUDIO_CACHE_VERSION 2 /* 2: 65 frames an Xbox ADPCM block (audio_codecs.c) */
+#define AUDIO_CACHE_VERSION 3 /* 3: records the source sounds' combined offset */
 #define AUDIO_CACHE_HEADER_BYTES 64
 enum
 {
@@ -87,6 +87,7 @@ enum
 	_audio_cache_entry_count,
 	_audio_cache_index_offset,
 	_audio_cache_complete,
+	_audio_cache_sounds_offset,
 	NUMBER_OF_AUDIO_CACHE_HEADER_WORDS
 };
 
@@ -146,6 +147,7 @@ struct custom_edition_cache_globals
 	struct custom_edition_audio_cache audio;
 	struct custom_edition_file audio_file;
 	struct custom_edition_file resource_files[NUMBER_OF_RESOURCE_MAP_TYPES];
+	uint32_t sounds_offset;
 	struct resource_map resource_map_storage[NUMBER_OF_RESOURCE_MAP_TYPES];
 	struct resource_map *resource_maps[NUMBER_OF_RESOURCE_MAP_TYPES];
 	byte read_staging[READ_STAGING_BYTES];
@@ -156,6 +158,28 @@ struct custom_edition_cache_globals
 static struct custom_edition_cache_globals custom_edition_cache_globals;
 
 /* ---------- private code */
+
+/* Keep the historical layout for ordinary resource maps. Large bitmap
+files may use the spare space before the sounds, provided BOTH files fit
+in the same signed 31-bit offset space. This changes offsets, not memory
+allocation: resource contents are still read from their files on demand. */
+static boolean custom_edition_resource_layout(
+	uint32_t bitmaps_bytes,
+	uint32_t sounds_bytes,
+	uint32_t *sounds_offset)
+{
+	uint32_t offset;
+
+	if (bitmaps_bytes > COMBINED_OFFSET_LIMIT - COMBINED_BITMAPS_OFFSET)
+		return FALSE;
+	offset = COMBINED_BITMAPS_OFFSET + bitmaps_bytes;
+	if (offset < COMBINED_SOUNDS_OFFSET)
+		offset = COMBINED_SOUNDS_OFFSET;
+	if (sounds_bytes > COMBINED_OFFSET_LIMIT - offset)
+		return FALSE;
+	*sounds_offset = offset;
+	return TRUE;
+}
 
 static int custom_edition_file_read(
 	void *context,
@@ -409,10 +433,10 @@ static boolean combined_read(
 	struct custom_edition_file *file = &globals->map;
 	uint32_t file_offset = offset;
 
-	if (offset >= COMBINED_SOUNDS_OFFSET)
+	if (offset >= globals->sounds_offset)
 	{
 		file = &globals->resource_files[_resource_map_sounds];
-		file_offset = offset - COMBINED_SOUNDS_OFFSET;
+		file_offset = offset - globals->sounds_offset;
 	}
 	else if (offset >= COMBINED_AUDIO_OFFSET)
 	{
@@ -441,7 +465,10 @@ static void audio_cache_open(
 	if (audio->stream &&
 		fread(header, 1, sizeof(header), audio->stream) == sizeof(header) &&
 		audio_cache_word(header, _audio_cache_signature) == AUDIO_CACHE_SIGNATURE &&
-		audio_cache_word(header, _audio_cache_version) == AUDIO_CACHE_VERSION &&
+		((audio_cache_word(header, _audio_cache_version) == AUDIO_CACHE_VERSION &&
+		  audio_cache_word(header, _audio_cache_sounds_offset) == globals->sounds_offset) ||
+		 (audio_cache_word(header, _audio_cache_version) == 2 &&
+		  globals->sounds_offset == COMBINED_SOUNDS_OFFSET)) &&
 		audio_cache_word(header, _audio_cache_map_size) == audio->map_size &&
 		audio_cache_word(header, _audio_cache_map_checksum) == audio->map_checksum &&
 		audio_cache_word(header, _audio_cache_complete) == 1 &&
@@ -614,6 +641,7 @@ static void audio_cache_finish(
 		audio_cache_set_word(header, _audio_cache_version, AUDIO_CACHE_VERSION);
 		audio_cache_set_word(header, _audio_cache_map_size, audio->map_size);
 		audio_cache_set_word(header, _audio_cache_map_checksum, audio->map_checksum);
+		audio_cache_set_word(header, _audio_cache_sounds_offset, globals->sounds_offset);
 		audio_cache_set_word(header, _audio_cache_entry_count, (uint32_t)audio->entry_count);
 		audio_cache_set_word(header, _audio_cache_index_offset, audio->end);
 		/* complete only when every sound converted: a failure is retried
@@ -700,7 +728,7 @@ static boolean custom_edition_cache_tags_validate(
 	}
 	if (globals->resource_files[_resource_map_sounds].stream)
 	{
-		ranges[range_count].offset = COMBINED_SOUNDS_OFFSET;
+		ranges[range_count].offset = globals->sounds_offset;
 		ranges[range_count++].size = globals->resource_files[_resource_map_sounds].source.size;
 	}
 	if (!tag_validate_custom_edition_tags(
@@ -737,7 +765,7 @@ static boolean custom_edition_cache_tags_convert(
 		tag_cache,
 		loaded_bytes,
 		COMBINED_BITMAPS_OFFSET,
-		COMBINED_SOUNDS_OFFSET);
+		custom_edition_cache_globals.sounds_offset);
 	/* Ogg Vorbis sounds made Xbox ADPCM ones (<map>.audio) as they are
 	converted */
 	custom_edition_cache_set_sound_transcoder(audio_cache_transcode, &custom_edition_cache_globals.audio);
@@ -1161,14 +1189,24 @@ struct cache_file_tag_header *custom_edition_cache_tags_load(
 
 	/* the combined offset space serves bitmaps.map and sounds.map after the
 	map itself */
-	if ((globals->resource_files[_resource_map_bitmaps].stream &&
-		globals->resource_files[_resource_map_bitmaps].source.size > COMBINED_SOUNDS_OFFSET - COMBINED_BITMAPS_OFFSET) ||
-		(globals->resource_files[_resource_map_sounds].stream &&
-		globals->resource_files[_resource_map_sounds].source.size > COMBINED_OFFSET_LIMIT - COMBINED_SOUNDS_OFFSET))
+	if (!custom_edition_resource_layout(
+		globals->resource_files[_resource_map_bitmaps].stream ? globals->resource_files[_resource_map_bitmaps].source.size : 0,
+		globals->resource_files[_resource_map_sounds].stream ? globals->resource_files[_resource_map_sounds].source.size : 0,
+		&globals->sounds_offset))
 	{
-		error(_error_silent, "custom edition: a resource map is too large for this loader");
+		error(_error_silent, "custom edition: resource maps exceed the combined offset space (bitmaps %lu bytes, sounds %lu bytes)",
+			(unsigned long)globals->resource_files[_resource_map_bitmaps].source.size,
+			(unsigned long)globals->resource_files[_resource_map_sounds].source.size);
 		custom_edition_cache_files_close();
 		return NULL;
+	}
+	if (globals->sounds_offset != COMBINED_SOUNDS_OFFSET)
+	{
+		error(_error_silent, "custom edition: large resource layout: bitmaps at 0x%08lX (%lu bytes), sounds at 0x%08lX (%lu bytes)",
+			(unsigned long)COMBINED_BITMAPS_OFFSET,
+			(unsigned long)globals->resource_files[_resource_map_bitmaps].source.size,
+			(unsigned long)globals->sounds_offset,
+			(unsigned long)globals->resource_files[_resource_map_sounds].source.size);
 	}
 
 	status = custom_edition_cache_load(
@@ -1272,10 +1310,10 @@ void custom_edition_cache_read(
 	long read_bytes;
 	boolean read;
 
-	if ((unsigned long)offset >= COMBINED_SOUNDS_OFFSET)
+	if ((unsigned long)offset >= globals->sounds_offset)
 	{
 		file = &globals->resource_files[_resource_map_sounds];
-		file_offset = (unsigned long)offset - COMBINED_SOUNDS_OFFSET;
+		file_offset = (unsigned long)offset - globals->sounds_offset;
 	}
 	else if ((unsigned long)offset >= COMBINED_BITMAPS_OFFSET)
 	{

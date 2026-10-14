@@ -40,6 +40,8 @@ built from the game's camera and the headset's pose (port/linux/src/vr.h).
 #include "physics/collision_bsp.h"
 #include "vr_parkour.h"
 #include "vr_extra_interaction.h"
+#include "vr_combat_moves.h"
+#include "vr_projectile_parry.h"
 #include "vr_weapon_pickup.h"
 #include "vr_contact_math.h"
 #include "vr_world_interaction.h"
@@ -56,7 +58,7 @@ void platform_log(const char *format, ...);
 boolean network_game_distributed_client(void);
 static boolean vr_body_setting(void);
 static unsigned long vr_contact_epoch;
-void vr_render_reset_contacts(void) { ++vr_contact_epoch; vr_close_contact_reset(); }
+void vr_render_reset_contacts(void) { ++vr_contact_epoch; vr_close_contact_reset(); vr_combat_moves_reset(); vr_projectile_parry_reset(); }
 static struct {
 	unsigned long queries, gathers, ray_fallbacks, contact_hands;
 	int maximum_features;

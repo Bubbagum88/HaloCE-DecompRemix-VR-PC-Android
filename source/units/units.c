@@ -9498,6 +9498,13 @@ void unit_cause_player_melee_damage(
 }
 
 #ifdef HALO_VR
+static boolean unit_vr_impact_melee_target(
+	long unit_index,
+	real_point3d const *from,
+	real_vector3d const *sweep,
+	real scale, boolean weapon_hand, real radius,
+	long expected_target);
+
 /* Test65: the blow a fist combat lunge or counter carries, landed on
 arrival: the fist's own blow (unit_vr_impact_melee: the same damage, effects
 and combo), swept into `target` along `direction` from just outside it */
@@ -9527,7 +9534,7 @@ boolean unit_vr_combat_strike(
 	reach = target->object.bounding_sphere_radius + 0.25f * units;
 	point_from_line3d(&target->object.bounding_sphere_center, &along, -reach, &from);
 	scale_vector3d(&along, reach + 0.2f * units, &sweep);
-	return unit_vr_impact_melee(unit_index, &from, &sweep, scale, FALSE, 0.05f * units);
+	return unit_vr_impact_melee_target(unit_index, &from, &sweep, scale, FALSE, 0.05f * units, target_index);
 }
 
 /* port: a melee struck by the headset's hand (port/linux/game/vr_render.c,
@@ -9543,6 +9550,16 @@ boolean unit_vr_impact_melee(
 	real_point3d const *from,
 	real_vector3d const *sweep,
 	real scale, boolean weapon_hand, real radius)
+{
+	return unit_vr_impact_melee_target(unit_index, from, sweep, scale, weapon_hand, radius, NONE);
+}
+
+static boolean unit_vr_impact_melee_target(
+	long unit_index,
+	real_point3d const *from,
+	real_vector3d const *sweep,
+	real scale, boolean weapon_hand, real radius,
+	long expected_target)
 {
 	struct unit_datum *unit = unit_get(unit_index);
 	struct unit_definition *unit_definition = unit_definition_get(unit->definition_index);
@@ -9621,6 +9638,11 @@ boolean unit_vr_impact_melee(
 			hit_object_index = hit_object->object.parent_object_index;
 		}
 	}
+	/* A carried assisted blow belongs to the acquired enemy. The ordinary
+	physical sweep can hit its first obstruction; a synthetic lunge must never
+	transfer its damage, combo or reaction to a bystander or another object. */
+	if (expected_target != NONE && hit_object_index != expected_target)
+		return FALSE;
 	normalize3d(&direction);
 
 	/* Prefer the biped's authored unarmed effect for a fist. Some player

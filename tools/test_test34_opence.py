@@ -146,7 +146,7 @@ cache = read("port/linux/game/custom_edition_cache.c")
 assert '#include "tag_schema.h"' in cache
 load_validation = function(cache, "custom_edition_cache_tags_validate")
 for marker in ("report->identity.file_length", "COMBINED_AUDIO_OFFSET", "COMBINED_BITMAPS_OFFSET",
-               "COMBINED_SOUNDS_OFFSET", "tag_validate_custom_edition_tags(", "report->tag_cache_bytes"):
+               "globals->sounds_offset", "tag_validate_custom_edition_tags(", "report->tag_cache_bytes"):
     assert marker in load_validation, marker
 assert "report->identity.file_size" not in load_validation
 conversion = function(cache, "custom_edition_cache_tags_convert")

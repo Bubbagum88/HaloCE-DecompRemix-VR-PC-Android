@@ -42,6 +42,67 @@ settings. No uninstall is needed. No public release is being changed.
   Bullets and global NPC health are unchanged. Native reactions, bounded living
   knockdowns and Jolt death ragdolls remain distinct.
 
+## New combat options and gestures
+
+**VR SETTINGS > IMMERSION > FIST COMBAT** contains **COMBAT MOVES**. It works
+inside the existing optional FIST COMBAT mode. Enabling FIST COMBAT also enables
+COMBAT MOVES and DEFLECT SHOTS; each can be switched off separately afterward.
+If fist combat was already saved on, switch it off/on once to enable the new
+companions, or choose DEFLECT SHOTS directly. Your saved settings are not reset.
+
+| Action / cue | What to do |
+| --- | --- |
+| Cyan downward arrow below a cap | Duck your actual head about 20 cm after the sweep starts. Button crouch alone does not satisfy this physical dodge. |
+| Cyan sideways arrows | Physically sidestep about 22 cm from the incoming overhead/jab line during the windup. Native collision still applies. |
+| Cyan incoming chevrons | Counter by punching toward that attacker, or time an active hand/weapon parry. Several enemies can warn at once. |
+| Gold bent-arm mark | An earned arm-control opening: hold the actual arm and strike near the held contact with the free fist. Releasing gives at most one second of follow-up opportunity. |
+| Gold descending strike bars | Jump naturally and land a real downward punch to earn a brief pummel opening; continue deliberate downward punches. There is no forced mount, camera attachment or teleport. |
+| Cyan impact rays | A successful active parry/deflection, with a strong short pulse and native Halo impact sound. Amber rays indicate a reduced-damage block. |
+
+The original animations are procedural additions over Halo's own attack clips:
+sweeps, overheads, jabs, recoil and supported arm-clutch/kneeling reactions.
+Native hit-frame geometry, body collision and existing ragdoll/grab ownership
+remain authoritative. These are experimental combat refinements, not copied
+Batman animation assets. A held gun can actively parry an incoming melee attack;
+merely aiming it does not create a passive shield. Reloading, climbing, carrying
+an NPC or another exclusive hand interaction prevents that hand from parrying.
+HIT HIGHLIGHTS controls the optional visual combat cues.
+
+| Enemy | Combat behavior / opening rules |
+| --- | --- |
+| Grunt | Easier stagger and throw, sweeping/jabbing pressure, arm/pummel opportunities. Its stock rig lacks the wrist needed for the new kneel overlay, so it retains its native/physical reaction there. |
+| Jackal | Front shielding rewards attacking from side/rear or after an earned stagger. Arm control and pummel require that exposed angle/opening. |
+| Elite | Shields and counterattacks keep longer fights. Arm control/pummel require depleted shields or an earned opening. One-hand heavy restraint and two-hand lift remain. |
+| Hunter | Heavy overhead pressure and sidestep cues. Armor/heavy rules remain; no lightweight arm-control or pummel opening. |
+| Other/custom actors | Existing combat and native animation fallback; unsupported custom skeletons do not receive guessed new limb poses. |
+
+An opening belongs to its enemy: staggering A, switching to B, then returning to A
+keeps A's original short deadline. It does not start that deadline over. The
+new kneeling presentation stands aside while a held/thrown NPC's physics owns
+the body; it may therefore not appear on every earned opening.
+
+## Projectile deflection (including a gun in hand)
+
+**VR SETTINGS > IMMERSION > WEAPONS > DEFLECT SHOTS** is the separate toggle.
+It is also available on CONTROLS. It can remain enabled without FIST COMBAT.
+
+- Empty hand: hold **Grip + Trigger** and physically punch through a moving shot.
+- Hand holding a gun: deliberately swing that hand through the shot. Trigger is
+  not required; pointing or firing a stationary gun does not deflect anything.
+- Actual palm contact and a brisk stroke (at least 1.2 m/s) are required. The
+  return direction follows the physical stroke, not gaze or automatic aiming.
+- Covers native projectile objects, including moving bullets, plasma, Wraith/
+  Banshee shots, rockets and airborne/bouncing grenades. It does not turn a
+  hitscan attack into a projectile or unstick attached/settled grenades.
+- Faster rounds keep their speed; slow grenades gain the measured hand speed.
+  Fuses, arming, range limits and explosion behavior remain native. The shot's
+  damage credit/team transfers to the player. It may be deflected once per life.
+- A reload, grab, climb or other reserved hand cannot deflect. The supporting
+  offhand of a two-handed gun is excluded; the moving primary gun hand can parry.
+- New actions run only in solo or on a compatible co-op host with host VR actions
+  enabled and the existing capability checks satisfied. They are disabled for
+  ordinary PvP, stock/unready hosts and network clients. No wire protocol changes.
+
 ## Grabs, vehicles and parkour
 
 NPC grabs choose a point on the touched skeletal segment once, then retain it
@@ -73,14 +134,19 @@ explains the source/version and lists missing files. Size and SHA-256 are checke
 before newly prepared content is installed. A mismatch is an error, not proof
 that some other mod/version can never work. Select the supported files again to
 repair; base maps and existing valid imports are preserved on rejection.
-Altheros remains its author's 2019 beta with the existing level-specific notes.
+Altheros's resource mapping now accommodates its 585 MiB bitmap resource file;
+the reported "resource map too large" loading failure is fixed. Existing converted
+audio caches are regenerated when their resource offsets differ. Stock/SPV1
+resource layout stays unchanged. Altheros remains its author's 2019 beta with
+the existing level-specific notes.
 These file checks do not certify every level or modified map's runtime behavior.
 
 ## What to test
 
 See TEST67-DEVICE-CHECKLIST.md. Weapon pose comfort, combat balance, feedback and
 campaign playthroughs still need device results. This candidate has not been
-installed or launched by the agent. Network/protocol and voice/audio are unchanged.
+installed or launched by the agent. Network/protocol and voice chat are unchanged. Only optional campaign resource
+addressing and its converted-audio cache identity changed, as described above.
 
 ---
 

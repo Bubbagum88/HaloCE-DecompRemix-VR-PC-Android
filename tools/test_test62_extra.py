@@ -49,7 +49,7 @@ struct object_definition{struct{struct{long index;}model;float acceleration_scal
 static struct model_node nodes[3]={{"root",-1},{"spine",0},{"head",1}};
 static struct model model={.nodes={3,nodes}};
 #define TAG_BLOCK_GET_ELEMENT(b,i,t) ((t*)((b)->address)+(i))
-static int enabled,combat,highlights=1,host_allowed,ready,network,coop,active=1,focused=1,paused,inhibited,cinematic,empty=1,grip[2],owners[2],tracking[2]={1,1},ammo[2]={2,2},obstruction,throw_count,pulses[2],draws;
+static int projectile_parry,enabled,combat,highlights=1,host_allowed,ready,network,coop,active=1,focused=1,paused,inhibited,cinematic,empty=1,grip[2],owners[2],tracking[2]={1,1},ammo[2]={2,2},obstruction,throw_count,pulses[2],draws;
 static long now;static double pose_clock=1;static double vr_pose_time(void){return pose_clock;}
 static int rendered_hand;static real_point3d rendered_palm;static float collision_t=.5f;static real_vector3d collision_normal={.n={-1,0,0}};
 static int vr_render_palm_point(int h,long u,float p[3]){(void)h;(void)u;if(rendered_hand)memcpy(p,rendered_palm.n,12);return rendered_hand;}
@@ -59,7 +59,7 @@ static float combat_reach_setting=2.5f,lunge_setting=0,health_setting=1;static i
 static char const *melee_mode="impact";static char const*config_string(char const*k){return !strcmp(k,"vr.melee")?melee_mode:"";}
 static float melee_speed=2;static float vr_melee_speed(void){return melee_speed;}
 static float config_real(char const*k){if(!strcmp(k,"vr.grenade_chest_forward"))return .16f;if(!strcmp(k,"vr.grenade_chest_down"))return .30f;if(!strcmp(k,"vr.grenade_chest_spread"))return .14f;if(!strcmp(k,"vr.combat_reach"))return combat_reach_setting;if(!strcmp(k,"vr.combat_lunge_reach"))return lunge_setting;if(!strcmp(k,"vr.combat_enemy_health"))return health_setting;return 1;}
-static int config_boolean(char const*k){return !strcmp(k,"vr.physical_grenades")?enabled:!strcmp(k,"vr.assisted_combat")?combat:!strcmp(k,"vr.combat_highlights")?highlights:!strcmp(k,"net.host_vr_actions")?host_allowed:!strcmp(k,"vr.combat_counters")?counters_setting:!strcmp(k,"vr.active_ragdoll")?1:0;}
+static int config_boolean(char const*k){return !strcmp(k,"vr.projectile_parry")?projectile_parry:!strcmp(k,"vr.physical_grenades")?enabled:!strcmp(k,"vr.assisted_combat")?combat:!strcmp(k,"vr.combat_highlights")?highlights:!strcmp(k,"net.host_vr_actions")?host_allowed:!strcmp(k,"vr.combat_counters")?counters_setting:!strcmp(k,"vr.active_ragdoll")?1:0;}
 static short local_player_get_next(short p){(void)p;return 0;}
 static long local_player_get_player_index(short p){(void)p;return 0;}
 static struct player_datum*player_get(long p){(void)p;return &player;}
@@ -113,7 +113,11 @@ static void vr_haptic(int h,float a,float t){assert(h>=0&&h<2&&a>0&&t>0);pulses[
 void platform_log(char const*f,...){(void)f;}
 static void object_iterator_new(struct object_iterator*i,unsigned m,int f){(void)m;(void)f;i->index=-1;}
 static struct unit_datum*object_iterator_next(struct object_iterator*i){return ++i->index<4?unit_get(i->index):NULL;}
-static void render_debug_polygon(real_point3d const*p,int n,real_argb_color const*c){(void)p;(void)n;(void)c;draws++;}
+static void render_debug_polygon(real_point3d const*p,int n,real_argb_color const*c){
+ assert(p&&n>=3&&n<=32&&c&&isfinite(c->alpha)&&c->alpha>=0&&c->alpha<=1);
+ for(int i=0;i<n;i++)for(int k=0;k<3;k++){assert(isfinite(p[i].n[k]));assert(fabsf(p[i].n[k]-p[0].n[k])<=1.1f);}
+ draws++;
+}
 static void render_debug_sphere(int b,real_point3d const*p,float r,real_argb_color const*c){(void)b;(void)p;(void)r;(void)c;draws++;}
 static struct object_definition*object_definition_get(long i){(void)i;return &definition;}
 static struct model*model_definition_get(long i){(void)i;return &model;}
@@ -125,6 +129,22 @@ static int difficulty=1,guard_sounds;
 static int game_difficulty_level_get(void){return difficulty;}
 static void unit_vr_guard_feedback(long unit,boolean parry){(void)unit;(void)parry;guard_sounds++;}
 int vr_combat_stunned(long unit);
+"""
+stubs+='enum vr_combat_move_event_type {\n    VR_COMBAT_MOVE_ATTACK_SWEEP=1,\n    VR_COMBAT_MOVE_ATTACK_OVERHEAD,\n    VR_COMBAT_MOVE_ATTACK_JAB,\n    VR_COMBAT_MOVE_DUCK,\n    VR_COMBAT_MOVE_SIDESTEP,\n    VR_COMBAT_MOVE_ARM_OPENING,\n    VR_COMBAT_MOVE_PUMMEL_OPENING,\n    VR_COMBAT_MOVE_PUMMEL_HIT\n};\nstruct vr_combat_move_event {\n    int type,hand;\n    long target;\n};\n\nenum {\n    VR_COMBAT_POSE_SWEEP,\n    VR_COMBAT_POSE_OVERHEAD,\n    VR_COMBAT_POSE_JAB,\n    VR_COMBAT_POSE_CLUTCH_KNEEL,\n    VR_COMBAT_POSE_RECOIL,\n    VR_COMBAT_POSE_MODE_COUNT,\n    VR_COMBAT_POSE_MAX_NODES = 64\n};\n\nstruct vr_combat_pose_request {\n    int mode, side; /* side 0 left, 1 right */\n    float weight, phase; /* finite 0..1; attack phase includes recovery */\n    real_vector3d forward; /* world-space facing, projected onto the floor */\n    int has_control_target;\n    real_point3d control_target; /* world-space wrist contact; reach is bounded */\n};\n\n\nstatic int moves_ticks,moves_resets,parry_ticks,move_stun,move_pose_enabled,pose_calls,move_event_ready,move_event_type;\nstatic void vr_combat_moves_reset(void){moves_resets++;move_stun=0;move_event_ready=0;}\nstatic void vr_combat_moves_tick(long u){assert(u==0);moves_ticks++;}\nstatic void vr_combat_moves_note_melee(long u,long a){(void)u;(void)a;}\nstatic void vr_combat_moves_note_hit(long u,long a,real_point3d const*p,real_vector3d const*d,real s){(void)u;(void)a;(void)p;(void)d;(void)s;}\nstatic real vr_combat_moves_defend(long u,long a){(void)u;(void)a;return 1;}\nstatic int vr_combat_moves_opening(long a){return move_stun&&a==1;}\nstatic int vr_combat_moves_pose(long a,struct vr_combat_pose_request*r){(void)a;memset(r,0,sizeof(*r));return move_pose_enabled;}\nstatic int vr_combat_pose_apply(real_matrix4x3 const*n,struct model_node const*b,int c,struct vr_combat_pose_request const*r,real_matrix4x3*out){(void)b;(void)r;pose_calls++;memcpy(out,n,c*sizeof(*out));return 1;}\nstatic int vr_combat_moves_poll_event(struct vr_combat_move_event*out){if(!move_event_ready)return 0;out->type=move_event_type;out->target=1;out->hand=0;move_event_ready=0;return 1;}\nstatic void vr_projectile_parry_tick(long u){(void)u;parry_ticks++;}\n'
+
+stubs+=r"""
+#ifndef VR_COMBAT_MOVE_TARGETS
+#define VR_COMBAT_MOVE_TARGETS 16
+#endif
+static int cue_kind;
+static long vr_combat_moves_cue_target(int slot){return cue_kind&&slot==0?1:NONE;}
+static int vr_combat_moves_cue(long target){(void)target;return cue_kind;}
+"""
+stubs+=r"""
+static int vr_combat_pose_matrix_valid(real_matrix4x3 const*m){
+ if(!isfinite(m->scale)||m->scale<=0||m->scale>100)return 0;
+ return valid_real_vector3d(&m->forward)&&valid_real_vector3d(&m->left)&&valid_real_vector3d(&m->up)&&valid_real_point3d(&m->position);
+}
 """
 extra_stubs=r"""
 /* Test63: the chest frame (vr_frame.c's vr_torso_place): from the eyes along
@@ -441,6 +461,90 @@ int main(void){
  setup();combat=1;enabled=0;grip[0]=1;hand_speed=.1f;tick();
  bodies[1].object.position.x=.6f;bodies[1].unit.melee_attack_state=1;hands[0]=(real_point3d){.n={.3f,0,1.45f}};
  assert(vr_combat_defend(0,1)<1&&guard_sounds==1&&!extra.defence_parry&&extra.defence_until==now+4);
+
+ /* Test67 video reference: stagger A, switch to B, then return. An opening
+  * belongs to its enemy, not the selection cursor, and never lasts >1 s. */
+ setup();combat=1;enabled=0;grip[0]=grip[1]=1;tick();
+ {real_point3d head;unit_get_camera_position(1,&head);
+  vr_combat_hit(0,1,&head,NULL,.8f,0);vr_combat_damage_end();
+  assert(vr_combat_stunned(1));long expiry=extra.stun_until;
+  combat_engage(0,2,1,FALSE);
+  assert(extra.target==2&&!vr_combat_stunned(2)&&vr_combat_stunned(1)&&extra.stun_until==0);
+  combat_select_target(1);assert(extra.stun_until==expiry&&vr_combat_stunned(1));
+  combat_select_target(2);now=expiry;extra.tick=now;assert(!vr_combat_stunned(1));
+  vr_extra_reset();assert(!combat_memory_for(1,FALSE));}
+ /* Saturated crowd cannot evict a live warning/opening to add another. */
+ setup();combat=1;enabled=0;tick();
+ for(int i=0;i<COMBAT_MEMORY_COUNT;i++){struct combat_memory*m=combat_memory_for(100+i,TRUE);assert(m);m->warning=now+10;}
+ assert(!combat_memory_for(999,TRUE));assert(combat_memory_for(100,FALSE)->warning==now+10);
+ combat_memory[3].warning=0;assert(combat_memory_for(999,TRUE)==&combat_memory[3]);
+ /* Direct contact with B cannot redirect a queued assisted strike against A. */
+ setup();combat=1;enabled=0;grip[0]=1;tick();combat_engage(0,1,0,TRUE);
+ assert(extra.strike_pending);vr_combat_hit(0,2,&bodies[2].object.position,NULL,.8f,0);
+ assert(extra.target==2&&!extra.strike_pending&&!extra.approach_until);
+ /* Multiple simultaneous warnings: intent, not the last notifier, picks the
+  * counter. Cover, away punches and hidden attacks never grant a stun. */
+ setup();combat=1;enabled=0;grip[0]=grip[1]=1;lunge_setting=8;tick();
+ bodies[1].object.forward.i=bodies[2].object.forward.i=-1;
+ bodies[2].object.position.y=1;bodies[2].object.bounding_sphere_center.y=1;
+ vr_combat_note_melee(1);vr_combat_note_melee(2);
+ assert(combat_memory_for(1,FALSE)->warning>now&&combat_memory_for(2,FALSE)->warning>now);
+ {real_point3d fist={.n={.3f,0,1.2f}};real_vector3d jab={.n={.2f,0,0}};
+  assert(vr_combat_punch(0,0,&fist,&jab)==1&&extra.countered==1);
+  assert(combat_memory_for(1,FALSE)->warning==0&&combat_memory_for(2,FALSE)->warning>now);
+  assert(vr_combat_stunned(1)&&!vr_combat_stunned(2));}
+ setup();combat=1;enabled=0;grip[0]=1;tick();bodies[1].object.forward.i=-1;
+ obstruction=1;vr_combat_note_melee(1);assert(extra.counter_enemy==NONE);
+ obstruction=0;vr_combat_note_melee(1);obstruction=1;
+ {real_point3d fist={.n={.3f,0,1.2f}};real_vector3d jab={.n={.2f,0,0}};
+  assert(!vr_combat_punch(0,0,&fist,&jab)&&extra.countered==NONE&&!vr_combat_stunned(1));
+  obstruction=0;jab.i=-.2f;assert(!vr_combat_punch(0,0,&fist,&jab)&&extra.countered==NONE);}
+ /* An airborne carried blow waits for vertical alignment at arrival. */
+ setup();combat=1;enabled=0;grip[0]=1;tick();
+ bodies[0].biped.flags=FLAG(_biped_airborne_bit);
+ bodies[1].object.position=(real_point3d){.n={.5f,0,2}};
+ {int before=strikes;combat_engage(0,1,0,TRUE);assert(extra.approach_until>now);
+  ++now;combat_tick(0);assert(strikes==before&&extra.strike_pending);
+  real_vector3d v={0};vr_combat_velocity(0,&bodies[0].object.position,&v);assert(v.k>0);
+  bodies[0].object.position.z=.9f;++now;combat_tick(0);assert(strikes==before+1&&!extra.strike_pending);}
+ /* Occupied or armed hands cannot magically block while reloading/grabbing. */
+ setup();combat=1;enabled=0;grip[0]=1;hand_speed=.1f;tick();
+ bodies[1].object.position.x=.6f;bodies[1].unit.melee_attack_state=1;
+ hands[0]=(real_point3d){.n={.3f,0,1.45f}};hands[1]=hands[0];owners[0]=VR_INTERACTION_NPC;empty=0;
+ assert(vr_combat_defend(0,1)==1);owners[0]=0;assert(vr_combat_defend(0,1)<1);
+ /* A deliberately swiped weapon hand may parry, but aiming it never blocks. */
+ setup();combat=1;enabled=0;grip[0]=grip[1]=1;hand_speed=.1f;tick();
+ bodies[1].object.position.x=.6f;bodies[1].unit.melee_attack_state=1;
+ hands[1]=(real_point3d){.n={.3f,0,1.45f}};owners[0]=VR_INTERACTION_NPC;empty=0;
+ assert(vr_combat_defend(0,1)==1);extra.parry_tick[1]=now;
+ assert(vr_combat_defend(0,1)==0&&extra.defence_parry);
+ owners[1]=VR_INTERACTION_RELOAD;extra.parry_tick[1]=now;assert(vr_combat_defend(0,1)==1);
+ /* The Halo-style glyphs are finite, bounded polygons and honor highlights. */
+ setup();combat=1;enabled=0;grip[0]=1;tick();bodies[1].object.forward.i=-1;
+ vr_combat_note_melee(1);real_point3d eye;unit_get_camera_position(0,&eye);
+ highlights=0;draws=0;assert(!vr_extra_render(eye.n)&&draws==0);
+ highlights=1;assert(vr_extra_render(eye.n)&&draws>0);
+ for(int cue=1;cue<=8;cue++){cue_kind=cue;assert(vr_extra_render(eye.n));}cue_kind=0;
+ lunge_setting=0;
+ /* Independent deflection stays live without fists/grenades; same authority. */
+ setup();enabled=combat=0;projectile_parry=1;tick();assert(extra.unit==0&&parry_ticks>0);
+ assert(vr_extra_action_owner()==0);network=_game_connection_network_client;assert(vr_extra_action_owner()==NONE);
+ network=_game_connection_local;
+ vr_extra_projectile_feedback(1,&hands[1]);assert(extra.defence_parry&&extra.defence_until>now&&vr_extra_feedback_active(1));
+ projectile_parry=0;
+ /* Opening authority composes without selection; render pose works without a hit flash. */
+ setup();combat=1;enabled=0;tick();move_stun=1;assert(vr_combat_stunned(1));restrained_npc=1;assert(!vr_combat_stunned(1)&&vr_combat_control_opening(1));restrained_npc=NONE;move_stun=0;
+ {real_matrix4x3 native[3]={0};for(int n=0;n<3;n++){native[n].scale=1;native[n].forward.i=native[n].left.j=native[n].up.k=1;}move_pose_enabled=1;int calls=pose_calls;
+  assert(vr_combat_render(1,native)!=native&&pose_calls==calls+1);
+  owned_npc=1;assert(vr_combat_render(1,native)==native&&pose_calls==calls+1);
+  owned_npc=NONE;move_pose_enabled=0;
+  extra.target=1;extra.flash_until=now+5;
+  bodies[1].object.node_matrices.size=65539L*sizeof(*native);assert(vr_combat_render(1,native)==native);
+  bodies[1].object.node_matrices.size=3*sizeof(*native)+1;assert(vr_combat_render(1,native)==native);
+  bodies[1].object.node_matrices.size=3*sizeof(*native);native[0].forward.i=NAN;assert(vr_combat_render(1,native)==native);
+  native[0].forward.i=1;memset(nodes[0].name,'X',sizeof(nodes[0].name));assert(vr_combat_render(1,native)==native);strcpy(nodes[0].name,"root");
+ }
+ puts("PASS: Test67 per-enemy openings, simultaneous intent-selected counters, cover/away rejection, vertical landing, busy-hand defense and Halo UI visibility");
  puts("PASS: Test67 stroke ownership/rearm/opposite-hand switching, four difficulties, scoped melee durability and block/parry feedback/authority");
  puts("PASS: Test66 fist combat: ENEMY HEALTH divides the blow (the multiplier, once), Grunts/Jackals/Elites/Hunters fight their own ways, an Elite answers a flurry, BLOCK (tiring) and PARRY (the swing undone, an opening), the lunge rises and dives in the air, lights on the drawn bones");
  setup();real_point3d camera;unit_get_camera_position(0,&camera);assert(vr_extra_render(camera.n)&&draws>0);enabled=0;assert(!vr_extra_render(camera.n));
@@ -661,3 +765,8 @@ assert 'vr_manual_reload_feedback_active(hand) || vr_extra_feedback_active(hand)
 assert '!vr_manual_reload_feedback_active(controller) && !vr_extra_feedback_active(controller)' in render
 render_order=(R/'source/render/render.c').read_text()
 assert render_order.index('first_person_weapon_render_update();') < render_order.index('render_objects();') < render_order.index('vr_render_vehicle_controls()', render_order.index('render_objects();'))
+
+# A runtime recenter invalidates contact strokes, beyond map/checkpoint resets.
+frame_source=(R/"port/linux/src/vr_frame.c").read_text()
+assert re.search(r"vehicle_recentered\(\);\s*/\*[^*]*\*/\s*vr_render_reset_contacts\(\);", frame_source)
+assert "vr_combat_moves_reset(); vr_projectile_parry_reset();" in render

@@ -556,7 +556,7 @@ assert re.search(r'#define VR_MELEE_POINTS 3\b', render)
 assert 'along[1] = short_gun ? 0.12f : 0.2f;' in melee and 'along[2] = short_gun ? 0.0f : 0.4f;' in melee
 assert 'reach = (reach > 0.15f ? 0.15f : reach) * units;' in melee and 'real reach = speed * 0.05f;' in melee
 assert '(armed && index ? 0.05f : 0.035f) * units' in melee
-impact = fn(units, 'unit_vr_impact_melee')
+impact = fn(units, 'unit_vr_impact_melee_target')
 assert ('if (obstruction.type == _collision_result_object && obstruction.t >= 0.0f && obstruction.t <= 1.0f &&\n'
         '\t\t\t\t!hit)') in impact, 'an object (never a wall) between the eye and the hand is what it struck'
 print('PASS: melee sweeps the grip, middle and (long guns) far end, carried on up to 15 cm by the swing\'s speed;'

@@ -128,7 +128,7 @@ int main(void){
 # Execute the exact production damage-selection block, so authored melee
 # priority, the optional globals fallback and its scale remain testable
 # without substituting fake collision or networking for the whole game.
-impact=fn(units,'unit_vr_impact_melee')
+impact=fn(units,'unit_vr_impact_melee_target')
 start=impact.index('\t/* Prefer the biped')
 end=impact.index('\n\tif (hit_object_index != NONE && object_get',start)
 selection=impact[start:end]

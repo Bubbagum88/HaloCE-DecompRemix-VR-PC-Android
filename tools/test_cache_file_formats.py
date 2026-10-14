@@ -1004,8 +1004,20 @@ def test_stock_script_nodes_are_left_alone(report_tool, tmp_path):
     assert report["convert"] == "ok" and report["script_nodes_reduced"] == "0"
 
 
+@pytest.mark.parametrize("used", [19002, 28501])
+def test_supported_upgraded_script_nodes_are_preserved(report_tool, tmp_path, used):
+    # Test66 raised the native/schema capacity for Altheros; do not shrink an
+    # array whose live nodes exceed the stock 19001-node allocation.
+    cache = Map(script_nodes=(28501, used))
+    returncode, report, tags = converted(report_tool, cache, tmp_path)
+    assert returncode == 0 and report["script_nodes_reduced"] == "0"
+    syntax_data = cache.addresses["test\\scenario"] + 0x474
+    assert u32_at(tags, syntax_data) == 0x38 + 28501 * 20
+    assert s16_at(tags, u32_at(tags, syntax_data + 0x0C) + 0x20) == 28501
+
+
 def test_scripts_needing_more_nodes_than_this_build_has_are_rejected(report_tool, tmp_path):
-    cache = Map(script_nodes=(28501, 19002))
+    cache = Map(script_nodes=(28501, 28502))
     returncode, report, _ = converted(report_tool, cache, tmp_path)
     assert returncode == 1
     assert report["convert"].startswith("the scenario's scripts use more syntax nodes")

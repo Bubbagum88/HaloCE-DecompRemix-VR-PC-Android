@@ -66,8 +66,133 @@ bone-local offset until release; visible hand attraction eases and stays within
 capability gates retained. Existing curved-wall probes/blending/gap grace reviewed;
 no concrete defect justified changing accepted parkour or vehicle code.
 
-Conceptual combat reference: Camouflaj's GDC talk synopsis,
-https://gdcvault.com/play/1035681/ . No full-talk access or copied assets/code claimed.
+## Combat reference review
+
+User reference: [Batman: Arkham Shadow - Infinite Combat Challenge](https://www.youtube.com/watch?v=YGu9XIQN_lA),
+fan channel BatmanArkhamVideos, 1,399 seconds. Review covered four contact sheets
+sampled every 20 seconds through 1,380 seconds, plus detail frames at 2 fps from
+16 through 28 seconds. The private 480p reference is
+`D:/HaloQuest/_scratch/reference67/ref480.mp4`. This was sampled visual review,
+not continuous playback or inspection of every frame. Observed material includes
+multi-enemy blue/red/yellow warnings, counters, weak-point/combo follow-ups,
+stun opportunities, target switching and shield/heavy opponents.
+
+These observations inform combat flow and cues. Candidate glyphs are original
+Halo-themed angular cyan/amber shapes, with existing Halo impact sounds. No
+Batman assets, animations or code were copied. The additional conceptual source
+is [Camouflaj's GDC talk synopsis](https://gdcvault.com/play/1035681/); only its
+synopsis was available, so no full-talk review is claimed.
+
+## Procedural combat pose evidence
+
+`port/linux/game/vr_combat_pose.h` adds bounded sweep, overhead, jab, arm-clutch/
+kneel and recoil presentation over the current native `real_matrix4x3` palette.
+The helper writes a complete result only after validating the request, matrices,
+node count, terminated names and parent topology. Missing/unrecognized chains, cycles,
+invalid parents, nonfinite input and unreachable leg geometry return no overlay.
+It uses native limb lengths, rigid subtree rotations and the existing two-bone
+IK reach math; weights ease within 0..1. Zero weight leaves the native pose intact.
+Attack offsets are neutral at phase 0, phase 1 and the shared contact phase .65.
+`vr_combat_moves.c` maps that contact phase to the current native clip's primary
+hit keyframe. No forced animation state or new hit frame is introduced by the
+pose helper.
+
+Kneeling lowers only the rendered root. Human thigh/calf/foot and Elite/Jackal
+thigh/calf/horselink/foot chains keep their bone lengths and native foot frames;
+digitigrade horselinks remain pinned too. Body position/collision remain native;
+the gameplay opening is a separate short stun. Stock Grunt rigs lack the separate
+hand chain required for clutch/kneel and retain their native pose for that mode.
+Hunter control/kneel is excluded by gameplay policy, even though the helper can
+solve its stock bind geometry. NPC grab/Jolt palette ownership takes precedence:
+no combat overlay is applied while that system owns the palette. A release
+opening can expire while NPC settling still owns it; visual kneeling is therefore
+not guaranteed after every successful arm opening.
+
+`tools/test_test67_combat_pose.py` executes the actual helper with synthetic
+geometry: 1,800 mode/phase/weight/side/facing cases and 4,000 continuity samples
+pass with ASan/UBSan. Checks cover finite frames, every bone length, byte-identical
+feet/toes, both sides, zero/tiny weights, in-place output, contact/end phases,
+distant control targets and malformed/count/cycle/NaN/degenerate-rig guards.
+The helper also compiles against the real 32-bit game headers.
+
+Private stock a50 model metadata supplied names and parent topology. Offline
+bind-pose checks passed all five modes on both sides for Captain, Marine,
+Cyborg, Elite, Jackal and Hunter; Grunt attack/recoil passed and clutch/kneel
+returned no overlay as intended. Inputs and results remain outside the repo at
+`D:/HaloQuest/_scratch/combat67-modelnodes.json` and
+`D:/HaloQuest/_scratch/combat67-pose/stock-results.txt`. These checks establish
+geometry and guard behavior, not headset animation, contact timing or game-wide
+species acceptance. No model or animation assets are included in the helper test.
+
+## Altheros load failure and resource layout
+
+Owner log `halo_log_2026-10-13_21-55-41-586_14959.txt` identifies Test66/code78,
+Quest 2, Android 14 and Oculus runtime 207.299.0. At 21:55:52.545 it requests
+`d:\maps\b40.yelo`; at 21:55:52.547 the loader reports
+`custom edition: a resource map is too large for this loader`, followed by
+`game_load() failed`. OpenXR remains focused at 72 Hz with zero draws. The log
+does not show a crash or allocation failure at this point; the empty blue view
+follows the rejected map load. The earlier menu-cache recognition assertion is
+not the immediate b40 failure.
+
+The unmodified local `Latest Altheros Experience 10.24.2019` resources contain
+613,838,703 bitmap bytes, 333,893,198 sound bytes and 447,783 locale bytes.
+The bitmap file exceeds the old 512 MiB bitmap interval. Its `alsthetic` mod name
+selects the existing `data_files/alsthetic-{bitmaps,sounds,loc}.map` aliases.
+
+`port/linux/game/custom_edition_cache.c` now computes disjoint resource intervals
+within the same signed offset limit. Bitmaps still start at `0x40000000`; sounds
+start at `max(0x60000000, 0x40000000 + bitmap_bytes)`. Subtraction-based size
+checks reject a combined end beyond `0x80000000` without overflow. For these
+Altheros files, sounds start at `0x64966F6F` and end at `0x787D3DBD`. Ordinary
+stock/SPV1-sized resources retain the original layout. The CE read branch uses
+byte offsets before the stock sector-rounding path, so the exact resource-file
+boundary need not be sector aligned. File streams and lazy reads remain in use;
+this change does not allocate a buffer containing the complete resource files.
+
+Converted `.audio` cache version 3 records the source sound interval. Matching
+version 3 caches are reused; version 2 caches remain reusable with the historical
+sound offset. A moved interval invalidates the old cache and requires its normal
+conversion path once. This preserves ordinary-map cache reuse and prevents stale
+sound offsets after the layout changes.
+
+`tools/test_test67_resources.py` executes extracted production layout, read
+routing and cache open/finish functions under ASan/UBSan. Virtual byte sources
+cover the real Altheros sizes without allocating entire resource files. Cases
+include stock/SPV1 layout, zero/exact-end/overflow sizes, both sides of the old
+512 MiB boundary, first/last sound bytes, chunked/invalid reads, and version 2/3
+cache identity, reuse and invalidation. A negative control reinstates the old
+512 MiB cap and fails the same Altheros regression. The existing
+`tools/test_test34_opence.py` guard was updated for the computed sound offset
+and passed.
+
+Offline reports used the original ten maps and resources through production
+`cache_file_formats.c`, then the production 32-bit tag schema validator. Scratch
+hardlinks supplied the expected resource aliases without modifying source assets.
+All maps passed format load/conversion and schema validation using existing
+corrections; no schema rule was relaxed for this fix:
+
+| Map | Existing schema corrections |
+| --- | ---: |
+| a10 | 101 |
+| a30 | 111 |
+| a50 | 111 |
+| b30 | 86 |
+| b40 | 125 |
+| c10 | 61 |
+| c20 | 61 |
+| c40 | 125 |
+| d20 | 105 |
+| f10 | 94 |
+
+Reports remain private at `D:/HaloQuest/_scratch/altheros67/report-native-formats.txt`
+and `report-schema.txt`. The standalone report path does not execute the game's
+Ogg decoder/transcoder, GPU bitmap/model conversion or live BSP transitions; its
+`sounds_undecodable` counts are not an audio playback test. No game was launched.
+The evidence addresses the observed resource-size rejection and offline schema
+compatibility, not complete Altheros/OpenSauce feature support. Campaign play,
+first-run audio conversion, save/reload, transitions, rendering, audio and Quest
+memory behavior still require device results.
 
 ## Optional content provenance
 

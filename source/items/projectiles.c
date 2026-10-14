@@ -141,21 +141,11 @@ symbols in this file:
 #include "sound/sound_definitions.h"
 #include "units/bipeds.h"
 #include "units/units.h"
+#ifdef HALO_VR
+#include "vr_projectile_parry.h"
+#endif
 
 /* ---------- constants */
-
-enum projectile_datum_flags
-{
-	_projectile_has_nonzero_angular_velocity_bit = 0,
-	_projectile_tracer_bit = 1,
-	_projectile_collided_once_bit = 2,
-	_projectile_attached_bit = 3,
-	_projectile_stopped_after_collision_bit = 4,
-	_projectile_counting_down_bit = 5,
-	_projectile_already_super_exploded_bit = 6,
-	_projectile_will_super_explode_bit = 7,
-	NUMBER_OF_PROJECTILE_DATUM_FLAGS,
-};
 
 enum projectile_definition_flags
 {
@@ -176,14 +166,6 @@ enum projectile_export_function_mode
 	_projectile_export_function_time_remaining,
 	_projectile_export_function_tracer,
 	NUMBER_OF_PROJECTILE_EXPORT_FUNCTION_MODES,
-};
-
-enum projectile_action
-{
-	_projectile_action_none = 0,
-	_projectile_action_detonate,
-	_projectile_action_disappear,
-	NUMBER_OF_PROJECTILE_ACTIONS,
 };
 
 enum projectile_detonation_timer_starts
@@ -347,12 +329,18 @@ void projectiles_initialize(
 void projectiles_initialize_for_new_map(
 	void)
 {
+#ifdef HALO_VR
+	vr_projectile_parry_new_map();
+#endif
 	return;
 }
 
 void projectiles_dispose_from_old_map(
 	void)
 {
+#ifdef HALO_VR
+	vr_projectile_parry_new_map();
+#endif
 	return;
 }
 
@@ -390,6 +378,9 @@ void projectiles_delete_all(
 void projectile_delete(
 	long projectile_index)
 {
+#ifdef HALO_VR
+	vr_projectile_parry_forget(projectile_index);
+#endif
 	return;
 }
 
@@ -529,6 +520,10 @@ boolean projectile_new(
 	real initial_velocity;
 	short attachment_index;
 	boolean underwater;
+
+#ifdef HALO_VR
+	vr_projectile_parry_forget(projectile_index);
+#endif
 
 	projectile = projectile_get(projectile_index);
 	definition = projectile_definition_get(projectile->definition_index);
@@ -671,6 +666,9 @@ boolean projectile_update(
 	short collision_count;
 	boolean flyby_sound_played;
 	boolean detonation_timer_running;
+#ifdef HALO_VR
+	boolean vr_parried = FALSE;
+#endif
 
 	projectile = projectile_get(projectile_index);
 	definition = projectile_definition_get(projectile->definition_index);
@@ -744,6 +742,10 @@ boolean projectile_update(
 		real_vector3d average_velocity = projectile->object.translational_velocity;
 		long ignore_object_index = projectile->projectile.ignore_object_index;
 		real distance_fraction;
+		boolean hit;
+#ifdef HALO_VR
+		real vr_segment_remaining = time_remaining;
+#endif
 
 		match_assert_valid_real_vector3d(
 			"c:\\halo\\SOURCE\\items\\projectiles.c",
@@ -915,12 +917,41 @@ boolean projectile_update(
 		global_current_collision_users[global_current_collision_user_depth++] =
 			_collision_user_projectiles;
 
-		if (collision_count != MAXIMUM_PROJECTILE_COLLISIONS_PER_UPDATE &&
+		hit = collision_count != MAXIMUM_PROJECTILE_COLLISIONS_PER_UPDATE &&
 			projectile->projectile.action != _projectile_action_disappear &&
 			(moved = TRUE) &&
-			projectile_collision_test_line(projectile_index, &new_position, &collision))
+			projectile_collision_test_line(projectile_index, &new_position, &collision);
+#ifdef HALO_VR
+		/* Keep the first native obstruction ahead of the hand. At a parry,
+		 * consume just the inbound travel, then let the native loop test the
+		 * outgoing segment. Timers/arming/range are never restarted. */
+		if (moved)
+		{
+			real contact_fraction;
+			if (vr_projectile_parry_try(projectile_index, &new_position,
+				&new_velocity, hit ? collision.t : 1.0f, time_remaining,
+				&contact_fraction))
+			{
+				real_vector3d incoming;
+				real_point3d contact;
+				vector_from_points3d(&projectile->object.position, &new_position, &incoming);
+				point_from_line3d(&projectile->object.position, &incoming, contact_fraction, &contact);
+				projectile->projectile.odometer += magnitude3d(&incoming) * contact_fraction;
+				object_translate(projectile_index, &contact, NULL);
+				time_remaining *= 1.0f - contact_fraction;
+				collision_count++;
+				vr_parried = TRUE;
+				--global_current_collision_user_depth;
+				continue;
+			}
+		}
+#endif
+		if (hit)
 		{
 			time_remaining = 1.0f - collision.t;
+#ifdef HALO_VR
+			if (vr_parried) time_remaining *= vr_segment_remaining;
+#endif
 			new_velocity.k += gravity_acceleration * time_remaining;
 			if (final_speed != 0.0f)
 			{

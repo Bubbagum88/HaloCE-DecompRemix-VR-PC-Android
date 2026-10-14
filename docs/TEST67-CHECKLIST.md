@@ -33,6 +33,20 @@ request attachment e8b05ad6-8bcc-46f4-aaa1-54dc2e3d5a80. Both sessions exit0.
 - [x] Preserve vehicles, handedness, grenades, body/IK, scopes/reticles, holsters,
   inputs, haptics, multiplayer/co-op, OpenCE and Android/performance.
 - [x] Hide weapon reticle with empty holstered hands; keep vehicle aiming and fist markers.
+- [x] Review the supplied Arkham challenge reference: sampled entire timeline,
+  focused exchange detail; original Halo-themed cues and native sounds only.
+- [x] Independent per-enemy reaction/warning memory, intended-target-only carried
+  strikes, vertical arrival check, occupied-hand defense isolation.
+- [x] COMBAT MOVES toggle: species-specific procedural attack overlays, physical
+  duck/sidestep, exact held-arm control and native-jump/downward-hit pummel openings.
+- [x] Preserve NPC/Jolt palette ownership, bone lengths and foot placement;
+  unsupported rigs keep native poses. No forced mount/teleport or persistent injury.
+- [x] DEFLECT SHOTS toggle, soft auto-enable with fists; actual moving projectile
+  contact, grenade fuse preservation, damage attribution and online authority.
+- [x] Latest owner addition: gun-carrying hands can actively parry melee/shots.
+  Stationary aiming/firing is not a shield; reload/support-hand ownership preserved.
+- [x] Altheros new blue-screen log: exact 512 MiB resource partition overflow
+  fixed, ten owner maps checked offline, converted-cache identity safeguarded.
 - [ ] Targeted tests, full suite, both builds, package identity/signature/hash checks.
 - [ ] Docs, device checklist, exact delivery record, memory, local commits.
 

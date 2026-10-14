@@ -3,6 +3,8 @@
 #include "math/real_math.h"
 #ifdef HALO_VR
 void vr_extra_reset(void);
+long vr_extra_action_owner(void);
+void vr_extra_projectile_feedback(int hand,real_point3d const *point);
 void vr_extra_tick(long unit);
 int vr_extra_render(float const camera[3]);
 /* Test63: the grenades' own models, in the world model pass (render_objects.c) */
@@ -12,6 +14,7 @@ int vr_extra_feedback_active(int hand);
 real_matrix4x3 *vr_combat_render(long unit,real_matrix4x3 *stock);
 int vr_combat_enabled(void);
 int vr_combat_stunned(long unit);
+int vr_combat_control_opening(long unit);
 int vr_combat_punch(long unit,int hand,real_point3d const *point,real_vector3d const *sweep);
 real vr_combat_hit(long unit,long target,real_point3d const *point,real_vector3d const *direction,real scale,boolean armed);
 real vr_combat_damage_share(void);

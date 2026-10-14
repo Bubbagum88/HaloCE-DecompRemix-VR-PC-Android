@@ -34,6 +34,7 @@ swapchain images, whose GL texture names work in this context as they are.
 /* Implemented by vr_render.c; keep this narrow declaration here because the
  * frame module is included before the game-side `real` type headers. */
 extern int vr_script_calibration_reticle_ray(float origin[3], float direction[3]);
+extern void vr_render_reset_contacts(void);
 
 /* test21: the kinds of gun with their own aim adjustment (VR_GUN_*): the
 config key's part and the menu's name */
@@ -2990,6 +2991,8 @@ static int frame_begin(void)
 		vr.room_previous[1] = vr.room_now[1] = vr.frame.head.position[2];
 		vr.room_held = 1;
 		vehicle_recentered();
+		/* Origin changes invalidate all measured physical contact strokes. */
+		vr_render_reset_contacts();
 	}
 	/* left-handed (vr.controls_mirrored): the sticks trade jobs, so the
 	off hand moves and the gun hand turns; their clicks follow with the

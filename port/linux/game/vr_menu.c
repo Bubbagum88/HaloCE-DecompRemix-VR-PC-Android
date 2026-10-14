@@ -214,6 +214,8 @@ struct vr_menu_section
 on its own page and on IMMERSION, which gathers them so they can be set in
 one place (the same setting either way: changing one shows on the other) */
 #define VR_IMMERSION_COMBAT { "FIST COMBAT", "vr.assisted_combat", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_COMBAT_MOVES { "COMBAT MOVES", "vr.combat_moves", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_PROJECTILE_PARRY { "DEFLECT SHOTS", "vr.projectile_parry", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_COMBAT_LIGHTS { "HIT HIGHLIGHTS", "vr.combat_highlights", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_COMBAT_REACH { "FIST REACH", "vr.combat_reach", _vr_setting_real, 5, { { "1 M", "1" }, { "1.5 M", "1.5" }, { "2 M", "2" }, { "2.5 M", "2.5" }, { "3 M", "3" } } }
 /* Test65: Arkham Shadow's fist combat: how far a punch carries the player to
@@ -426,7 +428,9 @@ static struct vr_menu_setting const vr_menu_controls[] =
 	{ "CONTROLS", "vr.controls", _vr_setting_string, 2, { { "VR", "vr" }, { "XBOX", "pad" } } },
 	/* test26: the left stick's click: the reticle's toggle or crouch, as before */
 	{ "L STICK CLICK", "buttons", _vr_setting_crouch_click, 2, { { "RETICLE", "reticle" }, { "CROUCH", "crouch" } } },
+    VR_IMMERSION_PROJECTILE_PARRY,
     VR_IMMERSION_COMBAT,
+    VR_IMMERSION_COMBAT_MOVES,
     VR_IMMERSION_COMBAT_LIGHTS,
     VR_IMMERSION_COMBAT_REACH,
     VR_IMMERSION_COMBAT_LUNGE,
@@ -747,6 +751,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_MELEE_SPEED,
 	VR_IMMERSION_FIST_REQUIRED,
 	VR_IMMERSION_SHAKE_COOLING,
+	VR_IMMERSION_PROJECTILE_PARRY,
 	/* PICKUPS */
 	VR_IMMERSION_WEAPON_PULL,
 	VR_IMMERSION_PULL_REACH,
@@ -754,6 +759,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_PULL_GLOW,
 	/* FIST COMBAT */
 	VR_IMMERSION_COMBAT,
+	VR_IMMERSION_COMBAT_MOVES,
 	VR_IMMERSION_COMBAT_LIGHTS,
 	VR_IMMERSION_COMBAT_REACH,
 	VR_IMMERSION_COMBAT_LUNGE,
@@ -872,7 +878,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
-	{ "WEAPONS", 7 }, { "PICKUPS", 4 }, { "FIST COMBAT", 7 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
+	{ "WEAPONS", 8 }, { "PICKUPS", 4 }, { "FIST COMBAT", 8 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
 	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 8 },
 	{ "VEHICLES", 8 }, { "VEHICLE OPTIONS", 6 }, { "WARTHOG + GHOST", 8 }, { "TANK + BANSHEE", 8 },
 	{ "RAGDOLLS", 7 }, { "ADVANCED", 8 },
@@ -897,6 +903,8 @@ static struct vr_menu_dependency
 	{ "vr.assisted_combat", "vr.melee", FALSE },
 	{ "vr.assisted_combat", "vr.melee_speed", FALSE },
 	{ "vr.assisted_combat", "vr.npc_interaction", TRUE },
+	{ "vr.assisted_combat", "vr.projectile_parry", TRUE },
+	{ "vr.assisted_combat", "vr.combat_moves", TRUE },
 	/* Test63: ONE-HAND HEAVIES is a way of grabbing: it brings NPC GRAB */
 	{ "vr.npc_one_hand_heavy", "vr.npc_interaction", FALSE },
 	{ "vr.assisted_combat", "vr.close_contact", TRUE },

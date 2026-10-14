@@ -12,6 +12,27 @@ header included in hcex build.
 
 /* ---------- constants */
 
+enum projectile_datum_flags
+{
+	_projectile_has_nonzero_angular_velocity_bit = 0,
+	_projectile_tracer_bit = 1,
+	_projectile_collided_once_bit = 2,
+	_projectile_attached_bit = 3,
+	_projectile_stopped_after_collision_bit = 4,
+	_projectile_counting_down_bit = 5,
+	_projectile_already_super_exploded_bit = 6,
+	_projectile_will_super_explode_bit = 7,
+	NUMBER_OF_PROJECTILE_DATUM_FLAGS,
+};
+
+enum projectile_action
+{
+	_projectile_action_none = 0,
+	_projectile_action_detonate,
+	_projectile_action_disappear,
+	NUMBER_OF_PROJECTILE_ACTIONS,
+};
+
 /* ---------- macros */
 
 #define projectile_get(index) \

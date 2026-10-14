@@ -13,6 +13,9 @@ int vr_npc_interaction_owned(long index);
 int vr_npc_interaction_restrained(long index);
 int vr_npc_interaction_hand(int hand,float point[3]);
 long vr_npc_interaction_object(int hand);
+/* Read-only local held contact, including the exact acquired authored node.
+ * The accessor preserves the caller's active rig and never cancels a hold. */
+int vr_npc_interaction_contact(int hand,long *object,short *node,float point[3]);
 int vr_npc_interaction_remote(long player_index,int hand,int held,const float world[3]);
 void vr_npc_interaction_remote_cancel(long player_index,int hand);
 /* WORLD surface coordinate, transformed by channel if it needs root-local. */

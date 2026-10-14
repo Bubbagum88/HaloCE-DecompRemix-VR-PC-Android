@@ -40,6 +40,9 @@ for row in ('{ "vr.death_ragdolls", "vr.npc_interaction", TRUE }',
             # Test63: ONE-HAND HEAVIES is a way of grabbing: it brings NPC GRAB
             '{ "vr.npc_one_hand_heavy", "vr.npc_interaction", FALSE }'):
     assert row in resolver, row
+for row in ('{ "vr.assisted_combat", "vr.combat_moves", TRUE }',
+            '{ "vr.assisted_combat", "vr.projectile_parry", TRUE }'):
+    assert row in resolver, row
 
 # Impacts: a sphere contact is probed into the face it met; bodies and
 # vehicles are tested for (the dead-body sweep passes through them); the
@@ -72,6 +75,7 @@ static struct { char const *key; int on; } store[] = {
     {"vr.vehicle_warthog_hide_glass",0},{"vr.reload_shoulder",0},{"vr.reload_hip",0},
     {"vr.button_sprint_toggle",0},{"vr.button_sprint",0},{"vr.assisted_combat",0},{"vr.close_contact",0},
     {"vr.npc_one_hand_heavy",0}, /* Test63: ONE-HAND HEAVIES */
+    {"vr.combat_moves",0},{"vr.projectile_parry",0}, /* Test67 optional combat refinements */
     {"vr.vehicle_cockpit_lock",1},{"vr.vehicle_grip_guide",0},{"vr.npc_lift_to_ragdoll",1}}; /* Test65 */
 static char automatic_store[256], view_store[32] = "chase", melee_store[32] = "swing";
 static real speed_store, assist_store = 0.05f;
@@ -120,6 +124,24 @@ static void choose_speed(char const *speed)
 }
 int main(void)
 {
+    /* Test67: both refinements are soft dependencies. An explicit OFF stays
+     * off during unrelated menu changes; a fresh FIST COMBAT enable applies
+     * its useful defaults. Independent manual ON survives parent disable. */
+    choose("vr.assisted_combat",1);
+    assert(config_boolean("vr.combat_moves")&&config_boolean("vr.projectile_parry"));
+    choose("vr.combat_moves",0);choose("vr.projectile_parry",0);
+    assert(config_boolean("vr.assisted_combat"));
+    choose("vr.vehicle_handles",0);
+    assert(!config_boolean("vr.combat_moves")&&!config_boolean("vr.projectile_parry"));
+    choose("vr.assisted_combat",0);choose("vr.assisted_combat",1);
+    assert(config_boolean("vr.combat_moves")&&config_boolean("vr.projectile_parry"));
+    choose("vr.assisted_combat",0);
+    assert(!config_boolean("vr.combat_moves")&&!config_boolean("vr.projectile_parry"));
+    choose("vr.combat_moves",1);choose("vr.projectile_parry",1);
+    assert(!config_boolean("vr.assisted_combat"));
+    choose("vr.assisted_combat",1);choose("vr.assisted_combat",0);
+    assert(config_boolean("vr.combat_moves")&&config_boolean("vr.projectile_parry"));
+    choose("vr.combat_moves",0);choose("vr.projectile_parry",0);
     choose("vr.assisted_combat",1);
     assert(config_boolean("vr.melee_requires_fist")&&config_boolean("vr.close_contact")&&config_boolean("vr.npc_interaction"));
     assert(!strcmp(melee_store,"impact")&&speed_store==2.0f);
@@ -227,6 +249,7 @@ int main(void)
     assert(throw_store>1.99f);choose("vr.world_interaction",0);assert(throw_store==0);
     throw_store=3;choose("vr.vehicle_lift",1);choose("vr.vehicle_lift",0);assert(throw_store>2.99f);
     puts("PASS: Test66 WORLD GRAB and LIFT VEHICLES bring OBJECT THROW 2X (released with the last of them; a choice by hand stays)");
+    puts("PASS: Test67 FIST COMBAT soft dependencies: moves/shot deflection enable, explicit OFF persists, disable/re-enable restores, manual ON survives parent disable");
     puts("PASS: Test66 NPC GRAB and FIST COMBAT bring a 10 cm GRAB ASSIST (released with the last of them; a larger one chosen by hand stays)");
     puts("PASS: Test60 toggles: DEATH RAGDOLLS turns on NPC GRAB, NPC RESCUE and IMPACT DAMAGE (and FIST REQUIRED through NPC GRAB); grabs turn on IMPACT DAMAGE; vehicle refinements turn on IMMERSIVE VEHICLE; turned off by hand stays off; released with their feature; Test61: IMMERSIVE VEHICLE puts VIEW in FIRST PERSON, TANK HATCH and HOG GLASS bring it, pouches MANUAL RELOAD, SPRINT TOGGLE BUTTON SPRINT, the grabs CUSTOM NPC RIGS and CUSTOM SCENERY");
     return 0;
