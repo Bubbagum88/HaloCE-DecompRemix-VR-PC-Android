@@ -106,3 +106,16 @@ assert rows[0] == ('ALL TO DEFAULT', 'buttons', '_vr_setting_reset_buttons'), ro
 assert rows[-1] == ('RESET BUTTONS', 'buttons', '_vr_setting_reset_buttons'), rows[-1]
 assert '"DONE" : "APPLY"' in menu and 'vr_menu_buttons_reset_at = system_milliseconds();' in menu
 print('PASS: the VR BUTTONS page resets from its first row (ALL TO DEFAULT) and its last, and says DONE')
+
+# 6. licenses: what Test67 brings, credited, with its full notices
+credits = read('CREDITS.md')
+notices = read('THIRD-PARTY-NOTICES.txt')
+for name in ('jcompto95-tech', 'GulchCE', 'bcdec', 'JavaSteam', 'OkHttp', 'Ktor', 'Bouncy Castle', 'Protocol Buffers',
+             'SLF4J', 'XZ for Java', 'zstd-jni', 'Zstandard'):
+    assert name in credits[credits.index('## Test67 additions'):], name
+for title in ('JavaSteam and javasteam-depotdownloader 1.8.0 (MIT)', 'Bouncy Castle bcprov-jdk18on 1.83 (MIT)',
+              'Protocol Buffers for Java 4.31.1 (BSD-3-Clause)', 'SLF4J API 2.0.17 (MIT)', 'XZ for Java 1.11 (0BSD)',
+              'zstd-jni 1.5.7-6 (BSD-2-Clause)', 'Zstandard, inside zstd-jni (BSD)', 'port/third_party/bcdec/LICENSE'):
+    assert '===== %s' % title in notices or '===== Test67: %s' % title in notices, title
+assert 'TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION' in notices[notices.index('Test67: Apache License 2.0'):]
+print('PASS: Test67\'s fork, GulchCE, bcdec and Steam Workshop libraries credited, each with its complete notice')
