@@ -31,7 +31,8 @@ to match the details of it and build new apks."
 - [x] Test pins moved to 29 (18 files, each replaced exactly); tests whose
   behaviour Build 206 changes updated to its new behaviour (maps not renamed,
   "Name (2)"), plus the new map_share_restart harness test registered.
-- [ ] Full suite, both builds, package identity/signature/hash checks.
-- [ ] Delivery record, memory, local commits.
+- [x] Full suite (143 suites, twice), both builds, package identity/signature/hash checks
+  (TEST68-DELIVERY-STATUS.md).
+- [x] Delivery record, memory, local commits.
 
 Automated results are not headset or phone verification.
