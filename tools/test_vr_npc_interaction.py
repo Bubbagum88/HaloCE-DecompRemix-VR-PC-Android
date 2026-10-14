@@ -418,7 +418,7 @@ assert '!npc.is_remote && npc.started && !npc.recovery' in palette
 assert 'vr_world_interaction_weight_feedback(h,npc.mobility' in palette
 assert 'node->position[k]-node->previous[k]' in palette
 assert 'magnitude3d(&strain)/units' in palette
-assert 'collision_model_touch_sphere(&model,&point,surface_reach,&model_node)' in source  # Test66: the assist on the surface
+assert 'collision_model_touch_sphere(&model,&probe,surface_reach,&model_node)' in source  # Test66: the assist on the surface
 assert 'collision_test_vector(_collision_test_for_line_of_sight_flags' in source # occlusion only, after overlap
 local_tick=function('static void tick_player(')
 assert 'if(!pressed || npc.held[h] || npc.recovery' in local_tick

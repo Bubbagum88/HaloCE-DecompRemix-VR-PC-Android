@@ -229,7 +229,7 @@ assert "damage_data.multiplier = vr_combat_damage_share();" in units
 damage = read("source/objects/damage.c")
 assert "damage_definition->category == _damage_category_melee ?" in damage and "vr_combat_defend(object_index, damage->owner_object_index) : 1.0f" in damage
 npc = read("port/linux/game/vr_npc_interaction.c")
-assert "collision_model_touch_sphere(&model,&point,surface_reach,&model_node)" in npc
+assert "collision_model_touch_sphere(&model,&probe,surface_reach,&model_node)" in npc
 assert "static void npc_keep_held(void)" in npc and "npc_keep_held();" in npc
 assert "its root brought to the body in the hands" in npc
 world = read("port/linux/game/vr_world_interaction.c")

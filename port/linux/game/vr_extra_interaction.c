@@ -63,6 +63,8 @@ static struct {
      * under blows; an Elite answering a flurry with its own swing */
     real damage_share;
     long share_tick,parry_tick[2],guard_strain_until,answer_unit,answer_at,answer_ready,flurry_unit,flurry_until;
+    /* Test67: the weapon each hand's parry stroke was made with (NONE: empty) */
+    long parry_weapon[2];
     int guard_strain,flurry_hits;
     /* One physical stroke owns either its sweep or a carried lunge blow. */
     int swing_acquired[2],swing_used[2];
@@ -248,6 +250,8 @@ static struct combat_kind const *combat_kind(long target)
  * point and the bounding sphere's centre, which takes in a Hunter's cannon,
  * while the body is drawn a tick behind). While a frame is drawn the node
  * matrices are the pose drawn (objects.c), in a tick the tick's. */
+/* Test67: the drawn pose (combat moves are render-only, vr_combat_render) */
+real_matrix4x3 *vr_combat_render(long unit,real_matrix4x3 *stock);
 static boolean combat_regions(long target,real_point3d *head,real_point3d *chest)
 {
     struct unit_datum *u=target!=NONE?unit_try_and_get(target):NULL;
@@ -256,6 +260,11 @@ static boolean combat_regions(long target,real_point3d *head,real_point3d *chest
     if(!u)return FALSE;
     definition=object_definition_get(u->definition_index);
     if(definition&&definition->object.model.index!=NONE&&(nodes=object_get_node_matrices(target))!=NULL){
+        /* Test67: head and chest where they are drawn: a kneel or recoil
+         * (vr_combat_render) moves them up to a third of a leg from Halo's
+         * own pose, and the glyphs and the head/chest judgement follow what
+         * the player sees. Halo's pose when no combat pose is drawn. */
+        nodes=vr_combat_render(target,nodes);
         model=model_definition_get(definition->object.model.index);
         long bytes=u->object.node_matrices.size;
         if(bytes<=0||bytes%sizeof(real_matrix4x3)||bytes/sizeof(real_matrix4x3)>MAXIMUM_NODES_PER_MODEL)goto fallback;
@@ -486,7 +495,12 @@ void vr_extra_tick(long unit)
             for(int h=0;h<2;h++){
                 real speed=vr_hand_speed(h),threshold=vr_melee_speed();
                 if(!(isfinite(threshold)&&threshold>0))threshold=2.0f;
-                if(isfinite(speed)&&speed>=MAX(1.8f,.6f*threshold))extra.parry_tick[h]=now;
+                /* Test67: the support hand of a two-handed gun parries
+                 * through the gun hand only */
+                if(h!=vr_weapon_hand()&&vr_two_handed())continue;
+                if(isfinite(speed)&&speed>=MAX(1.8f,.6f*threshold)){
+                    extra.parry_tick[h]=now;extra.parry_weapon[h]=vr_parry_hand_weapon(unit,h);
+                }
             }
     }
     if(!config_boolean("vr.physical_grenades")||!chest_points(unit,&camera,slots)){
@@ -850,7 +864,10 @@ real vr_combat_defend(long victim,long attacker)
            !vr_hand_pose(h,camera.n,p.n,f.n,u.n))continue;
         vector_from_points3d(&camera,&p,&d);distance=normalize3d(&d);
         if(distance<.10f*units||distance>.60f*units||dot_product3d(&d,&to)<.35f)continue;
-        if(extra.parry_tick[h]>0&&now>=extra.parry_tick[h]&&now-extra.parry_tick[h]<=combat_parry_ticks())parry=h;
+        /* Test67: a stroke counts only with the weapon it was made with,
+         * and never from a two-handed gun's support hand */
+        if(extra.parry_tick[h]>0&&now>=extra.parry_tick[h]&&now-extra.parry_tick[h]<=combat_parry_ticks()&&
+           extra.parry_weapon[h]==vr_parry_hand_weapon(victim,h)&&!(h!=vr_weapon_hand()&&vr_two_handed()))parry=h;
         /* a guard: raised to the face (within 30 cm of the eyes' height), squarely between */
         /* A held gun may actively parry; ordinary aiming is not a passive shield. */
         if(!armed_hand&&p.z>camera.z-.30f*units&&distance<=.55f*units&&dot_product3d(&d,&to)>=.5f)guard=h;
@@ -1236,8 +1253,8 @@ int vr_extra_render(float const camera_position[3])
         }
     }
     /* An opening stays on its enemy while the player switches to another. */
-    if(extra_combat_on()&&config_boolean("vr.combat_highlights"))for(int i=0;i<COMBAT_MEMORY_COUNT;i++){
-        struct combat_memory *m=&combat_memory[i];long now=game_time_get();
+    if(extra_combat_on()&&config_boolean("vr.combat_highlights"))for(int slot=0;slot<COMBAT_MEMORY_COUNT;slot++){
+        struct combat_memory *m=&combat_memory[slot];long now=game_time_get();
         if(m->target==NONE||m->target==extra.target||m->seen>now||m->stun<=now||
            m->stun-now>TICKS_PER_SECOND||!extra_enemy(unit,m->target))continue;
         real_point3d head,chest;real_argb_color amber={.75f,1,.65f,.12f};
@@ -1310,5 +1327,30 @@ real_matrix4x3 *vr_combat_render(long unit,real_matrix4x3 *stock)
     }
     for(n=0;n<count;n++)if(!vr_combat_pose_matrix_valid(&pose[n]))return stock;
     return pose;
+}
+/* Test67: a point on an enemy as it is drawn (a combat move's kneel, recoil
+ * or attack overlay, a hit reaction's tilt: all render-only) mapped onto
+ * Halo's own pose, which collision and the NPC rigs use: through the drawn
+ * node nearest the point, rigidly. A hand touching a kneeling Grunt's drawn
+ * shoulder then touches its native shoulder. FALSE, and the point unchanged,
+ * when nothing is drawn differently (no combat pose, combat off, the NPC
+ * owned by hands or ragdolls). */
+int vr_combat_drawn_to_native(long unit,real_point3d const *point,real_point3d *native_point)
+{
+    static real_matrix4x3 drawn[MAXIMUM_NODES_PER_MODEL];
+    struct unit_datum *u=unit!=NONE?unit_try_and_get(unit):NULL;
+    real_matrix4x3 *stock,*posed;
+    long bytes;short count;
+    if(!point||!native_point)return FALSE;
+    *native_point=*point;
+    if(!u||!valid_real_point3d(point)||(stock=object_get_node_matrices(unit))==NULL)return FALSE;
+    bytes=u->object.node_matrices.size;
+    if(bytes<=0||bytes%sizeof(*stock)||bytes/sizeof(*stock)>MAXIMUM_NODES_PER_MODEL)return FALSE;
+    count=(short)(bytes/sizeof(*stock));
+    posed=vr_combat_render(unit,stock);
+    if(posed==stock)return FALSE;
+    /* (vr_combat_render's buffer is shared with the render pass) */
+    memcpy(drawn,posed,count*sizeof(*drawn));
+    return vr_combat_pose_map_point(drawn,stock,count,point,native_point);
 }
 #endif

@@ -213,7 +213,7 @@ assert 'else if(r->pressed||!r->held)' in network # host only attempts new press
 assert 'vr_npc_interaction_remote(r->player,hand,r->held,r->position.n)' in network
 npc=(ROOT/'port/linux/game/vr_npc_interaction.c').read_text()
 assert 'vr_world_hand_contact_radius((float)config_real("vr.interaction_reach")' in npc
-assert 'collision_model_touch_sphere(&model,&point,surface_reach,&model_node)' in npc
+assert 'collision_model_touch_sphere(&model,&probe,surface_reach,&model_node)' in npc
 assert '!vr_aiming()' not in npc
 assert '.12f*units' not in npc and '.12f*.32808399f' not in npc
 assert 'contact grab miss' in npc

@@ -36,8 +36,13 @@
 #include <string.h>
 void platform_log(char const *,...);
 unsigned long system_milliseconds(void);
+#ifdef HALO_VR
+#include "vr_extra_interaction.h" /* Test67: vr_combat_drawn_to_native */
+#endif
 static unsigned long timing_frames,timing_total,timing_maximum;
 #ifndef HALO_VR
+/* (the flat build draws no combat poses: a point is where it is) */
+#define vr_combat_drawn_to_native(u,p,o) ((void)(u),*(o)=*(p),0)
 #define VR_INTERACTION_NONE 0
 #define VR_INTERACTION_NPC 5
 #define vr_interaction_release(h,o) ((void)0)
@@ -1016,7 +1021,10 @@ static void tick_player(int use_remote,long player)
                 nearest_gap=MIN(nearest_gap,magnitude3d(&delta)-candidate->object.bounding_sphere_radius);
                 if(magnitude3d(&delta)>candidate->object.bounding_sphere_radius+body_reach) continue;
                 if(++budget>16) {budget_exhausted=1;break;}
-                real_point3d contact;
+                real_point3d contact,probe=point;
+                /* Test67: a combat pose is drawn only: the hand on the drawn
+                 * body is looked for on Halo's own pose (vr_combat_drawn_to_native) */
+                if(!use_remote)vr_combat_drawn_to_native(it.index,&point,&probe);
                 {
                     /* Test54: the authored collision model (the shot-hit
                      * geometry) first; otherwise the live pose's bone capsules,
@@ -1024,14 +1032,14 @@ static void tick_player(int use_remote,long player)
                      * lying on the floor grabs it. NPC GRAB ASSIST widens only
                      * the capsules; the default adds a modest 5 cm. */
                     int captured=FALSE;
-                    contact=point;
+                    contact=probe;
                     if(!collision_model_instance_new(&model,it.index) ||
-                       !collision_model_touch_sphere(&model,&point,surface_reach,&model_node)) {
-                        struct vr_articulated_native const *probe;
+                       !collision_model_touch_sphere(&model,&probe,surface_reach,&model_node)) {
+                        struct vr_articulated_native const *probe_rig;
                         if(!existing && !vr_articulated_native_capture(it.index,&destination->rig)) {++graph_rejects;continue;}
                         captured=!existing;
-                        probe=existing?&existing->rig:&destination->rig;
-                        model_node=(short)npc_body_touch(probe,&point,body_reach,units,
+                        probe_rig=existing?&existing->rig:&destination->rig;
+                        model_node=(short)npc_body_touch(probe_rig,&probe,body_reach,units,
                             destination->held[1-h]?destination->node[1-h]:NONE);
                         if(model_node==NONE) continue;
                         ++body_hits;
@@ -1047,7 +1055,7 @@ static void tick_player(int use_remote,long player)
                 node=npc_contact_node(&destination->rig,(short)node,&contact,units,
                     destination->held[1-h]?destination->node[1-h]:NONE,&mapped);
                 if(node==NONE){++node_rejects;continue;}
-                if(!npc_contact_surface(&destination->rig,node,&point,units,&contact)){
+                if(!npc_contact_surface(&destination->rig,node,&probe,units,&contact)){
                     ++node_rejects;continue;
                 }
                 if(!use_remote&&!vr_interaction_claim(h,VR_INTERACTION_NPC)) break;
@@ -1168,8 +1176,12 @@ static void npc_touch_tick(void)
                candidate->object.parent_object_index!=NONE || state_for_object(it.index)) continue;
             vector_from_points3d(&point,&candidate->object.bounding_sphere_center,&delta);
             if(magnitude3d(&delta)>candidate->object.bounding_sphere_radius+reach) continue;
-            if(!collision_model_instance_new(&model,it.index) ||
-               !collision_model_touch_sphere(&model,&point,reach,&model_node)) continue;
+            {
+                real_point3d probe=point;
+                vr_combat_drawn_to_native(it.index,&point,&probe);
+                if(!collision_model_instance_new(&model,it.index) ||
+                   !collision_model_touch_sphere(&model,&probe,reach,&model_node)) continue;
+            }
             if(npc_touch[h].object==it.index && tick>=npc_touch[h].tick && tick-npc_touch[h].tick<6) break;
             npc_touch[h].object=it.index;npc_touch[h].tick=tick;
             definition=object_definition_get(candidate->definition_index);

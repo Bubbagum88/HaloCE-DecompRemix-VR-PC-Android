@@ -12,6 +12,9 @@ void vr_extra_models_render(void);
 int vr_physical_grenade_busy(void);
 int vr_extra_feedback_active(int hand);
 real_matrix4x3 *vr_combat_render(long unit,real_matrix4x3 *stock);
+/* Test67: a point on an enemy as drawn mapped onto Halo's own pose (combat
+ * poses are render-only); FALSE and unchanged when nothing is drawn differently */
+int vr_combat_drawn_to_native(long unit,real_point3d const *point,real_point3d *native_point);
 int vr_combat_enabled(void);
 int vr_combat_stunned(long unit);
 int vr_combat_control_opening(long unit);

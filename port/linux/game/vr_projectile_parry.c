@@ -45,6 +45,11 @@ void vr_projectile_parry_forget(long projectile)
 /* Fixed weapon mode reports !vr_hand_empty even when the native inventory
  * has no selected weapon. A gun gesture requires the actual salted handle;
  * dropping, holstering, switching or handing it over cancels that stroke. */
+static long parry_weapon(long unit,int hand);
+long vr_parry_hand_weapon(long unit,int hand)
+{
+    return parry_weapon(unit,hand);
+}
 static long parry_weapon(long unit,int hand)
 {
     struct unit_datum *owner;
@@ -206,8 +211,8 @@ boolean vr_projectile_parry_try(long index,real_point3d const *end,
     speed=MAX(speed,parry.hand[hand].speed);
     scale_vector3d(&parry.hand[hand].direction,speed,&reflected);
     if(!valid_real_vector3d(&reflected))return FALSE;
-    for(int k=0;k<3;k++)contact.n[k]=projectile->object.position.n[k]+
-        (end->n[k]-projectile->object.position.n[k])*best;
+    for(int c=0;c<3;c++)contact.n[c]=projectile->object.position.n[c]+
+        (end->n[c]-projectile->object.position.n[c])*best;
     projectile->object.translational_velocity=reflected;
     projectile->object.forward=parry.hand[hand].direction;
     real_vector3d left;

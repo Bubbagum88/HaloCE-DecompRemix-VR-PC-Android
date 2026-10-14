@@ -132,7 +132,54 @@ int main(void)
   assert(vr_combat_pose_apply(native,nodes,count,&request,out));memcpy(saved,out,sizeof(out));
   request.mode=VR_COMBAT_POSE_OVERHEAD;assert(vr_combat_pose_apply(native,nodes,count,&request,out));assert(memcmp(saved,out,count*sizeof(*out)));
  }
- printf("PASS: %d combat poses + 4000 continuity samples, feet and every bone length, finite frames, aliasing and malformed-rig guards\n",applied);
+ /* Drawn-to-native mapping (vr_combat_drawn_to_native): a point on a drawn
+  * bone lands on the same bone of the native pose, in every pose; a kneeling
+  * pelvis maps back up; an unposed body maps to itself; bad input is a copy. */
+ int mapped=0;
+ for(int rig=0;rig<2;rig++)for(int mode=0;mode<VR_COMBAT_POSE_MODE_COUNT;mode++)for(int side=0;side<2;side++){
+  fixture(rig);request.mode=mode;request.side=side;request.weight=1;request.phase=.35f;
+  assert(vr_combat_pose_apply(native,nodes,count,&request,out));
+  for(int i=0;i<count;i++){
+   real_point3d on_drawn,back,expected;float o[3]={.004f,-.003f,.002f};
+   for(int k=0;k<3;k++){
+    on_drawn.n[k]=out[i].position.n[k]+out[i].scale*(out[i].forward.n[k]*o[0]+out[i].left.n[k]*o[1]+out[i].up.n[k]*o[2]);
+    expected.n[k]=native[i].position.n[k]+native[i].scale*(native[i].forward.n[k]*o[0]+native[i].left.n[k]*o[1]+native[i].up.n[k]*o[2]);
+   }
+   assert(vr_combat_pose_map_point(out,native,count,&on_drawn,&back));
+   /* (the nearest drawn node can be another one at the same place: the
+    * point still lands where that node's native frame puts it) */
+   int same=1;for(int k=0;k<3;k++)if(fabsf(back.n[k]-expected.n[k])>2e-4f)same=0;
+   if(!same){
+    int found=0;
+    for(int j=0;j<count&&!found;j++){
+     if(vr_combat_pose_distance(&out[j].position,&out[i].position)>1e-5f)continue;
+     real_point3d other;float l[3];
+     for(int k=0;k<3;k++)l[k]=0;
+     for(int k=0;k<3;k++){float d=on_drawn.n[k]-out[j].position.n[k];l[0]+=d*out[j].forward.n[k];l[1]+=d*out[j].left.n[k];l[2]+=d*out[j].up.n[k];}
+     for(int k=0;k<3;k++)other.n[k]=native[j].position.n[k]+native[j].forward.n[k]*l[0]+native[j].left.n[k]*l[1]+native[j].up.n[k]*l[2];
+     found=1;for(int k=0;k<3;k++)if(fabsf(back.n[k]-other.n[k])>2e-4f)found=0;
+    }
+    assert(found);
+   }
+   mapped++;
+  }
+  if(mode==VR_COMBAT_POSE_CLUTCH_KNEEL){
+   real_point3d back;assert(vr_combat_pose_map_point(out,native,count,&out[0].position,&back));
+   assert(back.z>out[0].position.z+.1f&&fabsf(back.z-native[0].position.z)<1e-4f);
+  }
+ }
+ fixture(0);
+ {
+  real_point3d p={{.31f,.2f,1.1f}},back;
+  assert(vr_combat_pose_map_point(native,native,count,&p,&back));
+  for(int k=0;k<3;k++)assert(fabsf(back.n[k]-p.n[k])<1e-5f);
+  p.x=NAN;assert(!vr_combat_pose_map_point(native,native,count,&p,&back));assert(isnan(back.x));
+  p.x=.31f;assert(!vr_combat_pose_map_point(native,native,0,&p,&back));
+  memcpy(saved,native,sizeof(native));saved[3].forward.i=0;
+  assert(!vr_combat_pose_map_point(saved,native,count,&p,&back));assert(!memcmp(&back,&p,sizeof(p)));
+ }
+ printf("PASS: %d combat poses + 4000 continuity samples, feet and every bone length, finite frames, aliasing and malformed-rig guards; "
+        "%d drawn points carried to the native pose\n",applied,mapped);
  return 0;
 }
 '''

@@ -330,4 +330,38 @@ static int vr_combat_pose_apply(real_matrix4x3 const *native,struct model_node c
     memcpy(out,pose,count*sizeof(*out));
     return 1;
 }
+
+/* A point on the body as drawn (out of vr_combat_pose_apply) carried to the
+ * same place on the native pose, which collision and the NPC rigs use: into
+ * the frame of the drawn node nearest the point and out of that node's native
+ * frame. Rigid (both frames orthonormal, their scales kept), so the point
+ * keeps its place on the bone it is nearest. 0, and out a copy of point, for
+ * a malformed input. */
+static int vr_combat_pose_map_point(real_matrix4x3 const *drawn,real_matrix4x3 const *native,int count,
+    real_point3d const *point,real_point3d *out)
+{
+    int n,nearest=-1,k;float best=0,local[3],offset[3];
+    if(!point||!out)return 0;
+    *out=*point;
+    if(!drawn||!native||count<1||count>VR_COMBAT_POSE_MAX_NODES)return 0;
+    for(k=0;k<3;k++)if(!isfinite(point->n[k]))return 0;
+    for(n=0;n<count;n++){
+        float distance;
+        if(!vr_combat_pose_matrix_valid(&drawn[n])||!vr_combat_pose_matrix_valid(&native[n]))return 0;
+        distance=vr_combat_pose_distance(&drawn[n].position,point);
+        if(!isfinite(distance))return 0;
+        if(nearest<0||distance<best){nearest=n;best=distance;}
+    }
+    for(k=0;k<3;k++)offset[k]=point->n[k]-drawn[nearest].position.n[k];
+    local[0]=vr_combat_pose_dot(offset,drawn[nearest].forward.n)/drawn[nearest].scale;
+    local[1]=vr_combat_pose_dot(offset,drawn[nearest].left.n)/drawn[nearest].scale;
+    local[2]=vr_combat_pose_dot(offset,drawn[nearest].up.n)/drawn[nearest].scale;
+    for(k=0;k<3;k++){
+        float value=native[nearest].position.n[k]+native[nearest].scale*
+            (native[nearest].forward.n[k]*local[0]+native[nearest].left.n[k]*local[1]+native[nearest].up.n[k]*local[2]);
+        if(!isfinite(value)){*out=*point;return 0;}
+        out->n[k]=value;
+    }
+    return 1;
+}
 #endif

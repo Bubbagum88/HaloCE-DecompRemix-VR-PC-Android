@@ -364,12 +364,7 @@ enum
 	_vehicle_ai_driver_hovering_bit,
 };
 
-/* projectile_datum.flags; projectiles.c currently owns the otherwise private
- * enum, so actors keeps the shared January bit spelling local for now. */
-enum
-{
-	_projectile_will_super_explode_bit = 7,
-};
+/* (projectile_datum.flags' _projectile_will_super_explode_bit: items/projectiles.h) */
 
 /* January names these limits in its assert and error strings; the shared
 header spells them MAXIMUM_SWARMS and MAXIMUM_UNIT_INDICES_PER_SWARM. */
