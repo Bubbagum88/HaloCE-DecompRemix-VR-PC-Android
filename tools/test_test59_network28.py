@@ -46,10 +46,10 @@ assert 'return version == 0 ? "All compatible networks"' in profile
 config = read("port/linux/src/port_config.c")
 assert '{ "network.protocol_version", _config_integer, "0",' in config
 browser = read("port/android/app/src/main/java/com/halo/decomp/ServerBrowser.java")
-assert '"All compatible networks (11–28) · "' in browser and "for (int version : NetworkProfile.SUPPORTED)" in browser
+assert '"All compatible networks (11â€“28) Â· "' in browser and "for (int version : NetworkProfile.SUPPORTED)" in browser
 for name in ("ServerBrowser", "InGameNetworkGuide", "Updater", "NetworkProfile"):
     text = read("port/android/app/src/main/java/com/halo/decomp/%s.java" % name)
-    assert "network 26" not in text and "11–26" not in text and "15–26" not in text, name
+    assert "network 26" not in text and "11â€“26" not in text and "15â€“26" not in text, name
 
 # 27: map sharing's messages, numbered as OpenCE's, and the host's answer in both paths
 header = read("port/linux/game/network_distributed.h")
@@ -124,5 +124,5 @@ assert "distributed_body_set_at_rest(state->object_index, at_rest);" in objects
 assert "#define HALO_PORT_MAXIMUM_TRANSPARENT_GEOMETRY_GROUPS 2048" in read("port/linux/include/halo_port_capacity.h")
 assert "RASTERIZER_MAXIMUM_TRANSPARENT_GEOMETRY_GROUPS = HALO_PORT_MAXIMUM_TRANSPARENT_GEOMETRY_GROUPS," in read("source/rasterizer/rasterizer.h")
 assert "static struct rasterizer_debug_model_vertex debug_vertices[" in read("source/rasterizer/rasterizer.c")
-print("PASS: Test59 network 28 (hosts 28, joins 11..28 incl. 27, All compatible default), map sharing answered as not shared, "
+print("PASS: Test59 network 28 (hosts 28, joins 11..28 incl. 27, All compatible default), Build201 map sharing integrated, "
       "28's BSP / lights / second-weapon rules, overshield drain, client bodies (VR-posed ones left alone), renderer limits")

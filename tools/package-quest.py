@@ -931,7 +931,7 @@ def main():
                 "native_host_version": network_value("HALO_PORT_NETWORK_VERSION"), "accepted_host_versions": list(range(network_value("HALO_PORT_NETWORK_VERSION_MINIMUM"), network_value("HALO_PORT_NETWORK_VERSION_MAXIMUM")+1)),
                 "client_default_target": client_default_target(args.label, runtime_commit), "client_all_compatible_target": 0,
                 "campaign_minimum_host_version": 15, "custom_edition_minimum_host_version": 23,
-                "legacy_client_scope": "original Xbox-map PvP11-24; campaign15-24 plus explicit legacy12-14 opt-in; device cross-play validation pending",
+                "legacy_client_scope": ("original Xbox-map PvP11-%d; campaign15-%d plus explicit legacy12-14 opt-in; device cross-play validation pending" % (network_value("HALO_PORT_NETWORK_VERSION_MAXIMUM"), network_value("HALO_PORT_NETWORK_VERSION_MAXIMUM"))),
                 "legacy_campaign_opt_in_versions": [12, 13, 14],
                 "physical_interaction_protocol": 1,
                 "physical_interaction_host_permission_default": False,
