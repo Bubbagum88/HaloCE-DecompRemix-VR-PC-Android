@@ -5,9 +5,11 @@ video help most. Note which items you tried. Nothing below has been checked
 on a headset yet.
 
 1. Warthog with IMMERSIVE VEHICLE: drive over rough ground and turn hard;
-   the view never drops into the dash; turn the wheel past half a circle
-   while gripping: it keeps turning and never lets go or flips.
-2. Ghost, Scorpion and Banshee: still as in Test65.
+   the view should not drop into the dash. While gripping, move your hand
+   through the angle-wrap boundary: the grip should stay held with no flip.
+   The wheel is limited to 120 degrees each way; steering clamps at 60.
+2. Ghost and Scorpion: preserve the prior Test65 behavior. Banshee: first
+   device validation is still needed; do not assume it was previously accepted.
 3. IMMERSION > VEHICLES lists the vehicle settings; RESET CONTROLS works.
 4. LEFT-HAND MODE ON: the gun starts left at a level start and after dying;
    holsters and pouches are mirrored; swapping by hand still works.
@@ -35,7 +37,8 @@ on a headset yet.
     without it downloads it and joins. Vote to kick from the scoreboard.
 15. Regression: VR SETTINGS opens, joins from the phone, voice (and the
     talking icon), holsters, parkour, Test65's fists and Warthog lock.
-16. Flat Android: the same campaigns, the PHYSICS row, Server Setup's new
-    sub-screens, the campaign pause menu's SETTINGS.
+16. Flat Android: the same campaigns; Video Setup > Graphics > Physics
+    switches between RAGDOLL (default) and CLASSIC, with OK saving the choice.
+    Check Server Setup's new sub-screens and campaign pause-menu SETTINGS.
 
 Test65's, Test64's and Test63's device checklists are still pending too.

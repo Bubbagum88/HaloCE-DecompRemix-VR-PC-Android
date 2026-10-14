@@ -21,11 +21,14 @@ vehicle, reload, fist, grab, wall-run, left-hand, grenade and weapon-pull refine
 Network remains 28 hosting / 11-28 client targets; voice codec/audio paths preserved.
 Public baseline is v1.0.31; older baseline claims below are historical.
 Local-only completion: no push, tag, release, installation or launch.
-Automated checks and packaging are being repeated; final evidence belongs in
-`docs/TEST66-DELIVERY-STATUS.md`. Device acceptance remains pending.
+Both APK builds and three complete 131-suite runs passed. Exact APK source is
+`0b5c7e628060d977f7613f28433cca094a3f35d0`; delivery folder is
+`D:\HaloQuest\builds\test66-20261013-v1.0.33-test66`. Signatures, versions,
+source lineage and artifact hashes are recorded in `docs/TEST66-DELIVERY-STATUS.md`
+and the package manifests. Device acceptance remains pending.
 PC / Steam Frame remain deferred. Preserve user settings and known working paths.
 
-## Verified current public baseline: v1.0.18 (2026-10-12)
+## Historical public-baseline check: v1.0.18 (superseded by v1.0.31)
 
 A live check on 2026-10-12 of
 [GitHub releases/latest](https://github.com/moistman42069/HaloCE-Quest-VR/releases/latest)

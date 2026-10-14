@@ -95,3 +95,13 @@ peers, empty keys, valid keys and lock release. No wire format/version changed.
 The initial rerun finished with two stale identity pins (Test26 and Test34);
 both were updated for the Build201 banner, preserving their behavior checks.
 The final full runs below use the corrected pins.
+
+## Final automated runs
+
+All 131 registered suites passed in the standalone rerun and before each
+flavor build. Both native/Gradle builds, built-image Opus table checks and
+guest ABI lint passed. Additional sanitized production bridge tests verified
+contact layout, signed IDs, guards and buffer bounds. APK versions, signer,
+19 Jolt host imports and native dependencies were checked independently.
+Exact artifacts and limitations: `TEST66-DELIVERY-STATUS.md`. All device
+entries above remain pending.
