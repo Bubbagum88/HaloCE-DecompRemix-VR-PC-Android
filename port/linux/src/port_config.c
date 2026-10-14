@@ -234,6 +234,14 @@ static const struct config_setting config_settings[] =
 	{ "controls.push_to_talk", _config_string, "\"V\"", "HALO_KEY_PUSH_TO_TALK", _environment_value, _platform_all,
 		"Hold to transmit voice when audio.voice_chat is \"push_to_talk\". In VR,\n"
 		"the BUTTONS page also lets you bind a Quest controller button." },
+	{ "controls.third_person", _config_string, "\"Keypad Enter\"", "HALO_KEY_THIRD_PERSON", _environment_value,
+		_platform_all,
+		"The third-person camera on foot, on and off, in a campaign and co-op\n"
+		"(controls.free_look held: free look; the wheel: nearer and further)." },
+	{ "controls.free_look", _config_string, "\"Left Alt, Right Alt\"", "HALO_KEY_FREE_LOOK", _environment_value,
+		_platform_all,
+		"Held in the third-person camera: the camera turns alone, the player\n"
+		"keeps on its way." },
 
 	{ "debug.menu_open", _config_string, "\"\"", "HALO_MENU_OPEN", _environment_value, _platform_all,
 		"Start on this screen of the menus (port/assets/menus) instead of the main\n"
@@ -302,6 +310,12 @@ static const struct config_setting config_settings[] =
 	{ "display.viewmodel_shield", _config_boolean, "false", "HALO_VIEWMODEL_SHIELD", _environment_value, _platform_all,
 		"The energy shield's flare on the first-person arms too, as on the body\n"
 		"(the stock game draws it on the body only)." },
+	/* (the OpenCE fork jcompto95-tech's third-person camera, third_person.c:
+	this port's setting for it, so that a touchscreen without a keyboard can
+	turn it on; controls.third_person still toggles it while playing) */
+	{ "display.third_person", _config_boolean, "false", "HALO_THIRD_PERSON", _environment_value, _platform_all,
+		"The third-person camera on foot in a campaign and co-op, over the\n"
+		"shoulder (the flat game's; not in VR). controls.third_person toggles it." },
 	{ "display.first_person_legs", _config_boolean, "false", "HALO_FIRST_PERSON_LEGS", _environment_value, _platform_all,
 		"Your own legs in first person, seen looking down: your body as others\n"
 		"see it, drawn from the waist down, moving as it moves." },

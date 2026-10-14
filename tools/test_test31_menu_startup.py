@@ -131,6 +131,10 @@ long csstrcasecmp(const char *a,const char *b){for(;;a++,b++){int x=(unsigned ch
 short game_connection(void){return 0;}
 unsigned char game_is_cooperative(void){return 0;}
 unsigned char network_game_is_active(void){return 0;}
+/* (Test67: the menus ask whether an MCC map is loaded, GulchCE mcc_*.c; the startup has none) */
+unsigned char mcc_cache_tags_loaded(void){return 0;}
+unsigned char mcc_pause_owns(long handle){(void)handle;return 0;}
+unsigned char mcc_ui_settings_needed(char const *name){(void)name;return 0;}
 char *csstrncpy(char *a,const char *b,unsigned long n){return strncpy(a,b,n);}
 unsigned long csstrlen(const char *a){return strlen(a);}
 char *_strdup(const char *s){size_t n=strlen(s)+1;char *p=malloc(n);if(p)memcpy(p,s,n);return p;}

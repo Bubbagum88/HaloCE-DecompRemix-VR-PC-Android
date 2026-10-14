@@ -289,6 +289,10 @@ symbols in this file:
 
 void platform_log(char const *format, ...);
 
+/* port: port/linux/game/third_person.c */
+void third_person_control(long player_index, real_euler_angles2d const *desired_facing,
+	struct unit_control_data *control_data);
+
 /* network_game_globals.c's */
 boolean network_game_distributed_client(void);
 /* port/linux/game/network_distributed.c's */
@@ -5210,6 +5214,9 @@ void players_update_before_game(
 					(port/linux/game/vr_vehicle_handles.h) */
 					vr_vehicle_handles_facing(player->unit_index, control_data.facing_vector.n);
 #endif
+					/* port: the third-person camera's free look
+					(port/linux/game/third_person.c) */
+					third_person_control(iterator.datum_index, &action->desired_facing, &control_data);
 					control_data.throttle.i = action->throttle.i;
 					control_data.throttle.j = action->throttle.j;
 					control_data.throttle.k = 0.f;
