@@ -17,7 +17,7 @@ dynamic ragdolls, SPV1 warnings, The Altheros Experience). Columns:
 | ENEMY HEALTH at max had no effect | the damage scale's minimum dominates (`(1-scale)*min + rand*scale`) | fist share applied as the damage multiplier |
 | Grab misses on armour ("collision_candidates=0") | assist measured from the bone centre line | assist from the body surface (`collision_model_touch_sphere`), 10 cm default, 25 cm max |
 | Held corpses vanish | at rest / on the garbage list; root left behind | `npc_keep_held`; root follows the held torso |
-| Silent Cartographer wall run fails | only |nz| < 0.35, one probe height | runnable to |nz| < 0.6, three probes, normal blending, 6-tick gap grace |
+| Silent Cartographer wall run fails | only abs(nz) < 0.35, one probe height | runnable to abs(nz) < 0.6, three probes, normal blending, 6-tick gap grace |
 | WEAPON PULL does nothing and has no switch (17:37 log) | line of sight into the ground; gun hand refused; 1 m reach | rebuilt as gravity gloves with WEAPON PULL / PULL REACH / PULL STYLE / PULL GLOW |
 | Grenades warp when lowered | placed from the head's pitch; LOD switch | torso frame from the neck; drawn at full detail, 0.75 scale |
 
@@ -63,3 +63,24 @@ refinements bring IMMERSIVE VEHICLE (as Test60). WEAPON PULL, LEFT-HAND
 MODE, DEATH PHYSICS and the display options are independent switches.
 Saved settings stay; only new keys get defaults (grenades moved once to the
 waist).
+
+## Resumed audit
+
+Compared the original Test65 feedback and later additions in the local Claude
+transcript against this checklist and the handoff. Build 201 remains the latest
+published OpenCE release at the resumed check. No merge markers remain in the
+source/port/tools trees. Voice codec/capture/playback and host audio changes were
+checked against Test65: the new voice drawing is the only voice-runtime edit.
+Found an incorrectly escaped speaker bitmap path (single backslashes: C interprets
+backslash-v as a vertical tab). Corrected the path and added a check which failed
+before the fix and passed afterward. No codec or protocol change.
+The guide now distinguishes intended behavior from device validation and does not
+claim an untested Banshee result or an exact six-times punch count.
+
+The distribution notices were missing the newly bundled Jolt and Lucide licenses.
+Both complete notices and credits were added so generated APK field guides and
+packaged archives carry the third-party attribution.
+
+The first post-identity full run exposed an older Test26 banner assertion. Its
+gameplay harnesses passed; the identity check now also accepts the exact verified
+Build201/network28 banner. No gameplay assertion was removed.

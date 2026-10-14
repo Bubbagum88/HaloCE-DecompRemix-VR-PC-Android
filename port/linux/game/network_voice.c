@@ -1174,7 +1174,7 @@ boolean network_voice_available(
 
 /* the speaker's bitmap (network_voice_draw_icon): the menus' voice/speaker,
 as their bitmaps are named (menu_tags.c; OpenCE a7c8eac3) */
-#define VOICE_ICON_BITMAP "pc\voice\speaker"
+#define VOICE_ICON_BITMAP "pc\\voice\\speaker"
 
 /* a speaker drawn in the rectangle (a square of its height, at its left;
 muted: struck through, in red), fading with alpha: Lucide's icons

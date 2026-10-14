@@ -1,3 +1,157 @@
+# Test66 private candidate: 1.0.33-test66
+
+## Test66: OpenCE Build 201, dynamic ragdolls, a second campaign mod
+
+**Validation status:** these are implemented changes with automated checks; the exact Test66 pair still needs headset/phone testing. The descriptions below explain intended behavior, not completed device acceptance.
+
+This private build answers your 2026-10-13 Test65 list (both logs and videos
+of 16:08 and 16:24, and the 17:37 weapon-pull log and video) and your later
+additions. It installs over Test65 and earlier (same package names and
+signing key, Android version code 78) and keeps your settings, profiles,
+saves and game data. The network protocol is unchanged (this build hosts
+OpenCE network 28 and joins 11 to 28) and voice chat is unchanged (only the
+talking icon's drawing is new).
+
+### Warthog: no camera jump, the wheel turns all the way (IMMERSIVE VEHICLE on)
+
+- **The view no longer jumps into the dash.** Your videos (4:41, 5:36) show
+  the eyes dropping 30-50 cm for about a second and a half. The seat's eye
+  point was being re-captured whenever the vehicle's head marker strayed, and
+  then held there. With the controls up the eye point is now fixed per seat
+  (a stray is only logged).
+- **The wheel never lets go or flips.** Turning past half a circle used to
+  wrap the angle to the other lock, which looked like a release and a snap.
+  The wheel now follows your hands frame to frame: it turns up to 120 degrees
+  each way while you hold it, and steering reaches full lock at 60 degrees.
+  Grip held on the wheel means it stays held.
+- The Ghost and tank were reported good; their controls are unchanged. The Banshee profile is also unchanged and still needs device testing.
+- **IMMERSION > VEHICLES** now has every immersive-vehicle setting (wheel,
+  handlebar, sticks, sizes, offsets, glow, haptics, COCKPIT LOCK, RESET
+  CONTROLS), not under WEAPONS. Per-vehicle calibration is kept.
+
+### LEFT-HAND MODE (CONTROLS)
+
+Your gun starts in the left hand at every level start and respawn, and the
+holsters and pouches mirror. Swapping by hand works as before (HAND SWAP
+radius unchanged).
+
+### Manual reload, polished (RELOAD page)
+
+- The hand holding the magazine now takes Halo's own reload pose for that
+  weapon (sampled from the game's first-person reload animations), and the
+  magazine locks into the grip on contact without shaking.
+- Bring it to the gun: a small mag-well assist lines it up, the seat follows
+  the well's axis with haptics growing as it goes in, and a pulse when it
+  seats. The charging handle or slide locks to your hand and moves only along
+  its own track. CHARGE REACH is unchanged.
+
+### FIST COMBAT, as a mode
+
+- **ENEMY HEALTH now scales fist damage correctly.** At 6X ordinary fist damage is divided by six before other combat modifiers. Combo, armour and takedown rules mean the actual punch count is not an exact six-times guarantee.
+- **Airborne lunge**: punch an enemy above or below you (up to 3 m) and you
+  fly to it.
+- Hit lights follow the enemy's own bones (head and chest).
+- **Block and parry.** Raise a hand between your face and an attacker: its
+  melee is blocked (reduced). Swipe at its arm as it swings: parried, it
+  staggers open.
+- Enemies fight back by type: Grunts are stunned easily, Jackals guard from
+  the front (hit them from behind), Elites answer a flurry with a swing of
+  their own and fall only to takedowns and counters, Hunters are never
+  knocked down and only take full damage from behind.
+- Turning FIST COMBAT on brings NPC GRAB's assist with it (10 cm).
+
+### Grabbing NPCs and bodies
+
+- **GRAB ASSIST works from the body's surface now** (it measured from the
+  bone's centre line, so a hand touching an Elite's armour could miss). It
+  goes up to 25 cm; NPC GRAB and FIST COMBAT bring 10 cm.
+- **A body you hold never vanishes.** The game was tidying up held corpses
+  (and leaving their root behind); a held body is now kept awake and off the
+  clean-up list, and thrown bodies stay where they land.
+- Shot and blast deaths throw bodies harder (STRONG), and where a shot hits
+  matters: legs fold, the head snaps back.
+
+### Wall running on curved and angled walls
+
+The Silent Cartographer's rock walls failed: only near-vertical flat walls
+counted. Now curved, angled (rock faces to about 53 degrees), segmented and
+overhanging walls run, checked at three heights, with the facing eased round
+bends and a short grace over gaps. Steering away from the wall ends the run.
+
+### OBJECT THROW (comes on with world and vehicle grabs)
+
+A crate, prop or vehicle you let go of while swinging flies the way you
+threw it (2X default; OFF just drops it).
+
+### Grenades at your waist
+
+Chest grenades are smaller and sit at the waist by default (FWD 12 cm, DOWN
+60 cm, GAP 18 cm; your earlier positions are moved there once). They no
+longer warp when set very low (the drawn model kept its detail level and is
+placed from your neck, not your head's pitch).
+
+### WEAPON PULL, gravity-glove style (on by default)
+
+Like Half-Life: Alyx and the Half-Life 2 VR mod: point a free hand at a
+weapon up to 3 m away (PULL REACH 1-5 m) and it glows with a line to your
+palm; squeeze to lock it, then flick your hand back: it arcs through the air
+into your hand. A closed hand catches it, an open hand lets it drop. PULL
+STYLE GRIP pulls it on a held grip instead of a flick. WEAPON PULL OFF turns
+it off.
+
+### Dynamic ragdolls (OpenCE's, with Jolt Physics)
+
+Bodies now fall as OpenCE's dynamic ragdolls: limp, thrown by what killed
+them, tumbling down stairs and over ledges. On the Quest and on Android the
+physics runs in the app's 64-bit host. Your hands and these ragdolls share
+bodies: a body you hold is yours, and when you let go it goes back to the
+ragdoll physics. Living knockdowns (punches, slams) stay this build's own,
+up again within a second. IMMERSION > RAGDOLLS > DEATH PHYSICS: DYNAMIC
+(default) or CLASSIC (the game's own death animations).
+
+### Custom campaigns: SPV1 and The Altheros Experience
+
+- The launcher's warnings about SPV1 are gone: it plays now.
+- **CUSTOM CAMPAIGNS** (launcher): "Campaign now:" shows what plays; one
+  button per mod (SPV1, The Altheros Experience) and "Play the original
+  campaign". One campaign is installed at a time; switching puts the other
+  back first, and installed mods stay imported to switch back at once.
+- **The Altheros Experience** (Altheros's 2019 campaign beta, OpenSauce
+  maps) is not downloaded by the app. On a computer, extract "Latest Altheros
+  Experience 10.24.2019" (moddb.com), copy its folder (the .yelo files and
+  data_files) to the headset's Download folder over USB or SideQuest, then
+  in the launcher tap The Altheros Experience > Import, choose that folder,
+  and Install. About 3.4 GB; each level converts its sounds the first time it
+  loads (up to about 1 GB more, once).
+- Play it from the game's normal Campaign menu (there is no separate in-game
+  section: the menu plays whichever campaign the launcher installed). F10 (a
+  reworked Stockade) is an extra level, not in the menu. It is a beta, as its
+  author says: read its notes in the launcher.
+
+### From OpenCE Build 201 (the newest release), on both builds
+
+- **Map sharing**: join a game on a Custom Edition map you lack and the host
+  sends it (and the resource maps it needs) into your active game set's maps
+  folder. Server Setup > MAP SHARING turns it on and sets the speed. Over the
+  internet the map comes from the host; on a LAN other players help.
+- **Votes to kick** (VOICE AND VOTING), **Server Setup** grouped into CO-OP
+  OPTIONS (your PHYSICAL INTERACTIONS and HOST VR ACTIONS are here now),
+  VOICE AND VOTING and MAP SHARING.
+- Display options: field of view, the gun's field of view and visibility,
+  shield colour and glow, the shield on your arms; your legs in first person
+  (flat build; VR has its own full body). On VR the headset's view, gun and
+  body stay VR's own.
+- Overshield and camouflage no longer vanish at the edges of the view;
+  faster collision in crowded fights; high-res button icons and text; many
+  smaller fixes. The flat build's campaign pause menu gets SETTINGS.
+- **Not taken** (they would replace parts of this build that work): browser
+  players (WebRTC), OpenCE's touch controls and Android app shell, its audio
+  resampler and renderer rework, screenshots (desktop only). The full list
+  and reasons: TEST66-OPENCE-PARITY.md.
+
+
+---
+
 # Test65 private candidate: 1.0.32-test65
 
 ## Test65: Arkham Shadow fists, a steady Warthog, safer grabs
@@ -1665,6 +1819,6 @@ part of this same setting; it has no separate on/off toggle.
 
 ## Revisions, logs and support
 
-The original Xbox Halo: Combat Evolved XISO remains the recommended baseline. The exact USA Original, Rev 1 and Rev 2 images compared for this project all import successfully and contain byte-identical copies of the same 24 maps; their other disc files differ. This does not cover other regions, repacks or modified images. The launcher detects supported cache builds and fingerprints map files, but a filename does not authenticate a disc label, and the server browser cannot determine a remote host's ISO from its listing. See [the full USA comparison](USA-IMAGE-COMPARISON.md). SPV1 is experimental and unverified; file sizes fitting the current reader limits do not establish protected-map/resource/campaign support.
+The original Xbox Halo: Combat Evolved XISO remains the recommended baseline. The exact USA Original, Rev 1 and Rev 2 images compared for this project all import successfully and contain byte-identical copies of the same 24 maps; their other disc files differ. This does not cover other regions, repacks or modified images. The launcher detects supported cache builds and fingerprints map files, but a filename does not authenticate a disc label, and the server browser cannot determine a remote host's ISO from its listing. See [the full USA comparison](USA-IMAGE-COMPARISON.md). Custom campaigns (the launcher's CUSTOM CAMPAIGNS): SPV1 (the Custom Mapping Team's Single Player campaign) plays with OpenCE's Custom Edition support, and The Altheros Experience (an OpenSauce .yelo campaign mod, imported from its folder) installs the same way; one campaign plays at a time, and "Play the original campaign" puts the Xbox campaign back.
 
 Each launch writes a detailed log under **Download/HaloCE** when Android allows; app-private storage is used as fallback. For crashes, failed joins or desyncs, share logs from each peer and include device/model, OS, app/network version, game-data set, map/mission, network type and reproduction steps. Contact **@MeWhenINameMyself** or the [Halo CE Decomp Discord](https://discord.gg/S9uSCKxKx). Remove private invite/device details before sharing.

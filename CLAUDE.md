@@ -9,6 +9,22 @@
 
 # Agent and contributor continuation
 
+## Active private Test66 candidate (2026-10-13)
+
+Private **1.0.33-test66 / Android code78**, branch `test39-interaction-completion`.
+Resumed from `d34e42b1`; Test65 feedback and later owner additions are recorded in
+`docs/TEST66-CHECKLIST.md`. Read that file, `docs/TEST66-OPENCE-PARITY.md`,
+`docs/TEST66-FIELD-GUIDE.md` and `docs/TEST66-DEVICE-CHECKLIST.md` before continuing.
+Includes applicable OpenCE Build 201 integrations, host-side Jolt dynamic ragdolls,
+map sharing, custom campaign switching (SPV1 / Altheros / original), and the
+vehicle, reload, fist, grab, wall-run, left-hand, grenade and weapon-pull refinements.
+Network remains 28 hosting / 11-28 client targets; voice codec/audio paths preserved.
+Public baseline is v1.0.31; older baseline claims below are historical.
+Local-only completion: no push, tag, release, installation or launch.
+Automated checks and packaging are being repeated; final evidence belongs in
+`docs/TEST66-DELIVERY-STATUS.md`. Device acceptance remains pending.
+PC / Steam Frame remain deferred. Preserve user settings and known working paths.
+
 ## Verified current public baseline: v1.0.18 (2026-10-12)
 
 A live check on 2026-10-12 of
@@ -27,7 +43,7 @@ but do not use them as a live release pointer or instruction to check it out.
 Continue private Test65 on its stated branch. Public v1.0.18 and all earlier
 release assets remain unchanged; no publication is authorized.
 
-## Active private Test65 candidate (2026-10-13)
+## Previous private Test65 candidate (2026-10-13)
 
 Private **1.0.32-test65 / Android code77**, branch `test39-interaction-completion`,
 on Test64 = public 1.0.31: Arkham Shadow fist combat (it never acquired: the

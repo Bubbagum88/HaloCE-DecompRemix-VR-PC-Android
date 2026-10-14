@@ -61,3 +61,9 @@ contributors supplies the cryptographic primitives; complete licenses accompany
 format handling and deep-tree warning informed the importer correction. Khronos
 OpenGL ES and OpenXR specifications informed renderer-state and reticle-space
 review. These references establish API/format behavior, not device acceptance.
+
+## Test66 additions
+
+- **Jolt Physics 5.6.0**, by Jorrit Rouwe and contributors, powers OpenCE's dynamic death ragdolls. The OpenCE ragdoll integration (PR #317) is adapted through a Quest/Android guest-to-host bridge. The complete [MIT notice](port/third_party/JoltPhysics/LICENSE) is included in the APK field guide and distribution notices.
+- **Lucide Icons and Contributors** supply the speaker icons adapted from OpenCE. The complete [icon license](port/assets/icons/lucide/LICENSE), including inherited Feather notices, is included in the APK field guide and distribution notices.
+- **The Altheros Experience**, by Altheros, is an optional user-supplied custom campaign. The launcher provides import/install/restore support; its maps and other game assets are not bundled.

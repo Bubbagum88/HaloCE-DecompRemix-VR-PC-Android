@@ -2,6 +2,8 @@
 
 ## Test66: OpenCE Build 201, dynamic ragdolls, a second campaign mod
 
+**Validation status:** these are implemented changes with automated checks; the exact Test66 pair still needs headset/phone testing. The descriptions below explain intended behavior, not completed device acceptance.
+
 This private build answers your 2026-10-13 Test65 list (both logs and videos
 of 16:08 and 16:24, and the 17:37 weapon-pull log and video) and your later
 additions. It installs over Test65 and earlier (same package names and
@@ -22,7 +24,7 @@ talking icon's drawing is new).
   The wheel now follows your hands frame to frame: it turns up to 120 degrees
   each way while you hold it, and steering reaches full lock at 60 degrees.
   Grip held on the wheel means it stays held.
-- The Ghost, tank and Banshee controls are unchanged (they worked).
+- The Ghost and tank were reported good; their controls are unchanged. The Banshee profile is also unchanged and still needs device testing.
 - **IMMERSION > VEHICLES** now has every immersive-vehicle setting (wheel,
   handlebar, sticks, sizes, offsets, glow, haptics, COCKPIT LOCK, RESET
   CONTROLS), not under WEAPONS. Per-vehicle calibration is kept.
@@ -45,8 +47,7 @@ radius unchanged).
 
 ### FIST COMBAT, as a mode
 
-- **ENEMY HEALTH works.** At 6X an enemy really takes six times the punches
-  (the setting was being lost in the game's damage formula).
+- **ENEMY HEALTH now scales fist damage correctly.** At 6X ordinary fist damage is divided by six before other combat modifiers. Combo, armour and takedown rules mean the actual punch count is not an exact six-times guarantee.
 - **Airborne lunge**: punch an enemy above or below you (up to 3 m) and you
   fly to it.
 - Hit lights follow the enemy's own bones (head and chest).
@@ -70,7 +71,7 @@ radius unchanged).
 - Shot and blast deaths throw bodies harder (STRONG), and where a shot hits
   matters: legs fold, the head snaps back.
 
-### Wall running on any wall
+### Wall running on curved and angled walls
 
 The Silent Cartographer's rock walls failed: only near-vertical flat walls
 counted. Now curved, angled (rock faces to about 53 degrees), segmented and

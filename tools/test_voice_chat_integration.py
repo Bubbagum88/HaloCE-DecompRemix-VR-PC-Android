@@ -170,5 +170,10 @@ assert '"dump", "permissions"' in package and "android.permission.RECORD_AUDIO" 
 assert "OpenCE Build167 voice-chat runtime marker missing from APK" in package
 assert "OpenCE Build167 voice-chat player-guide marker missing from APK" in package
 
+# A C tag path needs escaped backslashes: a single backslash-v becomes a
+# vertical tab and prevents the new speaker bitmap from being found.
+voice_icon_source = read("port/linux/game/network_voice.c")
+assert '#define VOICE_ICON_BITMAP "pc' + chr(92) * 2 + 'voice' + chr(92) * 2 + 'speaker"' in voice_icon_source
+
 print("PASS: Build167 voice chat has privacy defaults, compiled codec, Android recording bridge, mixer/network hooks, native/VR controls, and server routing assets")
 print("DEVICE CHECK REQUIRED: microphone permission, capture/playback, PTT, and two-peer voice in a Quest lobby")
