@@ -75,8 +75,8 @@ request attachment e8b05ad6-8bcc-46f4-aaa1-54dc2e3d5a80. Both sessions exit0.
   the fork intends.
 - [x] VR BUTTONS: ALL TO DEFAULT first row (plus RESET BUTTONS last), DONE for 2 s.
 - [x] Licenses: CREDITS and THIRD-PARTY-NOTICES complete texts for new libraries.
-- [ ] Targeted tests, full suite, both builds, package identity/signature/hash checks.
-- [ ] Docs, device checklist, exact delivery record, memory, local commits.
+- [x] Targeted tests, full suite, both builds, package identity/signature/hash checks.
+- [x] Docs, device checklist, exact delivery record, memory, local commits.
 
 ## Initial concrete findings
 
