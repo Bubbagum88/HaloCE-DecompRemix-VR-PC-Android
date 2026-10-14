@@ -1,5 +1,13 @@
 # Halo 1 MCC custom maps
 
+> **This port (HaloCE Quest VR, Test67):** taken from GulchCE (chestahh, CC0)
+> for **solo play only**. Online MCC games, GulchCE's network version 42 and its
+> SHA-256 settings digest are not part of this port: network 28 is unchanged, and
+> hosting a network game skips the MCC map kinds (local split screen keeps them).
+> Maps come from the launcher (Steam Workshop download with the player's own
+> account, folder import, MCC's resource maps from the player's MCC); nothing of
+> MCC is bundled. Sections below on network play describe GulchCE, not this port.
+
 This branch adds an independent loader for modern Halo 1 MCC version-13
 caches and **MCC SINGLEPLAYER** / **MCC MULTIPLAYER** choices in the map
 menus. It is an experimental

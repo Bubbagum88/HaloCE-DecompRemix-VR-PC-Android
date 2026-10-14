@@ -70,5 +70,33 @@ it does not mark the complete Test66 or earlier checklists done.
   changes. No stale strikes, cues, stun, owned hand or pose should survive; normal
   reload, grabs and haptics must resume. Measure busy-fight frame time on Quest.
 
+## Merged Test68 and fork additions
+
+- MCC maps (both APKs): Steam Workshop sign-in with the tester's own MCC-owning
+  account, Steam Guard approval or code, browse/search, download a map and a
+  collection, cancel, update check, delete (saves kept), enable/disable, folder
+  import, MCC resource-map import, Remove all. Then New Game > MCC SINGLEPLAYER
+  and Multiplayer > MCC MULTIPLAYER: load, play, checkpoint, pause menus, quit to
+  menu, a missing resource map's message. Watch Quest memory and texture load
+  time. Hosting a network game must not list MCC kinds; split screen keeps them.
+- Every Extra Effects / Graphics option off: the game looks and performs exactly
+  as Test66. Then each one alone: Overshield (rise and color), Dynamic Blood,
+  Vehicle Blood (including a vehicle hitting a body), Projectile Effects, Stencil
+  Shadows (Quest frame time; in VR no shadow from your own body), Weapons Physics
+  (drops tumble; a held, holstered or remote player's gun never moves), Big
+  Multiplayer Guns, corpse and decal limits. Shield Glow still works from Extra Effects.
+- Third person, flat APK on a phone: FOV and Viewmodels row and Keypad Enter,
+  Alt free look, wheel distance, vehicle entry/exit. VR APK: never third person.
+- Spartan Armor: from FOV and Viewmodels and from Pause > ARMOR; each color,
+  Blackout, lights, flashlight, shield color; Show Players' Custom Armor; Reset to
+  Classic. Two players with the extras on see each other's armor.
+- Online with community extras on: join and host stock OpenCE network-28 peers
+  (no disconnects, no stray text), and peers with extras. Text chat with a
+  Bluetooth keyboard (T, Enter, Tab team/all, Escape), chat display settings;
+  vote-kick/ban F1/F2 with a reason. Launcher Server Browser > Community extras
+  OFF: no armor sharing, chat or vote details sent.
+- VR SETTINGS > BUTTONS: ALL TO DEFAULT at the top and RESET BUTTONS at the
+  bottom both restore defaults and show DONE.
+
 Report build, device/OS, active campaign/map, settings, actions and the launch log.
 No acceptance claims until the owner provides the corresponding results.

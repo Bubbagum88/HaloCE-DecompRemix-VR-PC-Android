@@ -6,8 +6,8 @@ Owner confirms Test66 Sniper grip, Warthog/Ghost/tank and improved ragdolls/park
 other device checks remain pending. Changes: stable authored reload grips (Sniper
 preserved), 3x optional sprint range, skeletal grab contact, deliberate fist strokes,
 melee difficulty and readable guard/parry, empty-hand reticle suppression, optional
-campaign preparation and hash verification. Saved settings preserved. No network
-or voice changes. Private only: no push/publish/install/launch. Delivery status is
+campaign preparation and hash verification. Saved settings preserved. No voice
+change; network 28 unchanged. Private only: no push/publish/install/launch. Delivery status is
 in docs/TEST67-DELIVERY-STATUS.md. Public v1.0.31 remains unchanged.
 Later Test67 additions: per-enemy threat memory, original Halo combat cues,
 COMBAT MOVES physical dodge/arm/pummel openings and procedural poses, projectile
@@ -15,6 +15,18 @@ deflection with fists or a deliberately swung gun, and the evidence-backed
 Altheros large-resource fix. Native collisions, fuse/attribution, NPC ownership
 and existing online gates remain. See the complete guide/checklist; device
 acceptance is still pending.
+Test68 merged into Test67 (one candidate, still 1.0.34-test67 / code79):
+GulchCE Halo 1 MCC maps solo only (online MCC deferred; MCC network 42 not
+supported), launcher Steam Workshop (JavaSteam; token only), installed-map
+manager and imports; OpenCE testing 52e33a39 hardening; every jcompto95-tech
+(HALOFREAK95) fork branch, adapted (third person flat-only, Extra Effects,
+overshield, corpse/decal limits, stencil shadows, projectile effects and blood,
+weapons physics on Jolt, Armor menu, text chat, vote-ban), visuals off/classic by
+default. Owner allowed the fork's community extras on new message kinds 87-92
+(network.community_extras, launcher Server Browser switch); stock peers ignore
+them. VR BUTTONS has ALL TO DEFAULT first. Suites: test_test67_fork,
+test_test67_mcc_upstream (140 MCC programs compiled but not run on WSL1),
+test_test67_upstream_harness.
 
 > **Published:** v1.0.31 (Test64/code76) is now Latest. See `docs/PUBLIC-RELEASE-1.0.31-HANDOFF.md` for source/publication and updater verification. Historical holds below are superseded for this release.
 

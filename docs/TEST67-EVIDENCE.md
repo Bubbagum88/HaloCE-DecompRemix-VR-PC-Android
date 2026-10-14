@@ -248,3 +248,42 @@ TEST67-DELIVERY-STATUS.md once completed. Device validation remains pending.
 - Guest gnu89 build errors in the uncommitted additions (duplicate loop
   variables; actors.c's private copy of _projectile_will_super_explode_bit, now
   exported by projectiles.h) fixed; both flavors compile and link.
+
+## Merged Test68 and fork integration (resumed session 2, 2026-10-14)
+
+Sources, fetched into the repository as refs: OpenCE main (still build 201) and
+testing (52e33a39), GulchCE main ebb197ba, and every jcompto95-tech branch.
+Each change was applied as a three-way merge and its conflicts resolved by hand
+against this port; the commits name the source branch.
+
+- OpenCE testing 52e33a39: map sharing trust, tag validation, Custom Edition
+  geometry byte limit (BSP too large), Ogg frame/size/rate limits and the
+  hardened stb_vorbis (byte-identical). Found on the way: this port's own CE Ogg
+  conversion could wrap its frame count; now bounded the same way.
+- GulchCE MCC maps: solo only. Its MCC tests were adapted to this port
+  (tools/test_test67_mcc_upstream.py): 750 pass; 140 compile but are not run on
+  WSL1 (32-bit programs; reported as M32-NOT-RUN, not as passes); the online-MCC
+  files test_mcc_network and test_mcc_ui_teams excluded; deselected:
+  test_mcc_identity session resolution (online), test_mcc_seats[replication]
+  (online), test_viewmodel_shield[None] (fails on GulchCE's own source in 64-bit).
+- Fork branches taken and adapted: third person (guarded off in VR), Extra Effects
+  screen, item draw scale (VR network pose kept), overshield height fade
+  (this renderer's program/uniform), corpse/decal limits, projectile effects v2
+  with dynamic/vehicle blood (the fork's dropped blood_vehicle_hit_body restored:
+  ragdoll.c calls it), stencil shadows (one face a draw: no glStencilOpSeparate
+  import on GLES; own unit excluded in VR), item physics on Jolt (seven new host
+  imports; items held by a VR hand or owned remotely are never Jolt's; clients
+  follow the host), the Armor menu with recolor/glow in this renderer, text chat,
+  vote-ban. Superseded and not taken: player-colors (a network 29 bump; armor sync
+  replaces it), separate visor-color, dynamic-blood v1/v2, projectile-effects v1,
+  the v1 blood tuning console; light bloom stays a no-op (the fork's desktop pass).
+- Network: the extras use new kinds 87-92 only; OpenCE drops kinds at or past its
+  NUMBER_OF_DISTRIBUTED_MESSAGES, so stock network-28 peers ignore them. Each send
+  is behind network.community_extras (default on; launcher Server Browser switch).
+  Votes 78/79, the network version and voice are unchanged.
+- Launcher: JavaSteam 1.8.0 and OkHttp 5.3.2 resolved by Gradle; both flavors'
+  javac pass against them. Licenses: CREDITS.md and THIRD-PARTY-NOTICES.txt carry
+  complete texts fetched from each project's repository.
+- Pins: tools/test_test67_fork.py (network, defaults and rows, VR guards, kept
+  pieces, VR BUTTONS reset, licenses) and tools/test_test67_upstream_harness.py.
+  Full suite, builds and package: TEST67-DELIVERY-STATUS.md. Not device tested.

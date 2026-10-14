@@ -2,7 +2,9 @@
 
 Private successor to Test66, planned 1.0.34-test67 / code79. Baseline c74e4a59
 (runtime 0b5c7e62). No publish, push, install or game launch; local commits only.
-No protocol or voice changes. Saved settings preserved.
+No voice/codec change; network 28 unchanged (the owner later allowed the fork's
+community extras on new message kinds 87-92, which stock peers ignore). Saved
+settings preserved.
 
 ## Owner evidence and acceptance
 
@@ -47,6 +49,31 @@ request attachment e8b05ad6-8bcc-46f4-aaa1-54dc2e3d5a80. Both sessions exit0.
   Stationary aiming/firing is not a shield; reload/support-hand ownership preserved.
 - [x] Altheros new blue-screen log: exact 512 MiB resource partition overflow
   fixed, ten owner maps checked offline, converted-cache identity safeguarded.
+- [x] Test68 merged in: GulchCE Halo 1 MCC maps, solo only (online MCC deferred;
+  MCC's network 42 not supported), launcher Steam Workshop (JavaSteam 1.8.0,
+  token only, no stored password), installed-map manager, folder and MCC
+  resource-map imports. GulchCE's MCC tests adapted (750 pass, 140 compiled but
+  not run on WSL1: 32-bit programs; 2 online files excluded, 3 cases deselected).
+- [x] OpenCE testing 52e33a39 hardening (map sharing, Custom Edition geometry
+  and Ogg limits, stb_vorbis); OpenCE main is still build 201.
+- [x] Every jcompto95-tech (HALOFREAK95) fork branch reviewed and taken, adapted
+  to this renderer, VR and the Android bridge: third person (flat only, never
+  VR), Extra Effects screen (shield glow moved), Big Multiplayer Guns, animated
+  overshield, corpse/decal limits, stencil shadows (one face a draw on GLES; no
+  own-body shadow in VR), projectile effects v2 with dynamic/vehicle blood and
+  projectile lights, weapons physics on Jolt (held items never Jolt's), the
+  Armor menu (armor, lights, visor, flashlight, shield colors), text chat,
+  vote-ban. Every visual extra off/classic by default.
+- [x] Network extras (owner decision): armor sync, chat, vote details on new kinds
+  87-92 behind network.community_extras (default on); launcher Server Browser
+  switch; network 28, votes 78/79 and voice unchanged.
+- [x] Not taken, superseded: player-colors (network 29 bump; armor sync replaces
+  it), separate visor-color (inside armor menu), dynamic-blood v1/v2 and
+  projectile-effects v1 (earlier versions of v2), v1 blood tuning console;
+  light bloom stays the fork's desktop-only no-op; Decals row desktop-only as
+  the fork intends.
+- [x] VR BUTTONS: ALL TO DEFAULT first row (plus RESET BUTTONS last), DONE for 2 s.
+- [x] Licenses: CREDITS and THIRD-PARTY-NOTICES complete texts for new libraries.
 - [ ] Targeted tests, full suite, both builds, package identity/signature/hash checks.
 - [ ] Docs, device checklist, exact delivery record, memory, local commits.
 
