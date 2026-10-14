@@ -274,7 +274,26 @@ class GuideCheck { public static void main(String[] args) {
             'public static final int VERSION_CODE=0,HALO_BUILD_NUMBER=0,'
             f'HALO_NETWORK_VERSION={version},HALO_NETWORK_MINIMUM={version},HALO_NETWORK_MAXIMUM={version};'
             'public static final boolean DEBUG=true;}')
-        subprocess.run(['javac', '-encoding', 'UTF-8', '-classpath', str(jars[-1]), '-d', str(out),
+        # (Test67: the Steam Workshop's libraries, build.gradle's dependencies,
+        # as Gradle resolved them into its cache: JavaSteam and what its API
+        # names, the HTTP client SteamWorkshop gives it)
+        cache = Path.home() / '.gradle/caches/modules-2/files-2.1'
+        library_groups = ('in.dragonbra', 'com.squareup.okhttp3', 'com.squareup.okio', 'org.jetbrains.kotlin',
+                          'org.jetbrains.kotlinx', 'org.bouncycastle', 'io.ktor', 'com.google.protobuf',
+                          'org.apache.commons', 'org.slf4j', 'org.tukaani')
+        libraries = sorted(str(jar) for group in library_groups for jar in (cache / group).rglob('*.jar')
+                           if not jar.name.endswith(('-sources.jar', '-javadoc.jar')))
+        # (an Android library's classes are its .aar's classes.jar: OkHttp 5's)
+        import zipfile
+        for index, aar in enumerate(sorted(jar for group in library_groups for jar in (cache / group).rglob('*.aar'))):
+            with zipfile.ZipFile(aar) as archive:
+                if 'classes.jar' in archive.namelist():
+                    extracted = out / ('aar%d.jar' % index)
+                    extracted.write_bytes(archive.read('classes.jar'))
+                    libraries.append(str(extracted))
+        assert any('javasteam-1.8.0' in jar for jar in libraries), \
+            'Resolve the Gradle dependencies first (build-quest.sh, or ./gradlew :app:compileDebugJavaWithJavac)'
+        subprocess.run(['javac', '-encoding', 'UTF-8', '-classpath', ':'.join([str(jars[-1]), *libraries]), '-d', str(out),
             str(config), *map(str, JAVA.glob('*.java')), *map(str, sdl.rglob('*.java'))], check=True)
     print('PASS: real OpenCE captions/routes and 5 compiled guide pages; launcher duplicates removed, essentials/invites preserved; full Android+SDL Java compiles')
 

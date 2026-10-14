@@ -131,6 +131,8 @@ android {
 dependencies {
     implementation "in.dragonbra:javasteam:1.8.0"
     implementation "in.dragonbra:javasteam-depotdownloader:1.8.0"
+    // (the HTTP client SteamWorkshop gives JavaSteam: the version JavaSteam 1.8.0 itself uses)
+    implementation "com.squareup.okhttp3:okhttp:5.3.2"
     implementation "org.bouncycastle:bcprov-jdk18on:1.83"
     implementation "org.tukaani:xz:1.11"
     implementation "com.github.luben:zstd-jni:1.5.7-6@aar"
