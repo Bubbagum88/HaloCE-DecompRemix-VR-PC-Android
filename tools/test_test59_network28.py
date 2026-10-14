@@ -46,10 +46,10 @@ assert 'return version == 0 ? "All compatible networks"' in profile
 config = read("port/linux/src/port_config.c")
 assert '{ "network.protocol_version", _config_integer, "0",' in config
 browser = read("port/android/app/src/main/java/com/halo/decomp/ServerBrowser.java")
-assert '"All compatible networks (11â€“28) Â· "' in browser and "for (int version : NetworkProfile.SUPPORTED)" in browser
+assert '"All compatible networks (11–28) · "' in browser and "for (int version : NetworkProfile.SUPPORTED)" in browser
 for name in ("ServerBrowser", "InGameNetworkGuide", "Updater", "NetworkProfile"):
     text = read("port/android/app/src/main/java/com/halo/decomp/%s.java" % name)
-    assert "network 26" not in text and "11â€“26" not in text and "15â€“26" not in text, name
+    assert "network 26" not in text and "11–26" not in text and "15–26" not in text, name
 
 # 27: map sharing's messages, numbered as OpenCE's, and the host's answer in both paths
 header = read("port/linux/game/network_distributed.h")
