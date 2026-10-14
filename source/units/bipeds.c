@@ -283,6 +283,8 @@ symbols in this file:
 #endif
 #include "vr_npc_interaction.h"
 #include "network_coop.h" /* port: port/linux/game/network_coop.c */
+#include "mcc_seats.h" /* port: port/linux/game/mcc_seats.c */
+#include "mcc_script_effects.h" /* port: MCC campaign effects and host-owned possession */
 
 /* port: an unarmed player's melee's length, in ticks (a weapon's is about
 this: its first person melee animation, sped up a quarter) */
@@ -804,7 +806,9 @@ static void biped_bumped_object(
 				biped->biped.bump_ticks++;
 				if (biped->biped.bump_ticks > 3)
 				{
-					if (object->object.type == _object_type_biped && cheat.bump_possession)
+					/* port: MCC handles local/remote ownership without the local-only helper. */
+					if (!mcc_script_effects_bump(biped_index, object_index) &&
+						object->object.type == _object_type_biped && cheat.bump_possession)
 					{
 						short local_player_index = unit_get_local_player_index(biped_index);
 
@@ -861,7 +865,8 @@ static void biped_falling_damage(
 		TEST_FLAG(definition->biped.flags, _biped_immune_to_falling_damage_bit);
 	real falling_velocity = biped->object.translational_velocity.k;
 
-	if (!cheat.jetpack || biped->unit.player_index == NONE)
+	/* port: MCC clients predict only the effect received from the host. */
+	if (!(cheat.jetpack || mcc_script_effect_enabled(MCC_EFFECT_JETPACK)) || biped->unit.player_index == NONE)
 	{
 		if (collision_velocity > falling_damage->runtime_minimum_damage_velocity)
 		{
@@ -1949,7 +1954,8 @@ static boolean biped_jump(
 			jump_magnitude *=
 				1.f - biped->unit.body_stun*player_information->stun_turning_penalty;
 		}
-		if (cheat.super_jump && biped->unit.player_index!=NONE)
+		/* port: MCC's host-approved jump also applies to client prediction. */
+		if ((cheat.super_jump || mcc_script_effect_enabled(MCC_EFFECT_SUPER_JUMP)) && biped->unit.player_index!=NONE)
 			jump_magnitude *= 4.f;
 
 		jump_velocity = biped->object.translational_velocity;
@@ -2310,7 +2316,8 @@ static void biped_update_jumping(
 		}
 	}
 
-	if (cheat.jetpack && biped->unit.player_index != NONE)
+	/* port: MCC clients use replicated campaign state, not local cheat permissions. */
+	if ((cheat.jetpack || mcc_script_effect_enabled(MCC_EFFECT_JETPACK)) && biped->unit.player_index != NONE)
 	{
 		struct player_datum *player = player_get(biped->unit.player_index);
 		boolean impulse = FALSE;
@@ -4362,6 +4369,9 @@ boolean biped_update(
 		{
 			animation.state_desired =
 				(char)((parent->object.damage_flags & FLAG(_object_dead_bit)) | 0x20);
+			/* port: MCC seats use seat animations, not infection attachment. */
+			if (mcc_seat_update(biped_index))
+				animation.state_desired = _unit_state_idle;
 		}
 	}
 	else

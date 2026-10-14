@@ -136,6 +136,7 @@ symbols in this file:
 #include "sound/sound_manager.h"
 #include "tag_schema.h"
 #include "cache_file_formats.h"
+#include "mcc_cache.h" /* GulchCE: Halo 1 MCC maps, solo only (port/linux/game/mcc_cache.c) */
 #include "map_share.h" /* port: port/linux/game/map_share.c */
 #include "custom_edition_cache.h"
 
@@ -367,6 +368,9 @@ boolean cache_file_tag_cache_contains(
 	void const *tag_cache = physical_memory_get_tag_cache_base_address();
 	unsigned long tag_cache_size = TAG_CACHE_SIZE;
 
+	if (mcc_cache_tags_loaded())
+		return mcc_cache_contains(address, size);
+
 	if (custom_edition_cache_tags_loaded())
 	{
 		tag_cache = halo_custom_edition_tag_cache();
@@ -596,6 +600,11 @@ void scenario_tags_unload(
 	}
 	sound_cache_close();
 	texture_cache_close();
+	/* GulchCE: MCC's appended pause table unwinds before the native menu table. */
+	{
+		extern void mcc_pause_runtime_unload(void);
+		mcc_pause_runtime_unload();
+	}
 	/* Free generated menu tags only after textures release their bitmaps. */
 	#ifdef HALO_VR
 	{ extern void vr_menu_tags_unloaded(void); vr_menu_tags_unloaded(); }
@@ -604,6 +613,14 @@ void scenario_tags_unload(
 	cache_file_close();
 	/* a Halo Custom Edition map has no Xbox vertex or index buffers
 	(port/linux/game/custom_edition_cache.c) */
+	if (mcc_cache_tags_loaded())
+	{
+		mcc_cache_tags_unload();
+		cache_file_globals.tags_loaded = FALSE;
+		global_tag_instances = NULL;
+		global_tag_count = 0;
+		return;
+	}
 	if (custom_edition_cache_tags_loaded())
 	{
 		custom_edition_cache_tags_unload();
@@ -983,6 +1000,9 @@ boolean cache_files_map_plays_multiplayer(
 	build[0] = 0;
 	if (!map_name || !map_name[0])
 		return TRUE;
+	/* GulchCE: an MCC map (mcc_maps\<name>) has no Xbox build to check */
+	if (mcc_level_name(map_name))
+		return TRUE;
 	if (custom_edition_level_name(map_name))
 		return TRUE;
 	snprintf(path, sizeof(path), "%s%s.map", cache_files_map_directory(), tag_name_strip_path(map_name));
@@ -1044,6 +1064,8 @@ Stock Xbox maps use zero to preserve their existing cross-region behavior. */
 unsigned long cache_files_map_version(
 	char const *map_name)
 {
+	if (mcc_level_name(map_name))
+		return mcc_cache_checksum(map_name);
 	return custom_edition_level_name(map_name) ? custom_edition_map_checksum(map_name) : 0;
 }
 
@@ -1071,6 +1093,8 @@ boolean cache_files_map_present(
 
 	if (!map_name || !map_name[0])
 		return TRUE;
+	if (mcc_level_name(map_name))
+		return mcc_cache_require(map_name, version);
 	name = tag_name_strip_path(map_name);
 	if (custom_edition_level_name(map_name))
 	{
@@ -1120,6 +1144,9 @@ boolean cache_files_give_time_to_precache(
 	char const *map_name)
 {
 	boolean result = FALSE;
+
+	if (mcc_level_name(map_name))
+		return mcc_cache_precache_ready(map_name); /* port: MCC readiness polling, not admission */
 
 	/* port: no map named yet is nothing to precache. A client joining over
 	the internet asks for its multiplayer map (network_game_client_update_precache_status)
@@ -1178,6 +1205,38 @@ long scenario_tags_load(
 	result = NONE;
 	texture_cache_open();
 	sound_cache_open();
+	/* GulchCE: a Halo 1 MCC map (mcc_maps\[package\]<name>) is loaded by its
+	own loader (port/linux/game/mcc_cache.c), independent of Custom Edition's */
+	if (mcc_level_name(scenario_name))
+	{
+		cache_file_globals.tag_header = mcc_cache_tags_load(scenario_name, &cache_file_globals.header);
+		if (cache_file_globals.tag_header)
+		{
+			extern void menu_tags_loaded(char const *map_name);
+			global_tag_instances = cache_file_globals.tag_header->tag_instances;
+			global_tag_count = cache_file_globals.tag_header->tag_count;
+			cache_file_globals.tags_loaded = TRUE;
+			menu_tags_loaded(scenario_name);
+			{
+				extern boolean mcc_pause_runtime_load(void);
+				if (!mcc_pause_runtime_load())
+				{
+					scenario_tags_unload();
+					return NONE;
+				}
+			}
+#ifdef HALO_VR
+			{ extern void vr_menu_tags_loaded(void); vr_menu_tags_loaded(); }
+#endif
+			result = cache_file_globals.tag_header->scenario_tag_index;
+		}
+		else
+		{
+			sound_cache_close();
+			texture_cache_close();
+		}
+		return result;
+	}
 	/* a Halo Custom Edition map, when those may run, is read in place into
 	its own tag cache and has no Xbox vertex or index buffers
 	(port/linux/game/custom_edition_cache.c) */
@@ -1319,6 +1378,17 @@ boolean scenario_structure_bsp_load(
 	struct cache_file_structure_bsp_header *structure_bsp_header;
 	boolean custom_edition = custom_edition_cache_tags_loaded();
 
+	if (mcc_cache_tags_loaded())
+	{
+		void *mcc_header, *mcc_structure;
+		if (!cache_file_structure_bsp_tag_valid(reference) ||
+			!mcc_cache_bsp_load(reference, &mcc_header, &mcc_structure))
+			return FALSE;
+		cache_file_globals.structure_bsp_header = mcc_header;
+		cache_get_tag_instance(reference->structure_bsp.index)->base_address = mcc_structure;
+		return TRUE;
+	}
+
 	/* port: the tag data's size was checked as the map loaded
 	(cache_file_header_verify); the bsp's reference is the map's, and is
 	checked before anything is read where it says */
@@ -1445,6 +1515,14 @@ void scenario_structure_bsp_unload(
 	struct scenario_structure_bsp_reference *reference)
 {
 	struct cache_file_tag_instance *tag_instance;
+
+	if (mcc_cache_tags_loaded())
+	{
+		mcc_cache_bsp_unload();
+		cache_get_tag_instance(reference->structure_bsp.index)->base_address = NULL;
+		cache_file_globals.structure_bsp_header = NULL;
+		return;
+	}
 
 	structure_bsp_header_deregister_vertex_buffers(cache_file_globals.structure_bsp_header);
 	/* the buffers a Halo Custom Edition structure BSP was given

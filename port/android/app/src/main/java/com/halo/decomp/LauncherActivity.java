@@ -39,6 +39,10 @@ public class LauncherActivity extends Activity {
     private static final int PICK_RESOURCES = 2;
     /** Test66: an imported campaign mod's folder (The Altheros Experience) */
     private static final int PICK_MOD_FOLDER = 3;
+    /** Test68: Halo 1 MCC maps (a folder of maps), and MCC's own resource maps */
+    private static final int PICK_MCC_MAPS = 4;
+    private static final int PICK_MCC_SHARED = 5;
+    private TextView mccStatus;
 
     private File dataRoot;
     private View launcherRoot;
@@ -387,6 +391,59 @@ public class LauncherActivity extends Activity {
         detailsLayout.topMargin = dp(8);
         layout.addView(modDetails, detailsLayout);
 
+        // Test68: Halo 1 MCC custom maps (GulchCE's loader), solo only
+        TextView mccTitle = label(layout, "HALO 1 MCC MAPS (SOLO, EXPERIMENTAL)", 18, HALO_BLUE);
+        mccTitle.setPadding(0, dp(24), 0, dp(4));
+        TextView mccHelp = label(layout, "Halo 1 custom maps made for the Master Chief Collection (MCC). Copy a map's "
+            + "folder to this device's Download folder, then import it. In the game: New Game or Multiplayer, "
+            + "map kind MCC SINGLEPLAYER or MCC MULTIPLAYER. Most maps also need MCC's own bitmaps.map and "
+            + "sounds.map from your copy of MCC (halo1/maps and halo1/maps/custom_edition): import those once. "
+            + "Solo only: MCC maps cannot be hosted or joined online in this build.", 13, Color.rgb(150, 160, 170));
+        LauncherFont.keepNormal(mccHelp);
+        mccStatus = label(layout, "", 14, Color.rgb(200, 205, 210));
+        LauncherFont.keepNormal(mccStatus);
+        menuButton(layout, "Steam Workshop: download MCC maps").setOnClickListener(v -> {
+            if (busy || gameRoot() == null) return;
+            startActivity(new Intent(this, WorkshopActivity.class)
+                .putExtra(WorkshopActivity.EXTRA_GAME_ROOT, gameRoot().getAbsolutePath()));
+        });
+        menuButton(layout, "Installed MCC maps (enable, disable, delete)").setOnClickListener(v -> {
+            if (busy || gameRoot() == null) return;
+            startActivity(new Intent(this, WorkshopActivity.class)
+                .putExtra(WorkshopActivity.EXTRA_GAME_ROOT, gameRoot().getAbsolutePath())
+                .putExtra(WorkshopActivity.EXTRA_MANAGE, true));
+        });
+        menuButton(layout, "Import MCC maps from a folder").setOnClickListener(v -> {
+            if (busy) return;
+            startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), PICK_MCC_MAPS);
+        });
+        menuButton(layout, "Import MCC's resource maps (from your MCC)").setOnClickListener(v -> {
+            if (busy) return;
+            startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), PICK_MCC_SHARED);
+        });
+        menuButton(layout, "Remove all MCC maps").setOnClickListener(v -> {
+            if (busy) return;
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Remove all MCC maps?")
+                .setMessage("Deletes the mcc_maps folder of this game set (MCC maps, their packages and MCC's "
+                    + "imported resource maps). The game's own maps, Custom Edition maps and saves stay.")
+                .setPositiveButton("Remove", (dialog, which) -> {
+                    setBusy(true);
+                    new Thread(() -> {
+                        try {
+                            new MccMaps(gameRoot()).removeAll();
+                            report("MCC maps removed.", -1);
+                        } catch (Exception exception) {
+                            report("Removing MCC maps failed: " + exception.getMessage(), -1);
+                        }
+                        handler.post(() -> { refreshMcc(); setBusy(false); });
+                    }, "mcc-remove").start();
+                })
+                .setNegativeButton("Keep", null)
+                .show();
+        });
+        refreshMcc();
+
         TextView settingsTitle = label(layout, "SETTINGS", 18, HALO_BLUE);
         settingsTitle.setPadding(0, dp(24), 0, dp(4));
         if (BuildConfig.APPLICATION_ID.endsWith(".vr")) {
@@ -669,6 +726,102 @@ public class LauncherActivity extends Activity {
         handler.post(() -> setBusy(false));
     }
 
+    /** Test68: what the active game set holds of Halo 1 MCC maps. */
+    private void refreshMcc() {
+        if (mccStatus == null)
+            return;
+        File root = gameRoot();
+        mccStatus.setText(root == null ? "Choose game data first." : new MccMaps(root).summary());
+    }
+
+    /** Test68: the files of a chosen folder (up to three deep) with the folders they are in. */
+    private void collectFolderPaths(Uri tree, String parent, java.util.List<String> folders,
+            java.util.List<Object[]> found, int depth) throws java.io.IOException {
+        Uri children = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(tree, parent);
+        String[] columns = { android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE };
+        try (android.database.Cursor cursor = getContentResolver().query(children, columns, null, null, null)) {
+            if (cursor == null)
+                throw new java.io.IOException("the folder cannot be read");
+            while (cursor.moveToNext()) {
+                if (found.size() > 4096)
+                    throw new java.io.IOException("the folder has too many files");
+                String id = cursor.getString(0), name = cursor.getString(1), mime = cursor.getString(2);
+                if (android.provider.DocumentsContract.Document.MIME_TYPE_DIR.equals(mime)) {
+                    if (depth < 3) {
+                        java.util.List<String> inner = new java.util.ArrayList<>(folders);
+                        inner.add(name);
+                        collectFolderPaths(tree, id, inner, found, depth + 1);
+                    }
+                } else {
+                    found.add(new Object[] { id, name, new java.util.ArrayList<>(folders) });
+                }
+            }
+        }
+    }
+
+    /**
+     * Test68: imports a folder of Halo 1 MCC maps (each folder of maps a
+     * package, as MccMaps.target names it), or MCC's own resource maps
+     * (shared), into the active game set's mcc_maps folder. A .map that is
+     * not a Halo 1 MCC map is not kept.
+     */
+    @SuppressWarnings("unchecked")
+    private void importMcc(Uri tree, boolean shared) {
+        int levels = 0, resources = 0, skipped = 0, refused = 0;
+        try {
+            File root = gameRoot();
+            if (root == null)
+                throw new java.io.IOException("choose game data first");
+            MccMaps maps = new MccMaps(root);
+            String rootId = android.provider.DocumentsContract.getTreeDocumentId(tree);
+            String chosen = rootId.contains(":") ? rootId.substring(rootId.lastIndexOf(':') + 1) : rootId;
+            if (chosen.contains("/"))
+                chosen = chosen.substring(chosen.lastIndexOf('/') + 1);
+            if (chosen.isEmpty())
+                chosen = "imported";
+            java.util.List<Object[]> found = new java.util.ArrayList<>();
+            collectFolderPaths(tree, rootId, new java.util.ArrayList<>(), found, 0);
+            for (Object[] entry : found) {
+                String name = (String) entry[1];
+                java.util.List<String> folders = (java.util.List<String>) entry[2];
+                File target = shared ? maps.sharedTarget(folders, name) : maps.target(chosen, folders, name);
+                if (target == null) {
+                    skipped++;
+                    continue;
+                }
+                Uri file = android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, (String) entry[0]);
+                report("Importing " + name + "...", -1);
+                try (java.io.InputStream in = getContentResolver().openInputStream(file)) {
+                    if (in == null)
+                        throw new java.io.IOException("cannot open " + name);
+                    MccMaps.copy(new java.io.BufferedInputStream(in, 1 << 16), target);
+                }
+                if (!MccMaps.keepLevel(target)) {
+                    refused++;
+                    RunLog.line("MCC import: " + name + " is not a Halo 1 MCC map (version 13); not kept");
+                } else if (MccMaps.resourceName(name) || name.toLowerCase(java.util.Locale.ROOT).endsWith(".txt")) {
+                    resources++;
+                } else {
+                    levels++;
+                }
+            }
+            String result = shared
+                ? (resources == 0 ? "No MCC resource maps found there. Choose MCC's halo1/maps folder (it holds "
+                    + "bitmaps.map, and custom_edition/ with bitmaps.map and sounds.map)."
+                    : "Imported " + resources + " MCC resource maps.")
+                : "Imported " + levels + " MCC maps and " + resources + " resource/description files"
+                    + (refused > 0 ? "; " + refused + " .map files were not Halo 1 MCC maps (Custom Edition maps "
+                        + "go in a campaign mod or the game set's maps folder) and were not kept" : "")
+                    + (skipped > 0 ? "; " + skipped + " other files skipped" : "") + ".";
+            report(result + " " + maps.summary(), -1);
+        } catch (Exception exception) {
+            report("Importing MCC files failed: " + exception.getMessage(), -1);
+        }
+        handler.post(() -> { refreshMcc(); setBusy(false); });
+    }
+
     /** The files of a chosen folder and its folders (up to three deep): id, name. */
     private void collectFolder(Uri tree, String parent, java.util.List<String[]> found, int depth)
             throws java.io.IOException {
@@ -932,6 +1085,14 @@ public class LauncherActivity extends Activity {
             Uri tree = data.getData();
             setBusy(true);
             new Thread(() -> importModFolder(mod, tree), "mod-import").start();
+            return;
+        }
+        if ((requestCode == PICK_MCC_MAPS || requestCode == PICK_MCC_SHARED) && resultCode == RESULT_OK && data != null
+                && data.getData() != null) {
+            Uri tree = data.getData();
+            boolean shared = requestCode == PICK_MCC_SHARED;
+            setBusy(true);
+            new Thread(() -> importMcc(tree, shared), "mcc-import").start();
             return;
         }
         if (requestCode == PICK_RESOURCES && resultCode == RESULT_OK && data != null) {

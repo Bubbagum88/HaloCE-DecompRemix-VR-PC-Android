@@ -406,6 +406,8 @@ symbols in this file:
 #include "network_campaign.h"
 #include "network_pvp_session.h"
 #include "custom_edition_cache.h" /* port: custom_edition_level_name */
+#include "mcc_cache.h"
+#include "mcc_main.h"
 #include "view_fov.h" /* port: display.fov, before the projection and culling */
 
 #if defined(HALO_WINDOWS) || defined(HALO_ANDROID) || defined(__linux__)
@@ -1276,6 +1278,10 @@ short main_get_solo_level_from_name(
 	char lower_name[128] = { 0 };
 	short level;
 
+	/* GulchCE: an MCC map (mcc_maps\<name>) is never one of the campaign's levels */
+	if (mcc_level_name(name))
+		return NONE;
+
 	csstrncpy(lower_name, name, NUMBEROF(lower_name) - 1);
 	lower_name[NUMBEROF(lower_name) - 1] = 0;
 	strlwr(lower_name);
@@ -1473,6 +1479,8 @@ static void main_new_map(
 	}
 	else
 	{
+		if (mcc_main_load_failed(options->map_name))
+			return;
 		error(_error_immediate, "game_load() failed.");
 	}
 
@@ -1925,6 +1933,9 @@ void main_load_ui_scenario(
 void main_roll_credits(
 	void)
 {
+	/* port: standalone MCC scenarios finish through their own menu transition. */
+	if (mcc_main_map_completed())
+		return;
 	error(_error_silent, "congratulations, you won the game!");
 	main_menu_load();
 	game_end_credits_start();
