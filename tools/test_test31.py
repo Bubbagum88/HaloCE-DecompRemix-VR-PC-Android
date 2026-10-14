@@ -92,6 +92,9 @@ static int custom, missing;
 static unsigned char storage[16384];
 static void *physical_memory_get_tag_cache_base_address(void){return missing?0:storage;}
 static void *halo_custom_edition_tag_cache(void){return missing?0:storage;}
+/* (Test67: GulchCE's MCC window first; no MCC map here) */
+static boolean mcc_cache_tags_loaded(void){return 0;}
+static boolean mcc_cache_contains(void const *a,long b){(void)a;(void)b;return 0;}
 static int custom_edition_cache_tags_loaded(void){return custom;}
 ''' + fn(cache,'cache_file_region_contains') + fn(cache,'cache_file_tag_cache_contains') + r'''
 int main(void){
@@ -145,6 +148,10 @@ static void display_error_text_when_main_menu_loaded(const wchar_t *s){dialogs++
 /* Test66: Build 201's map sharing asks the host for a Custom Edition map the
    player lacks (map_share.c); its message is the one shown if that fails */
 static int shares,share_begins;static char share_message[512];
+/* Test67: GulchCE's MCC maps (mcc_maps\\...) go to its own loader first */
+static int mcc_requires;static unsigned long mcc_version;
+static int mcc_level_name(const char *s){return s&&!strncasecmp(s,"mcc_maps\\",9);}
+static int mcc_cache_require(const char *s,unsigned long version){(void)s;mcc_requires++;mcc_version=version;return 1;}
 static int map_share_download_begin(const char *s,unsigned long version,const char *message){(void)s;(void)version;share_begins++;snprintf(share_message,sizeof(share_message),"%s",message);return shares;}
 void platform_log(const char *s,...){(void)s;}
 ''' + fn(read('port/linux/game/custom_edition_cache.c'),'custom_edition_level_name') + fn(cache,'cache_files_map_present') + r'''
@@ -162,6 +169,10 @@ int main(void){
  ce=1;share_begins=0;assert(cache_files_map_present("CuStOm_MaPs\\bloodgulch",0)&&!share_begins);
  ce=0;stock=0;cached=0;legacy=0;assert(!cache_files_map_present("levels\\a10\\a10",0)&&!share_begins);
  shares=0;
+ /* an MCC map: its own loader alone (no CE lookup, download or dialog) */
+ {int before=opens;dialogs=0;share_begins=0;
+  assert(cache_files_map_present("mcc_maps\\pack\\level",7)&&mcc_requires==1&&mcc_version==7);
+  assert(opens==before&&!dialogs&&!share_begins);}
  ce=1;assert(cache_files_map_present("CuStOm_MaPs\\bloodgulch",expected_version));assert(seen_version==expected_version);
  assert(!cache_files_map_present("CuStOm_MaPs\\bloodgulch",expected_version+1));
  ce=0;cached=0;stock=1;assert(cache_files_map_present("levels\\a10\\a10",0));

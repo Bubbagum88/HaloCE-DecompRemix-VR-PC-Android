@@ -90,6 +90,7 @@ symbols in this file:
 #include "halo_vr.h"
 /* port: static transparent part links for the newly loaded model tags. */
 #include "models/models.h"
+#include "blood.h" /* port: port/linux/game/blood.c */
 
 /* ---------- constants */
 
@@ -377,6 +378,9 @@ static void render_window(
 		render_object_shadows();
 		lights_render_diffuse();
 
+#if BLOOD_EFFECTS
+		blood_render_update(); /* port: blood on vehicles drawn where they are */
+#endif
 		rasterizer_decals_begin(_decal_layer_light);
 		for (rendered_cluster_index = 0;
 			rendered_cluster_index < render.rendered_cluster_count;

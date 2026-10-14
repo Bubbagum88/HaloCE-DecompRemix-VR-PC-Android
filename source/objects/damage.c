@@ -144,6 +144,7 @@ symbols in this file:
 #include "vr_npc_interaction.h"
 #include "vr_extra_interaction.h"
 #endif
+#include "blood.h" /* port: port/linux/game/blood.c */
 
 /* network_game_globals.c's */
 boolean network_game_distributed_client(void);
@@ -1066,6 +1067,16 @@ static void object_damage_aftermath(
 		{
 			ragdoll_note_multiplayer_headshot(object_index);
 		}
+	}
+#endif
+#if BLOOD_EFFECTS
+	/* port: a biped hit bleeds onto what is behind it (port/linux/game/blood.c) */
+	if (object->object.type == _object_type_biped)
+	{
+		blood_biped_damaged(
+			object_index,
+			damage,
+			MAX(shield_damage + body_damage, damage_effect->damage.damage_upper_bound * damage->scale));
 	}
 #endif
 

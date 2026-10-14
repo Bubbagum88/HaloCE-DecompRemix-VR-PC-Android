@@ -329,6 +329,23 @@ static const struct config_setting config_settings[] =
 		"its energy slower, in its own color (the powerup's), on the first-person\n"
 		"arms too with viewmodel_shield; a hit on it plays what the projectile\n"
 		"plays on an Elite's shield. Only what is drawn and heard changes." },
+	{ "game.dynamic_blood", _config_boolean, "false", "HALO_DYNAMIC_BLOOD", _environment_value, _platform_all,
+		"Blood thrown onto the wall behind a body hit, running down walls in\n"
+		"drops, and landing on trees and fences (port/linux/game/blood.c).\n"
+		"This machine's alone: nothing is sent. false: the game's own blood." },
+	{ "game.vehicle_blood", _config_boolean, "false", "HALO_VEHICLE_BLOOD", _environment_value, _platform_all,
+		"Blood that stains vehicles and objects (rocks, crates, machines,\n"
+		"dropped weapons), painted on their drawn models and riding with them,\n"
+		"and runs down their sides (port/linux/game/blood.c). This machine's\n"
+		"alone: nothing is sent. false: the game's own blood." },
+	{ "game.projectile_effects", _config_boolean, "false", "HALO_PROJECTILE_EFFECTS", _environment_value, _platform_all,
+		"Bullet holes and plasma burns painted onto vehicles, objects, Spartans'\n"
+		"bare armor and two-sided surfaces (trees, fences), moving with what\n"
+		"they are on, and plasma's sparks and smoke lingering where a bolt\n"
+		"struck a vehicle or bare armor (blood.c, plasma_embers.c); plasma\n"
+		"bolts lighting the level and what they pass in their own color, needles\n"
+		"more dimly (projectile_lights.c). This machine's alone: nothing is\n"
+		"sent. false: the game's own." },
 	{ "display.shield_glow", _config_boolean, "false", "HALO_SHIELD_GLOW", _environment_value, _platform_all,
 		"Energy shields light what is around them as they flare, as plasma\n"
 		"does, in the shield's own color." },

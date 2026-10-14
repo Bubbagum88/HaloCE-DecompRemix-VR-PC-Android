@@ -75,6 +75,7 @@ void object_bounds_cache_update(long object_index, real_point3d const *center, r
 #include "../../port/linux/src/port_config.h"
 #include "active_garbage_limit_math.h"
 #endif
+void projectile_lights_reset(void); /* port: port/linux/game/projectile_lights.c */
 
 /* ---------- constants */
 
@@ -1107,6 +1108,7 @@ void objects_initialize_for_new_map(
 	/* port: the last map's waist and mesh forgotten
 	(port/linux/game/first_person_legs.c) */
 	first_person_legs_reset();
+	projectile_lights_reset(); /* port: (port/linux/game/projectile_lights.c) */
 	
 	data_make_valid(object_header_data);
 	object_name_list_clear();
