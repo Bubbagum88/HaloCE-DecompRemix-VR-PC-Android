@@ -66,7 +66,16 @@ remain authoritative. These are experimental combat refinements, not copied
 Batman animation assets. A held gun can actively parry an incoming melee attack;
 merely aiming it does not create a passive shield. Reloading, climbing, carrying
 an NPC or another exclusive hand interaction prevents that hand from parrying.
+As with deflection, the supporting offhand of a two-handed gun does not parry
+(the gun hand does), and a swing counts only with the weapon it was made with:
+dropping, holstering, swapping or passing the gun on cancels it.
 HIT HIGHLIGHTS controls the optional visual combat cues.
+
+The kneel, recoil and attack poses are drawn only; Halo's own pose stays where
+the game keeps it. Your hands and the cues follow what you see: a hand on a
+kneeling enemy's drawn shoulder grabs that shoulder, a punch on its drawn head
+counts as a head hit, and the cues sit over the drawn head. Grab reach is not
+widened, and other players' hands are unaffected.
 
 | Enemy | Combat behavior / opening rules |
 | --- | --- |

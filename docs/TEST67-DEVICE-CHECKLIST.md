@@ -60,7 +60,9 @@ it does not mark the complete Test66 or earlier checklists done.
   -> Altheros. Watch Quest memory/loading behavior and collect a log on failure.
   Offline map/schema checks do not establish these runtime results.
 - Launch/join/host ordinary PvP and co-op, voice, map sharing, menus/touch/controller,
-  performance and full level transitions. Wire/audio paths intentionally unchanged.
+  performance and full level transitions. The wire format, voice and the voice codec
+  are intentionally unchanged; only the optional campaign resource and converted
+  sound cache addressing changed (the Altheros fix above), not ordinary game audio.
   Confirm voice before and after campaign switches; no voice setting migration
   or changed voice behavior is intended.
 - Lifecycle: interrupt combat/grab/parry with menu/pause, tracking loss/reacquire,

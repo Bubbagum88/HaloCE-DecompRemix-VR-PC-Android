@@ -15,12 +15,6 @@ deflection with fists or a deliberately swung gun, and the evidence-backed
 Altheros large-resource fix. Native collisions, fuse/attribution, NPC ownership
 and existing online gates remain. See the complete guide/checklist; device
 acceptance is still pending.
-Later Test67 additions: per-enemy threat memory, original Halo combat cues,
-COMBAT MOVES physical dodge/arm/pummel openings and procedural poses, projectile
-deflection with fists or a deliberately swung gun, and the evidence-backed
-Altheros large-resource fix. Native collisions, fuse/attribution, NPC ownership
-and existing online gates remain. See the complete guide/checklist; device
-acceptance is still pending.
 
 > **Published:** v1.0.31 (Test64/code76) is now Latest. See `docs/PUBLIC-RELEASE-1.0.31-HANDOFF.md` for source/publication and updater verification. Historical holds below are superseded for this release.
 

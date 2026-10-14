@@ -217,3 +217,34 @@ feedback, capsule anchors, reticle states and sprint. Offline Java campaign test
 exercise prepare/import/reuse/hash failures/repair/install/restore, plus existing
 Test66 campaign cycles. Full suite, APK builds and package audit are recorded in
 TEST67-DELIVERY-STATUS.md once completed. Device validation remains pending.
+
+## Final review (resumed session, 2026-10-14)
+
+- Drawn-pose coherence: combat poses are render-only (vr_combat_render), while
+  grab acquisition, combat_regions (head/chest for hit judgement, glyphs and
+  highlights) and touch shoves read Halo's native nodes. A CLUTCH_KNEEL lowers
+  the drawn body by up to 0.28 of the shorter leg (about 0.3-0.4 m on a stock
+  Elite) for at most a second; RECOIL tilts the drawn spine 0.18 rad. Attack
+  overlays are exactly native at the clip's hit keyframe (CONTACT_PHASE), so the
+  enemy's real contact geometry is unaffected. Fix: vr_combat_pose_map_point
+  carries a point on the drawn body onto the native pose through the nearest
+  drawn node (rigid); vr_combat_drawn_to_native wraps it; combat_regions reads
+  the drawn pose; local grab and touch acquisition test the mapped point while
+  the hold target stays the real hand (holds slip only past 1.2 m; the offset
+  is far below). No reach change; remote hands, NPC hand and Jolt ownership
+  unchanged (the pose already stands aside for owned bodies). Test:
+  test_test67_combat_pose maps 460 points on drawn bones across every mode, side
+  and both rigs (ASan/UBSan) and checks malformed input.
+- Melee parry gun-hand rules now match deflection: a two-handed gun's support
+  hand records no parry stroke, and a recorded stroke counts only with the same
+  weapon handle (vr_parry_hand_weapon); drop/holster/swap/hand-over cancel it.
+  test_test62_extra covers both.
+- Move callbacks: overlay phase follows the native clip's own frame and hit
+  keyframe; dodges are judged in the native damage callback within one frame of
+  the hit keyframes; the clip identity is rechecked each tick.
+- Gates: moves and deflection run for the local player in a local game, or a
+  co-op host with HOST VR ACTIONS and compatible peers; never on network clients
+  or ordinary PvP hosts; never against players. OFF switches checked each tick.
+- Guest gnu89 build errors in the uncommitted additions (duplicate loop
+  variables; actors.c's private copy of _projectile_will_super_explode_bit, now
+  exported by projectiles.h) fixed; both flavors compile and link.
