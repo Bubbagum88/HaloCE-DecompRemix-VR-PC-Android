@@ -63,7 +63,7 @@ assert '{ "game.death_physics", _config_string, "\\"ragdoll\\"", "HALO_DEATH_PHY
 menu = read("port/linux/game/vr_menu.c")
 assert '"DEATH PHYSICS", "game.death_physics", _vr_setting_string, 2, { { "DYNAMIC", "ragdoll" }, { "CLASSIC", "classic" } }' in menu
 graphics = read("port/assets/menus/ce/main_menu.settings_select.player_setup.player_profile_edit.video_settings.graphics.xml")
-assert 'op_death_physics" x="54" y="283"/>' in graphics  # shown on Android too
+assert 'op_death_physics" x="54" y="223"/>' in graphics  # shown on Android too (Test67: Shield Glow moved to Extra Effects)
 objects = read("source/objects/objects.c")
 assert "object_bounds_cache_update(object_index, &object->object.bounding_sphere_center" in objects
 assert (ROOT / "port/linux/game/object_bounds_cache.c").is_file()
