@@ -25,7 +25,8 @@ def function(source, name):
 limits = read("port/linux/include/halo_port_limits.h")
 assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 28$", limits, re.M)
 gradle = read("port/android/app/build.gradle")
-assert ("versionCode Math.max(77, buildNumber)" in gradle or
+assert ("versionCode Math.max(78, buildNumber)" in gradle or
+        "versionCode Math.max(77, buildNumber)" in gradle or
         "versionCode Math.max(76, buildNumber)" in gradle or
         "versionCode Math.max(75, buildNumber)" in gradle or
         "versionCode Math.max(74, buildNumber)" in gradle or
@@ -44,7 +45,8 @@ assert ("versionCode Math.max(77, buildNumber)" in gradle or
         "versionCode Math.max(61, buildNumber)" in gradle or
         "versionCode Math.max(60, buildNumber)" in gradle)
 frame = read("port/linux/src/vr_frame.c")
-assert ("HaloCE Quest test65 candidate 1.0.32-test65 code77" in frame or
+assert ("HaloCE Quest test66 candidate 1.0.33-test66 code78" in frame or
+        "HaloCE Quest test65 candidate 1.0.32-test65 code77" in frame or
         "HaloCE Quest test64 candidate 1.0.31-test64 code76" in frame or
         "HaloCE Quest test63 candidate 1.0.30-test63 code75" in frame or
         "HaloCE Quest test62 candidate 1.0.29-test62 code74" in frame or
@@ -62,7 +64,8 @@ assert ("HaloCE Quest test65 candidate 1.0.32-test65 code77" in frame or
         "HaloCE Quest test51 candidate 1.0.32-test51 code62" in frame or
         "HaloCE Quest test50 candidate 1.0.31-test50 code61" in frame or
         "HaloCE Quest test49 candidate 1.0.30-test49 code60" in frame)
-assert ("OpenCE Build157 base / network28; selected fixes through Build201" in frame or
+assert ("OpenCE Build201 merged / network28" in frame or
+        "OpenCE Build157 base / network28; selected fixes through Build201" in frame or
         "OpenCE Build157 base / network26; selected fixes through Build184" in frame or
         "OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176" in frame or
         "OpenCE Build 157 base / network 24; selected Build167 compatibility fixes" in frame)

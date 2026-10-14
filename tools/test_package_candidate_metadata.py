@@ -34,9 +34,16 @@ class CandidateMetadataTests(unittest.TestCase):
         # Test65: its own handoff first, then Test64's and Test63's
         newest = ["TEST65-DELIVERY-STATUS.md", "TEST65-CHECKLIST.md",
                   "TEST65-FIELD-GUIDE.md", "TEST65-DEVICE-CHECKLIST.md"]
-        for label in ("test65", "test66"):
+        for label in ("test65", "test65b"):
             self.assertEqual(package.candidate_document_prefix(label), newest + latest + current)
         for name in newest:
+            self.assertTrue((ROOT / "docs" / name).is_file())
+        # Test66: its own handoff and the OpenCE parity record first, then Test65's and Test64's
+        test66 = ["TEST66-DELIVERY-STATUS.md", "TEST66-CHECKLIST.md",
+                  "TEST66-FIELD-GUIDE.md", "TEST66-DEVICE-CHECKLIST.md", "TEST66-OPENCE-PARITY.md"]
+        for label in ("test66", "test67"):
+            self.assertEqual(package.candidate_document_prefix(label), test66 + newest + latest)
+        for name in test66:
             self.assertTrue((ROOT / "docs" / name).is_file())
         for name in expected:
             self.assertTrue((ROOT / "docs" / name).is_file())
