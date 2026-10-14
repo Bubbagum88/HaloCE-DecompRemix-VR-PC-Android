@@ -1,3 +1,17 @@
+## Active private Test69 (2026-10-14)
+
+Test68 + The Altheros Experience's scripts, 1.0.36-test69 / code81. Read
+docs/TEST69-CHECKLIST.md, TEST69-FIELD-GUIDE.md, TEST69-DEVICE-CHECKLIST.md and
+TEST69-DELIVERY-STATUS.md. Owner: Altheros "still gives a blue screen"; the
+log showed b40 refused for OpenSauce script functions. A scan of all ten
+levels found everything missing: pp_set_effect_instance_active/_fade,
+pp_bloom_set_exposure (accepted, not drawn), object_data_get_real/_set_real
+(a30's gravity lift, real) in custom_edition_opensauce.c (indices 0x7100-),
+and Halo PC's rasterizer_fps (sets of a constant are no-ops,
+custom_edition_scripts.c; no engine global added: checkpoint state). Tests
+test_test69_opensauce, test_test69_scripts. Network 29 unchanged. Private
+only: no push/publish/install/launch. Device acceptance pending.
+
 ## Active private Test68 (2026-10-14)
 
 OpenCE Build 206 on Test67, 1.0.35-test68 / code80. Read docs/TEST68-CHECKLIST.md,

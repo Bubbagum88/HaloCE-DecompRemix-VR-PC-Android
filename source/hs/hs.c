@@ -12820,6 +12820,18 @@ static short hs_syntax_node_refusal(
 			return mcc_script_call_valid(expression, hs_syntax_data) ? _hs_node_refusal_none : _hs_node_refusal_damaged;
 		}
 	}
+	/* port: OpenSauce's functions of Custom Edition campaigns
+	(custom_edition_opensauce.c) */
+	{
+		extern struct hs_function_definition *custom_edition_script_function(short index);
+		extern boolean custom_edition_script_call_valid(struct hs_syntax_node const *call, struct data_array *syntax);
+		struct hs_function_definition *opensauce_function = custom_edition_script_function(function_index);
+		if (opensauce_function)
+		{
+			*name = opensauce_function->name;
+			return custom_edition_script_call_valid(expression, hs_syntax_data) ? _hs_node_refusal_none : _hs_node_refusal_damaged;
+		}
+	}
 	if (function_index<0 || function_index>=(short)NUMBEROF(hs_function_allowed_in_maps))
 		return _hs_node_refusal_damaged;
 	function = hs_function_get(function_index);
@@ -13542,6 +13554,12 @@ struct hs_function_definition *hs_function_get(
 		if (mcc_function)
 			return mcc_function;
 	}
+	{
+		extern struct hs_function_definition *custom_edition_script_function(short index);
+		struct hs_function_definition *opensauce_function = custom_edition_script_function(function_index);
+		if (opensauce_function)
+			return opensauce_function;
+	}
 	match_assert(
 		"c:\\halo\\SOURCE\\hs\\hs.c",
 		522,
@@ -13690,7 +13708,11 @@ short hs_find_function_by_name(
 			return function_index;
 	}
 
-	return NONE;
+	/* port: then OpenSauce's (custom_edition_opensauce.c) */
+	{
+		extern short custom_edition_script_find(char const *name);
+		return custom_edition_script_find(name);
+	}
 }
 
 boolean hs_evaluate_by_name(

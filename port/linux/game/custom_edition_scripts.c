@@ -16,6 +16,13 @@ the game's own hs_find_function_by_name and hs_find_global_by_name, and a
 map whose scripts use one this build does not have is refused. The value
 types of both builds are numbered alike: every call in the maps examined
 has its function's type here (docs/custom_edition_caches.md).
+
+OpenSauce's functions such campaigns call are this build's too
+(custom_edition_opensauce.c). Halo PC's display-only engine globals this
+build lacks (rasterizer_fps: Halo PC's frame-rate counter, set by The
+Altheros Experience's a10 and a30) are not refused: setting one to a
+constant does nothing and reading one is FALSE, as GulchCE turns MCC-only
+calls into constants (mcc_boolean_result). Any other use of one is refused.
 */
 
 /* ---------- headers */
@@ -41,7 +48,10 @@ enum
 	_hs_syntax_node_primitive_bit = 0,
 	_hs_syntax_node_script_bit,
 	_hs_syntax_node_global_bit,
+	_hs_syntax_node_permanent_bit,
 };
+/* (a global's reference: hs.c's name for the bit) */
+#define _hs_syntax_node_variable_bit _hs_syntax_node_global_bit
 
 /* engine globals are told from the scenario's by this bit of their
 designator (hs_find_global_by_name) */
@@ -49,6 +59,8 @@ designator (hs_find_global_by_name) */
 
 /* missing names are logged up to this many times */
 #define MAXIMUM_MISSING_NAME_MESSAGES 8
+/* the uses of display-only engine globals a map may have */
+#define MAXIMUM_DISPLAY_GLOBAL_USES 32
 
 /* ---------- structures */
 
@@ -61,6 +73,18 @@ struct scripts_conversion
 	long functions_renumbered;
 	long globals_renumbered;
 	long missing_count;
+	/* the nodes that use a display-only engine global
+	(display_globals_resolve) */
+	long display_global_nodes[MAXIMUM_DISPLAY_GLOBAL_USES];
+	long display_global_count;
+};
+
+/* Halo PC's engine globals that only change what is drawn for a developer,
+which this build does not have: a map may set them (to nothing) and read
+them (FALSE) */
+static char const *const display_only_globals[] =
+{
+	"rasterizer_fps",
 };
 
 /* ---------- private code */
@@ -143,7 +167,25 @@ static boolean engine_global_convert(
 	designator = hs_find_global_by_name(name);
 	if (designator == NONE || !TEST_FLAG(designator, HS_EXTERNAL_GLOBAL_DESIGNATOR_BIT))
 	{
-		script_name_missing(conversion, "engine global", name);
+		short display_global;
+
+		for (display_global = 0; display_global < (short)NUMBEROF(display_only_globals); display_global++)
+		{
+			if (!_stricmp(name, display_only_globals[display_global]))
+			{
+				break;
+			}
+		}
+		if (display_global < (short)NUMBEROF(display_only_globals) &&
+			reference->type == _hs_type_boolean &&
+			conversion->display_global_count < MAXIMUM_DISPLAY_GLOBAL_USES)
+		{
+			conversion->display_global_nodes[conversion->display_global_count++] = reference - conversion->nodes;
+		}
+		else
+		{
+			script_name_missing(conversion, "engine global", name);
+		}
 	}
 	else if (reference->short_value != designator)
 	{
@@ -152,6 +194,107 @@ static boolean engine_global_convert(
 	}
 
 	return TRUE;
+}
+
+/* the node a datum index names, or NULL */
+static struct hs_syntax_node *conversion_node_get(
+	struct scripts_conversion const *conversion,
+	long datum_index)
+{
+	long index = DATUM_INDEX_TO_ABSOLUTE_INDEX(datum_index);
+
+	return datum_index != NONE && index < conversion->node_count && conversion->nodes[index].datum_header ?
+		&conversion->nodes[index] :
+		NULL;
+}
+
+/* a node made a constant of its own type: TRUE/FALSE `value` (as
+mcc_boolean_result) */
+static void conversion_node_make_constant(
+	struct hs_syntax_node *node,
+	long value)
+{
+	node->flags = FLAG(_hs_syntax_node_primitive_bit) | FLAG(_hs_syntax_node_permanent_bit);
+	node->constant_type = node->type;
+	node->data = node->type == _hs_type_void ? 0 : value;
+	node->source_offset = NONE;
+
+	return;
+}
+
+/* The uses of display-only engine globals: a `set` of one to a constant
+becomes a constant itself (nothing is set), a read of one FALSE; another use
+(a set of a computed value) is refused, as a missing global is. */
+static void display_globals_resolve(
+	struct scripts_conversion *conversion)
+{
+	short set_function = hs_find_function_by_name("set");
+	long use;
+	long node_index;
+
+	if (!conversion->display_global_count)
+	{
+		return;
+	}
+	/* sets first: a set's target is its first argument */
+	for (node_index = 0; set_function != NONE && node_index < conversion->node_count; node_index++)
+	{
+		struct hs_syntax_node *call = &conversion->nodes[node_index];
+		struct hs_syntax_node *name_node;
+		struct hs_syntax_node *target;
+		struct hs_syntax_node *value;
+
+		if (!call->datum_header ||
+			TEST_FLAG(call->flags, _hs_syntax_node_primitive_bit) ||
+			TEST_FLAG(call->flags, _hs_syntax_node_script_bit) ||
+			call->function_index != set_function ||
+			!(name_node = conversion_node_get(conversion, call->data)) ||
+			!(target = conversion_node_get(conversion, name_node->next_node_index)))
+		{
+			continue;
+		}
+		for (use = 0; use < conversion->display_global_count; use++)
+		{
+			if (&conversion->nodes[conversion->display_global_nodes[use]] == target)
+			{
+				break;
+			}
+		}
+		if (use == conversion->display_global_count)
+		{
+			continue;
+		}
+		value = conversion_node_get(conversion, target->next_node_index);
+		if (value &&
+			value->next_node_index == NONE &&
+			value->type == _hs_type_boolean &&
+			value->constant_type == _hs_type_boolean &&
+			TEST_FLAG(value->flags, _hs_syntax_node_primitive_bit) &&
+			TEST_FLAG(value->flags, _hs_syntax_node_permanent_bit) &&
+			!TEST_FLAG(value->flags, _hs_syntax_node_script_bit) &&
+			!TEST_FLAG(value->flags, _hs_syntax_node_variable_bit) &&
+			(call->type == _hs_type_void || call->type == _hs_type_boolean))
+		{
+			conversion_node_make_constant(call, value->boolean_value != FALSE);
+			/* (the target, no longer reached, names no global either) */
+			conversion_node_make_constant(target, FALSE);
+		}
+		else
+		{
+			script_name_missing(conversion, "engine global (set without a permanent boolean constant)",
+				script_string_get(conversion, target->string_offset));
+		}
+		/* (resolved either way) */
+		conversion->display_global_nodes[use] = conversion->display_global_nodes[--conversion->display_global_count];
+	}
+	/* the rest are reads */
+	for (use = 0; use < conversion->display_global_count; use++)
+	{
+		conversion_node_make_constant(&conversion->nodes[conversion->display_global_nodes[use]], FALSE);
+	}
+	conversion->display_global_count = 0;
+
+	return;
 }
 
 /* FALSE after logging why when the scenario's scripts cannot run */
@@ -224,6 +367,7 @@ static boolean scenario_scripts_convert(
 			return FALSE;
 		}
 	}
+	display_globals_resolve(&conversion);
 	error(
 		_error_silent,
 		"custom edition: %ld script calls and %ld engine global references were given this build's index",

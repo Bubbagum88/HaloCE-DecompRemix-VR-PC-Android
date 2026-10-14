@@ -921,6 +921,12 @@ static char const *expression_get_function_name(
 				if (mcc_function)
 					return mcc_function->name;
 			}
+			{
+				extern struct hs_function_definition *custom_edition_script_function(short index);
+				struct hs_function_definition *opensauce_function = custom_edition_script_function(syntax_node->index);
+				if (opensauce_function)
+					return opensauce_function->name;
+			}
 			if ((word)syntax_node->index>=hs_function_table_count)
 				return "(corrupt function)";
 
@@ -2759,7 +2765,9 @@ static void hs_thread_main(
 			hs_function_table_count;
 		{
 			extern struct hs_function_definition *mcc_script_function(short index);
-			if (!TEST_FLAG(expression->flags, _hs_syntax_node_script_bit) && mcc_script_function(expression->index))
+			extern struct hs_function_definition *custom_edition_script_function(short index);
+			if (!TEST_FLAG(expression->flags, _hs_syntax_node_script_bit) &&
+				(mcc_script_function(expression->index) || custom_edition_script_function(expression->index)))
 				index_count = expression->index + 1;
 		}
 		if (expression->index<0 || expression->index>=index_count)

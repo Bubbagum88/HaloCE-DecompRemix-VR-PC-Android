@@ -745,10 +745,23 @@ every layout used was then checked against the sample maps.
 - **Silenced sounds still log.** Playing a silenced Ogg Vorbis sound logs
   `attempt to play a sound that was not a mono 22k compressed sound ...`,
   which the game also prints on the screen, in the release build too.
-- **Scripts that use what this build does not have** are refused: of the
-  sample, `extinctionrevanepic2.map` calls OpenSauce's
-  `pp_set_effect_instance_active` (4 times), and needs a mod set anyway.
-  OpenSauce's other runtime features (`project_yellow`) do not exist here.
+- **Scripts that use what this build does not have** are refused. Since
+  Test69 a few OpenSauce functions are this build's too
+  (`custom_edition_opensauce.c`), found by name after the game's own table:
+  `pp_set_effect_instance_active`, `pp_set_effect_instance_fade` and
+  `pp_bloom_set_exposure` are accepted and draw nothing (there is no
+  OpenSauce post-processing here: VISR night vision and bloom do not show);
+  `object_data_get_real` and `object_data_set_real` read and write an
+  object's position (read only), transitional/angular velocity, forward and
+  up (read only), center and radius (read only) and scale. Halo PC's
+  display-only engine global `rasterizer_fps` is not refused either: setting
+  it to a constant does nothing and reading it is FALSE. Together these are
+  everything The Altheros Experience (10.24.2019) calls that this build
+  lacked, in all ten levels (b40 was refused for 4 + 4 post-processing calls,
+  owner's Quest log 2026-10-14; a10 and a30 for `rasterizer_fps`, a30 also
+  for `object_data_*` in its gravity lift, a50 also for bloom). Other
+  OpenSauce functions and runtime features (`project_yellow`) do not exist
+  here, and a map that uses them is still refused.
 - **The conversions are one-way and in memory:** nothing is written to the
   map files.
 

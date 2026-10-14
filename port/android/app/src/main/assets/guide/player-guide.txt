@@ -1,3 +1,28 @@
+# Test69: The Altheros Experience
+
+Private 1.0.36-test69 / code81. Install the matching Quest VR or Android APK over
+Test68 (or Test67); the package IDs and signing certificate are unchanged. Keep
+your saved settings. No uninstall is needed. No public release is being changed.
+
+Everything from Test68 is here, unchanged (below). This build fixes why The
+Altheros Experience showed a blue screen:
+
+- **Its scripts now run.** The levels' scripts call a few OpenSauce functions
+  this build did not have, so the game refused them (the blue screen). They
+  are this build's now:
+  - VISR night vision and bloom (pp_set_effect_instance_active,
+    pp_set_effect_instance_fade, pp_bloom_set_exposure): the scripts run, but
+    the tint and bloom are not drawn (OpenSauce's post-processing is not part
+    of this build).
+  - a30's gravity lift (object_data_get_real, object_data_set_real): it reads
+    and raises objects' velocity, as on PC.
+  - a10 and a30 switch Halo PC's frame-rate counter (rasterizer_fps): ignored.
+- **Not yet known:** whether every level then loads on the headset. The next
+  loading step (the models) has not been reached on a device before. If a
+  level stops, send the launch log: it names the step.
+
+---
+
 # Test68: OpenCE Build 206 (network 29)
 
 Private 1.0.35-test68 / code80. Install the matching Quest VR or Android APK over
