@@ -1,3 +1,43 @@
+# Test68: OpenCE Build 206 (network 29)
+
+Private 1.0.35-test68 / code80. Install the matching Quest VR or Android APK over
+Test67; the package IDs and signing certificate are unchanged. Keep your saved
+settings. No uninstall is needed. No public release is being changed.
+
+Everything from Test67 is here, unchanged (below). This build brings in
+OpenCE's newest build, 206:
+
+- **Online: network 29.** This build now hosts on network 29, as current OpenCE
+  does, and joins hosts from 11 through 29 (All compatible networks, the
+  launcher's default). OpenCE players on build 206 can join your games and you
+  theirs. Players still on Test67 or older OpenCE (network 28) cannot join a
+  game you host with this build; you can still join theirs.
+- **Custom Edition maps keep their own names.** Online, a map is known by its
+  real name ("Hugeass", not "hugeass_0e2b3ee4") and its version by its
+  contents. If you have two versions of a map of the same name, the second
+  shows as "Hugeass (2)". Maps an earlier build renamed with a hash get their
+  names back the next time the map list opens.
+- **Joining an older (network 28 or earlier) host** works as before: the map is
+  found by its name, and your copy must be the same version as the host's.
+- **Safer map loading.** Custom Edition maps are checked more strictly (broken
+  lightmaps, a map missing its camera or player data), and a
+  rare out-of-range read in the Ogg sound decoder is fixed (Custom Edition and
+  MCC map sounds).
+
+Community extras (armor sharing, text chat, votes) still use their own message
+kinds, which OpenCE players without them ignore, on network 29 as on 28.
+
+## What to test
+
+See TEST68-DEVICE-CHECKLIST.md: online play on network 29 with an OpenCE build
+206 player (host and join), joining an older host, a Custom Edition map online
+and in the menus, then the Test67 checks. This candidate has not been installed
+or launched by the agent.
+
+---
+
+## Carried-forward Test67 features and controls
+
 # Test67: reload grips, fist flow and simpler campaign setup
 
 Private 1.0.34-test67 / code79. Install the matching Quest VR or Android APK over
@@ -209,8 +249,8 @@ section has:
   of MCC and are not bundled.
 - **Remove all MCC maps.**
 
-In game: **New Game** (campaign) or **Multiplayer**, then pick the map kind **MCC
-SINGLEPLAYER** or **MCC MULTIPLAYER**. Hosting a network game skips the MCC kinds;
+In game: **New Game** (campaign) or **Multiplayer**, then pick the map kind
+**MCC SINGLEPLAYER** or **MCC MULTIPLAYER**. Hosting a network game skips the MCC kinds;
 local split screen keeps them. This is experimental on the Quest (memory, texture
 decoding on the CPU). Some MCC models may draw wrong.
 

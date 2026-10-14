@@ -642,15 +642,15 @@ Hosting: proximity voice range in world units (5 to 100).
 network.legacy_coop [boolean]
 Default: false
 Opt in to legacy network12-14 campaign clients. Old hosts omit scripted team allegiance; marine reticles/team behavior may be wrong.
-Uses old native presentation behavior without invented allegiance. Prefer network15-28. Hosting stays28.
+Uses old native presentation behavior without invented allegiance. Prefer network15-29. Hosting stays29.
 
 network.protocol_version [integer]
 Default: 0
 Client protocol target: 0 (the default) lists/joins all compatible PvP
-versions 11-28; 11-28 selects one exact server version. This build always
-hosts as 28. Campaign needs15+, or consented legacy12-14; Custom Edition
+versions 11-29; 11-29 selects one exact server version. This build always
+hosts as 29. Campaign needs15+, or consented legacy12-14; Custom Edition
 needs23+. This is read once when the game starts; restart after changing
-it. Invalid values fall back to the build's own version, 28.
+it. Invalid values fall back to the build's own version, 29.
 
 network.join_from_clipboard [boolean]
 Default: true
@@ -688,7 +688,7 @@ network.community_extras [boolean]
 Default: true
 Community extras in network games: the players' Armor choices shared,
 text chat, and votes to kick or ban with a reason. Players without
-them (OpenCE network 28) play as ever; false sends and reads none.
+them (OpenCE network 29) play as ever; false sends and reads none.
 
 net.physical_interactions [boolean]
 Default: false
