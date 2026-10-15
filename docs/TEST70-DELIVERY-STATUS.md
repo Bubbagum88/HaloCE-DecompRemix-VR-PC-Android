@@ -1,4 +1,16 @@
-# Test70 private delivery status
+# Test70 delivery status
+
+## Publication update (2026-10-15)
+
+Published as the new latest GitHub release, `v1.0.37`:
+https://github.com/moistman42069/HaloCE-Quest-VR/releases/tag/v1.0.37
+The APK bytes are unchanged; public asset names use stable `1.0.37` names for
+the launcher updater. The prior `v1.0.31` release remains intact. The release
+contains only the Android APK, Quest APK, and updater compatibility metadata;
+GitHub supplies source archives automatically. Device acceptance is still
+pending and is tracked in `TEST70-DEVICE-CHECKLIST.md`.
+
+The original private-candidate notes below record the state before publication.
 
 Private **1.0.37-test70 / Android version code 82**, branch
 `test39-interaction-completion`. Test69 plus the owner's 72-item

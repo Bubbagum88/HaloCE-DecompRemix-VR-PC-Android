@@ -4,58 +4,45 @@
 
 <p align="center">An unofficial OpenCE-based community port for standalone Meta Quest VR and flat Android.</p>
 
-**MASSIVE UPDATE — MANY NEW FEATURES. [Read the full 1.0.31 release notes](docs/RELEASE-1.0.31.md).**
+**Latest: [1.0.37 — Test70](https://github.com/moistman42069/HaloCE-Quest-VR/releases/tag/v1.0.37).** This is a large cumulative update. Read the release notes, especially the experimental-feature and compatibility sections, before enabling optional systems.
 
-> This release focuses on individual user testing and logs to refine future builds. Immersive vehicles, manual reload, ragdolls, grabbing/slamming, parkour, fist assistance and physical grenades are WIP/experimental. Report bugs, placement/comfort preferences and successful tests too.
+> **Experimental / WIP:** fist combat and projectile deflection, sliding, parkour, physical reload, ragdolls and body interactions, immersive vehicle controls, and broad support for user-supplied mods still need refinement and device reports. Enable experimental options one at a time. Project Lumoria and SPV1 have specific setup paths; this does not mean every mod works. MCC maps and The Altheros Experience remain experimental.
 
 ## Download and update
 
 | Device | Download |
 | --- | --- |
-| Android phone/tablet — flat | [HaloCE-Android-1.0.31.apk](https://github.com/moistman42069/HaloCE-Quest-VR/releases/download/v1.0.31/HaloCE-Android-1.0.31.apk) |
-| Meta Quest — VR | [HaloCE-Quest-1.0.31.apk](https://github.com/moistman42069/HaloCE-Quest-VR/releases/download/v1.0.31/HaloCE-Quest-1.0.31.apk) |
+| Android phone/tablet — flat | [HaloCE-Android-1.0.37.apk](https://github.com/moistman42069/HaloCE-Quest-VR/releases/download/v1.0.37/HaloCE-Android-1.0.37.apk) |
+| Meta Quest — standalone VR | [HaloCE-Quest-1.0.37.apk](https://github.com/moistman42069/HaloCE-Quest-VR/releases/download/v1.0.37/HaloCE-Quest-1.0.37.apk) |
 
-ARM64, Android 9/API28+. On Quest enable Developer Mode and sideload with SideQuest/ADB. On Android allow installation from the browser/file manager. Existing users can use the launcher's project updater or install the matching APK over the current app. **Do not uninstall or clear data.** Back up important saves first.
+Both builds require ARM64 and Android 9 / API 28 or newer. On Quest, enable Developer Mode and sideload with SideQuest or ADB. On Android, allow installation from the browser/file manager when prompted.
 
-Public **v1.0.31** contains the exact supplied **Test64 / 1.0.31-test64 / code76** binaries. The internal test label is expected; someone already on Test64 has this build. Package IDs/signing remain unchanged. The release includes updater-required compatibility metadata; users do not install that JSON manually.
+Existing users can use the launcher's project updater or install the matching APK over the current app. **Do not uninstall or clear app data** if you want to keep saves, settings and imported files. The public release is v1.0.37; the APK reports its exact build identity as **1.0.37-test70 / code 82**. Package IDs and signing certificate are unchanged. `compatibility.json` is required by the updater and is already handled by it; do not install it manually.
 
-Import your own complete supported Xbox Halo CE ISO/XISO or extracted data through **Game files & versions**. No game data is included. Tested USA Original/Rev1/Rev2 map contents are identical; other regions/modifications still need validation. Original Xbox XISO remains the reference. Identical managed map sets deduplicate. The manager can select/rename sets and delete inactive managed copies; active and protected Existing game data remain protected. Source ISOs selected through Android's picker stay at their original location.
+The app contains no Halo game data. Import your own complete supported Xbox Halo CE ISO/XISO or extracted game files through **Game files & versions**. The original Xbox XISO remains the recommended reference.
 
-## What is included
+## What changed
 
-- Standalone Quest OpenXR, room-scale movement, tracked hands, estimated body IK, holsters, two-hand weapons, scopes, gestures and wrist HUD. Legs + Arms and Safe geometry remain defaults.
-- Experimental physical reload with mirrored hip/shoulder pouches and charging; physical grenades; NPC/ally/object grabbing, heavy handling, ragdolls, slams, optional debris and bounded vehicle lifting/recovery.
-- Experimental parkour and fist-combat assist, toggle sprint, solo shake cooling, aim steadying and vehicle/turret reticle refinements.
-- Optional immersive vehicle wheels/bars/sticks with calibration preview and per-vehicle offsets. Ordinary third-person/right-hand steering remains the default. First-person vehicles still need refinement.
-- Flat Android circular touch HUD, layout import/export and individual control hiding, optional touch/gyro look and common USB/Bluetooth gamepads.
-- Native OpenCE server browsing, PvP/campaign hosting and voice; network28 hosting and compatible client targets11–28; launcher populations, updates, imports, support and per-launch logs.
-- Long VR-menu section indexes and the Test64 fix for the crash opening VR SETTINGS.
+- **Launcher and campaigns:** What's New appears after an update and can be reopened; campaign buttons show their support status. Project Lumoria has a guided import/install/restore flow for a player-supplied archive or folder. The MCC damaged-disc lookup was repaired, but MCC maps remain experimental pending headset confirmation. Altheros script support improved in Test69; later level loading still needs device logs.
+- **Controls:** button remapping now asks before changing a binding, offers CANCEL / SWAP / CLEAR / BOTH, supports NONE, shows contextual ownership, and has RESET CONTROLS at both ends of the page. MIRROR BUTTONS puts face-button actions on the gun hand for left-handed play without rewriting saved bindings.
+- **Weapons:** locked weapons can be holstered; the Needler supports deliberate shake reload when manual reload is enabled; optional shake cooling responds to deliberate strokes; empty rocket tubes and the flamethrower canister are ready when seated; charging feedback and Pistol/AR magazine fit were refined. Left-hand weapon lettering and button ownership were improved.
+- **Movement and combat:** optional SLIDE, solo-only BULLET TIME, improved tree contact and look-directed wall jumps, fist HIT ASSIST and LUNGE HOP, and a larger GRAB ASSIST default. Sliding, fist combat, deflection and parkour remain experimental and can feel inconsistent.
+- **Graphics and bodies:** Extra Effects includes optional overshield visuals, dynamic/vehicle blood, projectile effects, stencil shadows and Jolt-backed dropped-weapon physics. Corpse duration/limits and other visual options are configurable. Dynamic death ragdolls use Jolt; the VR ragdoll range default is increased. See the release notes for performance and multiplayer limits.
+- **Android:** existing touch controls and controller support remain, including touch-layout export/import, hiding selected HUD controls, optional touch looking and controller-aware touch visibility.
+- **Multiplayer:** OpenCE Build 206 / network 29 is retained. The app hosts on 29 and can target compatible hosts 11–29. Native in-game browser, PvP/campaign hosting, voice chat and launcher population lists remain. Voice transmission depends on host settings and microphone permission.
 
-## Controls and feature setup
+## Controls, setup and compatibility
 
-The [release notes](docs/RELEASE-1.0.31.md) contain the Quest, gamepad and touch mappings and a feature-by-feature quick guide. **BUTTON SPRINT takes left-stick click; SPRINT TOGGLE makes it click-on/click-off. MANUAL RELOAD changes USE/RELOAD to magazine ejection.** Optional features can enable supporting settings; check those rows when experimenting.
+The [complete 1.0.37 release notes](docs/RELEASE-1.0.37.md) include installation, Quest and Android inputs, all new settings, server setup, game revisions, WIP notes, testing status and credits. The [Test70 field guide](docs/TEST70-FIELD-GUIDE.md) provides the full menu and feature reference; [controls and options](docs/CONTROLS-AND-OPTIONS.md) and the [Android touch guide](docs/ANDROID-TOUCH-CONTROLS.md) give further detail.
 
-Physical grenade slots may be offset: **VR Settings → IMMERSION → GRENADES → CHEST FWD / CHEST DOWN / CHEST SPACING** adjusts placement. Touch the visible slot with a free palm then Grip; release Grip to throw. THROW POWER adjusts strength separately.
+For VR, the familiar defaults remain **Legs + Arms**, **Safe geometry**, **Third Person vehicles** and **Right Hand steering**. Experimental systems are optional and may be restricted in multiplayer/co-op unless the host and peers support and allow them. For Android gamepads, use **Controller & touch settings** to adjust mapping, dead zones, sensitivity and touch visibility.
 
-## Multiplayer, co-op and voice
+The tested USA Original, Rev 1 and Rev 2 images contain identical copies of their 24 maps; other regions, repacks and modified images are not certified. Custom Edition and campaign co-op have additional network-version and content requirements. The release notes explain these limits.
 
-Join from **Play → Multiplayer → Join Game → Server Browser**, LAN or Direct Link. Host from **Create Game → Internet or LAN → Multiplayer** for PvP, or **Singleplayer** for campaign; choose mission/difficulty and configure **Server Setup**, then start/share the lobby.
+## Support and project
 
-Hosting stays on network28. The launcher defaults to All compatible networks and offers targets11–28, taking effect next launch. Original-map PvP uses the implemented targets; co-op defaults to15+ with12–14 legacy opt-in; Custom Edition needs23+ and matching maps. Retail PC/CE, MCC and Xbox protocols are separate. NAT, content and host settings still affect joins. 128 players is an engine option, not a performance guarantee. This port does not host OpenCE web/browser clients or share maps.
+Please report both failures and successful tests, especially for fist combat/deflection, sliding, ragdolls, campaigns, vehicle options, and co-op. Include device and OS, app and network version, selected game-data set, map/mission, relevant settings, steps to reproduce, and the launch log under **Download/HaloCE** when available. For co-op, logs from both players help. Remove private invites/device details before public posting.
 
-Enhanced VR actions require host permission and compatible peers. Manual reload and other local-only systems remain restricted; NPC ragdoll replication supports four remote machines, not a four-player general co-op limit. See the full notes for details.
+Contact **@MeWhenINameMyself** by Discord DM, use the [Halo CE Decomp Discord](https://discord.gg/S9uSCKxKx), or report in the [Flat2VR Halo CE discussion](https://discord.com/channels/747967102895390741/1555959498349215774). This build is intended to collect real-device feedback for the next refinement pass.
 
-Hosts must allow voice. Mic Off still permits incoming voice; Voice Volume0 mutes it. Enable PTT/Open Mic, grant microphone permission and configure a PTT binding when needed. The notes explain Quest/flat controls and troubleshooting.
-
-## Guides, source and support
-
-- [Complete 1.0.31 release notes](docs/RELEASE-1.0.31.md)
-- [Test64 field guide and history](docs/TEST64-FIELD-GUIDE.md) — newest sections supersede older test instructions
-- [Android touch controls](docs/ANDROID-TOUCH-CONTROLS.md)
-- [Release provenance](docs/RELEASE-PROVENANCE-1.0.31.md)
-
-Logs normally appear under **Download/HaloCE**, with app-private fallback. Send device/OS, app/network version, selected data, map/mission, toggles, reproduction steps and relevant logs; collect both peers' logs for co-op. Remove private invites/device details before public posting. DM **@MeWhenINameMyself** or use the [Halo CE Decomp Discord](https://discord.gg/S9uSCKxKx). This release's goal is real user testing and logs for future refinements.
-
-The source tag contains the supplied APK runtime source plus publication docs/metadata. Automated checks are recorded; a complete device checklist for this exact pair remains pending. PC/Steam Frame work remains deferred.
-
-Built on [OpenCE](https://github.com/OpenCommunityEdition/OpenCE): Build157 base with selected integrations through Build201/network28, not a complete rebase. Thanks to the upstream, port and testing communities, including [Willem Horak's PR #1](https://github.com/moistman42069/HaloCE-Quest-VR/pull/1). See [CREDITS.md](CREDITS.md) and [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt). Unofficial; not affiliated with Microsoft.
+The About description is unchanged. This repository is an unofficial community project, not affiliated with Microsoft. No Halo game files are distributed. See [credits](CREDITS.md) and [third-party notices](THIRD-PARTY-NOTICES.txt). PC and Steam Frame ports remain deferred.

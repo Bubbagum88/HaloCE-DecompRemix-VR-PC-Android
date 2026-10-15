@@ -1,4 +1,11 @@
-## Active private Test70 (2026-10-15)
+## Latest release: v1.0.37 (Test70), 2026-10-15
+
+Published: `https://github.com/moistman42069/HaloCE-Quest-VR/releases/tag/v1.0.37`.
+The APKs retain their Test70 identity (`1.0.37-test70`, code 82); stable asset
+names are used for launcher updates. See `docs/RELEASE-1.0.37.md`,
+`docs/RELEASE-PROVENANCE-1.0.37.md`, and `docs/TEST70-DELIVERY-STATUS.md`.
+Automated checks passed; device acceptance remains pending. Keep experimental
+and WIP features labeled as such.
 
 Release-preparation polish on Test69, 1.0.37-test70 / code82. Read
 docs/TEST70-CHECKLIST.md (every owner item and its disposition),
@@ -16,8 +23,9 @@ reload), rocket/canister ready when seated, Pistol/AR magazine fit
 R UP), HIT ASSIST, LUNGE HOP, GRAB ASSIST 15 cm and its mapping fixed,
 tree climbing retries and rays, wall jumps by the look. OpenCE is still
 build-206; HALOFREAK95's new fast-decals reviewed, not taken. Network 29
-unchanged. Private only: no push/publish/install/launch. Device acceptance
-pending. Altheros' next step (model memory, up to 56.5 MB a level) needs a log.
+unchanged. Published; v1.0.31 remains preserved. No install/launch by the
+publisher. Device acceptance pending. Altheros' next step (model memory, up to
+56.5 MB a level) needs a log.
 Edit scripts on Windows must write bytes (Python text mode turned LF files
 into CRLF once in this session; fixed before committing).
 
