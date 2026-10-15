@@ -107,6 +107,20 @@ Shared VR gameplay → OpenXR actions (logical) → per-profile binding tables.
   (for example a held stick click). Vive wands and WMR (trackpads, no face
   buttons) likewise wait for a designed mapping rather than a guessed one;
   SteamVR's own remap covers them meanwhile.
+- **Controller audit (verified 2026-10-15; hardware-tested: none)**:
+
+  | Controller | Runtime | How it gets bindings | Status |
+  |---|---|---|---|
+  | Quest Touch / Touch Plus / Pro | Quest native, Meta PC (Link), Virtual Desktop | `oculus/touch_controller` (ours) | implemented; Quest hardware-tested over many candidates |
+  | Valve Index | SteamVR | `valve/index_controller` (ours) | implemented |
+  | Steam Frame | Frame (Lepton), SteamVR | `valve/frame_controller_valve` (ours, Valve's documented paths) | implemented |
+  | PICO 4 / Neo 3 / 4 Ultra | PICO native | `bytedance/pico4_controller`, `pico_neo3_controller`, `pico_ultra_controller_bd` (ours) | implemented |
+  | Vive wands, Vive Cosmos, WMR, PSVR2 Sense, others | SteamVR 1.26+ | SteamVR converts the highest-priority layout the app binds (Valve's OpenVR driver documentation, remapping files), and its binding UI can change it | by design; unverified on hardware |
+  | WMR / HP Reverb G2 | Windows Mixed Reality's own runtime (removed from Windows 11 24H2) | no remap there: tables for `microsoft/motion_controller` and `hp/mixed_reality_controller` belong in the shared PCVR layer | to do with the PCVR host |
+  | any | any | `khr/generic_controller` deliberately **not** suggested: it has no menu button and SteamVR prefers it to Touch (Valve's Frame docs), which could remove pause | decided |
+
+  Every table is checked path by path against the Khronos registry (and
+  Valve's Frame documentation) by `tools/test_openxr_bindings.py`.
 - **Device-aware labels**: the host learns the active profile
   (`xrGetCurrentInteractionProfile`); passing its family to the game lets
   menus say "A" or "Cross" instead of a Quest name. Needs one ABI field
