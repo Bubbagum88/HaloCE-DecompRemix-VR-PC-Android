@@ -1814,7 +1814,13 @@ static void config_path(char *path, size_t size)
 	/* the executable's folder, with its separator */
 	const char *base = SDL_GetBasePath();
 
+#ifdef HALO_VR
+	/* Test72: the PCVR game shares the flat game's folder (its maps/: one
+	extraction for both) but keeps its own settings */
+	snprintf(path, size, "%sconfig-vr.toml", base ? base : "");
+#else
 	snprintf(path, size, "%sconfig.toml", base ? base : "");
+#endif
 #endif
 }
 

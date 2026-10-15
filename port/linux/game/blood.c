@@ -2069,10 +2069,18 @@ short blood_drops_for_drawing(
 void blood_update(
 	void)
 {
-	long now = game_time_get();
+	long now;
 	long steps;
 	short index;
 
+	/* Test72: decals_update also runs while a map's precache draws its
+	loading screen (the menus' own scenario first), before there is a game
+	time: nothing bleeds then. Found running the Windows build, where the
+	check halts (game_time.c's game_time_globals->initialized); the release
+	builds only logged it and read a time that was not one */
+	if (!game_time_initialized())
+		return;
+	now = game_time_get();
 	/* (a revert, a saved game loaded: the drips stop; blood on vehicles the
 	saved game has still rides with them, and what came after it is gone,
 	its decals no longer there: decal_move_polygons says so) */

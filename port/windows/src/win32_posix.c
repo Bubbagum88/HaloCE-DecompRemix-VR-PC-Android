@@ -47,10 +47,17 @@ static void windows_startup(void)
 		DWORD length = GetModuleFileNameA(NULL, path, sizeof(path));
 		char *slash;
 
+#ifdef HALO_VR
+		/* Test72: the PCVR game, in the same folder, its own log */
+		static const char name[] = "halo-vr.log";
+#else
+		static const char name[] = "halo.log";
+#endif
+
 		if (length && length < sizeof(path) && (slash = strrchr(path, '\\')) &&
-			(size_t)(slash + 1 - path) + sizeof("halo.log") <= sizeof(path))
+			(size_t)(slash + 1 - path) + sizeof(name) <= sizeof(path))
 		{
-			strcpy(slash + 1, "halo.log");
+			strcpy(slash + 1, name);
 			if (freopen(path, "w", stderr))
 				setvbuf(stderr, NULL, _IONBF, 0);
 		}
