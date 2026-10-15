@@ -50,7 +50,7 @@ assert "this(name, fid, size, fid == 0);" in installer  # older mods' meaning ke
 
 # --- the browser download
 assert 'android:name=".ModDownloadActivity"' in manifest
-assert 'implementation "me.zhanghai.android.libarchive:library:1.1.7"' in gradle
+assert 'implementation "me.zhanghai.android.libarchive:library:1.1.6"' in gradle
 for needle in ("CookieManager.getInstance().getCookie(url)", 'setRequestProperty("User-Agent", agent)',
                '"Range", "bytes=" + have + "-"', "code == 200) have = 0", "ModInstaller.archiveMatches(partial, size, md5)",
                "partial.renameTo(target)", "setResult(RESULT_OK", "length > 0 && length != size", "if (downloading)",
@@ -82,7 +82,7 @@ assert '"BEFORE INSTALLING: SPV1 needs' not in launcher
 credits = read("CREDITS.md")
 notices = read("THIRD-PARTY-NOTICES.txt")
 assert "## Test71 additions" in credits and "libarchive-android" in credits
-for name in ("libarchive-android 1.1.7", "libarchive 3.8", "zlib", "bzip2 1.0.8", "XZ Utils liblzma", "LZ4 library", "Zstandard", "Mbed TLS"):
+for name in ("libarchive-android 1.1.6", "libarchive 3.8", "zlib", "bzip2 1.0.8", "XZ Utils liblzma", "LZ4 library", "Zstandard", "Mbed TLS"):
     assert "===== Test71: " + name in notices, name
 assert "Tim Kientzle" in notices and "Julian R Seward" in notices and "Jean-loup Gailly" in notices
 guide_credits = read("port/android/app/src/main/assets/guide/credits.txt")

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Merged over src/main's manifest in the VR build (configure.py with the vr option):
-     an OpenXR app for standalone headsets such as the Meta Quest 3 and the Steam Frame.
+     an OpenXR app for standalone headsets: the Meta Quest, the Steam Frame and (Test72) PICO.
 
      The launcher (the disc image picker) stays an ordinary 2D activity, which
      the Quest shows on a panel; the game's activity is the immersive one. -->
@@ -28,6 +28,19 @@
         <meta-data
             android:name="com.oculus.supportedDevices"
             android:value="quest|quest2|questpro|quest3|quest3s" />
+        <!-- Test72: PICO (pull request #4, adapted). pvr.app.type=vr is PICO's
+             documented key for a VR app. The two input keys are the PR's
+             finding on PICO OS 5 (a controller-only app, so the system's hand
+             tracking dialog stays away); unverified here, ignored elsewhere. -->
+        <meta-data
+            android:name="pvr.app.type"
+            android:value="vr" />
+        <meta-data
+            android:name="pvr.app.inputType"
+            android:value="controller" />
+        <meta-data
+            android:name="pvr.app.handtrackingSupport"
+            android:value="0" />
 
         <!-- the game, immersive. Its own process: the game ends its process
              when it quits (host_exit), which leaves the launcher's alone, and
@@ -46,6 +59,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="org.khronos.openxr.intent.category.IMMERSIVE_HMD" />
                 <category android:name="com.oculus.intent.category.VR" />
+                <category android:name="com.picovr.intent.category.VR" />
             </intent-filter>
         </activity>
     </application>

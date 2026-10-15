@@ -22,7 +22,7 @@ from .linux_build import (LINUX_PROFILE, MINIUPNPC_DIR, OPTIMISATION, WINDOWS_PR
                           march_flag, miniupnpc_sources, pgo_mode, compile_launcher, game_defines_and_includes,
                           game_sources, musl_math_cflags, musl_math_sources, opus_cflags, opus_sources, OPUS_DIR,
                           pgo_profile, profile_use_flags,
-                          xdk_headers)
+                          xdk_headers, EXPAT_DIR, EXPAT_SOURCES, ZLIB_DIR, ZLIB_SOURCES, ZLIB_DEFINES)
 from .embed_assets import hud_assets_build, hud_configure_inputs
 from .ninja_syntax import Writer
 
@@ -368,6 +368,8 @@ def generate_windows_build(n: Writer, sln: Any) -> None:
             f"-I{PORT_DIR / 'include'}",
             f"-I{TOML_DIR}",
             f"-I{KCP_DIR}", f"-Iport/third_party/monocypher",
+            # Test72: the menu files' XML and the inflater, as on Linux and Android
+            f"-I{EXPAT_DIR}", f"-I{ZLIB_DIR}",
             # halo_linux_winsock_names.h, but not the Linux build's C runtime
             # wrappers next to it
             f"-iquote {LINUX_DIR / 'include'}",
@@ -414,6 +416,13 @@ def generate_windows_build(n: Writer, sln: Any) -> None:
             add_object(source, opus_cflags(abi))
         for name in ("monocypher.c", "monocypher-ed25519.c"):
             add_object(Path("port/third_party/monocypher") / name, " ".join([abi, "-std=gnu11", "-w"]))
+        # Test72: the port's expat (menu_files.c) and zlib (hud_hires.c,
+        # xgpu_post.c, updater.c), compiled as the Linux build compiles them;
+        # expat's random seed on Windows is rand_s (random_rand_s.c)
+        for name in (*EXPAT_SOURCES, "random_rand_s.c"):
+            add_object(EXPAT_DIR / name, " ".join([abi, "-std=gnu11", f"-I{EXPAT_DIR}", "-D_CRT_RAND_S", "-w"]))
+        for name in ZLIB_SOURCES:
+            add_object(ZLIB_DIR / name, " ".join([abi, "-std=gnu11", *ZLIB_DEFINES, "-w"]))
         # the game's sin, pow and the rest, the same on every port
         # (port/include/halo_math.h)
         for source in musl_math_sources():

@@ -34,6 +34,11 @@ and position when the session gains focus or the guest asks
 #include <openxr/openxr_platform.h>
 
 #define FRAME_CONTROLLER_EXTENSION "XR_VALVE_frame_controller_interaction"
+/* Test72: the PICO controllers (pull request #4, adapted): the PICO 4 and
+Neo 3's profiles come with XR_BD_controller_interaction, the PICO 4 Ultra's
+with XR_BD_ultra_controller_interaction (the Khronos registry) */
+#define BD_CONTROLLER_EXTENSION "XR_BD_controller_interaction"
+#define BD_ULTRA_CONTROLLER_EXTENSION "XR_BD_ultra_controller_interaction"
 #define REFRESH_RATE_EXTENSION "XR_FB_display_refresh_rate"
 
 struct swapchain
@@ -93,7 +98,7 @@ static struct
 	XrSystemId system;
 	XrSession session;
 	XrSessionState state;
-	int running, focused, exiting, frame_controller, refresh_rate_extension;
+	int running, focused, exiting, frame_controller, refresh_rate_extension, bd_controller, bd_ultra_controller;
 	XrSpace local, view;
 	XrSpace grip[2], aim[2];
 	XrActionSet action_set;
@@ -451,6 +456,42 @@ static int create_actions(void)
 		{ _action_hand_stick, "/user/hand/right/input/thumbstick/click" },
 		{ _action_hand_menu, "/user/hand/left/input/system/click" },
 	};
+	/* Test72: PICO 4, Neo 3 and 4 Ultra controllers: Touch's layout (A/B
+	right, X/Y and menu left) without a thumbrest; the system button is the
+	headset's own. One table for the three profiles, each path checked against
+	them (tools/test_openxr_bindings.py) */
+	static const struct binding pico[] =
+	{
+		{ _action_move, "/user/hand/left/input/thumbstick" },
+		{ _action_look, "/user/hand/right/input/thumbstick" },
+		{ _action_trigger_left, "/user/hand/left/input/trigger/value" },
+		{ _action_trigger_right, "/user/hand/right/input/trigger/value" },
+		{ _action_squeeze_left, "/user/hand/left/input/squeeze/value" },
+		{ _action_squeeze_right, "/user/hand/right/input/squeeze/value" },
+		{ _action_a, "/user/hand/right/input/a/click" },
+		{ _action_b, "/user/hand/right/input/b/click" },
+		{ _action_x, "/user/hand/left/input/x/click" },
+		{ _action_y, "/user/hand/left/input/y/click" },
+		{ _action_start, "/user/hand/left/input/menu/click" },
+		{ _action_left_thumb, "/user/hand/left/input/thumbstick/click" },
+		{ _action_right_thumb, "/user/hand/right/input/thumbstick/click" },
+		POSES("left"), POSES("right"),
+		{ _action_hand_south, "/user/hand/right/input/a/click" },
+		{ _action_hand_south, "/user/hand/left/input/x/click" },
+		{ _action_hand_east, "/user/hand/right/input/b/click" },
+		{ _action_hand_east, "/user/hand/left/input/y/click" },
+		{ _action_hand_stick, "/user/hand/left/input/thumbstick/click" },
+		{ _action_hand_stick, "/user/hand/right/input/thumbstick/click" },
+		{ _action_hand_menu, "/user/hand/left/input/menu/click" },
+		{ _action_hand_thumb_touch, "/user/hand/left/input/thumbstick/touch" },
+		{ _action_hand_thumb_touch, "/user/hand/right/input/thumbstick/touch" },
+		{ _action_hand_thumb_touch, "/user/hand/left/input/x/touch" },
+		{ _action_hand_thumb_touch, "/user/hand/left/input/y/touch" },
+		{ _action_hand_thumb_touch, "/user/hand/right/input/a/touch" },
+		{ _action_hand_thumb_touch, "/user/hand/right/input/b/touch" },
+		{ _action_hand_index_touch, "/user/hand/left/input/trigger/touch" },
+		{ _action_hand_index_touch, "/user/hand/right/input/trigger/touch" },
+	};
 	XrActionSetCreateInfo set_info = { XR_TYPE_ACTION_SET_CREATE_INFO };
 	XrSessionActionSetsAttachInfo attach = { XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO };
 	int hand, ok = 1;
@@ -501,6 +542,13 @@ static int create_actions(void)
 	suggest("/interaction_profiles/oculus/touch_controller", touch, sizeof(touch) / sizeof(touch[0]));
 	suggest("/interaction_profiles/valve/index_controller", index_controller,
 		sizeof(index_controller) / sizeof(index_controller[0]));
+	if (xr.bd_controller)
+	{
+		suggest("/interaction_profiles/bytedance/pico4_controller", pico, sizeof(pico) / sizeof(pico[0]));
+		suggest("/interaction_profiles/bytedance/pico_neo3_controller", pico, sizeof(pico) / sizeof(pico[0]));
+	}
+	if (xr.bd_ultra_controller)
+		suggest("/interaction_profiles/bytedance/pico_ultra_controller_bd", pico, sizeof(pico) / sizeof(pico[0]));
 	attach.countActionSets = 1;
 	attach.actionSets = &xr.action_set;
 	if (!check(xrAttachSessionActionSets(xr.session, &attach), "xrAttachSessionActionSets"))
@@ -733,7 +781,7 @@ static int create_instance(struct halo_xr_info *out)
 	XrSystemGetInfo system_info = { XR_TYPE_SYSTEM_GET_INFO };
 	XrSystemProperties system = { XR_TYPE_SYSTEM_PROPERTIES };
 	XrExtensionProperties *available = NULL;
-	const char *extensions[8];
+	const char *extensions[12];
 	uint32_t count = 0, index;
 
 	/* as many as the runtime has (the Quest 3's are 80 and rising): asked
@@ -760,6 +808,10 @@ static int create_instance(struct halo_xr_info *out)
 			xr.refresh_rate_extension = 1;
 		if (!strcmp(available[index].extensionName, XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME))
 			xr.performance_settings = 1;
+		if (!strcmp(available[index].extensionName, BD_CONTROLLER_EXTENSION))
+			xr.bd_controller = 1;
+		if (!strcmp(available[index].extensionName, BD_ULTRA_CONTROLLER_EXTENSION))
+			xr.bd_ultra_controller = 1;
 	}
 	free(available);
 	count = 0;
@@ -771,6 +823,10 @@ static int create_instance(struct halo_xr_info *out)
 		extensions[count++] = REFRESH_RATE_EXTENSION;
 	if (xr.performance_settings)
 		extensions[count++] = XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME;
+	if (xr.bd_controller)
+		extensions[count++] = BD_CONTROLLER_EXTENSION;
+	if (xr.bd_ultra_controller)
+		extensions[count++] = BD_ULTRA_CONTROLLER_EXTENSION;
 	for (index = 0; index < count; index++)
 		host_logf(HOST_LOG_INFO, "[openxr] enabling %s", extensions[index]);
 	android.applicationVM = xr.vm;

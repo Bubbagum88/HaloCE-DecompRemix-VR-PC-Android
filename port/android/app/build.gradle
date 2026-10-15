@@ -138,6 +138,7 @@ dependencies {
     implementation "com.github.luben:zstd-jni:1.5.7-6@aar"
     // Test71: mods' archives unpacked on the device (ArchiveExtractor; The
     // Altheros Experience is a RAR5): libarchive-android (Apache-2.0), around
-    // libarchive (BSD)
-    implementation "me.zhanghai.android.libarchive:library:1.1.7"
+    // libarchive (BSD). 1.1.6 (libarchive 3.8.1): 1.1.7's AAR asks every app to
+    // compile against Android API 37.2, and this one compiles against 35
+    implementation "me.zhanghai.android.libarchive:library:1.1.6"
 }

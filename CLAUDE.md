@@ -24,7 +24,7 @@ owner: "i want all of the mods to work like that for future reference"):
 Lumoria from halomaps.org (file ids 6503-6506; ModMap.extra replaces "fid
 0"), Altheros from moddb.com through the launcher's WebView
 (ModDownloadActivity: moddb refuses other clients) and unpacked on the device
-(ArchiveExtractor, libarchive-android 1.1.7 / libarchive 3.8.8: its RAR5
+(ArchiveExtractor, libarchive-android 1.1.6 / libarchive 3.8.1: its RAR5
 extracts to the recipe's 13 SHA-256s off-device). Import (folder, .zip, now
 .rar) stays as every mod's fallback. Manual reload: mods' guns by their own
 model nodes and magazine (vr_reload_generic_profile.h; SPV1's names are all

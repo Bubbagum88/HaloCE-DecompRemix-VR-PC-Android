@@ -31,9 +31,10 @@ confirm; [ ] not done.
   `7c76889eeed3e66654f4e91e8d5101e7` (equal to the owner's copy). Whether
   moddb accepts the hand-off can only be seen on a headset; import of the .rar
   or folder stays.
-- [x] RAR5 on the device: `ArchiveExtractor` with libarchive-android 1.1.7
-  (libarchive 3.8.8). The owner's moddb archive, extracted off-device by
-  bsdtar built from libarchive 3.8.8: all 13 files equal the recipe's
+- [x] RAR5 on the device: `ArchiveExtractor` with libarchive-android 1.1.6
+  (libarchive 3.8.1; 1.1.7 would force compileSdk 37.2). The owner's moddb
+  archive, extracted off-device by bsdtar built from libarchive 3.8.1 (and
+  3.8.8): all 13 files equal the recipe's
   SHA-256. (Windows' own bsdtar, libarchive 3.5.2, fails on a30.yelo with
   "Truncated data in huffman tables": an old RAR5 decoder bug, not in 3.8.)
   Each unpacked file is size- and SHA-256-checked before it replaces

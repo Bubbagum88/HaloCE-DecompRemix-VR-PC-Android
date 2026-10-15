@@ -1,0 +1,5971 @@
+{
+ "registry": "KhronosGroup/OpenXR-SDK-Source specification/registry/xr.xml (Apache-2.0)",
+ "version": null,
+ "profiles": {
+  "/interaction_profiles/android/mouse_interaction_android": {
+   "requires": [
+    "XR_ANDROID_mouse_interaction"
+   ],
+   "paths": {
+    "/user/mouse": [
+     "/input/aim/pose",
+     "/input/scroll_android/value",
+     "/input/secondary_android/click",
+     "/input/select/click",
+     "/input/tertiary_android/click"
+    ]
+   },
+   "added": []
+  },
+  "/interaction_profiles/bytedance/pico4_controller": {
+   "requires": [
+    "XR_BD_controller_interaction",
+    "XR_VERSION_1_1"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/click",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/x/touch",
+     "/input/y/click",
+     "/input/y/touch",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/squeeze/click",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/click",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/bytedance/pico_g3_controller": {
+   "requires": [
+    "XR_BD_controller_interaction",
+    "XR_VERSION_1_1"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/click",
+     "/input/trigger/value"
+    ],
+    "/user/hand/right": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/click",
+     "/input/trigger/value"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/bytedance/pico_neo3_controller": {
+   "requires": [
+    "XR_BD_controller_interaction",
+    "XR_VERSION_1_1"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/click",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/x/touch",
+     "/input/y/click",
+     "/input/y/touch",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/click",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_BD_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/bytedance/pico_ultra_controller_bd": {
+   "requires": [
+    "XR_BD_ultra_controller_interaction"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/grip_surface/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/click",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/x/touch",
+     "/input/y/click",
+     "/input/y/touch",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/grip_surface/pose",
+     "/input/squeeze/click",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/click",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_BD_ultra_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_BD_ultra_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_BD_ultra_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_BD_ultra_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_BD_ultra_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_BD_ultra_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_BD_ultra_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_BD_ultra_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_BD_ultra_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_BD_ultra_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_BD_ultra_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_BD_ultra_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_BD_ultra_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_BD_ultra_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/ext/eye_gaze_interaction": {
+   "requires": [
+    "XR_EXT_eye_gaze_interaction"
+   ],
+   "paths": {
+    "/user/eyes_ext": [
+     "/input/gaze_ext/pose"
+    ]
+   },
+   "added": []
+  },
+  "/interaction_profiles/ext/hand_interaction_ext": {
+   "requires": [
+    "XR_EXT_hand_interaction"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/aim_activate_ext/ready_ext",
+     "/input/aim_activate_ext/value",
+     "/input/grasp_ext/ready_ext",
+     "/input/grasp_ext/value",
+     "/input/grip/pose",
+     "/input/pinch_ext/pose",
+     "/input/pinch_ext/ready_ext",
+     "/input/pinch_ext/value",
+     "/input/poke_ext/pose"
+    ],
+    "/user/hand/right": [
+     "/input/aim/pose",
+     "/input/aim_activate_ext/ready_ext",
+     "/input/aim_activate_ext/value",
+     "/input/grasp_ext/ready_ext",
+     "/input/grasp_ext/value",
+     "/input/grip/pose",
+     "/input/pinch_ext/pose",
+     "/input/pinch_ext/ready_ext",
+     "/input/pinch_ext/value",
+     "/input/poke_ext/pose"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_META_hand_tracking_microgestures",
+     "user": "/user/hand/left",
+     "path": "/input/swipe_backward_meta/click"
+    },
+    {
+     "by": "XR_META_hand_tracking_microgestures",
+     "user": "/user/hand/left",
+     "path": "/input/swipe_forward_meta/click"
+    },
+    {
+     "by": "XR_META_hand_tracking_microgestures",
+     "user": "/user/hand/left",
+     "path": "/input/swipe_left_meta/click"
+    },
+    {
+     "by": "XR_META_hand_tracking_microgestures",
+     "user": "/user/hand/left",
+     "path": "/input/swipe_right_meta/click"
+    },
+    {
+     "by": "XR_META_hand_tracking_microgestures",
+     "user": "/user/hand/left",
+     "path": "/input/tap_thumb_meta/click"
+    },
+    {
+     "by": "XR_META_hand_tracking_microgestures",
+     "user": "/user/hand/right",
+     "path": "/input/swipe_backward_meta/click"
+    },
+    {
+     "by": "XR_META_hand_tracking_microgestures",
+     "user": "/user/hand/right",
+     "path": "/input/swipe_forward_meta/click"
+    },
+    {
+     "by": "XR_META_hand_tracking_microgestures",
+     "user": "/user/hand/right",
+     "path": "/input/swipe_left_meta/click"
+    },
+    {
+     "by": "XR_META_hand_tracking_microgestures",
+     "user": "/user/hand/right",
+     "path": "/input/swipe_right_meta/click"
+    },
+    {
+     "by": "XR_META_hand_tracking_microgestures",
+     "user": "/user/hand/right",
+     "path": "/input/tap_thumb_meta/click"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/facebook/touch_controller_pro": {
+   "requires": [
+    "XR_FB_touch_controller_pro"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/value",
+     "/input/stylus_fb/force",
+     "/input/thumb_fb/proximity_fb",
+     "/input/thumbrest/force",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/curl_fb",
+     "/input/trigger/proximity_fb",
+     "/input/trigger/slide_fb",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/x/touch",
+     "/input/y/click",
+     "/input/y/touch",
+     "/output/haptic",
+     "/output/haptic_thumb_fb",
+     "/output/haptic_trigger_fb"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/squeeze/value",
+     "/input/stylus_fb/force",
+     "/input/system/click",
+     "/input/thumb_fb/proximity_fb",
+     "/input/thumbrest/force",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/curl_fb",
+     "/input/trigger/proximity_fb",
+     "/input/trigger/slide_fb",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic",
+     "/output/haptic_thumb_fb",
+     "/output/haptic_trigger_fb"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_FB_touch_controller_pro",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_FB_touch_controller_pro",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_FB_touch_controller_pro",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_FB_touch_controller_pro",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_FB_touch_controller_pro",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_FB_touch_controller_pro",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_FB_touch_controller_pro",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_FB_touch_controller_pro",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_FB_touch_controller_pro",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_FB_touch_controller_pro",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_FB_touch_controller_pro",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_FB_touch_controller_pro",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_FB_touch_controller_pro",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_FB_touch_controller_pro",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/google/daydream_controller": {
+   "requires": [
+    "XR_VERSION_1_0"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/select/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y"
+    ],
+    "/user/hand/right": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/select/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_palm_pose",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_EXT_palm_pose",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/hp/mixed_reality_controller": {
+   "requires": [
+    "XR_EXT_hp_mixed_reality_controller",
+    "XR_VERSION_1_1"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/value",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/y/click",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/value",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_EXT_hp_mixed_reality_controller",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hp_mixed_reality_controller",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hp_mixed_reality_controller",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hp_mixed_reality_controller",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_EXT_hp_mixed_reality_controller",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_EXT_hp_mixed_reality_controller",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_EXT_hp_mixed_reality_controller",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_EXT_hp_mixed_reality_controller",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hp_mixed_reality_controller",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hp_mixed_reality_controller",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hp_mixed_reality_controller",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_EXT_hp_mixed_reality_controller",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_EXT_hp_mixed_reality_controller",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_EXT_hp_mixed_reality_controller",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/htc/hand_interaction": {
+   "requires": [
+    "XR_HTC_hand_interaction"
+   ],
+   "paths": {
+    "/user/hand_htc/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/select/value",
+     "/input/squeeze/value"
+    ],
+    "/user/hand_htc/right": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/select/value",
+     "/input/squeeze/value"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_HTC_hand_interaction",
+     "user": "/user/hand_htc/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_HTC_hand_interaction",
+     "user": "/user/hand_htc/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_HTC_hand_interaction",
+     "user": "/user/hand_htc/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_HTC_hand_interaction",
+     "user": "/user/hand_htc/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_HTC_hand_interaction",
+     "user": "/user/hand_htc/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_HTC_hand_interaction",
+     "user": "/user/hand_htc/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand_htc/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand_htc/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand_htc/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand_htc/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/htc/vive_controller": {
+   "requires": [
+    "XR_VERSION_1_0"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_palm_pose",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_EXT_palm_pose",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/htc/vive_cosmos_controller": {
+   "requires": [
+    "XR_HTC_vive_cosmos_controller_interaction",
+    "XR_VERSION_1_1"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/shoulder/click",
+     "/input/squeeze/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/y/click",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/grip/pose",
+     "/input/shoulder/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_HTC_vive_cosmos_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_HTC_vive_cosmos_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_HTC_vive_cosmos_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_HTC_vive_cosmos_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_HTC_vive_cosmos_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_HTC_vive_cosmos_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_HTC_vive_cosmos_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_HTC_vive_cosmos_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_HTC_vive_cosmos_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_HTC_vive_cosmos_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_HTC_vive_cosmos_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_HTC_vive_cosmos_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_HTC_vive_cosmos_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_HTC_vive_cosmos_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/htc/vive_focus3_controller": {
+   "requires": [
+    "XR_HTC_vive_focus3_controller_interaction",
+    "XR_VERSION_1_1"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/squeeze/touch",
+     "/input/squeeze/value",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/click",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/y/click",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/grip/pose",
+     "/input/squeeze/click",
+     "/input/squeeze/touch",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/click",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_HTC_vive_focus3_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_HTC_vive_focus3_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_HTC_vive_focus3_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_HTC_vive_focus3_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_HTC_vive_focus3_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_HTC_vive_focus3_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_HTC_vive_focus3_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_HTC_vive_focus3_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_HTC_vive_focus3_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_HTC_vive_focus3_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_HTC_vive_focus3_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_HTC_vive_focus3_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_HTC_vive_focus3_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_HTC_vive_focus3_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/htc/vive_pro": {
+   "requires": [
+    "XR_VERSION_1_0"
+   ],
+   "paths": {
+    "/user/head": [
+     "/input/mute_mic/click",
+     "/input/system/click",
+     "/input/volume_down/click",
+     "/input/volume_up/click"
+    ]
+   },
+   "added": []
+  },
+  "/interaction_profiles/htc/vive_tracker_htcx": {
+   "requires": [
+    "XR_HTCX_vive_tracker_interaction"
+   ],
+   "paths": {
+    "/user/vive_tracker_htcx/role/camera": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/chest": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/handheld_object": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/keyboard": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/left_ankle": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/left_elbow": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/left_foot": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/left_knee": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/left_shoulder": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/left_wrist": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/right_ankle": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/right_elbow": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/right_foot": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/right_knee": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/right_shoulder": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/right_wrist": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/vive_tracker_htcx/role/waist": [
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/camera",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/camera",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/camera",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/camera",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/camera",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/chest",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/chest",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/chest",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/chest",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/chest",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/handheld_object",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/handheld_object",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/handheld_object",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/handheld_object",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/handheld_object",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/keyboard",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/keyboard",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/keyboard",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/keyboard",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/keyboard",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_ankle",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_ankle",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_ankle",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_ankle",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_ankle",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_elbow",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_elbow",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_elbow",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_elbow",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_elbow",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_foot",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_foot",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_foot",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_foot",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_foot",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_knee",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_knee",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_knee",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_knee",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_knee",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_shoulder",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_shoulder",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_shoulder",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_shoulder",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_shoulder",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_wrist",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_wrist",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_wrist",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_wrist",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/left_wrist",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_ankle",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_ankle",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_ankle",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_ankle",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_ankle",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_elbow",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_elbow",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_elbow",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_elbow",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_elbow",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_foot",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_foot",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_foot",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_foot",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_foot",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_knee",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_knee",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_knee",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_knee",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_knee",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_shoulder",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_shoulder",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_shoulder",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_shoulder",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_shoulder",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_wrist",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_wrist",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_wrist",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_wrist",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/right_wrist",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/waist",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/waist",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/waist",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/waist",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HTCX_vive_tracker_interaction",
+     "user": "/user/vive_tracker_htcx/role/waist",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/camera",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/chest",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/handheld_object",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/keyboard",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/left_ankle",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/left_elbow",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/left_foot",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/left_knee",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/left_shoulder",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/left_wrist",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/right_ankle",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/right_elbow",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/right_foot",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/right_knee",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/right_shoulder",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/right_wrist",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/vive_tracker_htcx/role/waist",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/camera",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/chest",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/handheld_object",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/keyboard",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/left_ankle",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/left_elbow",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/left_foot",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/left_knee",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/left_shoulder",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/left_wrist",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/right_ankle",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/right_elbow",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/right_foot",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/right_knee",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/right_shoulder",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/right_wrist",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/vive_tracker_htcx/role/waist",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/htc/vive_wrist_tracker": {
+   "requires": [
+    "XR_HTC_vive_wrist_tracker_interaction"
+   ],
+   "paths": {
+    "/user/wrist_htc/left": [
+     "/input/entity_htc/pose",
+     "/input/menu/click",
+     "/input/x/click"
+    ],
+    "/user/wrist_htc/right": [
+     "/input/a/click",
+     "/input/entity_htc/pose",
+     "/input/system/click"
+    ]
+   },
+   "added": []
+  },
+  "/interaction_profiles/huawei/controller": {
+   "requires": [
+    "XR_HUAWEI_controller_interaction"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/back/click",
+     "/input/grip/pose",
+     "/input/home/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/input/volume_down/click",
+     "/input/volume_up/click",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/aim/pose",
+     "/input/back/click",
+     "/input/grip/pose",
+     "/input/home/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/input/volume_down/click",
+     "/input/volume_up/click",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_HUAWEI_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/khr/generic_controller": {
+   "requires": [
+    "XR_KHR_generic_controller"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/grip_surface/pose",
+     "/input/primary/click",
+     "/input/secondary/click",
+     "/input/squeeze/value",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/grip_surface/pose",
+     "/input/primary/click",
+     "/input/secondary/click",
+     "/input/squeeze/value",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_KHR_generic_controller",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_KHR_generic_controller",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_KHR_generic_controller",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_KHR_generic_controller",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_KHR_generic_controller",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_KHR_generic_controller",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_KHR_generic_controller",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_KHR_generic_controller",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_KHR_generic_controller",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_KHR_generic_controller",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_KHR_generic_controller",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_KHR_generic_controller",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_KHR_generic_controller",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_KHR_generic_controller",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/khr/simple_controller": {
+   "requires": [
+    "XR_VERSION_1_0"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/select/click",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/select/click",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_palm_pose",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_EXT_palm_pose",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/logitech/mx_ink_stylus_logitech": {
+   "requires": [
+    "XR_LOGITECH_mx_ink_stylus_interaction"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/cluster_back_logitech/click",
+     "/input/cluster_back_logitech/double_tap_logitech",
+     "/input/cluster_front_logitech/click",
+     "/input/cluster_front_logitech/double_tap_logitech",
+     "/input/cluster_middle_logitech/force",
+     "/input/dock_logitech/docked_logitech",
+     "/input/grip/pose",
+     "/input/system/click",
+     "/input/tip_logitech/force",
+     "/input/tip_logitech/pose",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/aim/pose",
+     "/input/cluster_back_logitech/click",
+     "/input/cluster_back_logitech/double_tap_logitech",
+     "/input/cluster_front_logitech/click",
+     "/input/cluster_front_logitech/double_tap_logitech",
+     "/input/cluster_middle_logitech/force",
+     "/input/dock_logitech/docked_logitech",
+     "/input/grip/pose",
+     "/input/system/click",
+     "/input/tip_logitech/force",
+     "/input/tip_logitech/pose",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_LOGITECH_mx_ink_stylus_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_LOGITECH_mx_ink_stylus_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_LOGITECH_mx_ink_stylus_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_LOGITECH_mx_ink_stylus_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_LOGITECH_mx_ink_stylus_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_LOGITECH_mx_ink_stylus_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/meta/touch_controller_plus": {
+   "requires": [
+    "XR_META_touch_controller_plus"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/value",
+     "/input/thumb_meta/proximity_meta",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/curl_meta",
+     "/input/trigger/force",
+     "/input/trigger/proximity_meta",
+     "/input/trigger/slide_meta",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/x/touch",
+     "/input/y/click",
+     "/input/y/touch",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/thumb_meta/proximity_meta",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/curl_meta",
+     "/input/trigger/force",
+     "/input/trigger/proximity_meta",
+     "/input/trigger/slide_meta",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_META_touch_controller_plus",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_META_touch_controller_plus",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_META_touch_controller_plus",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_META_touch_controller_plus",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_META_touch_controller_plus",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_META_touch_controller_plus",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_META_touch_controller_plus",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_META_touch_controller_plus",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_META_touch_controller_plus",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_META_touch_controller_plus",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_META_touch_controller_plus",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_META_touch_controller_plus",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_META_touch_controller_plus",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_META_touch_controller_plus",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/meta/touch_controller_quest_1_rift_s": {
+   "requires": [
+    "XR_VERSION_1_1"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/grip_surface/pose",
+     "/input/menu/click",
+     "/input/squeeze/value",
+     "/input/thumb_resting_surfaces/proximity",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/proximity",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/x/touch",
+     "/input/y/click",
+     "/input/y/touch",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/grip_surface/pose",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/thumb_resting_surfaces/proximity",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/proximity",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/meta/touch_controller_quest_2": {
+   "requires": [
+    "XR_VERSION_1_1"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/grip_surface/pose",
+     "/input/menu/click",
+     "/input/squeeze/value",
+     "/input/thumb_resting_surfaces/proximity",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/proximity",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/x/touch",
+     "/input/y/click",
+     "/input/y/touch",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/grip_surface/pose",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/thumb_resting_surfaces/proximity",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/proximity",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/meta/touch_controller_rift_cv1": {
+   "requires": [
+    "XR_VERSION_1_1"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/grip_surface/pose",
+     "/input/menu/click",
+     "/input/squeeze/value",
+     "/input/thumb_resting_surfaces/proximity",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/proximity",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/x/touch",
+     "/input/y/click",
+     "/input/y/touch",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/grip_surface/pose",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/thumb_resting_surfaces/proximity",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/proximity",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/meta/touch_plus_controller": {
+   "requires": [
+    "XR_VERSION_1_1"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/grip_surface/pose",
+     "/input/menu/click",
+     "/input/squeeze/value",
+     "/input/thumb_resting_surfaces/proximity",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/force",
+     "/input/trigger/proximity",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/trigger_curl/value",
+     "/input/trigger_slide/value",
+     "/input/x/click",
+     "/input/x/touch",
+     "/input/y/click",
+     "/input/y/touch",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/grip_surface/pose",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/thumb_resting_surfaces/proximity",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/force",
+     "/input/trigger/proximity",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/trigger_curl/value",
+     "/input/trigger_slide/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/meta/touch_pro_controller": {
+   "requires": [
+    "XR_VERSION_1_1"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/grip_surface/pose",
+     "/input/menu/click",
+     "/input/squeeze/value",
+     "/input/stylus/force",
+     "/input/thumb_resting_surfaces/proximity",
+     "/input/thumbrest/force",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/proximity",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/trigger_curl/value",
+     "/input/trigger_slide/value",
+     "/input/x/click",
+     "/input/x/touch",
+     "/input/y/click",
+     "/input/y/touch",
+     "/output/haptic",
+     "/output/haptic_thumb",
+     "/output/haptic_trigger"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/grip_surface/pose",
+     "/input/squeeze/value",
+     "/input/stylus/force",
+     "/input/system/click",
+     "/input/thumb_resting_surfaces/proximity",
+     "/input/thumbrest/force",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/proximity",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/trigger_curl/value",
+     "/input/trigger_slide/value",
+     "/output/haptic",
+     "/output/haptic_thumb",
+     "/output/haptic_trigger"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/microsoft/hand_interaction": {
+   "requires": [
+    "XR_MSFT_hand_interaction"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/select/value",
+     "/input/squeeze/value"
+    ],
+    "/user/hand/right": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/select/value",
+     "/input/squeeze/value"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_MSFT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_MSFT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_MSFT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_MSFT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_MSFT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_MSFT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/microsoft/motion_controller": {
+   "requires": [
+    "XR_VERSION_1_0"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_palm_pose",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_EXT_palm_pose",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/microsoft/xbox_controller": {
+   "requires": [
+    "XR_VERSION_1_0"
+   ],
+   "paths": {
+    "/user/gamepad": [
+     "/input/a/click",
+     "/input/b/click",
+     "/input/dpad_down/click",
+     "/input/dpad_left/click",
+     "/input/dpad_right/click",
+     "/input/dpad_up/click",
+     "/input/menu/click",
+     "/input/shoulder_left/click",
+     "/input/shoulder_right/click",
+     "/input/thumbstick_left",
+     "/input/thumbstick_left/click",
+     "/input/thumbstick_left/x",
+     "/input/thumbstick_left/y",
+     "/input/thumbstick_right",
+     "/input/thumbstick_right/click",
+     "/input/thumbstick_right/x",
+     "/input/thumbstick_right/y",
+     "/input/trigger_left/value",
+     "/input/trigger_right/value",
+     "/input/view/click",
+     "/input/x/click",
+     "/input/y/click",
+     "/output/haptic_left",
+     "/output/haptic_left_trigger",
+     "/output/haptic_right",
+     "/output/haptic_right_trigger"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/gamepad",
+     "path": "/input/thumbstick_left/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/gamepad",
+     "path": "/input/thumbstick_left/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/gamepad",
+     "path": "/input/thumbstick_left/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/gamepad",
+     "path": "/input/thumbstick_left/dpad_up"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/gamepad",
+     "path": "/input/thumbstick_right/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/gamepad",
+     "path": "/input/thumbstick_right/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/gamepad",
+     "path": "/input/thumbstick_right/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/gamepad",
+     "path": "/input/thumbstick_right/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/ml/ml2_controller": {
+   "requires": [
+    "XR_ML_ml2_controller_interaction",
+    "XR_VERSION_1_1"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/home/click",
+     "/input/menu/click",
+     "/input/shoulder/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/force",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/home/click",
+     "/input/menu/click",
+     "/input/shoulder/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/force",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_ML_ml2_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/oculus/go_controller": {
+   "requires": [
+    "XR_VERSION_1_0"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/back/click",
+     "/input/grip/pose",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click"
+    ],
+    "/user/hand/right": [
+     "/input/aim/pose",
+     "/input/back/click",
+     "/input/grip/pose",
+     "/input/system/click",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_palm_pose",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_EXT_palm_pose",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/oculus/touch_controller": {
+   "requires": [
+    "XR_VERSION_1_0"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/value",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/x/touch",
+     "/input/y/click",
+     "/input/y/touch",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/thumbrest/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_palm_pose",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_EXT_palm_pose",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_FB_touch_controller_proximity",
+     "user": "/user/hand/left",
+     "path": "/input/thumb_fb/proximity_fb"
+    },
+    {
+     "by": "XR_FB_touch_controller_proximity",
+     "user": "/user/hand/left",
+     "path": "/input/trigger/proximity_fb"
+    },
+    {
+     "by": "XR_FB_touch_controller_proximity",
+     "user": "/user/hand/right",
+     "path": "/input/thumb_fb/proximity_fb"
+    },
+    {
+     "by": "XR_FB_touch_controller_proximity",
+     "user": "/user/hand/right",
+     "path": "/input/trigger/proximity_fb"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumb_resting_surfaces/proximity"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/trigger/proximity"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumb_resting_surfaces/proximity"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/trigger/proximity"
+    }
+   ]
+  },
+  "/interaction_profiles/oppo/mr_controller_oppo": {
+   "requires": [
+    "XR_OPPO_controller_interaction"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/heartrate_oppo/value",
+     "/input/menu/click",
+     "/input/squeeze/value",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/x/touch",
+     "/input/y/click",
+     "/input/y/touch",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/home/click",
+     "/input/squeeze/value",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_OPPO_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_OPPO_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_OPPO_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_OPPO_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_OPPO_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_OPPO_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_OPPO_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_OPPO_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_OPPO_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_OPPO_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_OPPO_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_OPPO_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_OPPO_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_OPPO_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/samsung/odyssey_controller": {
+   "requires": [
+    "XR_EXT_samsung_odyssey_controller",
+    "XR_VERSION_1_1"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trackpad",
+     "/input/trackpad/click",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_EXT_samsung_odyssey_controller",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/valve/index_controller": {
+   "requires": [
+    "XR_VERSION_1_0"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/squeeze/force",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/system/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trackpad",
+     "/input/trackpad/force",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/squeeze/force",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/system/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trackpad",
+     "/input/trackpad/force",
+     "/input/trackpad/touch",
+     "/input/trackpad/x",
+     "/input/trackpad/y",
+     "/input/trigger/click",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/left",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_center"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_down"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_left"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_right"
+    },
+    {
+     "by": "XR_EXT_dpad_binding",
+     "user": "/user/hand/right",
+     "path": "/input/trackpad/dpad_up"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_EXT_hand_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_EXT_palm_pose",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_EXT_palm_pose",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/varjo/xr-4_controller": {
+   "requires": [
+    "XR_VARJO_xr4_controller_interaction"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/squeeze/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/squeeze/click",
+     "/input/squeeze/touch",
+     "/input/system/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VARJO_xr4_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VARJO_xr4_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VARJO_xr4_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VARJO_xr4_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VARJO_xr4_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VARJO_xr4_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VARJO_xr4_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VARJO_xr4_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_VARJO_xr4_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_VARJO_xr4_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_VARJO_xr4_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_VARJO_xr4_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_VARJO_xr4_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_VARJO_xr4_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    }
+   ]
+  },
+  "/interaction_profiles/yvr/touch_controller_yvr": {
+   "requires": [
+    "XR_YVR_controller_interaction"
+   ],
+   "paths": {
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/squeeze/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/x/touch",
+     "/input/y/click",
+     "/input/y/touch",
+     "/output/haptic"
+    ],
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/grip/pose",
+     "/input/squeeze/click",
+     "/input/system/click",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/output/haptic"
+    ]
+   },
+   "added": [
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_KHR_maintenance1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/left",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_VERSION_1_1",
+     "user": "/user/hand/right",
+     "path": "/input/grip_surface/pose"
+    },
+    {
+     "by": "XR_YVR_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_YVR_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_YVR_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_YVR_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_YVR_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_YVR_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_YVR_controller_interaction",
+     "user": "/user/hand/left",
+     "path": "/input/thumbstick/dpad_up"
+    },
+    {
+     "by": "XR_YVR_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/palm_ext/pose"
+    },
+    {
+     "by": "XR_YVR_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/pinch_ext/pose"
+    },
+    {
+     "by": "XR_YVR_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/poke_ext/pose"
+    },
+    {
+     "by": "XR_YVR_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_down"
+    },
+    {
+     "by": "XR_YVR_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_left"
+    },
+    {
+     "by": "XR_YVR_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_right"
+    },
+    {
+     "by": "XR_YVR_controller_interaction",
+     "user": "/user/hand/right",
+     "path": "/input/thumbstick/dpad_up"
+    }
+   ]
+  },
+  "/interaction_profiles/valve/frame_controller_valve": {
+   "requires": [
+    "XR_VALVE_frame_controller_interaction"
+   ],
+   "source": "Steamworks documentation, Steam Frame Input",
+   "paths": {
+    "/user/hand/right": [
+     "/input/a/click",
+     "/input/a/touch",
+     "/input/aim/pose",
+     "/input/b/click",
+     "/input/b/touch",
+     "/input/bumper/click",
+     "/input/bumper/touch",
+     "/input/grip/pose",
+     "/input/menu/click",
+     "/input/menu/touch",
+     "/input/squeeze/click",
+     "/input/squeeze/touch",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/system/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/click",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/x/click",
+     "/input/x/touch",
+     "/input/y/click",
+     "/input/y/touch",
+     "/output/haptic"
+    ],
+    "/user/hand/left": [
+     "/input/aim/pose",
+     "/input/bumper/click",
+     "/input/bumper/touch",
+     "/input/dpad_down/click",
+     "/input/dpad_down/touch",
+     "/input/dpad_left/click",
+     "/input/dpad_left/touch",
+     "/input/dpad_right/click",
+     "/input/dpad_right/touch",
+     "/input/dpad_up/click",
+     "/input/dpad_up/touch",
+     "/input/grip/pose",
+     "/input/squeeze/click",
+     "/input/squeeze/touch",
+     "/input/squeeze/value",
+     "/input/system/click",
+     "/input/system/touch",
+     "/input/thumbstick",
+     "/input/thumbstick/click",
+     "/input/thumbstick/touch",
+     "/input/thumbstick/x",
+     "/input/thumbstick/y",
+     "/input/trigger/click",
+     "/input/trigger/touch",
+     "/input/trigger/value",
+     "/input/view/click",
+     "/input/view/touch",
+     "/output/haptic"
+    ]
+   },
+   "added": []
+  }
+ }
+}
