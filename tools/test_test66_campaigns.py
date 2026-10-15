@@ -21,7 +21,7 @@ read = lambda path: (ROOT / path).read_text(encoding="utf-8", errors="replace")
 
 installer = read("port/android/app/src/main/java/com/halo/decomp/ModInstaller.java")
 launcher = read("port/android/app/src/main/java/com/halo/decomp/LauncherActivity.java")
-assert "static final Mod[] MODS = { SPV1, ALTHEROS };" in installer
+assert "static final Mod[] MODS = { SPV1, LUMORIA, ALTHEROS };" in installer  # Test70: Lumoria added
 assert '".yelo", true, "alsthetic"' in installer
 assert "Mod other = installedMod();" in installer and "restore(other, progress);" in installer
 assert '"CUSTOM CAMPAIGNS"' in launcher and '"Play the original campaign"' in launcher

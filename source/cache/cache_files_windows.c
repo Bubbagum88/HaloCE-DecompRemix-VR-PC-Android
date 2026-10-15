@@ -191,6 +191,7 @@ symbols in this file:
 #include "scenario/scenario_definitions.h"
 #include "rasterizer/rasterizer.h"
 #include "custom_edition_cache.h"
+#include "mcc_cache.h" /* GulchCE: independent MCC reads and namespace (port/linux/game/mcc_cache.c) */
 
 #include <xtl.h>
 
@@ -582,6 +583,12 @@ boolean cache_files_precache_is_copying_map(
 boolean cache_files_precache_map_loaded(
 	const char *map_name)
 {
+	/* GulchCE: a Halo 1 MCC map (mcc_maps\[package\]<name>) is read in place
+	by its own loader and never copied to a cache file slot. Without this its
+	name was looked for on the DVD, and not found there: the damaged disc
+	error every MCC level gave (Test70) */
+	if (mcc_level_name(map_name))
+		return mcc_cache_available(map_name);
 	/* a Halo Custom Edition map, when those may run, is read in place and
 	never copied to the cache partition (port/linux/game/custom_edition_cache.c) */
 	if (custom_edition_level_name(map_name))
@@ -601,6 +608,10 @@ boolean cache_files_precache_map_begin(
 	boolean copy_map)
 {
 	const char *cache_map_name = tag_name_strip_path(map_name);
+
+	/* GulchCE: nothing to copy for an MCC map; it is checked where it lies */
+	if (mcc_level_name(map_name))
+		return mcc_cache_require(map_name, 0);
 
 	/* port: a Halo Custom Edition map (custom_maps\<name>) this machine has
 	not is missing, as a map not on the DVD is: never the game's own map of
@@ -864,6 +875,13 @@ short cache_file_read(
 	short request_index = cache_request_next_free_index();
 	struct cache_file_request *request = cache_request_get(request_index);
 
+	/* GulchCE: an MCC map's reads are served by its loader, at once; a read
+	it cannot serve completes as failed (-1) rather than never */
+	if (mcc_cache_tags_loaded())
+	{
+		*completion_flag_reference = mcc_cache_read(tag_index, offset, size, buffer) ? TRUE : (boolean)-1;
+		return request_index;
+	}
 	/* reads of a Halo Custom Edition map are served in place, at once; the
 	request slot stays free (port/linux/game/custom_edition_cache.c) */
 	if (custom_edition_cache_tags_loaded())

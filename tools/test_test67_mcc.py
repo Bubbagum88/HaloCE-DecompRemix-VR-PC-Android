@@ -209,6 +209,6 @@ assert 'implementation "in.dragonbra:javasteam:1.8.0"' in gradle and 'implementa
 assert ".WorkshopActivity" in read("port/android/app/src/main/AndroidManifest.xml")
 launcher = read("port/android/app/src/main/java/com/halo/decomp/LauncherActivity.java")
 assert '"Steam Workshop: download MCC maps"' in launcher and "WorkshopActivity.EXTRA_MANAGE" in launcher
-assert '"HALO 1 MCC MAPS (SOLO, EXPERIMENTAL)"' in launcher and "PICK_MCC_MAPS" in launcher and "PICK_MCC_SHARED" in launcher
+assert '"HALO 1 MCC MAPS (SOLO)"' in launcher and 'ModInstaller.STATUS_EXPERIMENTAL' in launcher and "PICK_MCC_MAPS" in launcher and "PICK_MCC_SHARED" in launcher
 print("PASS: Test67 MCC engine wiring: GulchCE's loader dispatched, OpenCE network 29 (Build206) unchanged by MCC (no MCC messages or "
       "fingerprint, sends compiled out, MCC hosting/joining refused, host chooser skips MCC kinds), port's stb_vorbis, bcdec")

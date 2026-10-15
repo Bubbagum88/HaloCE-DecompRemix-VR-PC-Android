@@ -75,13 +75,18 @@ final class ModInstaller {
         final String dataFiles;
         /** a note shown first in its panel, or null */
         final String note;
+        /** Test70: how well it plays in this build, shown on its button and
+         * in its panel (STATUS_SUPPORTED or STATUS_EXPERIMENTAL) */
+        final String status;
+        /** Test70: what the player brings, for the setup steps */
+        final String requirement;
 
-        Mod(String id, String title, String description, ModMap[] maps) {
-            this(id, title, description, maps, ".map", false, null, null);
+        Mod(String id, String title, String description, ModMap[] maps, String status, String requirement) {
+            this(id, title, description, maps, ".map", false, null, null, status, requirement);
         }
 
         Mod(String id, String title, String description, ModMap[] maps, String extension, boolean imported,
-                String dataFiles, String note) {
+                String dataFiles, String note, String status, String requirement) {
             this.id = id;
             this.title = title;
             this.description = description;
@@ -90,10 +95,30 @@ final class ModInstaller {
             this.imported = imported;
             this.dataFiles = dataFiles;
             this.note = note;
+            this.status = status;
+            this.requirement = requirement;
         }
 
         boolean needsResources() {
             return dataFiles == null;
+        }
+
+        /** Test70: only levels of its own (Lumoria): no campaign map is
+         * replaced, and the original campaign still plays beside it */
+        boolean addsLevelsOnly() {
+            for (ModMap map : maps)
+                if (map.fid != 0)
+                    return false;
+            return true;
+        }
+
+        boolean supported() {
+            return STATUS_SUPPORTED.equals(status);
+        }
+
+        /** the launcher's button: its title and status */
+        String buttonLabel() {
+            return title + " — " + status;
         }
 
         long totalBytes() {
@@ -103,6 +128,10 @@ final class ModInstaller {
             return total;
         }
     }
+
+    /** Test70: the launcher's honest status labels (the owner's words) */
+    static final String STATUS_SUPPORTED = "Supported";
+    static final String STATUS_EXPERIMENTAL = "Experimental — currently not working";
 
     /**
      * SPV1: the Custom Mapping Team's single player campaign for Halo Custom
@@ -135,7 +164,9 @@ final class ModInstaller {
             new ModMap("c40", 1914, 247495074L),
             new ModMap("d20", 1913, 183851031L),
             new ModMap("d40", 1912, 264367517L),
-        });
+        }, STATUS_SUPPORTED,
+        "CMT's 2006 SPV1 maps (import your copy or use Download and install) and the original PC Halo Custom "
+            + "Edition bitmaps.map, sounds.map and loc.map.");
 
     /** Test66: an OpenSauce mod's own resource maps (data_files), by type */
     static final String[] DATA_FILE_NAMES = { "bitmaps", "sounds", "loc" };
@@ -175,10 +206,43 @@ final class ModInstaller {
         "A work-in-progress beta, as its author says (its ReadMe): in A10 do not skip the opening or closing "
             + "cinematics; A30's first Banshees do not spawn and some areas load late; clear encounters before "
             + "moving on in A30 and B30; B40's effects stop if many encounters are skipped; the C40 flamethrower "
-            + "is weak; D20's encounters are hard. A50, C10, C20 and D20 keep mostly stock encounters.");
+            + "is weak; D20's encounters are hard. A50, C10, C20 and D20 keep mostly stock encounters.",
+        // Test70: the owner's Test67 headset log still ends in game_load()
+        // failing (the blue screen); kept available for future work
+        STATUS_EXPERIMENTAL,
+        "the author's Latest Altheros Experience 10.24.2019 files (.yelo and data_files), from your own copy.");
+
+    /**
+     * Test70: Project Lumoria (TM Mapping Team, 2012): a campaign of its own
+     * in four Halo Custom Edition levels (lumoria_a to lumoria_d), made under
+     * Microsoft's Game Content Usage Rules. Not downloaded by the app (its
+     * authors gave no permission to redistribute it): the player imports
+     * their copy of the Lumoria_Full_Campaign archive or its extracted
+     * folder. Its maps replace none of the campaign's (file id 0), so the
+     * original campaign still plays beside it; its own ui.map and Windows
+     * sound DLLs are not used (the game keeps the Xbox's menus). Like SPV1
+     * it takes Custom Edition's own resource maps.
+     */
+    static final Mod LUMORIA = new Mod("lumoria", "Project Lumoria",
+        "The TM Mapping Team's 2012 campaign for Halo Custom Edition: May, a female SPARTAN-II, and a squad of "
+            + "ODSTs on the Forerunner world of Lumoria. Two episodes in four new levels, with their own story, "
+            + "voice acting, music and encounters.\n\n"
+            + "Not downloaded by the app: import your copy of Lumoria_Full_Campaign.zip (halomaps.org, moddb.com) "
+            + "straight from this device's Download folder, or its extracted folder. About 860 MB once imported, "
+            + "and more as each level converts its sounds the first time it loads. Needs Halo Custom Edition's "
+            + "own bitmaps.map, sounds.map and loc.map, as SPV1 does. Installing adds Lumoria's levels; the "
+            + "original campaign stays playable. In the game: New Game, map kind CUSTOM SINGLEPLAYER, lumoria_a.",
+        new ModMap[] {
+            new ModMap("lumoria_a", 0, 274873434L),
+            new ModMap("lumoria_b", 0, 228054210L),
+            new ModMap("lumoria_c", 0, 198269022L),
+            new ModMap("lumoria_d", 0, 191220134L),
+        }, ".map", true, null, null, STATUS_SUPPORTED,
+        "your Lumoria_Full_Campaign.zip (or its extracted folder) and the original PC Halo Custom Edition "
+            + "bitmaps.map, sounds.map and loc.map. Lumoria's own ui.map and sound DLLs are not used.");
 
     /** Every campaign mod the launcher offers. */
-    static final Mod[] MODS = { SPV1, ALTHEROS };
+    static final Mod[] MODS = { SPV1, LUMORIA, ALTHEROS };
 
     private static final String DETAIL_URL = "https://www.halomaps.org/hce/detail.cfm";
     private static final String USER_AGENT = "Mozilla/5.0 (Android; Halo CE VR launcher)";
@@ -519,6 +583,8 @@ final class ModInstaller {
         if (mod.imported) {
             if (!downloaded(mod))
                 throw new IOException("import " + mod.title + "'s folder first");
+            if (mod.needsResources() && !haveResources())
+                throw new IOException("Custom Edition's resource maps are needed first (" + missingResources() + ")");
             progress.report("Swapping the campaign's maps for " + mod.title + "...", 1000);
             validatePrepared(mod, true, progress);
             if (other != null && other != mod) restore(other, progress);
@@ -838,6 +904,35 @@ final class ModInstaller {
             throw new IOException(target.getName() + " failed SHA-256 verification; existing files preserved");
         }
         Files.move(partial.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    /**
+     * Test70: an imported mod's files taken straight out of its archive (a
+     * .zip as its authors published it): each entry is matched by its file
+     * name alone, as a folder's are (importTarget), so the archive's own
+     * folders do not matter, and anything else in it (a mod's ui.map, its
+     * Windows DLLs, readmes) is left out. Returns how many files it kept.
+     */
+    int importZip(Mod mod, InputStream archive, Progress progress) throws IOException {
+        int copied = 0;
+        try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(archive, 1 << 16))) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                if (entry.isDirectory())
+                    continue;
+                String name = entry.getName().replace('\\', '/');
+                name = name.substring(name.lastIndexOf('/') + 1);
+                long[] expected = new long[1];
+                File target = importTarget(mod, name, expected);
+                if (target == null)
+                    continue;
+                // (importFile reads to the entry's end, which ZipInputStream
+                // gives as the end of its stream, and leaves it open)
+                importFile(mod, zip, target, expected[0], "Importing " + name, progress);
+                copied++;
+            }
+        }
+        return copied;
     }
 
     /** Test66: what an imported mod still lacks, for the player. */

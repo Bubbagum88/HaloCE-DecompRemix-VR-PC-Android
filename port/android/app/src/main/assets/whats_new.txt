@@ -1,0 +1,9 @@
+DRAFT: rewritten when Test70 is complete.
+
+CAMPAIGNS AND MODS
+• Status labels in the launcher: SPV1 and Project Lumoria Supported; The Altheros Experience and Halo 1 MCC maps Experimental (currently not working, kept available).
+• Project Lumoria: import Lumoria_Full_Campaign.zip straight from the Download folder; the launcher checks every file and adds its four levels (New Game, CUSTOM SINGLEPLAYER) beside the original campaign.
+• MCC maps: fixes the "problem with the disc" error's cause found in this build (not yet confirmed on a headset).
+
+LAUNCHER
+• This What's New page, shown once after each update; reopen it from the launcher's "What's new in this version".

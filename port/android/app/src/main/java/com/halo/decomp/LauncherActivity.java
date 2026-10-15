@@ -42,6 +42,8 @@ public class LauncherActivity extends Activity {
     /** Test67: Halo 1 MCC maps (a folder of maps), and MCC's own resource maps */
     private static final int PICK_MCC_MAPS = 4;
     private static final int PICK_MCC_SHARED = 5;
+    /** Test70: an imported mod's archive (Lumoria's .zip), picked as a file */
+    private static final int PICK_MOD_ZIP = 6;
     private TextView mccStatus;
 
     private File dataRoot;
@@ -268,7 +270,7 @@ public class LauncherActivity extends Activity {
     private ModInstaller.Mod selectedMod;
     private LinearLayout modDetails;
     private TextView modState, campaignNow;
-    private Button originalCampaign, modImport, modPrepare;
+    private Button originalCampaign, modImport, modImportZip, modPrepare;
     private Button play, modAction, modDelete, modResources, resetSettings, mainMenu3d, fontToggle;
     private boolean busy;
 
@@ -365,6 +367,8 @@ public class LauncherActivity extends Activity {
             13, Color.rgb(150, 160, 170));
         menuButton(layout, "Multiplayer & co-op guide").setOnClickListener(v -> LauncherHelp.network(this));
         menuButton(layout, "Field guide • controls & help").setOnClickListener(v -> LauncherHelp.show(this));
+        // Test70: this version's notes, shown once after an update (WhatsNew.maybeShow below)
+        menuButton(layout, "What's new in this version").setOnClickListener(v -> WhatsNew.show(this));
 
         // Test66: CUSTOM CAMPAIGNS: one campaign plays at a time (the
         // original, SPV1 or The Altheros Experience); switching swaps the
@@ -373,8 +377,9 @@ public class LauncherActivity extends Activity {
         modsTitle.setPadding(0, dp(24), 0, dp(4));
         campaignNow = label(layout, "", 14, Color.rgb(200, 205, 210));
         LauncherFont.keepNormal(campaignNow);
+        // Test70: each with its status (Supported, or Experimental: currently not working)
         for (ModInstaller.Mod each : ModInstaller.MODS)
-            menuButton(layout, each.title).setOnClickListener(v -> selectMod(each));
+            menuButton(layout, each.buttonLabel()).setOnClickListener(v -> selectMod(each));
         originalCampaign = menuButton(layout, "Play the original campaign");
         originalCampaign.setOnClickListener(v -> originalCampaignClicked());
         refreshCampaignNow();
@@ -392,8 +397,15 @@ public class LauncherActivity extends Activity {
         layout.addView(modDetails, detailsLayout);
 
         // Test67: Halo 1 MCC custom maps (GulchCE's loader), solo only
-        TextView mccTitle = label(layout, "HALO 1 MCC MAPS (SOLO, EXPERIMENTAL)", 18, HALO_BLUE);
+        // Test70: an honest status (the owner's headset showed the damaged disc
+        // error for MCC maps; one cause is fixed here but not yet confirmed)
+        TextView mccTitle = label(layout, "HALO 1 MCC MAPS (SOLO)", 18, HALO_BLUE);
         mccTitle.setPadding(0, dp(24), 0, dp(4));
+        TextView mccState = label(layout, "Status: " + ModInstaller.STATUS_EXPERIMENTAL + ". MCC maps have shown "
+            + "\"There's a problem with the disc you're using\" on loading. This build fixes one cause of that, but "
+            + "it is not yet confirmed on a headset. Kept available for testing; send the log if you try it.",
+            14, Color.rgb(255, 150, 90));
+        LauncherFont.keepNormal(mccState);
         TextView mccHelp = label(layout, "Halo 1 custom maps made for the Master Chief Collection (MCC). Copy a map's "
             + "folder to this device's Download folder, then import it. In the game: New Game or Multiplayer, "
             + "map kind MCC SINGLEPLAYER or MCC MULTIPLAYER. Most maps also need MCC's own bitmaps.map and "
@@ -486,6 +498,7 @@ public class LauncherActivity extends Activity {
         launcherRoot = scroll;
         setContentView(scroll);
         play.requestFocus();
+        WhatsNew.maybeShow(this);
     }
 
     /** Shows the mod's description and buttons (again: hides them). */
@@ -502,6 +515,14 @@ public class LauncherActivity extends Activity {
         name.setTextColor(Color.WHITE);
         name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
         modDetails.addView(name);
+
+        TextView status = new TextView(this);
+        status.setText("Status: " + mod.status + (mod.supported() ? ""
+            : "\nKept available for future work. It may not load in this build; send the log if you try it."));
+        status.setTextColor(mod.supported() ? Color.rgb(140, 220, 140) : Color.rgb(255, 150, 90));
+        status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        status.setPadding(0, dp(6), 0, 0);
+        modDetails.addView(status);
 
         if (mod.note != null) {
             TextView note = new TextView(this);
@@ -537,11 +558,14 @@ public class LauncherActivity extends Activity {
         TextView setupHelp = new TextView(this);
         setupHelp.setText("Included with this app: setup recipes, automatic folders, file verification and campaign switching. "
             + "No Halo or third-party campaign assets are bundled.\n\n"
-            + (mod.imported ? "Required: the author's Latest Altheros Experience 10.24.2019 files (.yelo and data_files), from your own copy. "
-                : "Required: CMT's 2006 SPV1 maps (import your copy or use Download and install) and the original PC Halo Custom Edition bitmaps.map, sounds.map and loc.map. ")
-            + "\n1. Tap Prepare / verify mod files.\n2. Import the extracted folder (subfolders are scanned); use the file picker below for separate CE resources. "
-            + "Already valid files are reused.\n3. Tap Install. The normal campaign menu then plays this campaign. "
-            + "Play the original campaign restores your base maps. Start a fresh level after switching; checkpoints are campaign-specific.");
+            + "Required: " + mod.requirement + " "
+            + "\n1. Tap Prepare / verify mod files.\n2. Import " + (mod.imported ? "its .zip archive or " : "")
+            + "the extracted folder (subfolders are scanned); use the file picker below for separate CE resources. "
+            + "Already valid files are reused.\n3. Tap Install. "
+            + (mod.addsLevelsOnly()
+                ? "Its levels are then in New Game, map kind CUSTOM SINGLEPLAYER; the original campaign stays as it is. "
+                : "The normal campaign menu then plays this campaign. Play the original campaign restores your base maps. ")
+            + "Start a fresh level after switching; checkpoints are campaign-specific.");
         setupHelp.setTextColor(Color.rgb(200, 205, 210));
         setupHelp.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         modDetails.addView(setupHelp);
@@ -558,6 +582,16 @@ public class LauncherActivity extends Activity {
         modImport.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
             startActivityForResult(intent, PICK_MOD_FOLDER);
+        });
+        // Test70: or straight from the archive its authors published
+        modImportZip = menuButton(modDetails, "Import " + mod.title + " from a .zip");
+        modImportZip.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("*/*");
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] { "application/zip", "application/x-zip-compressed",
+                "application/octet-stream" });
+            startActivityForResult(intent, PICK_MOD_ZIP);
         });
         modAction = menuButton(modDetails, "");
         modAction.setOnClickListener(v -> modActionClicked());
@@ -578,16 +612,26 @@ public class LauncherActivity extends Activity {
         modPrepare.setEnabled(!busy);
         modImport.setVisibility(!installed ? View.VISIBLE : View.GONE);
         modImport.setEnabled(!busy);
+        modImportZip.setVisibility(!installed && selectedMod.imported ? View.VISIBLE : View.GONE);
+        modImportZip.setEnabled(!busy);
         modResources.setVisibility(resources ? View.GONE : View.VISIBLE);
         modResources.setEnabled(!busy);
         if (selectedMod.imported) {
             ModInstaller.Mod other = mods.installedMod();
-            modState.setText((installed ? "Installed: the campaign plays as " + selectedMod.title + "."
+            String needed = selectedMod.needsResources() && !resources
+                ? (mods.missingImports(selectedMod).isEmpty() ? "" : mods.missingImports(selectedMod) + ", ")
+                    + mods.missingResources() + " (Custom Edition's, as for SPV1)"
+                : mods.missingImports(selectedMod);
+            modState.setText((installed
+                    ? (selectedMod.addsLevelsOnly()
+                        ? "Installed: " + selectedMod.title + "'s levels are in New Game, map kind CUSTOM SINGLEPLAYER."
+                        : "Installed: the campaign plays as " + selectedMod.title + ".")
                 : downloaded ? "Imported, not installed: " + (other != null ? other.title : "the original campaign") + " plays."
-                : "Not imported yet. Still needed: " + mods.missingImports(selectedMod))
+                    + (resources ? "" : " Still needed: " + needed)
+                : "Not imported yet. Still needed: " + needed)
                 + "\nAfter switching, start levels anew: a checkpoint of one campaign does not load into the other.");
             modAction.setText(installed ? "Restore the original campaign" : "Install " + selectedMod.title);
-            modAction.setEnabled(!busy && (installed || downloaded));
+            modAction.setEnabled(!busy && (installed || (downloaded && resources)));
             modDelete.setText(installed ? "Uninstall and restore original campaign" : "Delete the imported mod files");
             modDelete.setVisibility(installed || downloaded || mods.hasDownloadFiles(selectedMod) ? View.VISIBLE : View.GONE);
             modDelete.setEnabled(!busy);
@@ -659,7 +703,9 @@ public class LauncherActivity extends Activity {
         if (campaignNow == null || mods == null)
             return;
         ModInstaller.Mod now = mods.installedMod();
-        campaignNow.setText("Campaign now: " + (now != null ? now.title : "the original Halo campaign")
+        campaignNow.setText("Campaign now: " + (now == null ? "the original Halo campaign"
+                : now.addsLevelsOnly() ? "the original Halo campaign, with " + now.title + "'s levels added"
+                : now.title)
             + ". Choose one below to install or switch; only one plays at a time.");
         originalCampaign.setVisibility(now != null ? View.VISIBLE : View.GONE);
         originalCampaign.setEnabled(!busy);
@@ -720,6 +766,29 @@ public class LauncherActivity extends Activity {
             report(missing.isEmpty() ? mod.title + " is imported (" + copied + " files): tap Install."
                 : "Imported " + copied + " files; still needed: " + missing + ". Choose the folder with the "
                     + "campaign maps and their required resource files.", -1);
+        } catch (Exception exception) {
+            report("Importing failed: " + exception.getMessage(), -1);
+        }
+        handler.post(() -> setBusy(false));
+    }
+
+    /** Test70: an imported mod's files taken out of its archive. */
+    private void importModZip(ModInstaller.Mod mod, Uri archive) {
+        try {
+            prepareModForImport(mod);
+            int copied;
+            try (java.io.InputStream in = getContentResolver().openInputStream(archive)) {
+                if (in == null)
+                    throw new java.io.IOException("cannot open the chosen file");
+                copied = mods.importZip(mod, in, this::report);
+            }
+            mods.validatePrepared(mod, false, this::report);
+            String missing = mods.missingForSetup(mod);
+            if (missing.equals("none")) missing = "";
+            report(copied == 0 && !missing.isEmpty()
+                ? "That archive holds none of " + mod.title + "'s files. Still needed: " + missing + "."
+                : missing.isEmpty() ? mod.title + " is imported (" + copied + " files): tap Install."
+                : "Imported " + copied + " files; still needed: " + missing + ".", -1);
         } catch (Exception exception) {
             report("Importing failed: " + exception.getMessage(), -1);
         }
@@ -1079,6 +1148,14 @@ public class LauncherActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if((requestCode==GameDataManager.PICK_ISO||requestCode==GameDataManager.PICK_FOLDER)&&dataManager().result(requestCode,resultCode,data))return;
+        if (requestCode == PICK_MOD_ZIP && resultCode == RESULT_OK && data != null && data.getData() != null
+                && selectedMod != null) {
+            ModInstaller.Mod mod = selectedMod;
+            Uri archive = data.getData();
+            setBusy(true);
+            new Thread(() -> importModZip(mod, archive), "mod-import-zip").start();
+            return;
+        }
         if (requestCode == PICK_MOD_FOLDER && resultCode == RESULT_OK && data != null && data.getData() != null
                 && selectedMod != null) {
             ModInstaller.Mod mod = selectedMod;
