@@ -15,6 +15,31 @@ and position when the session gains focus or the guest asks
 
 #ifdef HALO_VR
 
+#ifdef _WIN32
+/* Test72: the Windows PCVR build (halo-vr.exe): this host on WGL and desktop
+OpenGL, the game's own context (port/windows/src/win32_xr.c gives it
+host_logf and the guest's host_gl_has_extension) */
+#include "win32_xr_host.h"
+#include <windows.h>
+/* (openxr_platform.h's Win32 declarations name COM's IUnknown) */
+#include <unknwn.h>
+#include <psapi.h>
+#include <GL/gl.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#ifndef GL_SRGB8_ALPHA8
+#define GL_SRGB8_ALPHA8 0x8C43
+#endif
+#ifndef GL_RGBA8
+#define GL_RGBA8 0x8058
+#endif
+#define XR_USE_PLATFORM_WIN32
+#define XR_USE_GRAPHICS_API_OPENGL
+#else
 #include "host.h"
 
 #include <EGL/egl.h>
@@ -30,6 +55,7 @@ and position when the session gains focus or the guest asks
 
 #define XR_USE_PLATFORM_ANDROID
 #define XR_USE_GRAPHICS_API_OPENGL_ES
+#endif
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
@@ -79,8 +105,13 @@ static struct
 	/* recentring: LOCAL yaw (about +y) and position of the origin */
 	int recentre_pending, recentred_this_frame;
 	float recentre_yaw, recentre_position[3];
+#ifndef _WIN32
 	JavaVM *vm;
 	jobject activity;
+#else
+	/* XR_KHR_opengl_enable offered (Virtual Desktop's runtime has none) */
+	int opengl_extension;
+#endif
 	/* statistics */
 	long long frames, frames_rendered;
 	/* the refresh rate asked for, and windows in a row it was not held */
@@ -105,6 +136,21 @@ static double elapsed_ms(const struct timespec *from, const struct timespec *to)
 	return (double)(to->tv_sec - from->tv_sec) * 1000.0 + (double)(to->tv_nsec - from->tv_nsec) / 1000000.0;
 }
 
+#ifdef _WIN32
+/* the process's working set and its peak, in MB */
+static void memory_use(double *resident, double *peak)
+{
+	PROCESS_MEMORY_COUNTERS counters;
+
+	*resident = *peak = 0.0;
+	counters.cb = sizeof(counters);
+	if (K32GetProcessMemoryInfo(GetCurrentProcess(), &counters, sizeof(counters)))
+	{
+		*resident = counters.WorkingSetSize / 1048576.0;
+		*peak = counters.PeakWorkingSetSize / 1048576.0;
+	}
+}
+#else
 /* the process's resident memory and its peak, in MB, from /proc/self/status */
 static void memory_use(double *resident, double *peak)
 {
@@ -125,6 +171,7 @@ static void memory_use(double *resident, double *peak)
 	}
 	fclose(status);
 }
+#endif
 
 static const char *result_name(XrResult result)
 {
@@ -532,7 +579,11 @@ static int create_swapchain(int which, uint32_t width, uint32_t height)
 {
 	struct swapchain *swapchain = &xr.swapchains[which];
 	XrSwapchainCreateInfo info = { XR_TYPE_SWAPCHAIN_CREATE_INFO };
+#ifdef _WIN32
+	XrSwapchainImageOpenGLKHR images[HALO_XR_MAXIMUM_IMAGES];
+#else
 	XrSwapchainImageOpenGLESKHR images[HALO_XR_MAXIMUM_IMAGES];
+#endif
 	uint32_t count = 0, index;
 
 	info.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT |
@@ -554,7 +605,11 @@ static int create_swapchain(int which, uint32_t width, uint32_t height)
 	}
 	for (index = 0; index < count; index++)
 	{
+#ifdef _WIN32
+		images[index].type = XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_KHR;
+#else
 		images[index].type = XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_ES_KHR;
+#endif
 		images[index].next = NULL;
 	}
 	if (!check(xrEnumerateSwapchainImages(swapchain->handle, count, &count,
@@ -571,6 +626,14 @@ static int create_swapchain(int which, uint32_t width, uint32_t height)
 	return 1;
 }
 
+#ifdef _WIN32
+/* the Windows loader finds the runtime itself (the registry's active runtime,
+or XR_RUNTIME_JSON); nothing to give it */
+static int initialize_loader(void)
+{
+	return 1;
+}
+#else
 static int initialize_loader(void)
 {
 	PFN_xrInitializeLoaderKHR initialize = NULL;
@@ -594,10 +657,13 @@ static int initialize_loader(void)
 	info.applicationContext = xr.activity;
 	return check(initialize((const XrLoaderInitInfoBaseHeaderKHR *)&info), "xrInitializeLoaderKHR");
 }
+#endif
 
 static int create_instance(struct halo_xr_info *out)
 {
+#ifndef _WIN32
 	XrInstanceCreateInfoAndroidKHR android = { XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR };
+#endif
 	XrInstanceCreateInfo info = { XR_TYPE_INSTANCE_CREATE_INFO };
 	XrInstanceProperties properties = { XR_TYPE_INSTANCE_PROPERTIES };
 	XrSystemGetInfo system_info = { XR_TYPE_SYSTEM_GET_INFO };
@@ -634,11 +700,27 @@ static int create_instance(struct halo_xr_info *out)
 			xr.bd_controller = 1;
 		if (!strcmp(available[index].extensionName, BD_ULTRA_CONTROLLER_EXTENSION))
 			xr.bd_ultra_controller = 1;
+#ifdef _WIN32
+		if (!strcmp(available[index].extensionName, XR_KHR_OPENGL_ENABLE_EXTENSION_NAME))
+			xr.opengl_extension = 1;
+#endif
 	}
 	free(available);
 	count = 0;
+#ifdef _WIN32
+	if (!xr.opengl_extension)
+	{
+		/* (Virtual Desktop's own runtime offers Direct3D and Vulkan only:
+		SteamVR's or Meta's runtime runs this build) */
+		host_logf(HOST_LOG_ERROR, "[openxr] the runtime has no %s; choose SteamVR or the Meta runtime as the "
+			"OpenXR runtime", XR_KHR_OPENGL_ENABLE_EXTENSION_NAME);
+		return 0;
+	}
+	extensions[count++] = XR_KHR_OPENGL_ENABLE_EXTENSION_NAME;
+#else
 	extensions[count++] = XR_KHR_OPENGL_ES_ENABLE_EXTENSION_NAME;
 	extensions[count++] = XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME;
+#endif
 	if (xr.frame_controller)
 		extensions[count++] = FRAME_CONTROLLER_EXTENSION;
 	if (xr.refresh_rate_extension)
@@ -651,9 +733,11 @@ static int create_instance(struct halo_xr_info *out)
 		extensions[count++] = BD_ULTRA_CONTROLLER_EXTENSION;
 	for (index = 0; index < count; index++)
 		host_logf(HOST_LOG_INFO, "[openxr] enabling %s", extensions[index]);
+#ifndef _WIN32
 	android.applicationVM = xr.vm;
 	android.applicationActivity = xr.activity;
 	info.next = &android;
+#endif
 	strncpy(info.applicationInfo.applicationName, "Halo CE VR", XR_MAX_APPLICATION_NAME_SIZE - 1);
 	info.applicationInfo.applicationVersion = 1;
 	strncpy(info.applicationInfo.engineName, "halo-ce-universal", XR_MAX_ENGINE_NAME_SIZE - 1);
@@ -674,6 +758,44 @@ static int create_instance(struct halo_xr_info *out)
 	return 1;
 }
 
+#ifdef _WIN32
+static int create_session(void)
+{
+	PFN_xrGetOpenGLGraphicsRequirementsKHR requirements_function = NULL;
+	XrGraphicsRequirementsOpenGLKHR requirements = { XR_TYPE_GRAPHICS_REQUIREMENTS_OPENGL_KHR };
+	XrGraphicsBindingOpenGLWin32KHR binding = { XR_TYPE_GRAPHICS_BINDING_OPENGL_WIN32_KHR };
+	XrSessionCreateInfo info = { XR_TYPE_SESSION_CREATE_INFO };
+	XrReferenceSpaceCreateInfo space = { XR_TYPE_REFERENCE_SPACE_CREATE_INFO };
+
+	if (!check(xrGetInstanceProcAddr(xr.instance, "xrGetOpenGLGraphicsRequirementsKHR",
+		(PFN_xrVoidFunction *)&requirements_function), "xrGetInstanceProcAddr(xrGetOpenGLGraphicsRequirementsKHR)") ||
+		!check(requirements_function(xr.instance, xr.system, &requirements), "xrGetOpenGLGraphicsRequirementsKHR"))
+	{
+		return 0;
+	}
+	host_logf(HOST_LOG_INFO, "[openxr] OpenGL required %u.%u .. %u.%u, context %s",
+		XR_VERSION_MAJOR(requirements.minApiVersionSupported), XR_VERSION_MINOR(requirements.minApiVersionSupported),
+		XR_VERSION_MAJOR(requirements.maxApiVersionSupported), XR_VERSION_MINOR(requirements.maxApiVersionSupported),
+		(const char *)glGetString(GL_VERSION));
+	binding.hDC = wglGetCurrentDC();
+	binding.hGLRC = wglGetCurrentContext();
+	if (!binding.hDC || !binding.hGLRC)
+	{
+		host_logf(HOST_LOG_ERROR, "[openxr] no current WGL context");
+		return 0;
+	}
+	info.next = &binding;
+	info.systemId = xr.system;
+	if (!check(xrCreateSession(xr.instance, &info, &xr.session), "xrCreateSession"))
+		return 0;
+	space.poseInReferenceSpace.orientation.w = 1.0f;
+	space.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_LOCAL;
+	if (!check(xrCreateReferenceSpace(xr.session, &space, &xr.local), "xrCreateReferenceSpace(LOCAL)"))
+		return 0;
+	space.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_VIEW;
+	return check(xrCreateReferenceSpace(xr.session, &space, &xr.view), "xrCreateReferenceSpace(VIEW)");
+}
+#else
 static int create_session(void)
 {
 	PFN_xrGetOpenGLESGraphicsRequirementsKHR requirements_function = NULL;
@@ -721,6 +843,7 @@ static int create_session(void)
 	space.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_VIEW;
 	return check(xrCreateReferenceSpace(xr.session, &space, &xr.view), "xrCreateReferenceSpace(VIEW)");
 }
+#endif
 
 static int choose_format(void)
 {

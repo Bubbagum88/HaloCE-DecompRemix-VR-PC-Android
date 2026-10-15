@@ -1793,7 +1793,9 @@ int halo_scoreboard_pointer_update(int offered, struct halo_ui_pointer *pointer)
 	return -1;
 }
 
-#if defined(HALO_ANDROID) && defined(HALO_VR)
+/* (Test72: any VR build, the Windows PCVR one too: the menus' pointer is a
+controller's) */
+#ifdef HALO_VR
 int halo_ui_pointer_update(int menus_active, struct halo_ui_pointer *pointer)
 {
     platform_menus_set_active(menus_active != 0);

@@ -1732,6 +1732,9 @@ static const struct config_setting config_settings[] =
 
 #if defined(HALO_ANDROID) && defined(HALO_VR)
 #define CONFIG_PLATFORM (_platform_android | _platform_vr)
+#elif defined(_WIN32) && defined(HALO_VR)
+/* Test72: the Windows PCVR build (halo-vr.exe): VR settings and Windows ones */
+#define CONFIG_PLATFORM (_platform_windows | _platform_vr)
 #elif defined(HALO_ANDROID)
 #define CONFIG_PLATFORM (_platform_android | _platform_flat)
 #elif defined(HALO_WEB)
@@ -1913,7 +1916,7 @@ static char *config_copy(const char *text, size_t length)
 
 static const char *config_default_value(const struct config_setting *setting)
 {
-#if defined(HALO_ANDROID) || defined(HALO_VR)
+#if defined(HALO_ANDROID)
     if (!strcmp(setting->name, "renderer.safe_geometry")) return "true";
 #endif
     return setting->default_value;
@@ -2306,6 +2309,8 @@ static void config_report_unknown_keys(toml_datum_t table)
 	}
 }
 
+/* (Test72: these line editors serve every VR build too, the vehicle defaults'
+migration among them; only the safe-geometry migration is Android's) */
 #if defined(HALO_ANDROID) || defined(HALO_VR)
 /* Work only on parsed, ordinary section/key lines; preserve all other text.
  * An unusual inline/dotted form is never rewritten by guessing a TOML span. */
@@ -2419,7 +2424,7 @@ static void config_load(void)
 		if (result.ok)
 		{
 			char *completed;
-#if defined(HALO_ANDROID) || defined(HALO_VR)
+#if defined(HALO_ANDROID)
             toml_datum_t revision = toml_seek(result.toptab, "renderer." GEOMETRY_REVISION_KEY);
             int migrate = revision.type != TOML_INT64 || revision.u.int64 < 1;
             int can_write = 1;
@@ -2458,14 +2463,14 @@ static void config_load(void)
 				config_set_from_file(&config_values[index], &config_settings[index], result.toptab);
 			config_report_unknown_keys(result.toptab);
 			platform_log("settings: %s", path);
-#if defined(HALO_ANDROID) || defined(HALO_VR)
+#if defined(HALO_ANDROID)
             if (migrate) config_values[config_setting_index("renderer.safe_geometry")].boolean = 1;
             completed = can_write ? config_add_missing(text, result.toptab) : NULL;
             if (migrate && can_write && !completed) completed = strdup(text);
 #else
             completed = config_add_missing(text, result.toptab);
 #endif
-#if defined(HALO_ANDROID) || defined(HALO_VR)
+#if defined(HALO_ANDROID)
             if (completed && !(migrate ? config_write_geometry_migration(path, completed, original) : config_write_file(path, completed)))
                 platform_log("settings: cannot write %s; Safe geometry migration will retry", path);
             free(original);

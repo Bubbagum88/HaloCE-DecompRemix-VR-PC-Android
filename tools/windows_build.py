@@ -142,6 +142,41 @@ def _quote(path: Any) -> str:
     return f'"{text}"' if " " in text else text
 
 
+# Test72: the Khronos OpenXR loader for the Windows PCVR build: the same
+# release as the Android build's (tools/android_build.py), its 32-bit loader
+# (Win32/lib/openxr_loader.lib, Win32/bin/openxr_loader.dll) and headers
+OPENXR_VERSION = "1.1.63"
+OPENXR_URL = ("https://github.com/KhronosGroup/OpenXR-SDK-Source/releases/download/"
+              f"release-{OPENXR_VERSION}/openxr_loader_windows-{OPENXR_VERSION}.zip")
+OPENXR_SHA256 = "01c631aeabbfe0879540f77ef833416c532a20746285b494630160c23588b771"
+OPENXR_DIR = THIRD_PARTY / f"openxr-{OPENXR_VERSION}"
+
+
+def fetch_openxr() -> None:
+    """Downloads the OpenXR loader package once and keeps its headers, the
+    32-bit loader and its license (checked against its SHA-256)."""
+    if (OPENXR_DIR / "Win32" / "lib" / "openxr_loader.lib").is_file():
+        return
+    import hashlib
+    THIRD_PARTY.mkdir(parents=True, exist_ok=True)
+    archive = THIRD_PARTY / f"openxr_loader_windows-{OPENXR_VERSION}.zip"
+    print(f"Downloading {OPENXR_URL}")
+    with urllib.request.urlopen(OPENXR_URL) as response, open(archive, "wb") as f:
+        shutil.copyfileobj(response, f)
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    if digest != OPENXR_SHA256:
+        archive.unlink()
+        raise OSError(f"{archive.name}: SHA-256 {digest}, expected {OPENXR_SHA256}")
+    with zipfile.ZipFile(archive) as z:
+        for member in z.namelist():
+            if member.startswith(("include/openxr/", "Win32/lib/openxr_loader.lib", "Win32/bin/openxr_loader.dll",
+                                  "share/doc/openxr/LICENSE")) and not member.endswith("/"):
+                target = OPENXR_DIR / member
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(z.read(member))
+    archive.unlink()
+
+
 def fetch_sdl() -> None:
     """Downloads SDL3's Visual C++ development package (headers, import
     library and DLL) once."""
@@ -316,8 +351,10 @@ def generate_windows_build(n: Writer, sln: Any) -> None:
         base_ldflags += ["-Wl,/SUBSYSTEM:CONSOLE"]
 
     def emit(obj_dir: Path, output: Path, extra_cflags: List[str], extra_ldflags: List[str],
-             extra_objects: List[Path], implicit_inputs: List[Path]) -> None:
-        """the objects and the executable, with the given extra flags"""
+             extra_objects: List[Path], implicit_inputs: List[Path], extra_win32_sources: List[Path] = [],
+             extra_libs: str = "") -> None:
+        """the objects and the executable, with the given extra flags (Test72:
+        and extra units built as the win32_ ones are, and extra libraries)"""
         extra = " ".join(extra_cflags)
         objects: List[Path] = []
 
@@ -394,6 +431,8 @@ def generate_windows_build(n: Writer, sln: Any) -> None:
             else:
                 add_object(source, platform_cflags)
         miniupnpc_include = f"-I{MINIUPNPC_DIR / 'include'} -DMINIUPNP_STATICLIB"
+        for source in extra_win32_sources:
+            add_object(source, win32_cflags)
         for source in sorted((PORT_DIR / "src").glob("*.c")):
             if source.name == "win32_upnp.c":
                 add_object(source, f"{win32_cflags} {miniupnpc_include}")
@@ -432,7 +471,7 @@ def generate_windows_build(n: Writer, sln: Any) -> None:
             outputs=output,
             rule="windows_link",
             inputs=objects + extra_objects,
-            variables={"ldflags": " ".join(base_ldflags + extra_ldflags), "libs": libs},
+            variables={"ldflags": " ".join(base_ldflags + extra_ldflags), "libs": f"{libs} {extra_libs}".strip()},
         )
 
     # Profile-guided optimisation: with the committed Windows profile (or
@@ -490,4 +529,30 @@ def generate_windows_build(n: Writer, sln: Any) -> None:
          lto_cflags + [OPTIMISATION] if lto_cflags else [], [], [profile] if profile else [])
     n.build(outputs=sdl_dll, rule="windows_copy", inputs=SDL_DIR / "lib" / "x86" / "SDL3.dll")
     n.build(outputs="windows", rule="phony", inputs=[output, sdl_dll])
+
+    # Test72: the Windows PCVR game (ninja windows_vr): the same game and
+    # platform layer with HALO_VR (the shared VR code: port/linux/src/vr_*.c,
+    # port/linux/game/vr_*.c), the OpenXR host shared with Android
+    # (port/android/host/host_xr.c, on WGL and desktop OpenGL) and its glue
+    # (port/windows/src/win32_xr.c), the Khronos loader beside it
+    try:
+        fetch_openxr()
+    except OSError as error:
+        print(f"Windows PCVR build disabled: cannot fetch the OpenXR loader ({error})", file=sys.stderr)
+    else:
+        vr_dir = BUILD / "vr"
+        vr_output = vr_dir / "halo-vr.exe"
+        vr_cflags = ["-DHALO_VR=1", f"-I{OPENXR_DIR / 'include'}", f"-I{Path('port/android/include')}",
+                     f"-iquote {Path('port/android/guest/runtime')}",
+                     # win32_xr_host.h, in quotes only: never in place of a Windows header
+                     f"-iquote {PORT_DIR / 'include'}"]
+        emit(vr_dir / "obj", vr_output, lto_cflags + profile_use_flags(profile) + vr_cflags,
+             lto_cflags + [OPTIMISATION] if lto_cflags else [], [], [profile] if profile else [],
+             [Path("port/android/host/host_xr.c")],
+             f"{_quote(OPENXR_DIR / 'Win32' / 'lib' / 'openxr_loader.lib')} -lopengl32")
+        vr_sdl = vr_dir / "SDL3.dll"
+        vr_loader = vr_dir / "openxr_loader.dll"
+        n.build(outputs=vr_sdl, rule="windows_copy", inputs=SDL_DIR / "lib" / "x86" / "SDL3.dll")
+        n.build(outputs=vr_loader, rule="windows_copy", inputs=OPENXR_DIR / "Win32" / "bin" / "openxr_loader.dll")
+        n.build(outputs="windows_vr", rule="phony", inputs=[vr_output, vr_sdl, vr_loader])
     n.newline()
