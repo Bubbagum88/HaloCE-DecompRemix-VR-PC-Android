@@ -7,6 +7,16 @@ names are used for launcher updates. See `docs/RELEASE-1.0.37.md`,
 Automated checks passed; device acceptance remains pending. Keep experimental
 and WIP features labeled as such.
 
+## Owner direction for the next release
+
+The project is expanding beyond Quest/Android: the owner plans PCVR, flat PC,
+Steam Frame, and Pico adaptations. For the next release, revisit the project and
+repository title/description, README/About wording, platform support matrix,
+build/install instructions, controls, compatibility notes, credits, and release
+assets so they accurately cover the platforms actually supported then. Do not
+rename the current v1.0.37 release or claim a platform is supported before its
+build and validation are ready.
+
 ## Private candidate after it: Test71 (1.0.38-test71 / code83)
 
 Every campaign mod installs from the launcher in one tap, as SPV1 does (the
