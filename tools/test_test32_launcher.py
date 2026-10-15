@@ -280,7 +280,9 @@ class GuideCheck { public static void main(String[] args) {
         cache = Path.home() / '.gradle/caches/modules-2/files-2.1'
         library_groups = ('in.dragonbra', 'com.squareup.okhttp3', 'com.squareup.okio', 'org.jetbrains.kotlin',
                           'org.jetbrains.kotlinx', 'org.bouncycastle', 'io.ktor', 'com.google.protobuf',
-                          'org.apache.commons', 'org.slf4j', 'org.tukaani')
+                          'org.apache.commons', 'org.slf4j', 'org.tukaani',
+                          # (Test71: libarchive-android, ArchiveExtractor's, and the annotations it carries)
+                          'me.zhanghai.android.libarchive', 'androidx.annotation')
         libraries = sorted(str(jar) for group in library_groups for jar in (cache / group).rglob('*.jar')
                            if not jar.name.endswith(('-sources.jar', '-javadoc.jar')))
         # (an Android library's classes are its .aar's classes.jar: OkHttp 5's)
