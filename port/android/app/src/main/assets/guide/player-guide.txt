@@ -1,3 +1,69 @@
+# Test70: polish, controls and new moves
+
+Private 1.0.37-test70 / code82. Install the matching Quest VR or Android APK over
+Test69 (or Test68); the package IDs and signing certificate are unchanged. Keep
+your saved settings. No uninstall is needed. No public release is being changed.
+
+Everything from Test69 is here (below). What is new:
+
+**Campaigns and the launcher**
+- **Status labels.** SPV1 and Project Lumoria say *Supported*; The Altheros
+  Experience and Halo 1 MCC maps say *Experimental — currently not working*
+  (still there to try).
+- **Project Lumoria.** CUSTOM CAMPAIGNS, Project Lumoria: Prepare, then
+  *Import Project Lumoria from a .zip* and pick your Lumoria_Full_Campaign.zip
+  (from your Download folder), then Install. Needs Custom Edition's
+  bitmaps.map, sounds.map and loc.map, as SPV1 does. Its four levels are then
+  in New Game, map kind CUSTOM SINGLEPLAYER (start with lumoria_a); the
+  original campaign stays as it is.
+- **MCC maps:** the "problem with the disc" error had a cause in this build
+  (MCC maps were looked for among the Xbox's); fixed, not yet confirmed on a
+  headset.
+- **What's New** opens once after each update, and from the launcher's
+  *What's new in this version*.
+
+**Controls**
+- **Remapping asks.** On VR SETTINGS, BUTTONS: press A (or left/right) on a
+  row to choose its button; nothing changes until you press A again. A button
+  another action has asks: CANCEL, SWAP, CLEAR or BOTH (the line at the
+  bottom says what each does). Every action can be NONE. RESET CONTROLS is
+  the first and last row. A `*` marks a button that does nothing for now
+  (Button Sprint, grenade on the grip...), a `+` one two actions share.
+- **Left-handed:** MIRROR BUTTONS (CONTROLS, AUTO) puts the face buttons on
+  the gun hand, so the magazine release is under your left thumb, even with
+  the sticks standard. Your own bindings are kept. OFF: as before.
+
+**Weapons**
+- **Locked weapons can be holstered**: grip at a holster to put the gun away
+  (both hands free to climb), grip there again to draw.
+- **Needler (manual reload): shake it to reload.**
+- **Shake cooling** (SHAKE COOLING) now works: shake a hot plasma weapon.
+- **Rocket launcher:** after firing both rockets, the new tubes are ready as
+  soon as they are in.
+- **Left hand:** the rocket launcher's (and sniper's, shotgun's, pistol's)
+  lettering reads the right way round.
+- **Magazines** of the Pistol and Assault Rifle sit in the hand (the Sniper's
+  as before).
+
+**Movement**
+- **SLIDE** (LOCOMOTION, off by default): sprint, then crouch (button or
+  head) to slide; jump to cancel into a jump or a wall run. Slide into enemies
+  to knock them about (a Grunt flies, a Hunter does not).
+- **BULLET TIME** (GAMEPLAY, off by default): hold the right stick up to slow
+  time (solo only). Its key is on BUTTONS.
+- **Climbing** holds better high up trees and on thin trunks.
+- **Wall jumps** go where you look.
+
+**Fist combat**
+- **HIT ASSIST** (30 cm): a punch at an enemy right in front of you lands
+  without touching its face. **LUNGE HOP**: lunges leap a little.
+- **GRAB ASSIST** is 15 cm with NPC GRAB and FIST COMBAT, and its maximum
+  (25 cm) now really reaches.
+
+Report build, device, what you did and the launch log (Download/HaloCE).
+
+---
+
 # Test69: The Altheros Experience
 
 Private 1.0.36-test69 / code81. Install the matching Quest VR or Android APK over

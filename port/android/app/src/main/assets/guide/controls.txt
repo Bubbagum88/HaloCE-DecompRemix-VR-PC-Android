@@ -1,5 +1,28 @@
 # Controls and options — Quest VR / flat Android
 
+## Test70: remapping, left hand, slide and bullet time
+
+- **BUTTONS remapping**: A (or left/right) on a row chooses a button without
+  writing it (shown with a `?`); A sets it. A button another action has asks
+  CANCEL, SWAP, CLEAR or BOTH; nothing moves on its own; the hints line says
+  whose the button is and what A will do. Every action may be NONE. RESET
+  CONTROLS is the first and last row. A `*` marks a button that does nothing
+  for now (Button Sprint, grenade on the grip, the grip with physical
+  weapons), a `+` one two actions share. Full table: docs/TEST70-CONTROLS-AUDIT.md.
+- **MIRROR BUTTONS** (CONTROLS, AUTO): left-handed, the face buttons (jump,
+  use/reload, the magazine release) are on the gun hand even when MIRROR
+  CONTROLS is OFF; stick clicks stay with their sticks; bindings unchanged.
+- **SLIDE** (LOCOMOTION, off): sprint, then crouch (button, or the head with
+  CROUCH SLIDES); SLIDE DISTANCE, SLIDE FRICTION, SLIDE IMPACT, JUMP CANCELS.
+  Turning it on turns on BUTTON SPRINT unless ARM RUN is on. Offline only.
+- **BULLET TIME** (GAMEPLAY, off): its key is BUTTONS > BULLET TIME (R UP:
+  the turning stick pushed up); HOLD or TOGGLE (BULLET TIME KEY); TIME SCALE
+  25-65%. Solo games only; not seated, in menus or cutscenes.
+- **Locked weapons** holster: grip at a holster to put the gun away, grip
+  there again to draw.
+- **Fist combat**: HIT ASSIST and LUNGE HOP in FIST COMBAT; HIT HIGHLIGHTS,
+  DEFLECT SHOTS and FIST REQUIRED in FIST OPTIONS.
+
 ## Test34 private candidate updates
 
 The accepted Android circular controls, saved layouts, gamepad behavior and
