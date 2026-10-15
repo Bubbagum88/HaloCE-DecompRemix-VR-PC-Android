@@ -29,7 +29,7 @@ for profile, extension in (("bytedance/pico4_controller", "XR_BD_controller_inte
                            ("bytedance/pico_neo3_controller", "XR_BD_controller_interaction"),
                            ("bytedance/pico_ultra_controller_bd", "XR_BD_ultra_controller_interaction")):
     assert extension in profiles["/interaction_profiles/" + profile]["requires"], profile
-    assert '"/interaction_profiles/%s", pico' % profile in host, profile
+    assert '"/interaction_profiles/%s", halo_xr_bindings_pico' % profile in host, profile
 assert '#define BD_CONTROLLER_EXTENSION "XR_BD_controller_interaction"' in host
 assert '#define BD_ULTRA_CONTROLLER_EXTENSION "XR_BD_ultra_controller_interaction"' in host
 for flag, macro in (("bd_controller", "BD_CONTROLLER_EXTENSION"), ("bd_ultra_controller", "BD_ULTRA_CONTROLLER_EXTENSION")):

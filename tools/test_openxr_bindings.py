@@ -15,13 +15,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT = json.loads((ROOT / "tools/openxr_profiles.json").read_text(encoding="utf-8"))["profiles"]
+# the hosts that suggest bindings, and the shared tables they suggest (Test72)
 HOSTS = [ROOT / "port/android/host/host_xr.c"]
+SHARED = ROOT / "port/android/include/halo_xr_bindings.h"
 
 
 def tables(source):
     """name -> [(action, user path, subpath)] for each `static const struct binding NAME[] = {...};`"""
     found = {}
-    for match in re.finditer(r"static const struct binding (\w+)\[\]\s*=\s*\{(.*?)\n\t\};", source, re.S):
+    for match in re.finditer(r"static const struct binding (\w+)\[\]\s*=\s*\{(.*?)\n\t?\};", source, re.S):
         name, body = match.groups()
         entries = []
         # the POSES(hand) macro: grip, aim and haptic of that hand
@@ -39,6 +41,7 @@ checked = 0
 for host in HOSTS:
     source = host.read_text(encoding="utf-8")
     bindings = tables(source)
+    bindings.update(tables(SHARED.read_text(encoding="utf-8")))
     suggestions = re.findall(r'suggest\("(/interaction_profiles/[^"]+)",\s*(\w+),', source)
     assert suggestions, host
     for profile, table in suggestions:
