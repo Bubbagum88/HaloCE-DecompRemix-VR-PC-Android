@@ -239,7 +239,7 @@ assert "void vr_weapon_hand_preferred(void)" in frame and "eyes_from_neck" in fr
 assert "vr_weapon_hand_preferred();" in render
 config = read("port/linux/src/port_config.c")
 for key, value in (("vr.grenade_chest_down", "0.60"), ("vr.grenade_chest_forward", "0.12"), ("vr.grenade_chest_spread", "0.18"),
-                   ("vr.object_throw", "2.0"), ("vr.npc_grab_assist", "0.10"), ("vr.weapon_pull_reach", "3.0")):
+                   ("vr.object_throw", "2.0"), ("vr.npc_grab_assist", "0.15"), ("vr.weapon_pull_reach", "3.0")):
     assert re.search(r'\{ "%s", _config_real, "%s",' % (re.escape(key), re.escape(value)), config), key
 for key in ("display.fov", "display.viewmodel_fov", "display.viewmodel_visible", "display.viewmodel_shield",
             "display.first_person_legs", "display.shield_glow", "display.shield_glow_intensity", "display.shield_color"):

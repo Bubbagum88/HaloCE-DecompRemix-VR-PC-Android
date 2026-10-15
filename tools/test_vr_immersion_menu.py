@@ -28,9 +28,9 @@ assert sorted(listed) == sorted(macros), "every immersion row is on IMMERSION, o
 sections_text = menu[menu.index("static struct vr_menu_section const vr_menu_immersion_sections[] ="):]
 sections_text = sections_text[:sections_text.index("};")]
 sections = [(label, int(count)) for label, count in re.findall(r'\{ "([A-Z +]+)", (\d+) \}', sections_text)]
-assert [label for label, _ in sections] == ["WEAPONS", "PICKUPS", "FIST COMBAT", "GRENADES", "RELOAD", "POUCH PLACES", "HOLSTER PLACES",
+assert [label for label, _ in sections] == ["WEAPONS", "PICKUPS", "FIST COMBAT", "FIST OPTIONS", "GRENADES", "RELOAD", "POUCH PLACES", "HOLSTER PLACES",
                                             "MOVEMENT", "BODY", "GRAB + NPCS", "VEHICLES", "VEHICLE OPTIONS", "WARTHOG + GHOST",
-                                            "TANK + BANSHEE", "RAGDOLLS", "ADVANCED"], sections  # Test59: RAGDOLLS (DEATH FORCE); Test65: PICKUPS (WEAPON PULL); Test66: the vehicle topics
+                                            "TANK + BANSHEE", "RAGDOLLS", "ADVANCED"], sections  # Test70: FIST OPTIONS; Test59: RAGDOLLS (DEATH FORCE); Test65: PICKUPS (WEAPON PULL); Test66: the vehicle topics
 assert all(0 < count <= 8 for _, count in sections) and sum(count for _, count in sections) == len(listed)
 # each topic's rows, in order, are the ones its comment heads
 blocks = re.split(r"/\* ([A-Z +]+) \*/", table)[1:]

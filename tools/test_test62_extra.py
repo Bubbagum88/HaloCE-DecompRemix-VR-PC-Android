@@ -468,7 +468,7 @@ int main(void){
  {real_point3d head;unit_get_camera_position(1,&head);
   vr_combat_hit(0,1,&head,NULL,.8f,0);vr_combat_damage_end();
   assert(vr_combat_stunned(1));long expiry=extra.stun_until;
-  combat_engage(0,2,1,FALSE);
+  combat_engage(0,2,1,FALSE,NULL);
   assert(extra.target==2&&!vr_combat_stunned(2)&&vr_combat_stunned(1)&&extra.stun_until==0);
   combat_select_target(1);assert(extra.stun_until==expiry&&vr_combat_stunned(1));
   combat_select_target(2);now=expiry;extra.tick=now;assert(!vr_combat_stunned(1));
@@ -479,7 +479,7 @@ int main(void){
  assert(!combat_memory_for(999,TRUE));assert(combat_memory_for(100,FALSE)->warning==now+10);
  combat_memory[3].warning=0;assert(combat_memory_for(999,TRUE)==&combat_memory[3]);
  /* Direct contact with B cannot redirect a queued assisted strike against A. */
- setup();combat=1;enabled=0;grip[0]=1;tick();combat_engage(0,1,0,TRUE);
+ setup();combat=1;enabled=0;grip[0]=1;tick();combat_engage(0,1,0,TRUE,NULL);
  assert(extra.strike_pending);vr_combat_hit(0,2,&bodies[2].object.position,NULL,.8f,0);
  assert(extra.target==2&&!extra.strike_pending&&!extra.approach_until);
  /* Multiple simultaneous warnings: intent, not the last notifier, picks the
@@ -503,7 +503,7 @@ int main(void){
  setup();combat=1;enabled=0;grip[0]=1;tick();
  bodies[0].biped.flags=FLAG(_biped_airborne_bit);
  bodies[1].object.position=(real_point3d){.n={.5f,0,2}};
- {int before=strikes;combat_engage(0,1,0,TRUE);assert(extra.approach_until>now);
+ {int before=strikes;combat_engage(0,1,0,TRUE,NULL);assert(extra.approach_until>now);
   ++now;combat_tick(0);assert(strikes==before&&extra.strike_pending);
   real_vector3d v={0};vr_combat_velocity(0,&bodies[0].object.position,&v);assert(v.k>0);
   bodies[0].object.position.z=.9f;++now;combat_tick(0);assert(strikes==before+1&&!extra.strike_pending);}

@@ -53,6 +53,15 @@ assert "View full release notes on GitHub" in whats_new and "Intent.ACTION_VIEW"
 assert "prefs.edit().putInt(SEEN, BuildConfig.VERSION_CODE).apply();" in whats_new
 notes = read("port/android/app/src/main/assets/whats_new.txt")
 assert len(notes) > 400 and "GitHub" not in notes[:40]
+# the owner: the pop-up must not miss anything: every Test70 change is named
+for feature in ("settings and saves are kept", "What's new in this version", "Supported", "Experimental", "Project Lumoria",
+                ".zip", "problem with the disc", "Altheros", "never moves your other buttons", "CANCEL, SWAP, CLEAR",
+                "NONE", "RESET CONTROLS", "(DEFAULT)", "PUSH TO TALK", "MIRROR BUTTONS", "holstered", "Needler",
+                "SHAKE COOLING", "Rocket launcher", "tick your gun hand", "magazines now sit", "read the right way round",
+                "inside out", "SLIDE", "SLIDE DISTANCE", "SLIDE FRICTION", "SLIDE IMPACT", "CROUCH SLIDES", "JUMP CANCELS",
+                "BULLET TIME", "TIME SCALE", "Climbing", "Wall jumps", "HIT ASSIST", "LUNGE HOP", "GRAB ASSIST", "15 cm",
+                "FIST OPTIONS", "Build 206", "network 29", "HALOFREAK95", "Android"):
+    assert feature in notes, feature
 recipe = read("port/android/app/src/main/assets/campaigns/lumoria.properties")
 for level, size in (("a", 274873434), ("b", 228054210), ("c", 198269022), ("d", 191220134)):
     assert "file.lumoria_%s.map.size=%d" % (level, size) in recipe

@@ -18,7 +18,7 @@ public class PrepareCheck {
   File root=new File(args[0]);ModInstaller m=new ModInstaller(root);ModInstaller.Progress quiet=(s,p)->{};
   // Private four-byte fixtures exercise the real transaction, not copyrighted maps.
   Arrays.fill(ModInstaller.RESOURCE_SIZES,4);
-  ModInstaller.Mod mod=new ModInstaller.Mod("fixture","Fixture","",new ModInstaller.ModMap[]{new ModInstaller.ModMap("a10",-1,4)},".map",true,null,null);
+  ModInstaller.Mod mod=new ModInstaller.Mod("fixture","Fixture","",new ModInstaller.ModMap[]{new ModInstaller.ModMap("a10",-1,4)},".map",true,null,null,ModInstaller.STATUS_SUPPORTED,"fixture");
   m.prepare(mod,recipe("fixture"),quiet);
   check(new File(root,"mods/fixture/support.properties").isFile());
   check(new File(root,"mods/fixture/maps").isDirectory()&&new File(root,"mods/ce").isDirectory());

@@ -440,7 +440,9 @@ static struct vr_menu_setting const vr_menu_controls[] =
     VR_IMMERSION_COMBAT_MOVES,
     VR_IMMERSION_COMBAT_LIGHTS,
     VR_IMMERSION_COMBAT_REACH,
+    VR_IMMERSION_COMBAT_HIT_ASSIST,
     VR_IMMERSION_COMBAT_LUNGE,
+    VR_IMMERSION_COMBAT_HOP,
     VR_IMMERSION_COMBAT_HEALTH,
     VR_IMMERSION_COMBAT_COUNTERS,
     VR_IMMERSION_GRENADES,
@@ -480,8 +482,8 @@ static struct vr_menu_setting const vr_menu_locomotion[] =
 	/* Test70: SLIDE (sprint and crouch) */
 	{ "SLIDE", "vr.slide", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "SLIDE DISTANCE", "vr.slide_momentum", _vr_setting_real, 5, { { "0.5X", "0.5" }, { "0.75X", "0.75" }, { "1X", "1" }, { "1.5X", "1.5" }, { "2X", "2" } } },
-	{ "SLIDE FRICTION", "vr.slide_friction", _vr_setting_real, 3, { { "LOW", "0.6" }, { "NORMAL", "1" }, { "HIGH", "1.5" } } },
-	{ "SLIDE IMPACT", "vr.slide_damage", _vr_setting_real, 4, { { "OFF", "0" }, { "LIGHT", "0.5" }, { "NORMAL", "1" }, { "HEAVY", "2" } } },
+	{ "SLIDE FRICTION", "vr.slide_friction", _vr_setting_real, 3, { { "LOW", "0.6" }, { "MID", "1" }, { "HIGH", "1.5" } } },
+	{ "SLIDE IMPACT", "vr.slide_damage", _vr_setting_real, 4, { { "OFF", "0" }, { "LIGHT", "0.5" }, { "MID", "1" }, { "HEAVY", "2" } } },
 	{ "CROUCH SLIDES", "vr.slide_physical_crouch", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "JUMP CANCELS", "vr.slide_jump_cancel", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 };
@@ -701,7 +703,7 @@ static struct vr_menu_setting const vr_menu_buttons[] =
     /* Test67: a player asked for a "reset to default controls" here: it was
     the page's last row, below every binding; now also its first, plainly
     named, and either says DONE once pressed */
-    { "RESET CONTROLS TO DEFAULT", "buttons", _vr_setting_reset_buttons, 0, { { NULL,NULL } } },
+    { "RESET CONTROLS", "buttons", _vr_setting_reset_buttons, 0, { { NULL,NULL } } },
     { "JUMP", "vr.button_jump", _vr_setting_button, 10, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "R UP", "right_stick_up" }, { "NONE", "none" } } },
     VR_IMMERSION_SHOULDER_POUCH,
     VR_IMMERSION_HIP_POUCH,
@@ -718,7 +720,7 @@ static struct vr_menu_setting const vr_menu_buttons[] =
     { "PUSH TO TALK", "vr.button_push_to_talk", _vr_setting_button, 7, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "NONE", "none" } } },
     /* Test70: BULLET TIME's button (the turning stick pushed up by default) */
     { "BULLET TIME", "vr.button_bullet_time", _vr_setting_button, 10, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "R UP", "right_stick_up" }, { "NONE", "none" } } },
-    { "RESET CONTROLS TO DEFAULT", "buttons", _vr_setting_reset_buttons, 0, { { NULL,NULL } } },
+    { "RESET CONTROLS", "buttons", _vr_setting_reset_buttons, 0, { { NULL,NULL } } },
 };
 
 /* Build167 voice is off by default. Volume zero also mutes received voices;
@@ -788,11 +790,12 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_COMBAT_HOP,
 	VR_IMMERSION_COMBAT_HEALTH,
 	VR_IMMERSION_COMBAT_COUNTERS,
-	/* FIST OPTIONS (Test70: gathered from WEAPONS; AIM STEADYING is on HUD +
-	RETICLE, its own page, once) */
+	/* (Test70: gathered from WEAPONS and FIST COMBAT) */
+	/* FIST OPTIONS */
 	VR_IMMERSION_COMBAT_LIGHTS,
 	VR_IMMERSION_PROJECTILE_PARRY,
 	VR_IMMERSION_FIST_REQUIRED,
+	VR_IMMERSION_AIM_STEADY,
 	/* GRENADES */
 	VR_IMMERSION_GRENADES,
 	VR_IMMERSION_GRENADE_FWD,
@@ -905,7 +908,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
-	{ "WEAPONS", 6 }, { "PICKUPS", 4 }, { "FIST COMBAT", 8 }, { "FIST OPTIONS", 3 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
+	{ "WEAPONS", 6 }, { "PICKUPS", 4 }, { "FIST COMBAT", 8 }, { "FIST OPTIONS", 4 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
 	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 8 },
 	{ "VEHICLES", 8 }, { "VEHICLE OPTIONS", 6 }, { "WARTHOG + GHOST", 8 }, { "TANK + BANSHEE", 8 },
 	{ "RAGDOLLS", 7 }, { "ADVANCED", 8 },
@@ -1553,62 +1556,111 @@ static void vr_menu_button_row_change(struct vr_menu_setting const *setting, int
 	}
 }
 
-/* A button row's text: its button, and why it may do nothing now
-(Test70: contextual ownership the owner asked to see) */
+/* Test70: a button's mark on its row: '*' it does nothing for now (Button
+Sprint has the left stick's click; HOLD with the grenade on the grip; the grip
+with physical weapons), '+' another action has it too; 0 none. The hints line
+says what they mean (vr_menu_button_hints) */
+static char vr_menu_button_mark(int action, int const *sources)
+{
+	int source = sources[action];
+
+	if (source == VR_BUTTON_SOURCE_NONE && config_boolean("vr.button_sprint") &&
+		(config_integer("vr.button_sprint_saved_mask") & (1L << action)))
+		return '*';
+	if (action == VR_BUTTON_ACTION_SWITCH_GRENADE && source == VR_BUTTON_SOURCE_HOLD &&
+		sources[VR_BUTTON_ACTION_GRENADE] == VR_BUTTON_SOURCE_GRIP)
+		return '*';
+	if (source == VR_BUTTON_SOURCE_GRIP && !strcmp(config_string("vr.weapons"), "physical"))
+		return '*';
+	if (vr_remap_conflict(sources, VR_BUTTON_ACTIONS, action, source, VR_BUTTON_SOURCE_NONE, VR_BUTTON_SOURCE_HOLD) >= 0)
+		return '+';
+	return 0;
+}
+
+/* A button row's text, kept to the row's width: its button and mark; while
+choosing, the choice with a '?' (not yet set); while asking, the answer
+chosen with a '?' */
 static void vr_menu_button_row_text(struct vr_menu_setting const *setting, int action, char *line, size_t size)
 {
-	int sources[VR_BUTTON_ACTIONS], other;
+	int sources[VR_BUTTON_ACTIONS];
 	int source = vr_menu_button_source(action);
-	char const *value;
+	char mark;
 
 	vr_menu_button_sources(sources);
 	if (vr_menu_remap_active(action))
 	{
-		int candidate = vr_button_source_of(setting->values[vr_remap.value].value, VR_BUTTON_SOURCE_NONE);
-		char const *label = setting->values[vr_remap.value].label;
+		static char const *const resolutions[VR_REMAP_RESOLUTIONS] = { "CANCEL", "SWAP", "CLEAR", "BOTH" };
+		snprintf(line, size, "%s: %s?", setting->label, vr_remap.state == VR_REMAP_CONFLICT ?
+			resolutions[vr_remap.resolution] : setting->values[vr_remap.value].label);
+		return;
+	}
+	mark = vr_menu_button_mark(action, sources);
+	/* Button Sprint set the action's button aside: the left stick's click is
+	what it gets back */
+	if (mark == '*' && source == VR_BUTTON_SOURCE_NONE)
+	{
+		snprintf(line, size, "%s: L STICK*", setting->label);
+		return;
+	}
+	snprintf(line, size, mark ? "%s: %s%c" : "%s: %s", setting->label,
+		vr_menu_button_value(setting, source) != NONE ? setting->values[vr_menu_button_value(setting, source)].label : "CUSTOM",
+		mark);
+}
 
+/* Test70: the hints line while a button row is being chosen (what A does,
+whose a taken button is), or what a row's mark means; FALSE: the usual hints */
+static boolean vr_menu_button_hints(char *line, size_t size)
+{
+	int sources[VR_BUTTON_ACTIONS], action, stars = 0, pluses = 0;
+
+	vr_menu_button_sources(sources);
+	if (vr_remap.state != VR_REMAP_IDLE && vr_menu_remap_active(vr_remap.action))
+	{
+		long index;
+		struct vr_menu_setting const *setting = NULL;
+		char const *candidate, *other;
+
+		for (index = 0; index < (long)NUMBEROF(vr_menu_buttons); index++)
+			if (vr_menu_buttons[index].type == _vr_setting_button &&
+				vr_menu_button_action(vr_menu_buttons[index].key) == vr_remap.action)
+				setting = &vr_menu_buttons[index];
+		if (!setting)
+			return FALSE;
+		candidate = setting->values[vr_remap.value].label;
 		if (vr_remap.state == VR_REMAP_CONFLICT)
 		{
-			static char const *const resolutions[VR_REMAP_RESOLUTIONS] = { "CANCEL", "SWAP", "CLEAR IT", "USE BOTH" };
-			snprintf(line, size, "%s IS %s'S: < %s > A: OK", label, vr_menu_button_label(vr_remap.other),
-				resolutions[vr_remap.resolution]);
-			return;
+			other = vr_menu_button_label(vr_remap.other);
+			switch (vr_remap.resolution)
+			{
+			case VR_REMAP_CANCEL: snprintf(line, size, "%s IS %s'S. A: KEEP AS IT WAS", candidate, other); break;
+			case VR_REMAP_SWAP: snprintf(line, size, "A: SWAP WITH %s", other); break;
+			case VR_REMAP_CLEAR: snprintf(line, size, "A: TAKE %s, %s GETS NONE", candidate, other); break;
+			default: snprintf(line, size, "A: %s DOES BOTH", candidate); break;
+			}
+			return TRUE;
 		}
-		other = candidate == source ? -1 : vr_remap_conflict(sources, VR_BUTTON_ACTIONS, action, candidate,
-			VR_BUTTON_SOURCE_NONE, VR_BUTTON_SOURCE_HOLD);
-		if (other >= 0)
-			snprintf(line, size, "%s: < %s > USED BY %s", setting->label, label, vr_menu_button_label(other));
-		else
-			snprintf(line, size, "%s: < %s >%s A: SET", setting->label, label,
-				candidate == vr_button_default(action) ? " (DEFAULT)" : "");
-		return;
+		{
+			int source = vr_button_source_of(setting->values[vr_remap.value].value, VR_BUTTON_SOURCE_NONE);
+			int taken = source == sources[vr_remap.action] ? -1 :
+				vr_remap_conflict(sources, VR_BUTTON_ACTIONS, vr_remap.action, source, VR_BUTTON_SOURCE_NONE, VR_BUTTON_SOURCE_HOLD);
+			if (taken >= 0)
+				snprintf(line, size, "%s IS %s'S. A: ASK  < >: CHANGE", candidate, vr_menu_button_label(taken));
+			else
+				snprintf(line, size, "A: SET %s%s  < >: CHANGE", candidate,
+					source == vr_button_default(vr_remap.action) ? " (DEFAULT)" : "");
+		}
+		return TRUE;
 	}
-	value = vr_menu_button_value(setting, source) != NONE ?
-		setting->values[vr_menu_button_value(setting, source)].label : "CUSTOM";
-	/* Button Sprint keeps the left stick's click: what was there is off
-	until it is turned off again (vr_menu_button_sprint_set) */
-	if (source == VR_BUTTON_SOURCE_NONE && config_boolean("vr.button_sprint") &&
-		(config_integer("vr.button_sprint_saved_mask") & (1L << action)))
+	for (action = 0; action < VR_BUTTON_ACTIONS; action++)
 	{
-		snprintf(line, size, "%s: L STICK (OFF: BUTTON SPRINT)", setting->label);
-		return;
+		char mark = vr_menu_button_mark(action, sources);
+		stars += mark == '*';
+		pluses += mark == '+';
 	}
-	if (action == VR_BUTTON_ACTION_SWITCH_GRENADE && source == VR_BUTTON_SOURCE_HOLD &&
-		sources[VR_BUTTON_ACTION_GRENADE] == VR_BUTTON_SOURCE_GRIP)
-	{
-		snprintf(line, size, "%s: HOLD (OFF: GRENADE ON GRIP)", setting->label);
-		return;
-	}
-	if (source == VR_BUTTON_SOURCE_GRIP && !strcmp(config_string("vr.weapons"), "physical"))
-	{
-		snprintf(line, size, "%s: GRIP (LOCKED WEAPONS ONLY)", setting->label);
-		return;
-	}
-	other = vr_remap_conflict(sources, VR_BUTTON_ACTIONS, action, source, VR_BUTTON_SOURCE_NONE, VR_BUTTON_SOURCE_HOLD);
-	if (other >= 0)
-		snprintf(line, size, "%s: %s (ALSO %s)", setting->label, value, vr_menu_button_label(other));
-	else
-		snprintf(line, size, "%s: %s", setting->label, value);
+	if (!stars && !pluses)
+		return FALSE;
+	snprintf(line, size, "%s%s%sA: CHOOSE  B: BACK", stars ? "*: OFF FOR NOW  " : "", pluses ? "+: SHARED  " : "", "");
+	return TRUE;
 }
 
 /* the setting's value now, as an index into its values (NONE: none of them) */
@@ -2472,7 +2524,9 @@ boolean vr_menu_setting_text(
 	}
 	else if (kind == _vr_menu_hints)
     {
-        snprintf(line, sizeof(line), "A: NEXT / SET   < >: CHANGE   B: BACK");
+        /* Test70: a button row being chosen, or a row's mark, explained here */
+        if (!vr_menu_button_hints(line, sizeof(line)))
+            snprintf(line, sizeof(line), "A: NEXT / SET   < >: CHANGE   B: BACK");
     }
 	else if (kind == _vr_menu_navigation && vr_menu.navigation[setting_index].jump == 1)
         snprintf(line, sizeof(line), "%s", vr_menu.navigation[setting_index].label);

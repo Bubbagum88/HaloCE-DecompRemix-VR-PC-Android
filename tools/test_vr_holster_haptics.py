@@ -36,10 +36,14 @@ for anchor in ["-0.18f, -0.15f, 0.15f", "0.18f, -0.15f, 0.15f",
 holster_region = FRAME[FRAME.index("/* holsters (vr.holsters)"):FRAME.index("/* physical weapons (vr.weapons", FRAME.index("/* holsters (vr.holsters)") )]
 assert "vr.frame.hand_valid[w]" in holster_region and "vr.grip_pressed[w]" in holster_region
 assert "vr.in_holster = zone != 0" in holster_region
-assert holster_region.count("holster_haptic(w,") == 2
+# (Test70: entering, a locked put-away, a switch)
+assert holster_region.count("holster_haptic(w,") == 3
 assert "vr_haptic(" not in holster_region, "every holster-only pulse uses the optional wrapper"
 physical_region = FRAME[FRAME.index("/* physical weapons (vr.weapons"):FRAME.index("/* the off hand's grip", FRAME.index("/* physical weapons (vr.weapons"))]
-assert physical_region.count("holster_haptic(w,") == 2, "draw and stow confirmations obey the toggle"
+# (Test70: the draw's confirmation is in holster_draw, shared with locked weapons)
+draw_region = FRAME[FRAME.index("static void holster_draw(int w, const char *holster)"):FRAME.index("static void update_gestures")]
+assert physical_region.count("holster_haptic(w,") == 1 and draw_region.count("holster_haptic(w,") == 1, "draw and stow confirmations obey the toggle"
+assert "vr_haptic(" not in draw_region
 assert "vr_haptic(w, 0.5f, 0.05f)" in physical_region, "dropping away from a holster retains normal feedback"
 
 # Manual reload deliberately owns only the free hand and mirrors its pouch to

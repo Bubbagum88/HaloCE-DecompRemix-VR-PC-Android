@@ -64,7 +64,8 @@ static int vr_mirror_winding, vr_skinning_mirrored = 1;
 static signed char vr_node_winding[44];
 static short vr_node_winding_count;
 static boolean vr_root_mirrored;
-struct vertex_buffer {int type;long count;void *data;};
+struct vertex_buffer {int type;long count;void *data;void *hardware_format;};
+#define RASTERIZER_MAXIMUM_NODES_PER_MODEL 44
 struct triangle_buffer {int valid;};
 static int rasterizer_model_buffer_data(const struct vertex_buffer *v, const struct triangle_buffer *t,
     const void **data,const void **indices){*data=v->data;*indices=t;return t->valid && v->data!=0;}
@@ -78,6 +79,7 @@ static void rasterizer_transparent_geometry_group_draw_scoped(struct transparent
     'halo_vr_mirror_winding', 'halo_vr_model_mirrored', 'halo_vr_winding_state',
     'halo_vr_restore_winding_state', 'halo_vr_skinning_mirrored')) + \
     fn(raster, 'rasterizer_vr_capture_geometry_flags') + \
+    raster[raster.index('#define VR_PART_NODE_CACHE'):raster.index('void rasterizer_vr_part_winding(')] + \
     fn(raster, 'rasterizer_vr_part_winding') + \
     fn(transparent, 'rasterizer_transparent_geometry_group_draw') + r'''
 /* Synthetic GPU/shader body; scope and per-part helpers above are production.
@@ -92,7 +94,8 @@ static void rasterizer_transparent_geometry_group_draw_scoped(struct transparent
  halo_vr_skinning_mirrored(vr_root_mirrored);
  unsigned char data[32]={0};short weight=32767;
  data[28]=g->panel?3:0;memcpy(data+30,&weight,2);
- struct vertex_buffer vertices={4,1,data};struct triangle_buffer triangles={1};
+ /* (Test70: a model's parts are read once, by their buffer: each part here its own) */
+ struct vertex_buffer vertices={4,1,data,(void *)(g->panel?(char *)1:(char *)2)};struct triangle_buffer triangles={1};
  rasterizer_vr_part_winding(&vertices,&triangles);
  if(halo_vr_model_mirrored())assert(vr_skinning_mirrored==!g->panel);
  int before=halo_vr_winding_state();

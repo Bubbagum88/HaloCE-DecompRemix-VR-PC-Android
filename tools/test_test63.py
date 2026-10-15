@@ -49,7 +49,8 @@ assert settings.index('vr.button_sprint_enabled = config_boolean("vr.button_spri
 assert "if (vr.button_source[owned] == VR_BUTTON_SOURCE_LEFT_STICK)" in settings
 assert "if (vr.button_source[VR_BUTTON_ACTION_RETICLE] == VR_BUTTON_SOURCE_NONE && vr.reticle_hidden)" in settings
 assert "vr.reticle_hidden = 0;" in settings
-assert 'if(config_boolean("vr.button_sprint")&&' in menu and "==VR_BUTTON_SOURCE_LEFT_STICK)" in menu
+# (Test70: the row's chooser skips it: vr_menu_button_sprint_skip)
+assert 'return config_boolean("vr.button_sprint") ?' in menu and "vr_menu_button_value(setting, VR_BUTTON_SOURCE_LEFT_STICK)" in menu
 # (the menu's existing move-aside and restore are kept)
 assert "static boolean vr_menu_button_sprint_set(boolean enabled)" in menu and 'config_write("vr.button_sprint_saved_mask", text)' in menu
 
@@ -75,7 +76,7 @@ punch = body(extra, "int vr_combat_punch(long unit,int hand,real_point3d const *
 # Test65 (Arkham Shadow): within LUNGE or FIST REACH, looked at (45 deg) or punched at (37 deg)
 assert 'extra_bound("vr.combat_reach",3.0f,.75f,3)' in extra and "reach=combat_reach()*units" in punch
 assert "facing>=.70f||(thrown>=.80f&&facing>=.35f)" in punch
-engage = body(extra, "static void combat_engage(long unit,long target,int hand,boolean counter)")
+engage = body(extra, "static void combat_engage(long unit,long target,int hand,boolean counter,real_point3d const *fist)")
 assert "punch acquired" in engage and "punch took no target" in punch
 velocity = body(extra, "void vr_combat_velocity(long unit,real_point3d const *position,real_vector3d *velocity)")
 assert "velocity->i*=.35f;velocity->j*=.35f;" in velocity and "MIN(10.0f*units/TICKS_PER_SECOND" in velocity

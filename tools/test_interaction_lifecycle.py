@@ -7,7 +7,8 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 source = (ROOT / 'port/linux/src/vr_frame.c').read_text()
 start = source.index('int vr_interaction_owner(')
-end = source.index('static void update_gestures', start)
+# (Test70: the holster draw, shared by physical and locked weapons, sits before it)
+end = source.index("/* An empty weapon hand's grip at a holster", start)
 api = source[start:end]
 owner_header = (ROOT / 'port/linux/src/vr.h').read_text()
 owner_enum = re.search(r'enum \{ VR_INTERACTION_NONE[^}]+\};', owner_header).group(0)

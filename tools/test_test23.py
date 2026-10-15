@@ -69,7 +69,9 @@ assert 'if (vr.touch_layout && grenade_down)' in layout
 legacy = layout[layout.index('\telse\n\t{'):layout.index('/* the off hand\'s trigger zooms */')]
 for line in ['if (right & HALO_XR_HAND_SOUTH) buttons |= HALO_XR_BUTTON_A;', 'if (right & HALO_XR_HAND_EAST) buttons |= HALO_XR_BUTTON_X;',
              'if (right & HALO_XR_HAND_WEST) buttons |= HALO_XR_BUTTON_BLACK;', 'if (right & HALO_XR_HAND_NORTH) buttons |= HALO_XR_BUTTON_Y;',
-             'if (right & HALO_XR_HAND_STICK) buttons |= HALO_XR_BUTTON_B;', 'if (left & HALO_XR_HAND_STICK) buttons |= HALO_XR_BUTTON_LEFT_THUMB;',
+             # (Test70: the sticks' clicks with their sticks, vr.controls_mirrored)
+             'if (vr.frame.hand_buttons[vr.controls_mirrored ? 0 : 1] & HALO_XR_HAND_STICK)', 'buttons |= HALO_XR_BUTTON_B;',
+             'if (vr.frame.hand_buttons[vr.controls_mirrored ? 1 : 0] & HALO_XR_HAND_STICK)', 'buttons |= HALO_XR_BUTTON_LEFT_THUMB;',
              'vr.grenade_pulse = 0.1;']:
     assert line in legacy, 'other controllers keep their layout: ' + line
 assert '{ "BUTTONS", vr_menu_buttons, NUMBEROF(vr_menu_buttons) },' in menu
@@ -89,9 +91,12 @@ run('buttons', r'''
 static struct { int grip_held[2], weapon_hand, in_holster, button_source[VR_BUTTON_ACTIONS], x_hold_switched;
 	double x_held, grenade_pulse;
 	/* test26: crouch on the turning stick held down, the reticle's toggle */
-	int controls_mirrored, seated, turn_stick_down, reticle_hidden, reticle_press, reticle_cancelled; } vr;
+	int controls_mirrored, seated, turn_stick_down, reticle_hidden, reticle_press, reticle_cancelled;
+	/* Test70: the face buttons' and the sticks' sides apart; the frame the sticks' clicks come from */
+	int buttons_mirrored, turn_stick_up; struct { unsigned hand_buttons[2]; } frame; } vr;
 static int physical, buzzes;
 static int physical_weapons(void){return physical;}
+static int vr_hand_empty(void){return 0;} /* (Test70: a grip button never acts from an empty hand) */
 static void vr_haptic(int h,float a,float s){(void)h;(void)a;(void)s;buzzes++;}
 static int stick_zoom_active(void){return 0;} /* Test55: physical melee off here: melee stays on the stick click */
 static void platform_log(const char *f, ...){(void)f;}
@@ -108,7 +113,8 @@ the turning stick held down (`down`), the left stick's click the reticle's */
 static unsigned legacy(unsigned right, unsigned left, int down){unsigned b=0;
 	if(right&S)b|=HALO_XR_BUTTON_A; if(right&E)b|=HALO_XR_BUTTON_X; if(right&K)b|=HALO_XR_BUTTON_B;
 	if(down)b|=HALO_XR_BUTTON_LEFT_THUMB; if(left&E)b|=HALO_XR_BUTTON_Y; (void)left; return b;}
-static unsigned frame_(unsigned right, unsigned left, int *g){*g=0; return touch_buttons(right,left,1.0/72,g);}
+static unsigned frame_(unsigned right, unsigned left, int *g){*g=0; vr.frame.hand_buttons[1]=right; vr.frame.hand_buttons[0]=left;
+	return touch_buttons(right,left,1.0/72,g);}
 int main(void){
  int g; unsigned b;
  vr.weapon_hand=1;

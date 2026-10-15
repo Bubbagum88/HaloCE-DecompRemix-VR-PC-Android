@@ -1,3 +1,26 @@
+## Active private Test70 (2026-10-15)
+
+Release-preparation polish on Test69, 1.0.37-test70 / code82. Read
+docs/TEST70-CHECKLIST.md (every owner item and its disposition),
+TEST70-FIELD-GUIDE.md, TEST70-DEVICE-CHECKLIST.md, TEST70-CONTROLS-AUDIT.md,
+TEST70-UPSTREAM-NETWORK.md and TEST70-DELIVERY-STATUS.md.
+MCC: the "problem with the disc" error came from GulchCE's three MCC hooks in
+cache_files_windows.c lost in Test67's merge (restored). Launcher: campaign
+status labels (Altheros and MCC experimental), Project Lumoria (zip import,
+recipe), What's New (assets/whats_new.txt, once per version). Remapping asks
+(vr_button_remap.h, A = VR_MENU_CONFIRM_FUNCTION 104), MIRROR BUTTONS,
+left-hand lettered guns mirrored back whole, locked holstering, shake
+detection by strokes (vr_shake_detect.h: cooling while hot, needler shake
+reload), rocket/canister ready when seated, Pistol/AR magazine fit
+(vr.reload_grip_fit), SLIDE (vr_slide.c), BULLET TIME (vr_bullet_time.c,
+R UP), HIT ASSIST, LUNGE HOP, GRAB ASSIST 15 cm and its mapping fixed,
+tree climbing retries and rays, wall jumps by the look. OpenCE is still
+build-206; HALOFREAK95's new fast-decals reviewed, not taken. Network 29
+unchanged. Private only: no push/publish/install/launch. Device acceptance
+pending. Altheros' next step (model memory, up to 56.5 MB a level) needs a log.
+Edit scripts on Windows must write bytes (Python text mode turned LF files
+into CRLF once in this session; fixed before committing).
+
 ## Active private Test69 (2026-10-14)
 
 Packaged candidate: `D:\HaloQuest\builds\test69-20261014-v1.0.36-test69`.

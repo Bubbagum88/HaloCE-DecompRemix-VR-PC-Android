@@ -158,6 +158,7 @@ static long vr_menu_value_index(struct vr_menu_setting const *s){(void)s;return 
 /* Test70: button rows have text of their own (tested by test_test70_controls) */
 static int vr_menu_button_action(char const *k){(void)k;return NONE;}
 static void vr_menu_button_row_text(struct vr_menu_setting const *s,int a,char *l,size_t n){(void)s;(void)a;snprintf(l,n,"BUTTON");}
+static int vr_menu_button_hints(char *l,size_t n){(void)l;(void)n;return 0;}
 static int vr_gun_class(void){return 0;}
 static char const *vr_gun_class_label(int k){(void)k;return "RIFLE";}
 static char const *vr_gun_class_key(int k){(void)k;return "rifle";}

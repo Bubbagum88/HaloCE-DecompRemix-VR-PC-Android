@@ -76,7 +76,8 @@ static struct { char const *key; int on; } store[] = {
     {"vr.button_sprint_toggle",0},{"vr.button_sprint",0},{"vr.assisted_combat",0},{"vr.close_contact",0},
     {"vr.npc_one_hand_heavy",0}, /* Test63: ONE-HAND HEAVIES */
     {"vr.combat_moves",0},{"vr.projectile_parry",0}, /* Test67 optional combat refinements */
-    {"vr.vehicle_cockpit_lock",1},{"vr.vehicle_grip_guide",0},{"vr.npc_lift_to_ragdoll",1}}; /* Test65 */
+    {"vr.vehicle_cockpit_lock",1},{"vr.vehicle_grip_guide",0},{"vr.npc_lift_to_ragdoll",1}, /* Test65 */
+    {"vr.slide",0},{"vr.arm_run",0}}; /* Test70: SLIDE brings a sprint (BUTTON SPRINT unless ARM RUN) */
 static char automatic_store[256], view_store[32] = "chase", melee_store[32] = "swing";
 static real speed_store, assist_store = 0.05f;
 static real throw_store = 0.0f;
@@ -240,9 +241,10 @@ int main(void)
     assert(!config_boolean("vr.custom_npc_rigs"));
     /* Test66: NPC GRAB and FIST COMBAT bring GRAB ASSIST of at least 10 cm,
      * back to 5 cm when the last of them goes; more chosen by hand stays */
-    assist_store=0.05f;choose("vr.npc_interaction",1);assert(assist_store>0.099f&&assist_store<0.101f);
-    choose("vr.assisted_combat",1);choose("vr.npc_interaction",0);assert(assist_store>0.099f);
-    choose("vr.assisted_combat",0);assert(assist_store>0.049f&&assist_store<0.051f);
+    /* Test70: NPC GRAB and FIST COMBAT bring 15 cm; released, 10 cm */
+    assist_store=0.05f;choose("vr.npc_interaction",1);assert(assist_store>0.149f&&assist_store<0.151f);
+    choose("vr.assisted_combat",1);choose("vr.npc_interaction",0);assert(assist_store>0.149f);
+    choose("vr.assisted_combat",0);assert(assist_store>0.099f&&assist_store<0.101f);
     assist_store=0.20f;choose("vr.npc_interaction",1);choose("vr.npc_interaction",0);assert(assist_store>0.199f);
     /* Test66: WORLD GRAB and LIFT VEHICLES bring OBJECT THROW (2X), off with the last */
     throw_store=0;choose("vr.vehicle_lift",1);assert(throw_store>1.99f);choose("vr.world_interaction",1);choose("vr.vehicle_lift",0);
@@ -258,7 +260,7 @@ int main(void)
 with tempfile.TemporaryDirectory(prefix="test60-") as temp:
     path = Path(temp)
     (path / "check.c").write_text(code)
-    subprocess.run(["clang", "-std=gnu11", "-Wall", "-Wextra", "-Werror", "-Wno-unused-function", "-Wno-unused-parameter",
+    subprocess.run(["clang", "-I", str(ROOT / "port/linux/game"), "-std=gnu11", "-Wall", "-Wextra", "-Werror", "-Wno-unused-function", "-Wno-unused-parameter",
                     "-fsanitize=address,undefined", "-fno-sanitize-recover=all",
                     str(path / "check.c"), "-o", str(path / "check")], check=True)
     subprocess.run([str(path / "check")], check=True)

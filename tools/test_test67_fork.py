@@ -102,10 +102,11 @@ menu = read('port/linux/game/vr_menu.c')
 buttons = menu[menu.index('static struct vr_menu_setting const vr_menu_buttons[] =\n{'):]
 buttons = buttons[:buttons.index('\n};')]
 rows = re.findall(r'\{ "([^"]+)", "([^"]*)", (_vr_setting_\w+)', buttons)
-assert rows[0] == ('ALL TO DEFAULT', 'buttons', '_vr_setting_reset_buttons'), rows[0]
-assert rows[-1] == ('RESET BUTTONS', 'buttons', '_vr_setting_reset_buttons'), rows[-1]
+# Test70: RESET CONTROLS heads and ends the page (the owner: obvious)
+assert rows[0] == ('RESET CONTROLS', 'buttons', '_vr_setting_reset_buttons'), rows[0]
+assert rows[-1] == ('RESET CONTROLS', 'buttons', '_vr_setting_reset_buttons'), rows[-1]
 assert '"DONE" : "APPLY"' in menu and 'vr_menu_buttons_reset_at = system_milliseconds();' in menu
-print('PASS: the VR BUTTONS page resets from its first row (ALL TO DEFAULT) and its last, and says DONE')
+print('PASS: the VR BUTTONS page resets from its first row (RESET CONTROLS) and its last, and says DONE')
 
 # 6. licenses: what Test67 brings, credited, with its full notices
 credits = read('CREDITS.md')

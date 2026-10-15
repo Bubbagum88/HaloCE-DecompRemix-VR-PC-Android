@@ -81,7 +81,7 @@ assert "reach=radius+0.35f*units;" in parkour
 assert "parkour.walljump_age<=2*TICKS_PER_SECOND" in parkour
 assert "fmaxf(parkour.run_speed,4.0f*per_second)*multiplier,4.0f*per_second,2.0f*per_second,9.0f*per_second" in parkour
 assert "if(progress<0.6f)velocity->k=0.0f;" in parkour
-assert "vr_pk_leap(look.n,wall.plane.n.n" in parkour, "wall jump toward the look direction unchanged"
+assert "vr_pk_wall_leap(look.n,from_wall.n," in parkour, "wall jump toward the look direction (Test70: the level look leads)"
 # Calibration: keys, zone helpers shared by markers and triggers, menu rows.
 for key in ("pouch_hip", "pouch_shoulder", "holster_hip", "holster_shoulder"):
     for axis in ("out", "up", "back"):

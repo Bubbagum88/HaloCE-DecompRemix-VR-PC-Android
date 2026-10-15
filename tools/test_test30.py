@@ -54,7 +54,7 @@ run('menu_letters', r'''
 #include <stdint.h>
 #include <stdio.h>
 #include "port/android/include/halo_android_abi.h"
-static struct { struct halo_xr_frame frame; int menus_active, touch_layout, controls_mirrored, x_hold_switched;
+static struct { struct halo_xr_frame frame; int menus_active, touch_layout, controls_mirrored, buttons_mirrored, x_hold_switched;
  double grenade_pulse, x_held; } vr;
 static unsigned int run(unsigned int buttons, unsigned int right, unsigned int left, int *grenade){
  int grenade_down = *grenade;
@@ -73,8 +73,8 @@ int main(void){
  /* the table's other buttons the face buttons gave are replaced; the rest (Start, sticks, Back) kept */
  assert(run(BLACK|HALO_XR_BUTTON_START|HALO_XR_BUTTON_BACK, 0, 0, &g)==(HALO_XR_BUTTON_START|HALO_XR_BUTTON_BACK));
  /* left-handed (mirrored): the pointer's back is the left's upper (Y); B is the Xbox's B */
- vr.controls_mirrored=1; assert(run(0, E, 0, &g)==B); assert(run(0, 0, E, &g)==0); assert(run(0, 0, S, &g)==X);
- vr.controls_mirrored=0;
+ vr.controls_mirrored=vr.buttons_mirrored=1; assert(run(0, E, 0, &g)==B); assert(run(0, 0, E, &g)==0); assert(run(0, 0, S, &g)==X);
+ vr.controls_mirrored=vr.buttons_mirrored=0;
  /* in play (no menu), or another controller's layout: the table's buttons and the grenade as before */
  vr.menus_active=0; g=1; vr.grenade_pulse=0.1; assert(run(X|BLACK, 0, S, &g)==(X|BLACK) && g==1 && vr.grenade_pulse==0.1);
  vr.menus_active=1; vr.touch_layout=0; g=1; assert(run(X|BLACK, 0, S, &g)==(X|BLACK) && g==1);
@@ -84,7 +84,7 @@ int main(void){
 ''')
 pointer = fn(frame, 'vr_ui_pointer')
 assert 'vr.menus_active = menus_active != 0;' in pointer
-assert 'back_down = (vr.frame.hand_buttons[vr.controls_mirrored ? 0 : 1] & HALO_XR_HAND_EAST) != 0;' in pointer, 'the back the block leaves out'
+assert 'back_down = (vr.frame.hand_buttons[vr.buttons_mirrored ? 0 : 1] & HALO_XR_HAND_EAST) != 0;' in pointer, 'the back the block leaves out'
 
 # --- 2. the co-op host's server name: format 3, the name on its own line
 reader = fn(session, 'coop_request_read')

@@ -74,6 +74,9 @@ static struct { long noted_weapon,pending_expected_weapon,holster_unit,holster_d
 static double clock_ms;
 static double now_ms(void) { return clock_ms; }
 static int physical_weapons(void) { return 1; }
+/* Test70: locked holstering (off here) */
+static int locked_holstering(void) { return 0; }
+static int hand_states(void) { return physical_weapons() || locked_holstering(); }
 static void platform_log(char const *format, ...) { (void)format; }
 '''
 helpers = ["vr_length", "vr_point_minus", "vr_rotation_between", "vr_rotate_vector", "vr_carry",

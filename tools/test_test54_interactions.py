@@ -29,7 +29,7 @@ assert "model_node=(short)npc_body_touch(probe_rig,&probe,body_reach,units," in 
 # for on Halo's own pose, local hands only; the hold follows the hand
 assert "if(!use_remote)vr_combat_drawn_to_native(it.index,&point,&probe);" in npc
 assert "npc.target[h]=npc.previous[h]=point;" in npc
-assert 'npc_setting("vr.npc_grab_assist",0.10f,0.0f,0.25f)' in npc  # Test66: from the body's surface, to 25 cm
+assert 'npc_setting("vr.npc_grab_assist",0.15f,0.0f,0.25f)' in npc  # Test70: 15 cm default  # Test66: from the body's surface, to 25 cm
 assert "body_capsule_hits=%d" in npc
 # Hold strength and throws.
 assert 'npc_setting("vr.npc_hold_strength",1.5f,0.75f,2.5f)' in npc

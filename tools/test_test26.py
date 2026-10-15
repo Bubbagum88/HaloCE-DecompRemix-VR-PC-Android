@@ -546,7 +546,7 @@ assert '"FLASHLIGHT", "vr.flashlight_distance"' in gestures and '{ "20 CM", "0.2
 assert '"HUD TAP", "vr.hud_tap_distance"' in gestures and '{ "10 CM", "0.1" }' in gestures
 gameplay = between(menu, 'static struct vr_menu_setting const vr_menu_vr[] =', '};')
 assert 'vr.crosshair' not in gameplay and 'vr.flashlight_distance' not in gameplay, 'each setting on one page'
-assert '{ "RETICLE", "vr.button_reticle", _vr_setting_button, 9,' in menu and '{ "R DOWN", "right_stick_down" }' in menu
+assert '{ "RETICLE", "vr.button_reticle", _vr_setting_button, 10,' in menu  # Test70: R UP too and '{ "R DOWN", "right_stick_down" }' in menu
 print('PASS: settings grouped (HUD + RETICLE: crosshair, size, opacity, wrist HUD; HEAD GESTURES: flashlight and HUD tap'
       ' reach or off; BUTTONS: reticle, R DOWN for the turning stick held down); defaults shown as choices')
 

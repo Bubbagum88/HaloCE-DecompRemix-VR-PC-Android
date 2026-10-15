@@ -35,9 +35,11 @@ assert "handlers[1].function = VR_MENU_NEXT_FUNCTION;" in menu
 row = menu[menu.index("    if(setting->type == _vr_setting_button) {"):]
 row = row[:row.index("return TRUE;\n    }") + 20]
 assert "vr_menu_button_row_change(setting, action, step);" in row and "vr_menu_button_set(" not in row
-assert '"RESET CONTROLS TO DEFAULT"' in menu and menu.count('"RESET CONTROLS TO DEFAULT"') == 2
+assert menu.count('{ "RESET CONTROLS", "buttons", _vr_setting_reset_buttons') == 2
 assert '{ "NONE", "none" } } },' in menu
-for note in ("(OFF: BUTTON SPRINT)", "(OFF: GRENADE ON GRIP)", "(LOCKED WEAPONS ONLY)", "USED BY %s", "IS %s'S: < %s > A: OK", "(DEFAULT)"):
+# (rows fit their width, test_test25: a mark there, the words on the hints line)
+for note in ('"%s: L STICK*"', '"*: OFF FOR NOW  "', '"+: SHARED  "', '"A: SWAP WITH %s"', '"A: TAKE %s, %s GETS NONE"',
+             '" (DEFAULT)"', '"%s IS %s\'S. A: ASK  < >: CHANGE"', '"%s: %s?"'):
     assert note in menu, note
 # other rows: A still steps on, and ends a button row's choosing
 assert "if (!step)\n\t\t\tstep = 1;" in menu

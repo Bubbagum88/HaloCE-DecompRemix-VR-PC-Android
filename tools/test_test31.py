@@ -223,6 +223,8 @@ run('seated_fire', r'''
 #define HAND_EMPTY 0
 static struct { int seated, hand_state, weapon_hand; float pad_trigger[2]; struct {float trigger[2];} frame; } vr;
 static int physical; static int physical_weapons(void){return physical;}
+/* (Test70: the empty hand, locked holstering off here) */
+static int vr_hand_empty(void){return physical_weapons()&&vr.hand_state==HAND_EMPTY;}
 static void fire(void){
 ''' + fire + r'''
 }
@@ -246,29 +248,36 @@ run('display_winding', r'''
 #include <stdio.h>
 typedef unsigned char byte; typedef int boolean;
 #define _rasterizer_vertex_type_model_compressed 5
-struct vertex_buffer {int type;long count;}; struct triangle_buffer {int unused;};
+struct vertex_buffer {int type;long count;void *hardware_format;}; struct triangle_buffer {int unused;};
+#define RASTERIZER_MAXIMUM_NODES_PER_MODEL 44
 static byte vertices[513*32];
 static signed char vr_node_winding[44]; static short vr_node_winding_count=8;
 static boolean vr_root_mirrored=1;static int mirrored=1,selected=-1,reads;
 static int halo_vr_model_mirrored(void){return mirrored;}
 static void halo_vr_skinning_mirrored(int n){selected=n;}
 static int rasterizer_model_buffer_data(const struct vertex_buffer *v,const struct triangle_buffer *t,const void **data,const void **indices){reads++;*data=vertices;*indices=vertices;return 1;}
-''' + part + r'''
+''' + raster[raster.index('#define VR_PART_NODE_CACHE'):raster.index('void rasterizer_vr_part_winding(')] + part + r'''
 static void v(int i,int node,int second,int weight){vertices[i*32+28]=node*3;vertices[i*32+29]=second*3;short w=weight;memcpy(vertices+i*32+30,&w,2);}
 int main(void){
- struct vertex_buffer buffer={5,4};struct triangle_buffer triangles={0};
+ /* (Test70: a part's nodes are read once, by its buffer: each case its own
+    buffer, as a model's parts are; a part's vertices never change) */
+ struct vertex_buffer buffer={5,4,(void *)1};struct triangle_buffer triangles={0};
  for(int i=0;i<8;i++)vr_node_winding[i]=-1;vr_node_winding[7]=1;
  for(int i=0;i<4;i++)v(i,7,0,32767);
  rasterizer_vr_part_winding(&buffer,&triangles);assert(selected==0); /* display node 7, root mirrored */
- for(int i=0;i<4;i++)v(i,0,7,32767);
+ for(int i=0;i<4;i++)v(i,0,7,32767);buffer.hardware_format=(void *)2;
  rasterizer_vr_part_winding(&buffer,&triangles);assert(selected==1); /* body remains mirrored */
- for(int i=0;i<4;i++)v(i,0,7,0);
+ for(int i=0;i<4;i++)v(i,0,7,0);buffer.hardware_format=(void *)3;
  rasterizer_vr_part_winding(&buffer,&triangles);assert(selected==0); /* zero influence ignored */
- v(3,0,7,10000);rasterizer_vr_part_winding(&buffer,&triangles);assert(selected==1); /* mixed: existing fallback */
- v(3,43,0,32767);rasterizer_vr_part_winding(&buffer,&triangles);assert(selected==1); /* bounds */
- selected=0;buffer.count=513;int before=reads;rasterizer_vr_part_winding(&buffer,&triangles);assert(selected==1 && reads==before);
- mirrored=0;selected=0;buffer.count=4;rasterizer_vr_part_winding(&buffer,&triangles);assert(selected==0 && reads==before);
- puts("PASS: actual part-winding helper: unmirrored display on mirrored root; both influences, bounds, per-part reset and right-hand no-op");
+ v(3,0,7,10000);buffer.hardware_format=(void *)4;rasterizer_vr_part_winding(&buffer,&triangles);assert(selected==1); /* mixed: existing fallback */
+ v(3,43,0,32767);buffer.hardware_format=(void *)5;rasterizer_vr_part_winding(&buffer,&triangles);assert(selected==1); /* bounds */
+ /* Test70: a large part (a gun turned back whole) is read too, once */
+ for(int i=0;i<513;i++)v(i,7,0,32767);
+ selected=1;buffer.count=513;buffer.hardware_format=(void *)6;int before=reads;
+ rasterizer_vr_part_winding(&buffer,&triangles);assert(selected==0 && reads==before+1);
+ selected=1;rasterizer_vr_part_winding(&buffer,&triangles);assert(selected==0 && reads==before+1); /* kept */
+ before=reads;mirrored=0;selected=0;buffer.count=4;buffer.hardware_format=(void *)7;rasterizer_vr_part_winding(&buffer,&triangles);assert(selected==0 && reads==before);
+ puts("PASS: actual part-winding helper: unmirrored display on mirrored root; both influences, bounds, per-part reset, large parts read once (Test70) and right-hand no-op");
 }
 ''')
 

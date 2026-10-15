@@ -75,7 +75,7 @@ assert 'if (!vr_render_hands_only() && vr_hand_tracking_mode() != 1) return;' in
 begin = fn(frame, 'frame_begin')
 assert begin.index('if (vr.controls_mirrored)') < begin.index('layout_controls();'), 'sticks swap before anything reads them'
 assert 'vr.frame.thumb[0] = vr.frame.thumb[2];' in begin and 'vr.frame.thumb[2] = move[0];' in begin
-assert 'back_down = (vr.frame.hand_buttons[vr.controls_mirrored ? 0 : 1] & HALO_XR_HAND_EAST) != 0;' in frame
+assert 'back_down = (vr.frame.hand_buttons[vr.buttons_mirrored ? 0 : 1] & HALO_XR_HAND_EAST) != 0;' in frame
 reload = fn(frame, 'vr_reload_settings')
 assert 'vr.controls_mirrored = left_handed && strcmp(config_string("vr.mirror_controls"), "off") != 0;' in reload
 init = frame[frame.index('migrate_calibration_split();\n\tmigrate_handedness();'):]
@@ -346,6 +346,7 @@ host = r'''
 enum { HAND_LOOSE, HAND_HELD, HAND_EMPTY };
 static struct { struct { uint32_t hand_buttons[2], buttons; float trigger[2], thumb[4]; int64_t predicted_display_period; } frame;
  int layout_vr, weapon_hand, touch_layout, zoom_down, view_recentred, back_pulse, heading_valid, x_hold_switched, controls_mirrored,
+ buttons_mirrored, turn_stick_up, bullet_time_held, /* Test70 */
  grip_held[2], in_holster, hand_state, physical, button_source[VR_BUTTON_ACTIONS], recentre_source; unsigned pad_buttons; float pad_trigger[2];
  double x_held, grenade_pulse, view_held;
  /* test26: crouch on the turning stick held down, the reticle's toggle */
@@ -355,6 +356,8 @@ static struct { struct { uint32_t hand_buttons[2], buttons; float trigger[2], th
 static int recentres, buzzes;
 static void platform_log(const char *f, ...){(void)f;}
 static int physical_weapons(void){return vr.physical;}
+/* (Test70: the empty hand, locked holstering off here) */
+static int vr_hand_empty(void){return vr.physical&&vr.hand_state==HAND_EMPTY;}
 static void host_xr_recenter(void){recentres++;}
 static void vr_haptic(int h,float a,float s){(void)h;(void)a;(void)s;buzzes++;}
 static int stick_zoom_active(void){return 0;} /* Test55: physical melee off in these frames: the trigger zooms */
@@ -379,7 +382,7 @@ int main(void){
    tx[n]=((int)(rnd()%201)-100)/100.f;ty[n]=((int)(rnd()%201)-100)/100.f;}
   for(int side=0;side<2;side++){
    memset(&vr,0,sizeof vr);defaults();recentres=0;vr.layout_vr=1;vr.touch_layout=touch;vr.physical=phys;vr.in_holster=holster;vr.hand_state=state;
-   vr.frame.predicted_display_period=13888889;vr.controls_mirrored=side;vr.weapon_hand=side?0:1;
+   vr.frame.predicted_display_period=13888889;vr.controls_mirrored=vr.buttons_mirrored=side;vr.weapon_hand=side?0:1;
    for(int n=0;n<60;n++){
     /* side 1: the same hands, but the left-handed player's are the other way round */
     vr.frame.hand_buttons[0]=side?sr[n]:sl[n];vr.frame.hand_buttons[1]=side?sl[n]:sr[n];
@@ -393,7 +396,7 @@ int main(void){
  }
  /* right-handed is unchanged: A jumps, B (stick) melee; left-handed: X jumps */
  memset(&vr,0,sizeof vr);vr.layout_vr=1;vr.weapon_hand=1;vr.frame.hand_buttons[1]=HALO_XR_HAND_SOUTH;layout_controls();assert(vr.pad_buttons==HALO_XR_BUTTON_A);
- memset(&vr,0,sizeof vr);vr.layout_vr=1;vr.weapon_hand=0;vr.controls_mirrored=1;vr.frame.hand_buttons[0]=HALO_XR_HAND_SOUTH;layout_controls();assert(vr.pad_buttons==HALO_XR_BUTTON_A);
+ memset(&vr,0,sizeof vr);vr.layout_vr=1;vr.weapon_hand=0;vr.controls_mirrored=vr.buttons_mirrored=1;vr.frame.hand_buttons[0]=HALO_XR_HAND_SOUTH;layout_controls();assert(vr.pad_buttons==HALO_XR_BUTTON_A);
  memset(&vr,0,sizeof vr);vr.layout_vr=1;vr.weapon_hand=0;vr.controls_mirrored=0;vr.frame.hand_buttons[1]=HALO_XR_HAND_SOUTH;layout_controls();assert(vr.pad_buttons==HALO_XR_BUTTON_A);
  /* test26: the turning stick held down crouches (Touch defaults), let go a little sooner than taken; never seated */
  memset(&vr,0,sizeof vr);defaults();vr.layout_vr=1;vr.touch_layout=1;vr.weapon_hand=1;
