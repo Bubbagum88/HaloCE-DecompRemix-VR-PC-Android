@@ -904,8 +904,10 @@ def main():
                 if b"client follows the host's activating place" not in guest:
                     raise SystemExit("Test24 co-op cutscene activation missing")
             if candidate_at_least(args.label, 23) and vr:
-                for marker in [b"BUTTONS", b"RESET BUTTONS", b"USE / RELOAD", b"NEXT GRENADE", b"vr.button_grenade",
-                               b"vr.button_switch_grenade", b"that button does both"]:
+                # (Test70: the reset row is RESET CONTROLS, and a taken button asks)
+                for marker in [b"BUTTONS", b"RESET CONTROLS" if candidate_at_least(args.label, 70) else b"RESET BUTTONS",
+                               b"USE / RELOAD", b"NEXT GRENADE", b"vr.button_grenade",
+                               b"vr.button_switch_grenade", b"that button does both"] +                               ([b"A: SWAP WITH %s", b"*: OFF FOR NOW  ", b"vr.button_bullet_time"] if candidate_at_least(args.label, 70) else []):
                     if marker not in guest: raise SystemExit("Test23 button remapping marker missing: " + repr(marker))
             if candidate_at_least(args.label, 21) and vr:
                 for marker in [b"FLOAT + ARMS", b"AUTO LOCK", b"SWING + ONLINE", b"support grip locked automatically",
