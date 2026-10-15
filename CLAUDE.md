@@ -7,6 +7,24 @@ names are used for launcher updates. See `docs/RELEASE-1.0.37.md`,
 Automated checks passed; device acceptance remains pending. Keep experimental
 and WIP features labeled as such.
 
+## Private candidate after it: Test71 (1.0.38-test71 / code83)
+
+Every campaign mod installs from the launcher in one tap, as SPV1 does (the
+owner: "i want all of the mods to work like that for future reference"):
+Lumoria from halomaps.org (file ids 6503-6506; ModMap.extra replaces "fid
+0"), Altheros from moddb.com through the launcher's WebView
+(ModDownloadActivity: moddb refuses other clients) and unpacked on the device
+(ArchiveExtractor, libarchive-android 1.1.7 / libarchive 3.8.8: its RAR5
+extracts to the recipe's 13 SHA-256s off-device). Import (folder, .zip, now
+.rar) stays as every mod's fallback. Manual reload: mods' guns by their own
+model nodes and magazine (vr_reload_generic_profile.h; SPV1's names are all
+"<protected>" at run time, so none of its guns had a profile); a second
+magazine reloads itself (weapons.c holds back only magazine 0's triggers).
+Altheros stays "Experimental — currently not working" (the owner).
+Read docs/TEST71-CHECKLIST.md, TEST71-DEVICE-CHECKLIST.md and
+TEST71-DELIVERY-STATUS.md. Not published; whether moddb accepts the WebView
+hand-off needs a headset.
+
 Release-preparation polish on Test69, 1.0.37-test70 / code82. Read
 docs/TEST70-CHECKLIST.md (every owner item and its disposition),
 TEST70-FIELD-GUIDE.md, TEST70-DEVICE-CHECKLIST.md, TEST70-CONTROLS-AUDIT.md,

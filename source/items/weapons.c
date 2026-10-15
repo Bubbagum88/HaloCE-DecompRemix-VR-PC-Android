@@ -3377,7 +3377,9 @@ boolean weapon_update(
 			triggers_down[trigger_index]= TEST_FLAG(trigger->flags, _weapon_trigger_toggled_bit);
 		}
 
-		if (physical_reload_block) triggers_down[trigger_index] = FALSE;
+		/* Test71: only the triggers of the magazine loaded by hand (the
+		first; a mod's second magazine fires and reloads as it always has) */
+		if (physical_reload_block && trigger_definition->magazine_index <= 0) triggers_down[trigger_index] = FALSE;
 		if (!triggers_down[trigger_index])
 		{
 			SET_FLAG(trigger->flags, _weapon_trigger_released_since_last_shot_bit, TRUE);
@@ -3411,7 +3413,7 @@ boolean weapon_update(
 			{
 				struct weapon_magazine *magazine= weapon_magazine_get(weapon, trigger_definition->magazine_index);
 
-				if (!physical_reload_auto && magazine &&
+				if (!(physical_reload_auto && trigger_definition->magazine_index == 0) && magazine &&
 					((magazine->rounds_loaded<trigger_definition->rounds_per_shot && !TEST_FLAG(trigger_definition->flags, _weapon_trigger_can_fire_with_partial_ammunition_bit)) ||
 					magazine->rounds_loaded<trigger_definition->minimum_rounds_loaded_per_shot ||
 					magazine->rounds_loaded==0))

@@ -12,6 +12,8 @@ void vr_manual_reload_debris_render(void);
 void vr_manual_reload_note_weapon(long weapon_index);
 unsigned vr_manual_reload_update(long weapon_index, int explicit_reload);
 void vr_manual_reload_model(long weapon_index, long model_index, struct real_matrix4x3 *matrices);
+/* Test71: the held weapon's model is the needler's rig (a mod's needler) */
+int vr_manual_reload_needle_rig(long weapon_index);
 int vr_manual_reload_trace(float const from[3], float const vector[3], float radius,
     struct collision_result *result);
 int vr_manual_reload_hand(int hand, float position[3]);

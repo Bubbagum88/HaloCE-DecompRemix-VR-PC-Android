@@ -44,6 +44,8 @@ public class LauncherActivity extends Activity {
     private static final int PICK_MCC_SHARED = 5;
     /** Test70: an imported mod's archive (Lumoria's .zip), picked as a file */
     private static final int PICK_MOD_ZIP = 6;
+    /** Test71: a mod's archive downloaded in the launcher's browser (ModDownloadActivity) */
+    private static final int MOD_WEB_DOWNLOAD = 7;
     private TextView mccStatus;
 
     private File dataRoot;
@@ -556,12 +558,15 @@ public class LauncherActivity extends Activity {
             startActivityForResult(intent, PICK_RESOURCES);
         });
         TextView setupHelp = new TextView(this);
+        // Test71: every mod installs in one tap (the owner); importing is the fallback
         setupHelp.setText("Included with this app: setup recipes, automatic folders, file verification and campaign switching. "
-            + "No Halo or third-party campaign assets are bundled.\n\n"
+            + "No Halo or third-party campaign assets are bundled: Download and install fetches " + mod.title
+            + " from where its authors published it (" + (mod.webDownload() ? "moddb.com" : "halomaps.org")
+            + ") and checks every file (exact size and SHA-256).\n\n"
             + "Required: " + mod.requirement + " "
-            + "\n1. Tap Prepare / verify mod files.\n2. Import " + (mod.imported ? "its .zip archive or " : "")
-            + "the extracted folder (subfolders are scanned); use the file picker below for separate CE resources. "
-            + "Already valid files are reused.\n3. Tap Install. "
+            + "\nOr, without the download (your own copy, or the host is down):\n1. Tap Prepare / verify mod files."
+            + "\n2. Import its .zip or .rar archive, or the extracted folder (subfolders are scanned); use the file "
+            + "picker below for separate CE resources. Already valid files are reused.\n3. Tap Install. "
             + (mod.addsLevelsOnly()
                 ? "Its levels are then in New Game, map kind CUSTOM SINGLEPLAYER; the original campaign stays as it is. "
                 : "The normal campaign menu then plays this campaign. Play the original campaign restores your base maps. ")
@@ -584,13 +589,15 @@ public class LauncherActivity extends Activity {
             startActivityForResult(intent, PICK_MOD_FOLDER);
         });
         // Test70: or straight from the archive its authors published
-        modImportZip = menuButton(modDetails, "Import " + mod.title + " from a .zip");
+        // (Test71: or its .rar / .7z, unpacked here: ArchiveExtractor)
+        modImportZip = menuButton(modDetails, "Import " + mod.title + " from a .zip or .rar");
         modImportZip.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("*/*");
             intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] { "application/zip", "application/x-zip-compressed",
-                "application/octet-stream" });
+                "application/vnd.rar", "application/x-rar-compressed", "application/x-rar",
+                "application/x-7z-compressed", "application/octet-stream" });
             startActivityForResult(intent, PICK_MOD_ZIP);
         });
         modAction = menuButton(modDetails, "");
@@ -612,7 +619,7 @@ public class LauncherActivity extends Activity {
         modPrepare.setEnabled(!busy);
         modImport.setVisibility(!installed ? View.VISIBLE : View.GONE);
         modImport.setEnabled(!busy);
-        modImportZip.setVisibility(!installed && selectedMod.imported ? View.VISIBLE : View.GONE);
+        modImportZip.setVisibility(!installed ? View.VISIBLE : View.GONE);
         modImportZip.setEnabled(!busy);
         modResources.setVisibility(resources ? View.GONE : View.VISIBLE);
         modResources.setEnabled(!busy);
@@ -628,16 +635,21 @@ public class LauncherActivity extends Activity {
                         : "Installed: the campaign plays as " + selectedMod.title + ".")
                 : downloaded ? "Imported, not installed: " + (other != null ? other.title : "the original campaign") + " plays."
                     + (resources ? "" : " Still needed: " + needed)
+                : selectedMod.webDownload()
+                    ? "Not downloaded yet: tap Download and install (or import your own copy)."
+                        + (resources ? "" : " Still needed: " + needed)
                 : "Not imported yet. Still needed: " + needed)
                 + "\nAfter switching, start levels anew: a checkpoint of one campaign does not load into the other.");
-            modAction.setText(installed ? "Restore the original campaign" : "Install " + selectedMod.title);
-            modAction.setEnabled(!busy && (installed || (downloaded && resources)));
+            // Test71: a mod the launcher downloads in its browser installs in one tap too
+            modAction.setText(installed ? "Restore the original campaign"
+                : downloaded || !selectedMod.webDownload() ? "Install " + selectedMod.title : "Download and install");
+            modAction.setEnabled(!busy && (installed || ((downloaded || selectedMod.webDownload()) && resources)));
             modDelete.setText(installed ? "Uninstall and restore original campaign" : "Delete the imported mod files");
             modDelete.setVisibility(installed || downloaded || mods.hasDownloadFiles(selectedMod) ? View.VISIBLE : View.GONE);
             modDelete.setEnabled(!busy);
             return;
         }
-        modState.setText((resources ? "" : "BEFORE INSTALLING: SPV1 needs three files from Halo Custom Edition "
+        modState.setText((resources ? "" : "BEFORE INSTALLING: " + selectedMod.title + " needs three files from Halo Custom Edition "
                 + "for PC (a free download for owners of Halo PC). They come with the game, so they cannot come "
                 + "with this app; you only do this once.\n"
                 + "1. On your computer, open Halo Custom Edition's folder (often C:\\Program Files (x86)\\"
@@ -652,8 +664,11 @@ public class LauncherActivity extends Activity {
                 + "(press and hold one, then tap the others).\n"
                 + "(Or copy them with SideQuest straight into " + mods.resourcePath() + ".)\n"
                 + "Still needed: " + mods.missingResources() + "\n\n")
-            + (installed ? "Installed: the campaign plays as " + selectedMod.title + "."
-            : downloaded ? "Downloaded, not installed: the original campaign plays."
+            + (installed ? (selectedMod.addsLevelsOnly()
+                ? "Installed: " + selectedMod.title + "'s levels are in New Game, map kind CUSTOM SINGLEPLAYER."
+                : "Installed: the campaign plays as " + selectedMod.title + ".")
+            : downloaded ? "Downloaded, not installed: " + (mods.installedMod() != null ? mods.installedMod().title
+                : "the original campaign") + " plays."
             : "Not installed: the original campaign plays.")
             + "\nAfter switching, start levels anew: a checkpoint of one campaign does not load into the other.");
         modAction.setText(installed ? "Restore the original campaign"
@@ -678,6 +693,27 @@ public class LauncherActivity extends Activity {
     private void modActionClicked() {
         ModInstaller.Mod mod = selectedMod;
         boolean installed = mods.installed(mod);
+
+        // Test71: a mod only a browser may download (moddb.com): its archive
+        // in the launcher's own browser first, then unpacked and installed
+        if (!installed && mod.webDownload() && !mods.downloaded(mod)) {
+            File archive = mods.archiveFile(mod);
+            if (archive.isFile() && archive.length() == mod.archiveSize) {
+                setBusy(true);
+                new Thread(() -> installFromArchive(mod), "mod-unpack").start();
+                return;
+            }
+            Intent intent = new Intent(this, ModDownloadActivity.class)
+                .putExtra(ModDownloadActivity.EXTRA_START, mod.webStart)
+                .putExtra(ModDownloadActivity.EXTRA_PAGE, mod.webPage)
+                .putExtra(ModDownloadActivity.EXTRA_NAME, mod.archiveName)
+                .putExtra(ModDownloadActivity.EXTRA_SIZE, mod.archiveSize)
+                .putExtra(ModDownloadActivity.EXTRA_MD5, mod.archiveMd5)
+                .putExtra(ModDownloadActivity.EXTRA_TARGET, archive.getAbsolutePath());
+            report("Downloading " + mod.title + " in the launcher's browser...", -1);
+            startActivityForResult(intent, MOD_WEB_DOWNLOAD);
+            return;
+        }
 
         setBusy(true);
         new Thread(() -> {
@@ -772,15 +808,54 @@ public class LauncherActivity extends Activity {
         handler.post(() -> setBusy(false));
     }
 
-    /** Test70: an imported mod's files taken out of its archive. */
+    /** Test71: a downloaded archive unpacked, checked and installed; the
+     * archive is deleted once every file of the mod is in. */
+    private void installFromArchive(ModInstaller.Mod mod) {
+        File archive = mods.archiveFile(mod);
+        try {
+            prepareModForImport(mod);
+            report("Unpacking " + mod.title + " (" + ModInstaller.megabytes(mod.archiveSize) + " archive)...", -1);
+            ArchiveExtractor.extract(mods, mod, archive, this::report);
+            mods.validatePrepared(mod, false, this::report);
+            if (!mods.downloaded(mod))
+                throw new java.io.IOException("its archive lacks " + mods.missingForSetup(mod));
+            if (!archive.delete())
+                throw new java.io.IOException("cannot delete " + archive);
+            mods.install(mod, this::report);
+            report(mod.title + " is installed: play the campaign.", 1000);
+        } catch (Exception exception) {
+            report("Installing failed: " + exception.getMessage() + " (tap Download and install to try again; "
+                + "files already unpacked are kept)", -1);
+        }
+        handler.post(() -> setBusy(false));
+    }
+
+    /** Test70: an imported mod's files taken out of its archive (Test71:
+     * a .zip as before; anything else, .rar or .7z, by ArchiveExtractor). */
     private void importModZip(ModInstaller.Mod mod, Uri archive) {
         try {
             prepareModForImport(mod);
             int copied;
+            byte[] magic = new byte[4];
             try (java.io.InputStream in = getContentResolver().openInputStream(archive)) {
                 if (in == null)
                     throw new java.io.IOException("cannot open the chosen file");
-                copied = mods.importZip(mod, in, this::report);
+                int read = 0, count;
+                while (read < 4 && (count = in.read(magic, read, 4 - read)) > 0)
+                    read += count;
+            }
+            if (magic[0] == 'P' && magic[1] == 'K') {
+                try (java.io.InputStream in = getContentResolver().openInputStream(archive)) {
+                    if (in == null)
+                        throw new java.io.IOException("cannot open the chosen file");
+                    copied = mods.importZip(mod, in, this::report);
+                }
+            } else {
+                try (android.os.ParcelFileDescriptor in = getContentResolver().openFileDescriptor(archive, "r")) {
+                    if (in == null)
+                        throw new java.io.IOException("cannot open the chosen file");
+                    copied = ArchiveExtractor.extract(mods, mod, in, this::report);
+                }
             }
             mods.validatePrepared(mod, false, this::report);
             String missing = mods.missingForSetup(mod);
@@ -1148,6 +1223,17 @@ public class LauncherActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if((requestCode==GameDataManager.PICK_ISO||requestCode==GameDataManager.PICK_FOLDER)&&dataManager().result(requestCode,resultCode,data))return;
+        if (requestCode == MOD_WEB_DOWNLOAD && selectedMod != null) {
+            ModInstaller.Mod mod = selectedMod;
+            if (resultCode != RESULT_OK) {
+                report(mod.title + "'s download stopped. Tap Download and install to resume it, or import your "
+                    + "own copy (.rar or its folder).", -1);
+                return;
+            }
+            setBusy(true);
+            new Thread(() -> installFromArchive(mod), "mod-unpack").start();
+            return;
+        }
         if (requestCode == PICK_MOD_ZIP && resultCode == RESULT_OK && data != null && data.getData() != null
                 && selectedMod != null) {
             ModInstaller.Mod mod = selectedMod;

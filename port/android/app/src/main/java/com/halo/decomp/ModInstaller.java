@@ -50,11 +50,20 @@ final class ModInstaller {
         final String name;
         final int fid;
         final long size;
+        /** Test71: a level of the mod's own (Lumoria's, Altheros's f10), with
+         * no campaign map of its name to put aside; once only fid 0 said so,
+         * so a level of its own could not also be downloaded */
+        final boolean extra;
 
         ModMap(String name, int fid, long size) {
+            this(name, fid, size, fid == 0);
+        }
+
+        ModMap(String name, int fid, long size, boolean extra) {
             this.name = name;
             this.fid = fid;
             this.size = size;
+            this.extra = extra;
         }
     }
 
@@ -80,6 +89,31 @@ final class ModInstaller {
         final String status;
         /** Test70: what the player brings, for the setup steps */
         final String requirement;
+        /** Test71: an imported mod the launcher still downloads, through its
+         * own browser from a host that refuses anything but a browser
+         * (moddb.com): the page that starts the download, the archive's name,
+         * exact size and the host's MD5. Null: none (halomaps.org's mods are
+         * downloaded directly, by their maps' file ids) */
+        String webStart, webPage, archiveName, archiveMd5;
+        long archiveSize;
+
+        Mod webArchive(String start, String page, String name, long size, String md5) {
+            webStart = start;
+            webPage = page;
+            archiveName = name;
+            archiveSize = size;
+            archiveMd5 = md5;
+            return this;
+        }
+
+        boolean webDownload() {
+            return webStart != null;
+        }
+
+        /** the launcher can fetch it itself (Test71: every mod; the owner) */
+        boolean downloadable() {
+            return !imported || webDownload();
+        }
 
         Mod(String id, String title, String description, ModMap[] maps, String status, String requirement) {
             this(id, title, description, maps, ".map", false, null, null, status, requirement);
@@ -107,7 +141,7 @@ final class ModInstaller {
          * replaced, and the original campaign still plays beside it */
         boolean addsLevelsOnly() {
             for (ModMap map : maps)
-                if (map.fid != 0)
+                if (!map.extra)
                     return false;
             return true;
         }
@@ -177,17 +211,18 @@ final class ModInstaller {
      * with OpenSauce's memory upgrades) and their own resource maps, which
      * its download names -bitmaps.map, -sounds.map, -loc.map and its maps
      * look for as alsthetic-bitmaps.map and so on (their header's mod name).
-     * Not downloadable from here: the player copies its extracted folder to
-     * the headset and imports it once.
+     * Test71: downloaded from moddb.com in the launcher's own browser (moddb
+     * refuses other clients) and unpacked here (a RAR5: ArchiveExtractor);
+     * importing the player's own copy stays the fallback.
      */
     static final long[] ALTHEROS_DATA_SIZES = { 613838703L, 333893198L, 447783L };
     static final Mod ALTHEROS = new Mod("altheros", "The Altheros Experience",
         "Altheros's Halo 1 campaign mod (private beta, October 2019): reworked encounters, weapons, effects "
             + "and scripts across the campaign, as OpenSauce maps with their own textures and sounds, plus F10 "
             + "(a reworked Stockade).\n\n"
-            + "Not downloaded by the app: get \"Latest Altheros Experience 10.24.2019\" from moddb.com, extract it on "
-            + "a computer, and copy its folder (the .yelo files and data_files) to this headset's Download folder "
-            + "over USB or SideQuest. Then tap Import and choose that folder. About 3.4 GB once imported; up to "
+            + "Download and install fetches its archive (1.4 GB) from moddb.com in the launcher's own browser and "
+            + "unpacks it here (about 5 GB free needed while it does; the archive is deleted after). Or import "
+            + "your own copy: its .rar, or its extracted folder. About 3.4 GB once installed; up to "
             + "about 1 GB more as each level converts its sounds the first time it loads. It does not need Halo "
             + "Custom Edition's resource maps. Restoring puts the original campaign back; the mod stays imported "
             + "to switch back in at once.",
@@ -210,15 +245,21 @@ final class ModInstaller {
         // Test70: the owner's Test67 headset log still ends in game_load()
         // failing (the blue screen); kept available for future work
         STATUS_EXPERIMENTAL,
-        "the author's Latest Altheros Experience 10.24.2019 files (.yelo and data_files), from your own copy.");
+        "the author's Latest Altheros Experience 10.24.2019 files (.yelo and data_files), from your own copy.")
+        // Test71: downloaded through the launcher's browser from moddb.com
+        // (it refuses other clients), then unpacked (RAR5: ArchiveExtractor)
+        .webArchive("https://www.moddb.com/downloads/start/197339",
+            "https://www.moddb.com/mods/the-altheros-experience-halo-1-campaign-mod/downloads/latest-altheros-experience-10-24-2019",
+            "Latest_Altheros_Experience_10.24.2019.rar", 1477832127L, "7c76889eeed3e66654f4e91e8d5101e7");
 
     /**
      * Test70: Project Lumoria (TM Mapping Team, 2012): a campaign of its own
      * in four Halo Custom Edition levels (lumoria_a to lumoria_d), made under
-     * Microsoft's Game Content Usage Rules. Not downloaded by the app (its
-     * authors gave no permission to redistribute it): the player imports
-     * their copy of the Lumoria_Full_Campaign archive or its extracted
-     * folder. Its maps replace none of the campaign's (file id 0), so the
+     * Microsoft's Game Content Usage Rules. Never bundled (its authors gave
+     * no permission to redistribute it); Test71: downloaded, as SPV1 is,
+     * from halomaps.org, where its authors published it (file ids 6503 to
+     * 6506), or imported from the player's own copy. Its maps replace none
+     * of the campaign's (ModMap.extra), so the
      * original campaign still plays beside it; its own ui.map and Windows
      * sound DLLs are not used (the game keeps the Xbox's menus). Like SPV1
      * it takes Custom Edition's own resource maps.
@@ -227,18 +268,19 @@ final class ModInstaller {
         "The TM Mapping Team's 2012 campaign for Halo Custom Edition: May, a female SPARTAN-II, and a squad of "
             + "ODSTs on the Forerunner world of Lumoria. Two episodes in four new levels, with their own story, "
             + "voice acting, music and encounters.\n\n"
-            + "Not downloaded by the app: import your copy of Lumoria_Full_Campaign.zip (halomaps.org, moddb.com) "
-            + "straight from this device's Download folder, or its extracted folder. About 860 MB once imported, "
+            + "Download and install: about 460 MB from halomaps.org (its four levels), or import your own "
+            + "Lumoria_Full_Campaign.zip or its extracted folder. About 860 MB once installed, "
             + "and more as each level converts its sounds the first time it loads. Needs Halo Custom Edition's "
             + "own bitmaps.map, sounds.map and loc.map, as SPV1 does. Installing adds Lumoria's levels; the "
             + "original campaign stays playable. In the game: New Game, map kind CUSTOM SINGLEPLAYER, lumoria_a.",
         new ModMap[] {
-            new ModMap("lumoria_a", 0, 274873434L),
-            new ModMap("lumoria_b", 0, 228054210L),
-            new ModMap("lumoria_c", 0, 198269022L),
-            new ModMap("lumoria_d", 0, 191220134L),
-        }, ".map", true, null, null, STATUS_SUPPORTED,
-        "your Lumoria_Full_Campaign.zip (or its extracted folder) and the original PC Halo Custom Edition "
+            // (halomaps.org's Lumoria A-D: each the map whose SHA-256 the recipe has)
+            new ModMap("lumoria_a", 6503, 274873434L, true),
+            new ModMap("lumoria_b", 6504, 228054210L, true),
+            new ModMap("lumoria_c", 6505, 198269022L, true),
+            new ModMap("lumoria_d", 6506, 191220134L, true),
+        }, ".map", false, null, null, STATUS_SUPPORTED,
+        "Lumoria's levels (Download and install fetches them; or your own zip or folder) and the original PC Halo Custom Edition "
             + "bitmaps.map, sounds.map and loc.map. Lumoria's own ui.map and sound DLLs are not used.");
 
     /** Every campaign mod the launcher offers. */
@@ -475,7 +517,14 @@ final class ModInstaller {
                     || new File(directory, map.name + mod.extension + ".part").exists()
                     || new File(directory, map.name + mod.extension + ".audio").exists()) return true;
         }
-        return mod.dataFiles != null && modDataFiles(mod).isDirectory();
+        if (mod.webDownload() && (archiveFile(mod).exists() || new File(archiveFile(mod).getPath() + ".part").exists()))
+            return true;
+        // (Test71: its files, not the folder that held them, which stays after a delete)
+        if (mod.dataFiles != null)
+            for (int type = 0; type < DATA_FILE_NAMES.length; type++)
+                if (new File(modDataFiles(mod), dataFileName(mod, type)).exists()
+                        || new File(modDataFiles(mod), dataFileName(mod, type) + ".part").exists()) return true;
+        return false;
     }
 
     /** Test67: app-authored recipes carry provenance and hashes, never game assets.
@@ -716,7 +765,7 @@ final class ModInstaller {
         if (!originals.isDirectory() && !originals.mkdirs())
             throw new IOException("cannot make " + originals);
         for (ModMap map : mod.maps) {
-            if (map.fid != 0 && !new File(originals, map.name + ".map").isFile()
+            if (!map.extra && !new File(originals, map.name + ".map").isFile()
                     && !isXboxMap(new File(gameMaps(), map.name + ".map")))
                 throw new IOException("original Xbox campaign map missing: " + map.name);
         }
@@ -729,7 +778,7 @@ final class ModInstaller {
             // (an original already aside stays; the game's file is then a
             // mod's, from an interrupted swap). Test66: a .yelo goes in beside
             // where the original was: the game takes it when no .map is there
-            if (map.fid != 0 && !original.exists())
+            if (!map.extra && !original.exists())
                 move(game, original);
             move(new File(modMaps(mod), map.name + mod.extension), modded);
             move(new File(modMaps(mod), map.name + mod.extension + ".audio"),
@@ -757,7 +806,7 @@ final class ModInstaller {
         // stock map. Missing backup + a mod still active is not success.
         for (ModMap map : mod.maps) {
             File original = new File(originals(), map.name + ".map");
-            if (map.fid != 0 && !original.isFile() && !isXboxMap(new File(gameMaps(), map.name + ".map")))
+            if (!map.extra && !original.isFile() && !isXboxMap(new File(gameMaps(), map.name + ".map")))
                 throw new IOException("original backup missing for " + map.name
                         + "; mod files kept. Restore this map from your original Halo disc before retrying.");
         }
@@ -769,9 +818,9 @@ final class ModInstaller {
             File original = new File(originals(), map.name + ".map");
             File modded = new File(gameMaps(), map.name + mod.extension);
 
-            if (original.exists() || map.fid == 0 || !mod.extension.equals(".map")) {
+            if (original.exists() || map.extra || !mod.extension.equals(".map")) {
                 // (Test66: a .yelo is the mod's whether or not an original was put aside)
-                if (mod.extension.equals(".map") ? original.exists() || map.fid == 0 : modded.exists())
+                if (mod.extension.equals(".map") ? original.exists() || map.extra : modded.exists())
                     move(modded, new File(maps, map.name + mod.extension));
                 move(new File(gameMaps(), map.name + mod.extension + ".audio"),
                     new File(maps, map.name + mod.extension + ".audio"));
@@ -835,6 +884,11 @@ final class ModInstaller {
                 deleteChecked(new File(modDataFiles(mod), dataFileName(mod, type)));
                 deleteChecked(new File(modDataFiles(mod), dataFileName(mod, type) + ".part"));
             }
+        // Test71: and a downloaded archive, whole or partial
+        if (mod.webDownload()) {
+            deleteChecked(archiveFile(mod));
+            deleteChecked(new File(archiveFile(mod).getPath() + ".part"));
+        }
         progress.report("Original campaign restored; downloaded mod maps removed.", 1000);
     }
 
@@ -933,6 +987,47 @@ final class ModInstaller {
             }
         }
         return copied;
+    }
+
+    /** Test71: a file unpacked to `partial` (ArchiveExtractor), kept as
+     * `target` only when it is exactly the supported one. */
+    void acceptPart(Mod mod, File partial, File target, long expected) throws IOException {
+        if (partial.length() != expected) {
+            long size = partial.length();
+            partial.delete();
+            throw new IOException(target.getName() + " is " + size + " bytes, not the " + expected + " expected");
+        }
+        if (!hashMatches(partial, expectedHash(mod, target.getName()))) {
+            partial.delete();
+            throw new IOException(target.getName() + " failed SHA-256 verification; existing files preserved");
+        }
+        Files.move(partial.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    /** Test71: whether a file is already the supported one (size and hash) */
+    boolean importedValid(Mod mod, File target, long expected) throws IOException {
+        return target.isFile() && target.length() == expected && hashMatches(target, expectedHash(mod, target.getName()));
+    }
+
+    /** Test71: where a web-downloaded mod's archive is kept until unpacked */
+    File archiveFile(Mod mod) {
+        return new File(new File(modsDirectory(), mod.id), mod.archiveName);
+    }
+
+    /** Test71: an archive exactly the host's: its size and MD5 */
+    static boolean archiveMatches(File file, long size, String md5) throws IOException {
+        if (!file.isFile() || file.length() != size)
+            return false;
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
+            try (InputStream in = new BufferedInputStream(new FileInputStream(file), 1 << 16)) {
+                byte[] buffer = new byte[1 << 16]; int count;
+                while ((count = in.read(buffer)) != -1) digest.update(buffer, 0, count);
+            }
+            StringBuilder actual = new StringBuilder();
+            for (byte b : digest.digest()) actual.append(String.format(java.util.Locale.ROOT, "%02x", b & 255));
+            return actual.toString().equalsIgnoreCase(md5);
+        } catch (java.security.NoSuchAlgorithmException exception) { throw new IOException(exception); }
     }
 
     /** Test66: what an imported mod still lacks, for the player. */

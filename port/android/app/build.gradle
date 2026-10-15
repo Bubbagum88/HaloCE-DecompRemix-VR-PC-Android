@@ -37,8 +37,8 @@ android {
         applicationId "com.halo.decomp"
         minSdk 28
         targetSdk 35
-        versionCode Math.max(82, buildNumber)
-        versionName requestedVersionName ?: (buildNumber > 0 ? "build " + buildNumber : "1.0.37-test70")
+        versionCode Math.max(83, buildNumber)
+        versionName requestedVersionName ?: (buildNumber > 0 ? "build " + buildNumber : "1.0.38-test71")
         buildConfigField "int", "HALO_BUILD_NUMBER", "${buildNumber}"
         buildConfigField "int", "HALO_NETWORK_VERSION", networkValue("HALO_PORT_NETWORK_VERSION")
         buildConfigField "int", "HALO_NETWORK_MINIMUM", networkValue("HALO_PORT_NETWORK_VERSION_MINIMUM")
@@ -136,4 +136,8 @@ dependencies {
     implementation "org.bouncycastle:bcprov-jdk18on:1.83"
     implementation "org.tukaani:xz:1.11"
     implementation "com.github.luben:zstd-jni:1.5.7-6@aar"
+    // Test71: mods' archives unpacked on the device (ArchiveExtractor; The
+    // Altheros Experience is a RAR5): libarchive-android (Apache-2.0), around
+    // libarchive (BSD)
+    implementation "me.zhanghai.android.libarchive:library:1.1.7"
 }

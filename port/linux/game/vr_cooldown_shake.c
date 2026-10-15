@@ -17,6 +17,7 @@
 #include "vr_cooldown_shake.h"
 #include "vr_cooldown_shake_math.h"
 #include "vr_shake_detect.h"
+#include "vr_manual_reload.h"
 #include <math.h>
 
 void platform_log(char const *format, ...);
@@ -115,7 +116,9 @@ unsigned vr_needler_shake_update(long weapon_index, boolean reload_button)
     struct weapon_datum *weapon;
     unsigned result;
 
-    if (!config_boolean("vr.manual_reload") || vr_gun_class() != VR_GUN_NEEDLER ||
+    /* Test71: or a mod's needler (its rig, whatever its name: SPV1's are hidden) */
+    if (!config_boolean("vr.manual_reload") ||
+        (vr_gun_class() != VR_GUN_NEEDLER && !vr_manual_reload_needle_rig(weapon_index)) ||
         !vr_held_shake_sample(weapon_index)) return 0;
     weapon = weapon_try_and_get(weapon_index);
     if (!weapon || weapon->weapon.state != _weapon_state_idle) return VR_NEEDLER_SHAKE_SUPPRESS_AUTO;

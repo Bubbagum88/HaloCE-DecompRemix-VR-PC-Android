@@ -1,3 +1,60 @@
+# Test71: every campaign mod in one tap
+
+Private 1.0.38-test71 / code83. Install the matching Quest VR or Android APK over
+Test70 (1.0.37) or Test69; the package IDs and signing certificate are unchanged.
+Keep your saved settings. No uninstall is needed.
+
+Everything from Test70 is here (below). What is new:
+
+**Custom campaigns: Download and install, for every mod**
+- Every campaign mod installs the way SPV1 does: CUSTOM CAMPAIGNS, choose
+  it, tap *Download and install*. The launcher downloads it from where its
+  authors published it and checks every file (exact size and SHA-256)
+  before anything is swapped in. Nothing of theirs comes with the app.
+- **Project Lumoria:** its four levels come from halomaps.org (about
+  460 MB), as SPV1's maps do. It still needs Custom Edition's bitmaps.map,
+  sounds.map and loc.map, as SPV1 does.
+- **The Altheros Experience:** moddb.com refuses downloads from anything but
+  a browser, so *Download and install* opens its download page in the
+  launcher's own browser. If the page asks, tap its download button. The
+  launcher then takes over: it downloads the 1.4 GB archive (resuming a
+  stopped download), checks it against moddb's MD5, unpacks it on the
+  headset (about 5 GB free needed while it does), deletes the archive and
+  installs. Still marked *Experimental — currently not working*: it is
+  not yet confirmed to run.
+- **Importing stays as the fallback** for every mod, SPV1 included: from a
+  folder, a .zip, or now a .rar (*Import ... from a .zip or .rar*).
+- Deleting a mod's files also removes its downloaded or half-downloaded
+  archive.
+
+**Manual reload with the mods' own guns**
+- SPV1 hides every weapon's name, so with MANUAL RELOAD on all of its guns,
+  even its stock-looking rifles, reloaded by themselves. Now each gun is
+  recognised by its own first-person model: SPV1's SMG, pistol, sniper and
+  rifles take a magazine (then the handle or slide), its shotgun takes
+  shells one by one (then cock it), its flamethrower a canister and its
+  launchers tubes. The rifle with an underbarrel shotgun: its magazine by
+  hand; the shotgun still reloads itself.
+- A mod's needler is shaken to reload, as the stock one is.
+- Project Lumoria's guns already worked (its plasma cannon has no magazine).
+
+## What to test
+
+- Project Lumoria with no files yet: *Download and install* downloads all
+  four levels and installs them; lumoria_a starts from New Game, CUSTOM
+  SINGLEPLAYER.
+- The Altheros Experience: *Download and install*. Report what moddb's page
+  showed, and whether the launcher's download started. If moddb refused it,
+  import the .rar instead (*Import ... from a .zip or .rar*) and send the
+  status line.
+- SPV1 is unchanged: *Download and install* as before.
+- SPV1 with MANUAL RELOAD on: a10's assault rifle and pistol, a30's
+  shotgun (shell by shell) and SMG, a50's sniper; the rifle with the
+  underbarrel shotgun. Send the log: each gun writes "VR manual reload:
+  generic profile" once.
+
+---
+
 # Test70: polish, controls and new moves
 
 Private 1.0.37-test70 / code82. Install the matching Quest VR or Android APK over

@@ -26,6 +26,7 @@
 #include "vr_manual_reload_math.h"
 #include "vr_reload_contact_math.h"
 #include "vr_magazine_debris_math.h"
+#include "vr_reload_generic_profile.h"
 
 void platform_log(char const *format, ...);
 enum { RELOAD_MAGAZINE, RELOAD_SHELL, RELOAD_TUBES, RELOAD_CANISTER, RELOAD_CRYSTALS };
@@ -40,6 +41,14 @@ static struct reload_profile const profiles[] = {
     /* Test70: no needler: with MANUAL RELOAD it is shaken to reload
      * (vr_cooldown_shake.c), not loaded crystal by crystal */
 };
+/* Test71: any other model by its own nodes (vr_reload_generic_profile.h),
+ * whose kinds are these, in this order */
+typedef char reload_generic_kinds_match[(RELOAD_MAGAZINE == VR_RELOAD_GENERIC_MAGAZINE &&
+    RELOAD_SHELL == VR_RELOAD_GENERIC_SHELL && RELOAD_TUBES == VR_RELOAD_GENERIC_TUBES &&
+    RELOAD_CANISTER == VR_RELOAD_GENERIC_CANISTER) ? 1 : -1];
+static struct reload_profile generic_profile;
+/* Test71: the held weapon whose model is the needler's rig, whatever its name */
+static long needle_rig_weapon = NONE;
 static struct {
     struct vr_mr_state state;
     long weapon, model;
@@ -532,7 +541,10 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     definition = weapon_definition_get(weapon->definition_index);
     if (weapon->weapon.state == _weapon_state_primary_recoil && !reload_pressed &&
         reload.state.phase == VR_MR_IDLE) return VR_MANUAL_SUPPRESS_AUTO;
-    if (definition->weapon.magazines.count != 1) {
+    /* Test71: the first magazine is the one loaded by hand; a mod's gun with a
+     * second (SPV1's rifle with its shotgun) reloads that one itself, as before
+     * (weapons.c: only the triggers of the first magazine are held back) */
+    if (definition->weapon.magazines.count < 1) {
         reload_log_gate(weapon_index, "unsupported-magazine-count");
         vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
     }
@@ -1082,6 +1094,13 @@ int vr_manual_reload_hand(int hand,float position[3])
     return 1;
 }
 
+/* Test71: whether this weapon's first-person model is the needler's rig
+ * (its needles), so a mod's needler is shaken to reload as the stock one */
+int vr_manual_reload_needle_rig(long weapon_index)
+{
+    return weapon_index != NONE && weapon_index == needle_rig_weapon;
+}
+
 void vr_manual_reload_model(long weapon_index, long model_index, real_matrix4x3 *matrices)
 {
     struct model *model;
@@ -1098,6 +1117,33 @@ void vr_manual_reload_model(long weapon_index, long model_index, real_matrix4x3 
     }
     for (int index=0; index<NUMBEROF(profiles); ++index)
         if (!strcmp(name, profiles[index].path)) { profile = &profiles[index]; break; }
+    /* Test71: a mod's weapon (a name of its own, or a protected map's
+     * "<protected>"): its profile from its model's nodes and its magazine */
+    {
+        struct model *rig = model_definition_get(model_index);
+        struct weapon_definition *definition = weapon_definition_get(weapon_get(weapon_index)->definition_index);
+        char const *node_names[MAXIMUM_NODES_PER_MODEL];
+        int node_count = rig && rig->nodes.count > 0 && rig->nodes.count <= MAXIMUM_NODES_PER_MODEL ? rig->nodes.count : 0;
+        for (short node = 0; node < node_count; ++node)
+            node_names[node] = TAG_BLOCK_GET_ELEMENT(&rig->nodes, node, struct model_node)->name;
+        needle_rig_weapon = vr_reload_generic_needle_rig(node_names, node_count) ? weapon_index : NONE;
+        if (!profile && definition && definition->weapon.magazines.count > 0) {
+            struct weapon_magazine_definition *first =
+                TAG_BLOCK_GET_ELEMENT(&definition->weapon.magazines, 0, struct weapon_magazine_definition);
+            struct vr_reload_generic found;
+            if (vr_reload_generic_profile(node_names, node_count, definition->weapon.magazines.count,
+                    first->rounds_loaded_maximum, first->rounds_reloaded, &found)) {
+                generic_profile.path = name; generic_profile.ammo = found.ammo;
+                generic_profile.chamber = found.chamber; generic_profile.kind = found.kind;
+                profile = &generic_profile;
+                if (profile_logged_model != model_index) {
+                    platform_log("VR manual reload: generic profile weapon=%ld model=%ld tag=%s kind=%d ammo=%s chamber=%s",
+                        weapon_index, model_index, name, found.kind, found.ammo, found.chamber);
+                    profile_logged_model = model_index;
+                }
+            }
+        }
+    }
     if (!profile) {
         if (profile_logged_model != model_index) {
             platform_log("VR manual reload profile unavailable: weapon=%ld model=%ld tag=%s",

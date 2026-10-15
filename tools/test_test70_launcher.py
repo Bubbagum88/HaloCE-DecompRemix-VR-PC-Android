@@ -63,9 +63,10 @@ for feature in ("settings and saves are kept", "What's new in this version", "Su
                 "FIST OPTIONS", "Build 206", "network 29", "HALOFREAK95", "Android"):
     assert feature in notes, feature
 recipe = read("port/android/app/src/main/assets/campaigns/lumoria.properties")
-for level, size in (("a", 274873434), ("b", 228054210), ("c", 198269022), ("d", 191220134)):
+for level, fid, size in (("a", 6503, 274873434), ("b", 6504, 228054210), ("c", 6505, 198269022), ("d", 6506, 191220134)):
     assert "file.lumoria_%s.map.size=%d" % (level, size) in recipe
-    assert "lumoria_%s\", 0, %dL" % (level, size) in installer
+    # (Test71: downloadable from halomaps.org, by file id; still levels of its own)
+    assert "lumoria_%s\", %d, %dL, true" % (level, fid, size) in installer
 
 check = r'''
 package com.halo.decomp;

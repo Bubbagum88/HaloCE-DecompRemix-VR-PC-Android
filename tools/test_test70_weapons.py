@@ -36,7 +36,8 @@ assert "vr_haptic(vr_weapon_hand(), 0.20f, 0.030f);" in reload  # charging owed:
 assert '"weapons\\\\needler\\\\fp\\\\fp", "frame needle01"' not in reload
 assert "vr_needler_shake_update(weapon_index," in weapons and "VR_NEEDLER_SHAKE_SUPPRESS_AUTO" in weapons
 assert "vr_shake_reload_ready(&shake.detect, shake.now) && shake.now - shake.reload_time > 1.5" in shake
-assert 'config_boolean("vr.manual_reload") || vr_gun_class() != VR_GUN_NEEDLER' in shake
+# (Test71: or a mod's needler, by its rig)
+assert '(vr_gun_class() != VR_GUN_NEEDLER && !vr_manual_reload_needle_rig(weapon_index))' in shake
 # cooling while hot, every tick
 heat = weapons[weapons.index("real heat_loss= weapon_definition->weapon.heat_loss_per_second"):]
 heat = heat[:heat.index("weapon->weapon.heat-= heat_loss;")]

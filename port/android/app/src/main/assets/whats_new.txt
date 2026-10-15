@@ -1,9 +1,20 @@
+NEW IN THIS UPDATE (TEST71): EVERY CAMPAIGN MOD IN ONE TAP
+• CUSTOM CAMPAIGNS: every mod now installs the way SPV1 does: choose it, tap "Download and install". The launcher downloads it from where its authors published it and checks every file (exact size and SHA-256) before installing. Nothing of theirs comes with the app.
+• Project Lumoria: "Download and install" fetches its four levels from halomaps.org (about 460 MB). Like SPV1 it still needs Custom Edition's bitmaps.map, sounds.map and loc.map.
+• The Altheros Experience: still marked "Experimental — currently not working" (not yet confirmed to run). "Download and install" opens its moddb.com download in the launcher's own browser (if the page asks, tap its download button). The 1.4 GB archive downloads (it resumes if stopped), is checked, unpacked on the headset (about 5 GB free needed while it does) and deleted, and the mod installs.
+• Importing stays as the fallback for every mod, SPV1 included: from a folder, a .zip, or now a .rar.
+• Deleting a mod's files also removes a downloaded or half-downloaded archive.
+
+WEAPONS (Quest)
+• MANUAL RELOAD now works with the mods' own guns. SPV1 hides every weapon's name, which had left all its guns reloading by themselves, its stock-looking rifles included; now each gun is recognised by its own model: SPV1's SMG, pistol, sniper and rifles (magazine, then the handle or slide), its shotgun (shell by shell, then cock it), flamethrower (canister) and launchers (tubes). The rifle with an underbarrel shotgun: its magazine by hand, the shotgun still reloads itself. A mod's needler is shaken to reload. Project Lumoria's guns already worked (its plasma cannon has no magazine).
+
+EARLIER (TEST70), ALSO IN THIS UPDATE
 Your settings and saves are kept. One exception: GRAB ASSIST still at the old automatic 10 cm (with NPC GRAB or FIST COMBAT on) becomes the new 15 cm, once.
 
 LAUNCHER AND CAMPAIGNS (Quest and Android)
 • This What's New page: shown once after each update; reopen it any time with "What's new in this version".
 • Status labels on every custom campaign: SPV1 and Project Lumoria "Supported"; The Altheros Experience and Halo 1 MCC maps "Experimental — currently not working" (still there to try; send a log if you do).
-• NEW: Project Lumoria. CUSTOM CAMPAIGNS > Project Lumoria: Prepare, then "Import Project Lumoria from a .zip" (your Lumoria_Full_Campaign.zip, straight from Download) or from a folder, then Install. Every file is size- and SHA-256-checked; its own ui.map and PC DLLs are left out. Needs Custom Edition's bitmaps.map, sounds.map and loc.map, as SPV1 does. Its four levels play from New Game, map kind CUSTOM SINGLEPLAYER (start with lumoria_a); the original campaign stays as it is.
+• NEW: Project Lumoria. CUSTOM CAMPAIGNS > Project Lumoria: Download and install (see above), or import your Lumoria_Full_Campaign.zip (straight from Download) or its folder, then Install. Every file is size- and SHA-256-checked; its own ui.map and PC DLLs are left out. Needs Custom Edition's bitmaps.map, sounds.map and loc.map, as SPV1 does. Its four levels play from New Game, map kind CUSTOM SINGLEPLAYER (start with lumoria_a); the original campaign stays as it is.
 • Imported mods (Lumoria, Altheros) can now be imported from a .zip as well as a folder.
 • FIX: Halo 1 MCC maps showed "There's a problem with the disc you're using". Cause found and fixed (MCC maps were looked for among the Xbox maps); not yet confirmed on a headset, so still labelled experimental.
 • The Altheros Experience: still being worked on. If a level stops, the launch log names the step.
