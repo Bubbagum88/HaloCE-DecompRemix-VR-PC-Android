@@ -65,6 +65,8 @@ Neo 3's profiles come with XR_BD_controller_interaction, the PICO 4 Ultra's
 with XR_BD_ultra_controller_interaction (the Khronos registry) */
 #define BD_CONTROLLER_EXTENSION "XR_BD_controller_interaction"
 #define BD_ULTRA_CONTROLLER_EXTENSION "XR_BD_ultra_controller_interaction"
+/* Test72: the HP Reverb G2 controllers' profile (Windows Mixed Reality) */
+#define HP_CONTROLLER_EXTENSION "XR_EXT_hp_mixed_reality_controller"
 #define REFRESH_RATE_EXTENSION "XR_FB_display_refresh_rate"
 
 /* Test72: the actions and every controller's bindings, shared with the
@@ -87,7 +89,7 @@ static struct
 	XrSystemId system;
 	XrSession session;
 	XrSessionState state;
-	int running, focused, exiting, frame_controller, refresh_rate_extension, bd_controller, bd_ultra_controller;
+	int running, focused, exiting, frame_controller, refresh_rate_extension, bd_controller, bd_ultra_controller, hp_controller;
 	XrSpace local, view;
 	XrSpace grip[2], aim[2];
 	XrActionSet action_set;
@@ -418,6 +420,8 @@ static int create_actions(void)
 	}
 	if (xr.bd_ultra_controller)
 		suggest("/interaction_profiles/bytedance/pico_ultra_controller_bd", halo_xr_bindings_pico, sizeof(halo_xr_bindings_pico) / sizeof(halo_xr_bindings_pico[0]));
+	if (xr.hp_controller)
+		suggest("/interaction_profiles/hp/mixed_reality_controller", halo_xr_bindings_hp, sizeof(halo_xr_bindings_hp) / sizeof(halo_xr_bindings_hp[0]));
 	attach.countActionSets = 1;
 	attach.actionSets = &xr.action_set;
 	if (!check(xrAttachSessionActionSets(xr.session, &attach), "xrAttachSessionActionSets"))
@@ -700,6 +704,8 @@ static int create_instance(struct halo_xr_info *out)
 			xr.bd_controller = 1;
 		if (!strcmp(available[index].extensionName, BD_ULTRA_CONTROLLER_EXTENSION))
 			xr.bd_ultra_controller = 1;
+		if (!strcmp(available[index].extensionName, HP_CONTROLLER_EXTENSION))
+			xr.hp_controller = 1;
 #ifdef _WIN32
 		if (!strcmp(available[index].extensionName, XR_KHR_OPENGL_ENABLE_EXTENSION_NAME))
 			xr.opengl_extension = 1;
@@ -731,6 +737,8 @@ static int create_instance(struct halo_xr_info *out)
 		extensions[count++] = BD_CONTROLLER_EXTENSION;
 	if (xr.bd_ultra_controller)
 		extensions[count++] = BD_ULTRA_CONTROLLER_EXTENSION;
+	if (xr.hp_controller)
+		extensions[count++] = HP_CONTROLLER_EXTENSION;
 	for (index = 0; index < count; index++)
 		host_logf(HOST_LOG_INFO, "[openxr] enabling %s", extensions[index]);
 #ifndef _WIN32

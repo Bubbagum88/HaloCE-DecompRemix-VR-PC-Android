@@ -197,4 +197,33 @@ static const struct binding halo_xr_bindings_pico[] =
 	{ _action_hand_index_touch, "/user/hand/right/input/trigger/touch" },
 };
 
+/* Test72: the HP Reverb G2 controllers, under Windows Mixed Reality's own
+runtime (SteamVR remaps them itself): Touch's layout (A/B right, X/Y and the
+menu left) with no capacitive sensors; the right menu button is left free, as
+Touch's system button is */
+static const struct binding halo_xr_bindings_hp[] =
+{
+	{ _action_move, "/user/hand/left/input/thumbstick" },
+	{ _action_look, "/user/hand/right/input/thumbstick" },
+	{ _action_trigger_left, "/user/hand/left/input/trigger/value" },
+	{ _action_trigger_right, "/user/hand/right/input/trigger/value" },
+	{ _action_squeeze_left, "/user/hand/left/input/squeeze/value" },
+	{ _action_squeeze_right, "/user/hand/right/input/squeeze/value" },
+	{ _action_a, "/user/hand/right/input/a/click" },
+	{ _action_b, "/user/hand/right/input/b/click" },
+	{ _action_x, "/user/hand/left/input/x/click" },
+	{ _action_y, "/user/hand/left/input/y/click" },
+	{ _action_start, "/user/hand/left/input/menu/click" },
+	{ _action_left_thumb, "/user/hand/left/input/thumbstick/click" },
+	{ _action_right_thumb, "/user/hand/right/input/thumbstick/click" },
+	POSES("left"), POSES("right"),
+	{ _action_hand_south, "/user/hand/right/input/a/click" },
+	{ _action_hand_south, "/user/hand/left/input/x/click" },
+	{ _action_hand_east, "/user/hand/right/input/b/click" },
+	{ _action_hand_east, "/user/hand/left/input/y/click" },
+	{ _action_hand_stick, "/user/hand/left/input/thumbstick/click" },
+	{ _action_hand_stick, "/user/hand/right/input/thumbstick/click" },
+	{ _action_hand_menu, "/user/hand/left/input/menu/click" },
+};
+
 #endif
