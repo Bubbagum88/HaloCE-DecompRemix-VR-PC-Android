@@ -54,6 +54,9 @@ symbols in this file:
 
 #include "cseries/cseries.h"
 #include "cseries/errors.h"
+#ifndef HALO_VR
+#include "flat_stereo.h" /* port: Test72, stereo 3D's reticle depth */
+#endif
 #include "bitmaps/bitmap_group.h"
 #include "cache/texture_cache.h"
 #include "game/game.h"
@@ -2089,11 +2092,18 @@ void hud_render_weapon_interface(
 		hud_index = definition->weapon.interface_definition.hud_interface.index;
 		if (hud_index != NONE)
 		{
+#ifndef HALO_VR
+			/* port: Test72, stereo 3D's reticle depth */
+			int stereo_layer = flat_stereo_layer(_flat_stereo_layer_reticle);
+#endif
 			crosshairs_draw(
 				player,
 				weapon_index,
 				hud_index,
 				&weapon_state);
+#ifndef HALO_VR
+			flat_stereo_layer(stereo_layer);
+#endif
 			/* port: the VR HUD tapped away (test26): the reticle only */
 			if (!VR_HUD_HIDDEN())
 			{
@@ -2115,12 +2125,18 @@ void hud_render_weapon_interface(
 	else if (!seat_disallows_hud && !unit_get_weapon_count(player->unit_index))
 	{
 		struct weapon_interface_state weapon_state = { 0 };
+#ifndef HALO_VR
+		int stereo_layer = flat_stereo_layer(_flat_stereo_layer_reticle);
+#endif
 
 		crosshairs_draw(
 			player,
 			NONE,
 			hud_globals->defaults.default_weapon_hud.index,
 			&weapon_state);
+#ifndef HALO_VR
+		flat_stereo_layer(stereo_layer);
+#endif
 	}
 
 	if (!VR_HUD_HIDDEN())

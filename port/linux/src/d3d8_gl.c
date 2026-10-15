@@ -91,6 +91,14 @@ static int vr_skinning_mirrored = 1;
 #endif
 static long ui_offset;
 #define UI_OFFSET ((GLint)ui_offset)
+#ifndef HALO_VR
+/* Test72: screen-space drawing also moves by a stereo eye's HUD or reticle
+depth (port/linux/game/flat_stereo.c) */
+float flat_stereo_screen_offset(void);
+#define SCREEN_OFFSET ((float)ui_offset + flat_stereo_screen_offset())
+#else
+#define SCREEN_OFFSET ((float)ui_offset)
+#endif
 
 /* ---------- anti-aliasing
 
@@ -684,6 +692,14 @@ static float dword_to_float(DWORD value)
 
 	u.d = value;
 	return u.f;
+}
+
+static DWORD float_to_dword(float value)
+{
+	union { DWORD d; float f; } u;
+
+	u.f = value;
+	return u.d;
 }
 
 static void color_to_vec4(D3DCOLOR color, float *out)
@@ -3001,7 +3017,13 @@ static GLenum blend_equation(DWORD operation)
 static void apply_raster_state(BOOL has_depth)
 {
 	DWORD *rs = D3D__RenderState;
+#ifndef HALO_VR
+	/* Test72: a stereo eye's colour channels (anaglyph: port/linux/game/flat_stereo.c) */
+	unsigned long flat_stereo_color_write_mask(void);
+	DWORD write = rs[D3DRS_COLORWRITEENABLE] & (DWORD)flat_stereo_color_write_mask();
+#else
 	DWORD write = rs[D3DRS_COLORWRITEENABLE];
+#endif
 	GLint viewport[4];
 	GLint scissor[4];
 	float depth_range[2];
@@ -3498,7 +3520,7 @@ static struct program_entry *prepare_draw(BOOL immediate)
 		inputs[count++] = D3D__RenderState[D3DRS_FOGEND];
 		inputs[count++] = D3D__RenderState[D3DRS_FOGDENSITY];
 		inputs[count++] = D3D__RenderState[D3DRS_ALPHAREF];
-		inputs[count++] = (DWORD)UI_OFFSET;
+		inputs[count++] = float_to_dword(SCREEN_OFFSET);
 		for (stage = 0; stage < D3DTSS_MAXSTAGES; stage++)
 		{
 			DWORD *state = D3D__TextureState[stage];
@@ -3550,7 +3572,7 @@ static struct program_entry *prepare_draw(BOOL immediate)
 				converted->bump_luminance[stage][2] = converted->bump_luminance[stage][3] = 0.0f;
 				converted->texture_lod_bias[stage] = dword_to_float(state[D3DTSS_MIPMAPLODBIAS]);
 			}
-			converted->screen_offset = (float)UI_OFFSET;
+			converted->screen_offset = SCREEN_OFFSET;
 			memcpy(converted->height_fade, height_fade_value, sizeof(converted->height_fade));
 		}
 	}

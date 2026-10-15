@@ -251,6 +251,26 @@ static const struct config_setting config_settings[] =
 		"Test72: SPRINT, held or pressed to toggle (movement.sprint). A gamepad or a touch\n"
 		"stick sprints with movement.sprint \"auto\" instead (a full push forward)." },
 
+	/* Test72: stereoscopic 3D on the flat builds (flat_stereo.c) */
+	{ "display.stereo", _config_string, "\"off\"", "HALO_STEREO", _environment_value, _platform_flat,
+		"STEREO 3D: \"off\"; \"sbs_half\" (side by side, each eye squeezed: 3D televisions);\n"
+		"\"sbs_full\" (side by side, each eye its own shape); \"tab_half\", \"tab_full\" (over and\n"
+		"under, the left eye on top); \"anaglyph\" (red and cyan glasses). Each eye is drawn from its\n"
+		"own place, converging at stereo_convergence." },
+	{ "display.stereo_separation", _config_real, "64", "HALO_STEREO_SEPARATION", _environment_value, _platform_flat,
+		"EYE SEPARATION in millimetres, 0 to 200 (64: an average adult's)." },
+	{ "display.stereo_convergence", _config_real, "2.5", "HALO_STEREO_CONVERGENCE", _environment_value, _platform_flat,
+		"CONVERGENCE in metres, 0.25 to 100: the distance that appears at the screen; nearer comes out\n"
+		"of it, further goes in." },
+	{ "display.stereo_swap", _config_boolean, "false", "HALO_STEREO_SWAP", _environment_value, _platform_flat,
+		"EYE SWAP: the eyes exchanged (a display or glasses that expect the other order)." },
+	{ "display.stereo_hud_depth", _config_real, "0", "HALO_STEREO_HUD_DEPTH", _environment_value, _platform_flat,
+		"HUD DEPTH in metres, 0 to 100: how far away the HUD appears; 0 puts it at the screen\n"
+		"(the convergence distance)." },
+	{ "display.stereo_reticle_depth", _config_real, "0", "HALO_STEREO_RETICLE_DEPTH", _environment_value, _platform_flat,
+		"RETICLE DEPTH in metres, 0 to 100: how far away the crosshair appears; 0 puts it at the\n"
+		"screen (the convergence distance)." },
+
 	/* Test72: the flat builds' movement extras (flat_movement.c), each off
 	until turned on; the VR build has its own (vr.slide, vr.parkour_*). */
 	{ "movement.sprint", _config_string, "\"off\"", "HALO_MOVEMENT_SPRINT", _environment_value, _platform_flat,

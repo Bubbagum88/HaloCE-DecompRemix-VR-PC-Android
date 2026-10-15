@@ -91,6 +91,9 @@ symbols in this file:
 /* port: static transparent part links for the newly loaded model tags. */
 #include "models/models.h"
 #include "blood.h" /* port: port/linux/game/blood.c */
+#ifndef HALO_VR
+#include "flat_stereo.h" /* port: Test72, the flat builds' stereo 3D */
+#endif
 void stencil_shadows_render(void); /* port: port/linux/game/stencil_shadows.c */
 
 /* ---------- constants */
@@ -334,6 +337,10 @@ static void render_window(
 	parameters.has_mirror = has_mirror;
 	parameters.window_index = render.window_index;
 	parameters.fog = render.fog;
+#ifndef HALO_VR
+	/* port: Test72, anaglyph's second eye is drawn over the first's colour */
+	parameters.suppress_clear = flat_stereo_keep_color();
+#endif
 
 	structure_visibility_compute();
 	player_effect_get_screen_flash(local_player_index, &parameters.screen_flash);
@@ -369,7 +376,16 @@ static void render_window(
 			render.camera = eye_camera;
 		}
 #else
-		first_person_weapon_render_update();
+		/* port: Test72, stereo 3D posts it once a frame, from between the eyes
+		(flat_stereo.c), as the VR build does */
+		if (!flat_stereo_second_eye())
+		{
+			struct render_camera eye_camera = render.camera;
+
+			flat_stereo_center_camera(&render.camera);
+			first_person_weapon_render_update();
+			render.camera = eye_camera;
+		}
 #endif
 		lights_preprocess_scene();
 		render_objects();
@@ -476,7 +492,14 @@ static void render_window(
 		/* the headset shows the HUD on a layer of its own */
 		if (!VR_RENDER_VIEW())
 		{
+#ifndef HALO_VR
+			/* port: Test72, stereo 3D's HUD depth */
+			int stereo_layer = flat_stereo_layer(_flat_stereo_layer_hud);
 			interface_draw_screen();
+			flat_stereo_layer(stereo_layer);
+#else
+			interface_draw_screen();
+#endif
 			rasterizer_screen_flash();
 			halo_screen_ui_offset(TRUE);
 			render_ui_widgets(local_player_index, &rasterizer_camera->viewport_bounds);
@@ -578,6 +601,9 @@ static void render_player_frame(
 #ifdef HALO_VR
 	/* an eye's own, off-centre field; the scope's narrow one */
 	vr_render_frustum_bounds(&frustum_bounds);
+#else
+	/* port: Test72, a stereo eye's: squeezed, and shifted to converge */
+	flat_stereo_frustum_bounds(&frustum_bounds);
 #endif
 
 	if (screenshot_combined_index != NULL)
@@ -612,7 +638,12 @@ static void render_player_frame(
 
 	/* (a mirror's camera assumes the whole screen, which the headset's
 	scope does not fill) */
+#ifndef HALO_VR
+	/* (port: Test72, nor does a stereo eye's) */
+	if (main_get_window_count() == 1 && !VR_RENDER_SCOPE() && !flat_stereo_drawing_eye())
+#else
 	if (main_get_window_count() == 1 && !VR_RENDER_SCOPE())
+#endif
 	{
 		if (structure_visibility_find_mirror(camera, &frustum, &mirror))
 		{
@@ -673,6 +704,17 @@ void render_frame(
 	short window_index;
 	struct render_window *window;
 	point2d screenshot_combined_index;
+#ifndef HALO_VR
+	/* port: Test72, stereo 3D draws one player's window as two eyes (a frame
+	has its player windows and the console's: split screen stays as it is) */
+	short player_windows = 0;
+
+	for (window_index = 0; window_index < window_count; window_index++)
+	{
+		if (!windoze[window_index].console_window && windoze[window_index].local_player_index != NONE)
+			player_windows++;
+	}
+#endif
 
 	render.frame_index++;
 	render.time_delta_since_tick_sec = time_delta_since_tick_sec;
@@ -702,6 +744,23 @@ void render_frame(
 					screenshot_page_index->y * global_screenshot_size + screenshot_index->y;
 			}
 
+#ifndef HALO_VR
+			/* port: Test72, stereo 3D: the window once for each eye */
+			if (player_windows == 1 && screenshot_index == NULL && flat_stereo_active())
+			{
+				short eye;
+
+				for (eye = 0; eye < 2; eye++)
+				{
+					struct render_window eye_window = *window;
+
+					flat_stereo_begin_eye(&eye_window, eye);
+					render_player_frame(&eye_window, NULL);
+					flat_stereo_end_eye();
+				}
+				continue;
+			}
+#endif
 #ifdef HALO_VR
 			vr_render_window_begin(window_index);
 #endif
