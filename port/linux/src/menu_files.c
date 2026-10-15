@@ -396,8 +396,17 @@ static long current_line(struct reader *reader)
 #define MENU_PLATFORM "desktop"
 #endif
 
+/* Test72: whether this build has a headset ("vr") or not ("flat"), which a
+platform attribute may also name: a flat game's setting never shows in VR */
+#ifdef HALO_VR
+#define MENU_HEADSET "vr"
+#else
+#define MENU_HEADSET "flat"
+#endif
+
 /* whether the element is for this platform (its platform attribute: the
-platforms it is for, separated by spaces) */
+platforms it is for, separated by spaces: desktop, android, web, and flat
+or vr) */
 static int for_this_platform(struct reader *reader, const XML_Char **attributes)
 {
 	int index;
@@ -416,13 +425,15 @@ static int for_this_platform(struct reader *reader, const XML_Char **attributes)
 				if (length)
 				{
 					if ((length != 7 || strncmp(name, "desktop", 7)) && (length != 7 || strncmp(name, "android", 7)) &&
-						(length != 3 || strncmp(name, "web", 3)))
+						(length != 3 || strncmp(name, "web", 3)) && (length != 4 || strncmp(name, "flat", 4)) &&
+						(length != 2 || strncmp(name, "vr", 2)))
 					{
-						reader_error(reader, "platform=\"%s\" names one that is not desktop, android or web",
+						reader_error(reader, "platform=\"%s\" names one that is not desktop, android, web, flat or vr",
 							attributes[index + 1]);
 						return 1;
 					}
-					if (length == strlen(MENU_PLATFORM) && !strncmp(name, MENU_PLATFORM, length))
+					if ((length == strlen(MENU_PLATFORM) && !strncmp(name, MENU_PLATFORM, length)) ||
+						(length == strlen(MENU_HEADSET) && !strncmp(name, MENU_HEADSET, length)))
 						found = 1;
 				}
 				name += length;

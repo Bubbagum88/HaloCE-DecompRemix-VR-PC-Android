@@ -281,6 +281,8 @@ symbols in this file:
 #include "vr_parkour.h"
 #include "vr_extra_interaction.h"
 #include "vr_slide.h"
+#else
+#include "flat_movement.h" /* port: Test72, the flat builds' SPRINT, SLIDE and wall moves */
 #endif
 #include "vr_npc_interaction.h"
 #include "network_coop.h" /* port: port/linux/game/network_coop.c */
@@ -2670,6 +2672,10 @@ static void biped_update_physics(
 	vr_combat_velocity(physics->biped_index,&physics->position,&physics->new_velocity);
 	vr_parkour_velocity(physics->biped_index, &physics->position,
 		physics->height, physics->width, &physics->new_velocity);
+#else
+	/* port: Test72, WALL RUN and WALL JUMP on the flat builds (flat_movement.c) */
+	flat_movement_parkour_velocity(physics->biped_index, &physics->position,
+		physics->height, physics->width, &physics->new_velocity);
 #endif
 	vr_npc_interaction_velocity(physics->biped_index, physics->new_velocity.n);
 	if (TEST_FLAG(physics->in_flags, _biped_physics_in_no_collision_bit))
@@ -3934,6 +3940,16 @@ static void biped_update_moving(
 					sideways_speed *= sprint;
 					physics.acceleration_maximum *= sprint;
 				}
+#else
+				/* port: Test72, SPRINT on the flat builds (flat_movement.c),
+				under the same conditions as the VR build's */
+				if (crouch < 0.1f && biped->unit.animation.base_seat_index != _unit_base_seat_alert)
+				{
+					real sprint = flat_movement_sprint_scale(biped_index);
+					forward_speed *= sprint;
+					sideways_speed *= sprint;
+					physics.acceleration_maximum *= sprint;
+				}
 #endif
 				physics.movement_desired.i =
 					biped->unit.throttle.i * stun_scale * forward_speed /
@@ -3962,6 +3978,11 @@ static void biped_update_moving(
 				/* Test70: SLIDE: sprinting, a crouch slides on (vr_slide.c);
 				offline only, the local player's body only */
 				vr_slide_update(biped_index, &physics.forward, &biped->unit.throttle,
+					player_information->run_forward_speed, &physics.movement_desired,
+					&physics.acceleration_maximum);
+#else
+				/* port: Test72, SLIDE on the flat builds (flat_movement.c) */
+				flat_movement_slide_update(biped_index, &physics.forward, &biped->unit.throttle,
 					player_information->run_forward_speed, &physics.movement_desired,
 					&physics.acceleration_maximum);
 #endif

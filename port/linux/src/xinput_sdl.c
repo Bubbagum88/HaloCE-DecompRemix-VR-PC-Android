@@ -419,7 +419,7 @@ static const char *const binding_settings[NUMBER_OF_HALO_KEYBOARD_ACTIONS] =
 	"controls.jump", "controls.crouch", "controls.fire", "controls.throw_grenade", "controls.melee",
 	"controls.reload", "controls.zoom", "controls.switch_weapon", "controls.switch_grenade", "controls.action",
 	"controls.flashlight", "controls.scoreboard", "controls.pause", "controls.push_to_talk",
-	"controls.third_person", "controls.free_look", "controls.text_chat",
+	"controls.third_person", "controls.free_look", "controls.text_chat", "controls.sprint",
 };
 
 static const struct
@@ -581,6 +581,8 @@ unsigned long halo_keyboard_actions(short controller_index)
 static BOOL third_person_key_down;
 static int third_person_key_pressed;
 static int free_look_held;
+/* Test72: controls.sprint held, in play (flat_movement.c's SPRINT) */
+static int sprint_key_held;
 
 void platform_third_person_active(int active)
 {
@@ -615,6 +617,11 @@ int platform_free_look_held(void)
 	return free_look_held;
 }
 
+int platform_sprint_held(void)
+{
+	return sprint_key_held;
+}
+
 /* controls.third_person pressed (in play), and controls.free_look held */
 static void third_person_keys_update(const struct platform_input_state *input, BOOL playing)
 {
@@ -623,8 +630,11 @@ static void third_person_keys_update(const struct platform_input_state *input, B
 
 	bindings_read();
 	free_look_held = FALSE;
+	sprint_key_held = FALSE;
 	for (slot = 0; playing && slot < MAXIMUM_BINDINGS; slot++)
 	{
+		if (input_held(input, bindings[HALO_KEYBOARD_SPRINT][slot]))
+			sprint_key_held = TRUE;
 		if (input_held(input, bindings[HALO_KEYBOARD_THIRD_PERSON][slot]))
 			down = TRUE;
 		if (input_held(input, bindings[HALO_KEYBOARD_FREE_LOOK][slot]))

@@ -56,6 +56,9 @@ enum
 	_platform_all = _platform_desktop | _platform_android,
 	/* the Android build for VR headsets (HALO_VR) only */
 	_platform_vr = 8,
+	/* Test72: every build without a headset (Android, Windows, Linux, web):
+	the flat game's own settings, which the VR build never writes */
+	_platform_flat = 16,
 };
 
 struct config_setting
@@ -244,6 +247,42 @@ static const struct config_setting config_settings[] =
 		"keeps on its way." },
 	{ "controls.text_chat", _config_string, "\"T\"", "HALO_KEY_TEXT_CHAT", _environment_value, _platform_all,
 		"Text chat: open a line to type (game.text_chat)." },
+	{ "controls.sprint", _config_string, "\"Left Shift\"", "HALO_KEY_SPRINT", _environment_value, _platform_flat,
+		"Test72: SPRINT, held or pressed to toggle (movement.sprint). A gamepad or a touch\n"
+		"stick sprints with movement.sprint \"auto\" instead (a full push forward)." },
+
+	/* Test72: the flat builds' movement extras (flat_movement.c), each off
+	until turned on; the VR build has its own (vr.slide, vr.parkour_*). */
+	{ "movement.sprint", _config_string, "\"off\"", "HALO_MOVEMENT_SPRINT", _environment_value, _platform_flat,
+		"SPRINT, offline: \"off\"; \"hold\" (controls.sprint held); \"toggle\" (pressed to start,\n"
+		"again to stop; entering a vehicle stops it); \"auto\" (the stick held fully forward a\n"
+		"moment, for gamepads and touch). Movement and acceleration times movement.sprint_speed." },
+	{ "movement.sprint_speed", _config_real, "1.5", "HALO_MOVEMENT_SPRINT_SPEED", _environment_value, _platform_flat,
+		"SPRINT SPEED, 1.0x to 3.0x; default 1.5x (the VR build's)." },
+	{ "movement.slide", _config_boolean, "false", "HALO_MOVEMENT_SLIDE", _environment_value, _platform_flat,
+		"SLIDE, offline: sprinting on the ground, a crouch begun slides on with the run's momentum,\n"
+		"giving it up to friction and slope, steered a little by the stick; standing, jumping, a wall\n"
+		"or a walk's pace ends it. Needs SPRINT." },
+	{ "movement.slide_momentum", _config_real, "1", "HALO_MOVEMENT_SLIDE_MOMENTUM", _environment_value, _platform_flat,
+		"SLIDE DISTANCE, 0.5x to 2x: the lift a slide starts with and how long it may last." },
+	{ "movement.slide_friction", _config_real, "1", "HALO_MOVEMENT_SLIDE_FRICTION", _environment_value, _platform_flat,
+		"SLIDE FRICTION, 0.25x to 3x: how quickly a slide gives up its speed." },
+	{ "movement.slide_damage", _config_real, "1", "HALO_MOVEMENT_SLIDE_DAMAGE", _environment_value, _platform_flat,
+		"SLIDE IMPACT, 0 to 3: sliding into an enemy staggers it or knocks it down (Grunts,\n"
+		"Jackals; not Elites or Hunters) with up to half a melee at 1; 0: no impact." },
+	{ "movement.slide_jump_cancel", _config_boolean, "true", "HALO_MOVEMENT_SLIDE_JUMP_CANCEL", _environment_value,
+		_platform_flat, "JUMP CANCELS: Jump ends a slide at once, its momentum carried into the jump." },
+	{ "movement.parkour_wallrun", _config_boolean, "false", "HALO_MOVEMENT_WALLRUN", _environment_value, _platform_flat,
+		"WALL RUN, offline or a co-op host: jump at a wall while moving along it to run on it\n"
+		"briefly; native collision stays in charge." },
+	{ "movement.parkour_walljump", _config_boolean, "false", "HALO_MOVEMENT_WALLJUMP", _environment_value, _platform_flat,
+		"WALL JUMP: Jump again in the air beside a wall to leap off it, the way you look." },
+	{ "movement.wallrun_speed", _config_real, "1.5", "HALO_MOVEMENT_WALLRUN_SPEED", _environment_value, _platform_flat,
+		"WALL SPEED, 1x to 2x." },
+	{ "movement.wallrun_duration", _config_real, "2.0", "HALO_MOVEMENT_WALLRUN_DURATION", _environment_value,
+		_platform_flat, "WALL TIME, 0.5 to 3 seconds." },
+	{ "movement.walljump_scale", _config_real, "1.5", "HALO_MOVEMENT_WALLJUMP_SCALE", _environment_value, _platform_flat,
+		"WALL JUMP POWER, 0.5x to 1.5x." },
 
 	{ "debug.menu_open", _config_string, "\"\"", "HALO_MENU_OPEN", _environment_value, _platform_all,
 		"Start on this screen of the menus (port/assets/menus) instead of the main\n"
@@ -1694,13 +1733,13 @@ static const struct config_setting config_settings[] =
 #if defined(HALO_ANDROID) && defined(HALO_VR)
 #define CONFIG_PLATFORM (_platform_android | _platform_vr)
 #elif defined(HALO_ANDROID)
-#define CONFIG_PLATFORM _platform_android
+#define CONFIG_PLATFORM (_platform_android | _platform_flat)
 #elif defined(HALO_WEB)
-#define CONFIG_PLATFORM (_platform_desktop | _platform_web)
+#define CONFIG_PLATFORM (_platform_desktop | _platform_web | _platform_flat)
 #elif defined(_WIN32)
-#define CONFIG_PLATFORM _platform_windows
+#define CONFIG_PLATFORM (_platform_windows | _platform_flat)
 #else
-#define CONFIG_PLATFORM _platform_linux
+#define CONFIG_PLATFORM (_platform_linux | _platform_flat)
 #endif
 
 struct config_value

@@ -116,6 +116,8 @@ symbols in this file:
 #include "vr_parkour.h"
 #include "vr_extra_interaction.h"
 #include "halo_vr.h"
+#else
+#include "flat_movement.h" /* port: Test72 */
 #endif
 #include "game_sound.h"
 #include "sound_manager.h"
@@ -279,6 +281,8 @@ static void game_state_call_before_load_procs(
 	vr_world_interaction_reset();
 	vr_render_reset_vehicle_view();
 	vr_render_reset_contacts();
+#else
+	flat_movement_reset(); /* port: Test72 */
 #endif
 	for (i =NUMBEROF(before_load_procs); i>0; i--, proc++)
 	{
@@ -306,6 +310,8 @@ static void game_state_call_after_load_procs(
 	vr_npc_rescue_reset();
 	vr_parkour_reset();
 	vr_extra_reset();
+#else
+	flat_movement_reset(); /* port: Test72 */
 #endif
 	for (i =NUMBEROF(after_load_procs); i>0; i--, proc++)
 	{

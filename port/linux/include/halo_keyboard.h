@@ -45,6 +45,9 @@ enum halo_keyboard_action
 	/* (text chat's line opened, which the game itself does not read:
 	platform_chat_key: the OpenCE fork's network_chat.c) */
 	HALO_KEYBOARD_TEXT_CHAT,
+	/* (Test72: SPRINT on the flat builds, held, which the game itself does
+	not read: platform_sprint_held, flat_movement.c) */
+	HALO_KEYBOARD_SPRINT,
 	NUMBER_OF_HALO_KEYBOARD_ACTIONS
 };
 
