@@ -116,6 +116,10 @@ Manual reload, physical grenades, NPC/world interaction, parkour, fist combat an
 
 The flat Android edition retains its familiar gameplay touch interface and Android/SDL controller input, including hot-plug/reconnect, analog triggers, menu navigation, configurable response/dead zones and vibration where supported. Touch HUD placement and visibility remain adjustable. The optional touch-look control hides its joystick graphic while keeping touch aiming active; the interface does not switch to a different button layout. Gamepad users can choose whether touch controls hide automatically, always show or always hide.
 
+### Android third-person camera
+
+The flat Android build includes OpenCE's optional over-the-shoulder **Third Person** camera for campaign and co-op play. Enable it from **Settings → Video Setup → FOV and Viewmodels → Third Person**; it is off by default. A keyboard can toggle it during play with **Keypad Enter** and hold **Alt** to look around. This is the flat-game player camera, separate from VR's vehicle view options.
+
 The launcher handles imported game data/revisions, network profiles and populations, saved invites, compatible project updates, supported campaign preparation, guides and per-launch logs. Changing network or game data takes effect after launching/restarting as indicated. The app does not include or redistribute game files/mod archives.
 
 ## 6. Multiplayer, campaign co-op and server compatibility
