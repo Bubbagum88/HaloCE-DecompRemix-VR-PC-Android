@@ -37,7 +37,8 @@ static struct reload_profile const profiles[] = {
     { "weapons\\shotgun\\fp\\fp", "frame bullet", "frame pump", RELOAD_SHELL },
     { "weapons\\rocket launcher\\fp\\fp", "frame tubes", "frame push_bar", RELOAD_TUBES },
     { "weapons\\flamethrower\\fp\\fp", "frame ammo", "frame cover", RELOAD_CANISTER },
-    { "weapons\\needler\\fp\\fp", "frame needle01", "frame body", RELOAD_CRYSTALS },
+    /* Test70: no needler: with MANUAL RELOAD it is shaken to reload
+     * (vr_cooldown_shake.c), not loaded crystal by crystal */
 };
 static struct {
     struct vr_mr_state state;
@@ -588,7 +589,13 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     /* A round left in the chamber (a tactical reload) needs no charging. */
     input.chambered = magazine->rounds_loaded > 0;
     input.loose_round = reload.kind == RELOAD_SHELL || reload.kind == RELOAD_CRYSTALS;
-    input.no_chamber = reload.kind == RELOAD_CRYSTALS;
+    /* Test70: a rocket launcher's tubes (and a flamethrower's canister) are
+     * ready once seated, emptied or not: no chamber to charge. The owner's
+     * report: both rockets fired, the new tubes in, the HUD flashing empty and
+     * the launcher refusing to fire until a finicky push of its push bar (a
+     * tactical reload, a rocket still in, already committed at the seat) */
+    input.no_chamber = reload.kind == RELOAD_CRYSTALS || reload.kind == RELOAD_TUBES ||
+        reload.kind == RELOAD_CANISTER;
     input.seated = vr_pose_time()-reload.insertion_time >= 0.10;
     /* A full magazine can still be tactically replaced when reserve remains.
      * The native finish_reload path retains or discards its rounds according
@@ -667,6 +674,17 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         if (input.near_mag && !reload.aligned) vr_haptic(hand_index, 0.20f, 0.025f);
         reload.aligned = input.near_mag;
     } else reload.aligned = FALSE;
+    /* Test70: an emptied gun's new magazine is in but it still needs
+     * charging (the slide, the handle, the pump): the gun hand ticks every
+     * 1.5 s until it is done, so a gun that will not fire says why */
+    {
+        static double reminded;
+        if (reload.state.phase == VR_MR_NEED_CHAMBER && !input.near_chamber &&
+            vr_pose_time() - reminded > 1.5) {
+            reminded = vr_pose_time();
+            vr_haptic(vr_weapon_hand(), 0.20f, 0.030f);
+        } else if (reload.state.phase != VR_MR_NEED_CHAMBER) reminded = vr_pose_time();
+    }
     input.magazine_out = reload.have_attachment && !reload_component_bounds_touch(&reload.socket,&reload.held,0.005f*units);
     /* Test59: the gun's own magazine goes back in. Pulled out and brought
      * back (once 4 cm clear) to within 3 cm of the well, lined up as a

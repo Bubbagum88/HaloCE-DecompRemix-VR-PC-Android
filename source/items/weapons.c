@@ -3178,10 +3178,9 @@ boolean weapon_update(
 		if (weapon->weapon.overcharged==0.0f)
 		{
 			real heat_loss= weapon_definition->weapon.heat_loss_per_second*(1.0f/TICKS_PER_SECOND);
-			if (TEST_FLAG(weapon->weapon.flags, _weapon_overheated_bit))
-			{
-				heat_loss *= vr_cooldown_shake_rate(weapon_index);
-			}
+			/* port (VR): shaken, a hot gun cools faster (vr_cooldown_shake.c;
+			Test70: while hot at all, not only once overheated) */
+			heat_loss *= vr_cooldown_shake_rate(weapon_index);
 
 			if (weapon_definition->weapon.age_heat_recovery_penalty>0.0f)
 			{
@@ -3263,6 +3262,20 @@ boolean weapon_update(
 			weapon->weapon.control_flags = saved_control_flags;
 			weapon_magazine_finish_chamber(weapon_index, 0);
 			SET_FLAG(weapon->weapon.flags, _weapon_needs_to_reload_bit, FALSE);
+		}
+	}
+	/* Test70: the needler with MANUAL RELOAD reloads when shaken (or with the
+	reload button), never on its own (vr_cooldown_shake.c) */
+	{
+		unsigned needler = vr_needler_shake_update(weapon_index,
+			TEST_FLAG(weapon->weapon.control_flags, _weapon_control_reload_bit));
+		if (needler & VR_NEEDLER_SHAKE_SUPPRESS_AUTO)
+			physical_reload_auto = TRUE;
+		if (needler & VR_NEEDLER_SHAKE_RELOAD)
+		{
+			physical_reload_auto = FALSE;
+			if (weapon_definition->weapon.magazines.count>0)
+				SET_FLAG(weapon->weapon.flags, _weapon_needs_to_reload_bit, TRUE);
 		}
 	}
 #endif

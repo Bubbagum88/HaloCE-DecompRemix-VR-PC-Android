@@ -196,6 +196,9 @@ functions, one past the end of each table) */
 #define VR_MENU_GAME_DATA_FUNCTION 41
 #define VR_MENU_NEXT_FUNCTION 102
 #define VR_MENU_PREVIOUS_FUNCTION 103
+/* Test70: A on a setting: confirms a button row's choice (vr_menu.c), and
+steps on elsewhere as A always did */
+#define VR_MENU_CONFIRM_FUNCTION 104
 void vr_menu_tags_loaded(void);
 void vr_menu_tags_unloaded(void);
 /* Releases the local avatar's filtered draw buffers before map teardown. */

@@ -280,6 +280,7 @@ symbols in this file:
 #include "halo_vr.h"
 #include "vr_parkour.h"
 #include "vr_extra_interaction.h"
+#include "vr_slide.h"
 #endif
 #include "vr_npc_interaction.h"
 #include "network_coop.h" /* port: port/linux/game/network_coop.c */
@@ -3957,6 +3958,13 @@ static void biped_update_moving(
 						player_information->double_speed_multiplier,
 						&physics.movement_desired);
 				}
+#ifdef HALO_VR
+				/* Test70: SLIDE: sprinting, a crouch slides on (vr_slide.c);
+				offline only, the local player's body only */
+				vr_slide_update(biped_index, &physics.forward, &biped->unit.throttle,
+					player_information->run_forward_speed, &physics.movement_desired,
+					&physics.acceleration_maximum);
+#endif
 			}
 		}
 		else

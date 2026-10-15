@@ -76,6 +76,8 @@ static float magnitude3d(real_vector3d const*v){return sqrtf(dot_product3d(v,v))
 static float normalize3d(real_vector3d*v){float n=magnitude3d(v);if(n>0)for(int i=0;i<3;i++)v->n[i]/=n;return n;}
 static void scale_vector3d(real_vector3d const*v,float s,real_vector3d*out){for(int i=0;i<3;i++)out->n[i]=v->n[i]*s;}
 static void add_vectors3d(real_vector3d const*a,real_vector3d const*b,real_vector3d*out){for(int i=0;i<3;i++)out->n[i]=a->n[i]+b->n[i];}
+static void cross_product3d(real_vector3d const*a,real_vector3d const*b,real_vector3d*out){real_vector3d r={{a->j*b->k-a->k*b->j,a->k*b->i-a->i*b->k,a->i*b->j-a->j*b->i}};*out=r;}
+static int valid_real_vector3d(real_vector3d const*v){return isfinite(v->i)&&isfinite(v->j)&&isfinite(v->k);}
 static void vector_from_points3d(real_point3d const*a,real_point3d const*b,real_vector3d*out){for(int i=0;i<3;i++)out->n[i]=b->n[i]-a->n[i];}
 static int collision_test_vector(unsigned flags,real_point3d const*p,real_vector3d const*v,long ignore,struct collision_result*r){
  (void)flags;(void)ignore;queries++;
@@ -139,6 +141,17 @@ int main(void){
  assert(!parkour_grab_surface(42,&hands[0],1,1000.0f,&contact_hit)); /* floor is not a wall grip */
  touch_plane.plane.n=(real_vector3d){.n={1,0,0}};overflow_features=1;
  assert(!parkour_grab_surface(42,&hands[0],1,1000.0f,&contact_hit));overflow_features=0;
+ /* Test70: a trunk the sphere's features missed (or were too many to read:
+    a tree's upper branches) is found by short rays from the hand, within
+    the grab radius only, never through it, never a floor */
+ {real_vector3d look={.n={-1,0,0}},up={.n={0,0,1}},palm={.n={-1,0,0}};struct collision_result ray_hit;
+  real_point3d near_hand={.n={.10f,0,1}},far_hand={.n={.30f,0,1}};
+  wall_normal=(real_vector3d){.n={1,0,0}};wall_offset=0;
+  assert(parkour_grab_rays(42,&near_hand,&palm,&look,&up,.14f,.5f,&ray_hit)&&ray_hit.object_index==NONE&&fabsf(ray_hit.point.x)<.0001f);
+  assert(!parkour_grab_rays(42,&far_hand,&palm,&look,&up,.14f,.5f,&ray_hit));
+  wall_normal=(real_vector3d){.n={0,0,1}};
+  assert(!parkour_grab_rays(42,&near_hand,&palm,&look,&up,.14f,1000.0f,&ray_hit)); /* a floor, below the waist */
+  wall_normal=(real_vector3d){.n={1,0,0}};}
  wall_normal=(real_vector3d){.n={1,0,0}};touch_plane.plane.n=wall_normal;touch_surface=1;wall_offset=0;queries=0;
  /* Test54: a squeeze just before the hand arrives still catches within the
     grace window (VR_PK_GRIP_GRACE_TICKS); after it, grip first and contact

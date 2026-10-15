@@ -2525,6 +2525,58 @@ static boolean vr_node_under(struct animation_graph *graph, short node, short ro
 	return FALSE;
 }
 
+/* Test70: `root` and every node under it reflected across the plane through
+`root`'s own position with that normal: a part of the mirrored left-hand
+model turned back the right way round where it is (a reflection twice is
+none). Their parts draw with their own winding again (rasterizer_xbox.c
+turns it by each part's first node). */
+static void vr_mirror_subtree(real_matrix4x3 *matrices, struct animation_graph *graph, short root,
+	real_vector3d const *normal)
+{
+	real_point3d centre = matrices[root].position;
+	short index;
+
+	for (index = 0; index < graph->nodes.count && index < MAXIMUM_NODES_PER_ANIMATION; index++)
+	{
+		real_matrix4x3 *m = &matrices[index];
+		real_vector3d *axes[3] = { &m->forward, &m->left, &m->up };
+		real_vector3d offset;
+		real along;
+		int axis;
+
+		if (index != root && !vr_node_under(graph, index, root))
+			continue;
+		vr_point_minus(&m->position, &centre, &offset);
+		along = 2.0f * (offset.i * normal->i + offset.j * normal->j + offset.k * normal->k);
+		m->position.x -= normal->i * along;
+		m->position.y -= normal->j * along;
+		m->position.z -= normal->k * along;
+		for (axis = 0; axis < 3; axis++)
+		{
+			along = 2.0f * (axes[axis]->i * normal->i + axes[axis]->j * normal->j + axes[axis]->k * normal->k);
+			axes[axis]->i -= normal->i * along;
+			axes[axis]->j -= normal->j * along;
+			axes[axis]->k -= normal->k * along;
+		}
+	}
+}
+
+/* Test70: the left hand's guns drawn the right way round whole (lettered
+UNSC guns; the assault rifle keeps its display fix, the Covenant's stay
+mirrored). The per-weapon list of the owner's left-hand visual audit */
+static boolean vr_left_hand_gun_reads_right(int kind)
+{
+	switch (kind)
+	{
+	case VR_GUN_ROCKET_LAUNCHER:
+	case VR_GUN_SNIPER_RIFLE:
+	case VR_GUN_SHOTGUN:
+	case VR_GUN_PISTOL:
+		return TRUE;
+	}
+	return FALSE;
+}
+
 static boolean vr_unit_vector(real_vector3d *v)
 {
 	real length = vr_length(v);
@@ -4313,6 +4365,8 @@ static boolean vr_reload_grip_finger(char const *name)
 	return FALSE;
 }
 
+static boolean vr_reload_grip_fits(char const *model);
+static void vr_reload_grip_fit(struct animation_graph *graph, long model_index, real units);
 static void vr_reload_grip_learn(struct animation_graph *graph, long weapon)
 {
 	static char const *const names[] = { "first-person reload-empty", "first-person reload-full", "first-person reload-full2" };
@@ -4463,12 +4517,80 @@ static void vr_reload_grip_learn(struct animation_graph *graph, long weapon)
 			else platform_log("vr: manual reload verified hold rejected: changed/unstable pose; keeping sampled grip");
 		}
 	}
+	if (model_index != NONE && vr_reload_grip_fits(tag_get_name(model_index)) && config_boolean("vr.reload_grip_fit"))
+		vr_reload_grip_fit(graph, model_index, units);
 	platform_log("vr: manual reload grip from the reload animation: magazine %s (frame %d, %.0f cm from the wrist), handle %s (frame %d, %.0f cm), %d finger joints",
 		vr_reload_grip.part_valid[0] ? "held as authored" : "not found", vr_reload_grip.frame[0],
 		(double)(vr_reload_grip.distance[0] < 1e8f ? vr_reload_grip.distance[0] / units * 100.0f : -1.0f),
 		vr_reload_grip.part_valid[1] ? "held as authored" : "not found", vr_reload_grip.frame[1],
 		(double)(vr_reload_grip.distance[1] < 1e8f ? vr_reload_grip.distance[1] / units * 100.0f : -1.0f),
 		vr_reload_grip.finger_count);
+}
+
+
+/* Test70: the magazine set in the hand. The owner: the Sniper's magazine hold
+looks right, the Pistol's and Assault Rifle's do not. Measured from their
+reload animations (Test67's extraction): the Sniper's sits between thumb and
+fingertips; the Assault Rifle's chosen frame holds it about 3 cm behind the
+fingers' line, and no frame of the Pistol's has it within 19 cm of the left
+wrist (Halo's pistol reload never grips it). The three magazines share their
+guns' axes and the frames' orientations agree, so only the place is wrong:
+the magazine's own centre (its rigid bounds) is moved into the closed hand,
+the mean of the thumb tip, the four fingertips and the palm (halfway from the
+wrist to the knuckles) of the same frame's fingers, its authored turn kept.
+The Sniper keeps its sampled hold; vr.reload_grip_fit false restores the
+authored place. */
+static boolean vr_reload_grip_fits(char const *model)
+{
+	return model && (!strcmp(model, "weapons\\assault rifle\\fp\\fp") || !strcmp(model, "weapons\\pistol\\fp\\fp"));
+}
+
+static void vr_reload_grip_fit(struct animation_graph *graph, long model_index, real units)
+{
+	real_point3d minimum, maximum, centre, held_centre, sum = { 0, 0, 0 }, knuckles = { 0, 0, 0 };
+	short magazine;
+	int f, tips = 0, lows = 0, axis;
+	real move;
+
+	if (!vr_reload_grip.part_valid[0] || model_index == NONE ||
+		(magazine = model_find_node(model_index, "frame magazine")) == NONE ||
+		!model_rigid_node_bounds(model_index, magazine, &minimum, &maximum))
+		return;
+	for (f = 0; f < vr_reload_grip.finger_count; f++)
+	{
+		char const *name = TAG_BLOCK_GET_ELEMENT(&graph->nodes, vr_reload_grip.fingers[f],
+			struct vr_animation_graph_node)->name;
+		real_point3d const *at = &vr_reload_grip.finger[0][f].position;
+		if (strstr(name, "tip"))
+		{
+			for (axis = 0; axis < 3; axis++) sum.n[axis] += at->n[axis];
+			tips++;
+		}
+		else if (strstr(name, "low") && !strstr(name, "thumb"))
+		{
+			for (axis = 0; axis < 3; axis++) knuckles.n[axis] += at->n[axis];
+			lows++;
+		}
+	}
+	if (tips < 4 || lows < 3)
+		return;
+	/* the palm: halfway from the wrist (the frame's origin) to the knuckles */
+	for (axis = 0; axis < 3; axis++)
+	{
+		sum.n[axis] += knuckles.n[axis] / lows * 0.5f;
+		sum.n[axis] /= (real)(tips + 1);
+		centre.n[axis] = (minimum.n[axis] + maximum.n[axis]) * 0.5f;
+	}
+	matrix4x3_transform_point(&vr_reload_grip.part[0], &centre, &held_centre);
+	move = distance3d(&sum, &held_centre);
+	if (!(move < 0.20f * units))
+	{
+		platform_log("vr: manual reload grip fit refused: %.1f cm away", (double)(move / units * 100.0f));
+		return;
+	}
+	for (axis = 0; axis < 3; axis++)
+		vr_reload_grip.part[0].position.n[axis] += sum.n[axis] - held_centre.n[axis];
+	platform_log("vr: manual reload grip fit: the magazine's centre moved %.1f cm into the hand", (double)(move / units * 100.0f));
 }
 
 /* the magazine (0) or the handle (1) as the drawn off hand holds it in the
@@ -4626,40 +4748,32 @@ void vr_render_first_person_ik(
 				axes[axis]->k -= normal.k * along;
 			}
 		}
-		/* test22: the ammo display ("frame display", the assault rifle's)
-		mirrored back about its own centre: it stays where the mirrored gun
-		has it but reads as the right hand's does, not backwards (its
-		triangles keep their winding: rasterizer_xbox.c) */
+		/* Test70: a gun with lettering on it (the rocket launcher's SPNKr,
+		PUSH and HOLD LIKE THIS read backwards in the owner's screenshots,
+		painted on its body where no node can turn them) is mirrored back
+		whole about its own grip ("frame gun"): it sits in the left hand as a
+		real one would, reading the right way; the hand stays the left
+		hand's. The assault rifle keeps test22's display alone (the owner:
+		fixed), and the Covenant guns, whose markings are no letters and
+		whose bodies are near symmetric, stay mirrored. */
 		{
-			short display = vr_find_node(graph, "frame", "display");
+			short gun = vr_find_node(graph, "frame", "gun");
+			boolean whole_gun = vr_left_hand_gun_reads_right(vr_gun_class()) &&
+				gun >= 0 && gun < graph->nodes.count && gun < MAXIMUM_NODES_PER_ANIMATION;
 
-			if (display >= 0 && display < graph->nodes.count && display < MAXIMUM_NODES_PER_ANIMATION)
+			if (whole_gun)
+				vr_mirror_subtree(matrices, graph, gun, &normal);
+			/* test22: the ammo display ("frame display", the assault rifle's)
+			mirrored back about its own centre: it stays where the mirrored
+			gun has it but reads as the right hand's does, not backwards (its
+			triangles keep their winding: rasterizer_xbox.c). Not again
+			under a gun already turned back whole */
+			else
 			{
-				real_point3d display_centre = matrices[display].position;
+				short display = vr_find_node(graph, "frame", "display");
 
-				for (index = 0; index < graph->nodes.count && index < MAXIMUM_NODES_PER_ANIMATION; index++)
-				{
-					real_matrix4x3 *m = &matrices[index];
-					real_vector3d *axes[3] = { &m->forward, &m->left, &m->up };
-					real_vector3d offset;
-					real along;
-					int axis;
-
-					if (index != display && !vr_node_under(graph, index, display))
-						continue;
-					vr_point_minus(&m->position, &display_centre, &offset);
-					along = 2.0f * (offset.i * normal.i + offset.j * normal.j + offset.k * normal.k);
-					m->position.x -= normal.i * along;
-					m->position.y -= normal.j * along;
-					m->position.z -= normal.k * along;
-					for (axis = 0; axis < 3; axis++)
-					{
-						along = 2.0f * (axes[axis]->i * normal.i + axes[axis]->j * normal.j + axes[axis]->k * normal.k);
-						axes[axis]->i -= normal.i * along;
-						axes[axis]->j -= normal.j * along;
-						axes[axis]->k -= normal.k * along;
-					}
-				}
+				if (display >= 0 && display < graph->nodes.count && display < MAXIMUM_NODES_PER_ANIMATION)
+					vr_mirror_subtree(matrices, graph, display, &normal);
 			}
 		}
 	}

@@ -909,6 +909,13 @@ static const struct config_setting config_settings[] =
         "ENEMY HEALTH (FIST COMBAT): enemies take this many times more punches, so fights flow as combos (each hit in a row adds 8%, up to +80%); takedowns, guns and grenades are unchanged." },
     { "vr.combat_counters", _config_boolean, "true", "HALO_VR_COMBAT_COUNTERS", _environment_value, _platform_vr,
         "COUNTERS (FIST COMBAT): an enemy swinging at you shows a blue warning over its head and taps both hands; a punch toward it counters (its blow undone, it is knocked down, the combo goes on)." },
+    { "vr.combat_hit_assist", _config_real, "0.30", "HALO_VR_COMBAT_HIT_ASSIST", _environment_value, _platform_vr,
+        "Test70: HIT ASSIST (FIST COMBAT): a punch thrown at an enemy already in striking range lands when\n"
+        "the fist comes within this many metres of its body (0 to 0.5; 0.30), Halo's body bubble keeping\n"
+        "the hand off the skin. 0: the fist's own sweep must meet the body, as before." },
+    { "vr.combat_lunge_hop", _config_real, "0.15", "HALO_VR_COMBAT_LUNGE_HOP", _environment_value, _platform_vr,
+        "Test70: LUNGE HOP (FIST COMBAT): a lunge on the ground begins with a small leap of about this\n"
+        "height in metres (0 to 0.4; 0.15), a combat leap rather than a slide; 0 slides as before." },
     { "vr.combat_reach", _config_real, "3.0", "HALO_VR_COMBAT_REACH", _environment_value, _platform_vr,
         "How far from the eyes a punch picks an enemy (metres, 0.75..3); short of striking range a short step closes the gap." },
     { "vr.physical_grenades", _config_boolean, "false", "HALO_VR_PHYSICAL_GRENADES", _environment_value, _platform_vr,
@@ -1012,6 +1019,11 @@ static const struct config_setting config_settings[] =
 		"\"auto\": with vr.left_handed, move on the right stick and turn on the left, and the\n"
 		"face buttons swap hands (jump and reload on the left controller). \"off\": the standard\n"
 		"layout (move on the left stick) whichever hand holds the gun." },
+	{ "vr.mirror_buttons", _config_string, "\"auto\"", "HALO_VR_MIRROR_BUTTONS", _environment_value, _platform_vr,
+		"Test70: \"auto\": with vr.left_handed, the face buttons are on the gun hand (A/B the\n"
+		"left controller's lower/upper: jump, use/reload and the magazine release) even when\n"
+		"vr.mirror_controls is \"off\" and the sticks stay standard. \"off\": the face buttons\n"
+		"stay where vr.mirror_controls puts them. Bindings (vr.button_*) never change with it." },
 	{ "vr.handedness_applied", _config_boolean, "false", "HALO_VR_HANDEDNESS_APPLIED", _environment_value, _platform_vr,
 		"Internal one-time migration (test20d): a config already left-handed keeps standard\n"
 		"sticks and buttons (vr.mirror_controls \"off\")." },
@@ -1089,6 +1101,22 @@ static const struct config_setting config_settings[] =
 		"and click again to stop. Off keeps the hold-to-sprint behavior." },
 	{ "vr.sprint_speed", _config_real, "1.5", "HALO_VR_SPRINT_SPEED", _environment_value, _platform_vr,
 		"Maximum offline sprint movement multiplier, bounded from 1.0x to 3.0x; default 1.5x." },
+	{ "vr.slide", _config_boolean, "false", "HALO_VR_SLIDE", _environment_value, _platform_vr,
+		"Test70: sprinting on the ground, a crouch begun slides on with the run's momentum, giving it\n"
+		"up to friction and slope, steered a little by the stick; standing, jumping, a wall or a walk's\n"
+		"pace ends it. Offline only, as sprint. Turning it on in the VR menu also turns on BUTTON\n"
+		"SPRINT unless ARM RUN sprints already." },
+	{ "vr.slide_momentum", _config_real, "1", "HALO_VR_SLIDE_MOMENTUM", _environment_value, _platform_vr,
+		"Test70: SLIDE DISTANCE, 0.5x to 2x: the lift a slide starts with and how long it may last." },
+	{ "vr.slide_friction", _config_real, "1", "HALO_VR_SLIDE_FRICTION", _environment_value, _platform_vr,
+		"Test70: SLIDE FRICTION, 0.25x to 3x: how quickly a slide gives up its speed." },
+	{ "vr.slide_damage", _config_real, "1", "HALO_VR_SLIDE_DAMAGE", _environment_value, _platform_vr,
+		"Test70: SLIDE IMPACT, 0 to 3: sliding into an NPC staggers or knocks it down (by kind, as fist\n"
+		"combat's) and deals up to half a melee at 1 (never a kill by itself); 0: no impact." },
+	{ "vr.slide_physical_crouch", _config_boolean, "true", "HALO_VR_SLIDE_PHYSICAL_CROUCH", _environment_value, _platform_vr,
+		"Test70: CROUCH SLIDES: lowering the head (a physical crouch) while sprinting slides too." },
+	{ "vr.slide_jump_cancel", _config_boolean, "true", "HALO_VR_SLIDE_JUMP_CANCEL", _environment_value, _platform_vr,
+		"Test70: JUMP CANCELS: Jump ends a slide at once, its momentum carried into the jump." },
 	{ "vr.melee_requires_fist", _config_boolean, "false", "HALO_VR_MELEE_REQUIRES_FIST", _environment_value, _platform_vr,
 		"Physical melee requires grip and index trigger together; an active hand\n"
 		"interaction takes priority over physical melee." },
@@ -1247,10 +1275,13 @@ static const struct config_setting config_settings[] =
         "Reach of each magazine pouch in metres (0.08 to 0.30)." },
 	{ "vr.manual_reload", _config_boolean, "false", "HALO_VR_MANUAL_RELOAD", _environment_value, _platform_vr,
 		"Optional solo VR physical reload for supported weapons. The USE/RELOAD action drops the magazine (it never reloads automatically while this is on); take a fresh one from a hip or shoulder pouch, push it into the well, and charge the gun only if the chamber was empty. Unsupported weapons keep the stock reload." },
-	{ "vr.npc_grab_assist", _config_real, "0.10", "HALO_VR_NPC_GRAB_ASSIST", _environment_value, _platform_vr,
-		"GRAB ASSIST: how far from an NPC's body (its visible surface) a squeeze still takes it, in metres (0 to 0.25; 10 cm by default, and NPC GRAB and FIST COMBAT bring at least 10 cm with them). 0 is touch only. A hand that touches no object (a prop, a turret, a vehicle) takes the nearest within this reach and 3 cm more." },
+	{ "vr.npc_grab_assist", _config_real, "0.15", "HALO_VR_NPC_GRAB_ASSIST", _environment_value, _platform_vr,
+		"GRAB ASSIST: how far from an NPC's body (its visible surface) a squeeze still takes it, in metres (0 to 0.25; 15 cm by default since Test70, and NPC GRAB and FIST COMBAT bring at least 15 cm with them). 0 is touch only. A hand that touches no object (a prop, a turret, a vehicle) takes the nearest within this reach and 3 cm more." },
 	{ "vr.object_throw", _config_real, "2.0", "HALO_VR_OBJECT_THROW", _environment_value, _platform_vr,
 		"OBJECT THROW: how hard a prop or a vehicle let go of while moving flies: the hand's speed times this (0 to 3; 2 by default; a vehicle at most 12 m/s, a prop 24). 0 lets it drop. WORLD GRAB and LIFT VEHICLES bring it." },
+	{ "vr.test70_defaults_applied", _config_boolean, "false", "HALO_VR_TEST70_DEFAULTS_APPLIED", _environment_value, _platform_vr,
+		"Internal one-time move (Test70): GRAB ASSIST at the old automatic 10 cm, with NPC GRAB or FIST COMBAT\n"
+		"on, goes to their new 15 cm, once; any other value is the player's and stays." },
 	{ "vr.grenade_waist_applied", _config_boolean, "false", "HALO_VR_GRENADE_WAIST_APPLIED", _environment_value, _platform_vr,
 		"Internal one-time move (Test66): the physical grenades to the waist (GRENADE DOWN 60 cm, FWD 12 cm, GAP 18 cm), once; later choices stay." },
 	{ "vr.npc_one_hand_heavy", _config_boolean, "false", "HALO_VR_NPC_ONE_HAND_HEAVY", _environment_value, _platform_vr,
@@ -1279,6 +1310,11 @@ static const struct config_setting config_settings[] =
 		"Input for the free hand during optional manual reload only: grip (default) or trigger. Other interaction and firing inputs are unchanged." },
 	{ "vr.dropped_magazines", _config_boolean, "false", "HALO_VR_DROPPED_MAGAZINES", _environment_value, _platform_vr,
 		"Keep ejected supported rifle/pistol/sniper magazines as local visual debris until the map changes. Requires MANUAL RELOAD; disabling MANUAL RELOAD in the VR menu also turns this off. Cancelled reloads remove their provisional visual. No ammo, save, or network state is created." },
+	{ "vr.reload_grip_fit", _config_boolean, "true", "HALO_VR_RELOAD_GRIP_FIT", _environment_value, _platform_vr,
+		"Test70: with manual reload, the Pistol's and Assault Rifle's magazine is held with its centre\n"
+		"in the closed hand (the reload animation's own fingers), not where their animations leave it\n"
+		"(behind the fingers; the Pistol's never in the hand). The Sniper's hold is unchanged. false:\n"
+		"Test67's authored place." },
 	{ "vr.cooldown_shake", _config_boolean, "false", "HALO_VR_COOLDOWN_SHAKE", _environment_value, _platform_vr,
 		"Offline VR toggle: shake the currently held overheated weapon to speed its authored cooling. Automatically disabled online." },
 	{ "vr.custom_scenery_grab", _config_boolean, "false", "HALO_VR_CUSTOM_SCENERY_GRAB", _environment_value, _platform_vr,
@@ -1421,6 +1457,18 @@ static const struct config_setting config_settings[] =
 	{ "vr.button_switch_grenade", _config_string, "\"hold\"", "HALO_VR_BUTTON_SWITCH_GRENADE", _environment_value, _platform_vr,
 		"Quest: the button that switches grenades, or \"hold\" (default): holding the grenade\n"
 		"button switches and tapping it throws. Also a, b, x, y, right_stick, left_stick, right_stick_down (the turning stick held down), grip or none." },
+	{ "vr.button_bullet_time", _config_string, "\"right_stick_up\"", "HALO_VR_BUTTON_BULLET_TIME", _environment_value, _platform_vr,
+		"Test70: the button BULLET TIME is held (or toggled) on, when vr.bullet_time is on: the turning\n"
+		"stick pushed up by default (right_stick_up; the one input no action has), or a, b, x, y,\n"
+		"right_stick, left_stick, right_stick_down, grip or none." },
+	{ "vr.bullet_time", _config_boolean, "false", "HALO_VR_BULLET_TIME", _environment_value, _platform_vr,
+		"Test70: BULLET TIME: the world slowed while its button is held (or toggled), offline only (a\n"
+		"local game, never co-op or multiplayer); the head and hands keep their full frame rate.\n"
+		"Not in a seat, a menu or a cutscene." },
+	{ "vr.bullet_time_scale", _config_real, "0.4", "HALO_VR_BULLET_TIME_SCALE", _environment_value, _platform_vr,
+		"Test70: BULLET TIME's speed of time, 0.2 to 0.8 (0.4: two fifths)." },
+	{ "vr.bullet_time_toggle", _config_boolean, "false", "HALO_VR_BULLET_TIME_TOGGLE", _environment_value, _platform_vr,
+		"Test70: BULLET TIME: false holds it while the button is held; true toggles it." },
 	{ "vr.button_push_to_talk", _config_string, "\"none\"", "HALO_VR_BUTTON_PUSH_TO_TALK", _environment_value, _platform_vr,
 		"Quest: the controller button held to transmit when audio.voice_chat is \"push_to_talk\".\n"
 		"Default none; no microphone capture occurs until PTT is bound and held, or Open Mic is explicitly selected." },

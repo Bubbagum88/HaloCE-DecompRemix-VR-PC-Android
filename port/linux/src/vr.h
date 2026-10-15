@@ -274,6 +274,10 @@ enum
 	VR_BUTTON_ACTION_RETICLE,
 	/* Voice chat PTT; NONE by default so it does not take a gameplay button. */
 	VR_BUTTON_ACTION_PUSH_TO_TALK,
+	/* Test70: BULLET TIME, held or toggled (vr_bullet_time.c); the turning
+	stick pushed up by default, the one input no action had (BULLET TIME's
+	input audit, docs/TEST70-CONTROLS-AUDIT.md) */
+	VR_BUTTON_ACTION_BULLET_TIME,
 	VR_BUTTON_ACTIONS
 };
 enum
@@ -289,6 +293,9 @@ enum
 	/* test26: the turning stick held down (it never turns; not while seated) */
 	VR_BUTTON_SOURCE_RIGHT_STICK_DOWN,
 	VR_BUTTON_SOURCE_HOLD,
+	/* Test70: the turning stick pushed up (as held down: never in a seat,
+	never while it turns) */
+	VR_BUTTON_SOURCE_RIGHT_STICK_UP,
 	VR_BUTTON_SOURCES
 };
 const char *vr_button_action_key(int action);
@@ -315,6 +322,10 @@ void vr_set_hud_hidden(int hidden);
 int vr_reticle_hidden(void);
 void vr_set_gun_class(int kind);
 int vr_gun_class(void);
+/* Test70: the head lowered crouches (vr.crouching), on foot */
+int vr_physical_crouching(void);
+/* Test70: BULLET TIME's button held now (its source, as the game sees it) */
+int vr_bullet_time_held(void);
 const char *vr_gun_class_label(int kind);
 const char *vr_gun_class_key(int kind);
 int vr_hand_empty(void);

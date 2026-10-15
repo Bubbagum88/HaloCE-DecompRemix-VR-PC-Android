@@ -1319,39 +1319,80 @@ void rasterizer_set_model_skinning(
 #ifdef HALO_VR
 /* Test31: display geometry uses its display node, not palette slot zero.
 The AR panel was unmirrored but still culled as if it used the mirrored root.
-Inspect every used influence in a small rigid display part, not just the first
-vertex. No cull disabling and no extra draw. Large/mixed parts keep the existing
-choice; this is bounded to 512 vertices and only a mirrored first-person model. */
-void rasterizer_vr_part_winding(struct vertex_buffer const *vertices, struct triangle_buffer const *triangles)
+Inspect every used influence of a part, not just the first vertex. No cull
+disabling and no extra draw. Mixed parts keep the root's choice; only a
+mirrored first-person model.
+Test70: a whole gun is turned back in the left hand (vr_render.c: the rocket
+launcher's lettering), so its parts, far larger than the AR's display (the
+512-vertex bound before), are inspected too: each part's nodes are read once
+into a mask, kept by its buffer, and its winding is the one its nodes agree
+on (the AR's large parts, all mirrored, keep the root's as before). */
+#define VR_PART_NODE_CACHE 64
+static struct
+{
+	void const *vertices;
+	long count;
+	/* the nodes the part's vertices use (bit n: node n); 0: unreadable */
+	unsigned long long nodes;
+} vr_part_nodes[VR_PART_NODE_CACHE];
+static int vr_part_nodes_next;
+
+static unsigned long long rasterizer_vr_part_nodes(struct vertex_buffer const *vertices,
+	struct triangle_buffer const *triangles)
 {
 	void const *data, *indices;
+	unsigned long long nodes = 0;
 	long i;
-	int sign = 0;
-	if (!halo_vr_model_mirrored() || vr_node_winding_count <= 0) return;
-	/* Reset even when this part is large, dynamic or not a display. */
-	halo_vr_skinning_mirrored(vr_root_mirrored);
-	if (!vertices || !triangles ||
-		vertices->type != _rasterizer_vertex_type_model_compressed ||
-		vertices->count <= 0 || vertices->count > 512)
-		return;
-	if (!rasterizer_model_buffer_data(vertices, triangles, &data, &indices)) return;
+	int slot;
+
+	for (slot = 0; slot < VR_PART_NODE_CACHE; slot++)
+		if (vr_part_nodes[slot].vertices == (void const *)vertices->hardware_format && vr_part_nodes[slot].count == vertices->count)
+			return vr_part_nodes[slot].nodes;
+	if (!rasterizer_model_buffer_data(vertices, triangles, &data, &indices))
+		return 0;
 	for (i = 0; i < vertices->count; i++)
 	{
 		byte const *v = (byte const *)data + i * 32;
 		short weight;
 		int influence;
 		memcpy(&weight, v + 30, sizeof(weight));
-		if (weight < 0) return;
+		if (weight < 0) { nodes = 0; break; }
 		for (influence = 0; influence < 2; influence++)
 		{
 			unsigned int node = v[28 + influence];
-			int current;
 			if ((influence == 0 && weight == 0) || (influence == 1 && weight == 32767)) continue;
-			if (node % 3 || node / 3 >= (unsigned int)vr_node_winding_count) return;
-			current = vr_node_winding[node / 3];
-			if (!current || (sign && current != sign)) return;
-			sign = current;
+			if (node % 3 || node / 3 >= RASTERIZER_MAXIMUM_NODES_PER_MODEL) { nodes = 0; i = vertices->count; break; }
+			nodes |= 1ULL << (node / 3);
 		}
+	}
+	slot = vr_part_nodes_next;
+	vr_part_nodes_next = (vr_part_nodes_next + 1) % VR_PART_NODE_CACHE;
+	vr_part_nodes[slot].vertices = vertices->hardware_format;
+	vr_part_nodes[slot].count = vertices->count;
+	vr_part_nodes[slot].nodes = nodes;
+	return nodes;
+}
+
+void rasterizer_vr_part_winding(struct vertex_buffer const *vertices, struct triangle_buffer const *triangles)
+{
+	unsigned long long nodes;
+	int sign = 0, node;
+	if (!halo_vr_model_mirrored() || vr_node_winding_count <= 0) return;
+	/* Reset even when this part is dynamic or not a model's. */
+	halo_vr_skinning_mirrored(vr_root_mirrored);
+	if (!vertices || !triangles ||
+		vertices->type != _rasterizer_vertex_type_model_compressed ||
+		vertices->count <= 0 || vertices->count > 0xFFFF)
+		return;
+	nodes = rasterizer_vr_part_nodes(vertices, triangles);
+	for (node = 0; nodes && node < RASTERIZER_MAXIMUM_NODES_PER_MODEL; node++)
+	{
+		int current;
+		if (!(nodes & (1ULL << node))) continue;
+		if (node >= vr_node_winding_count) return;
+		current = vr_node_winding[node];
+		if (!current || (sign && current != sign)) return;
+		sign = current;
 	}
 	if (sign) halo_vr_skinning_mirrored(sign < 0);
 }

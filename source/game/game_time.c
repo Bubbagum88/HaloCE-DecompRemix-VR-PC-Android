@@ -78,6 +78,7 @@ symbols in this file:
 #include "saved games/game_state.h"
 #include "profile_sections.h" /* port: port/linux/include/profile_sections.h */
 #include "mcc_game_speed.h" /* port: port/linux/game/mcc_game_speed.c */
+#include "vr_bullet_time.h" /* port: port/linux/game/vr_bullet_time.c (Test70) */
 /* port/linux/game/network_distributed.c's */
 void network_distributed_tick(void);
 
@@ -149,6 +150,8 @@ void game_time_initialize_for_new_map(
 void game_time_dispose_from_old_map(
 	void)
 {
+	/* port (Test70): BULLET TIME gives back the speed it had */
+	vr_bullet_time_reset();
 	if (game_time_globals)
 	{
 		game_time_globals->initialized = FALSE;
@@ -387,6 +390,8 @@ void game_time_update(
 	match_assert("c:\\halo\\SOURCE\\game\\game_time.c", 205, game_time_globals);
 	/* port: MCC speed updates must continue when simulation is stopped. */
 	mcc_game_speed_frame();
+	/* port (Test70): BULLET TIME's speed, before this frame's ticks count */
+	vr_bullet_time_frame();
 
 	if (game_time_globals->active)
 	{

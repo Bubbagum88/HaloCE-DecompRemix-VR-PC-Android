@@ -104,6 +104,7 @@ struct tag_block {long count;void *address,*definition;};
 #define VR_MENU_WIDGET_TAG 0x44654C61
 #define VR_MENU_GAME_DATA_FUNCTION 41
 #define VR_MENU_NEXT_FUNCTION 102
+#define VR_MENU_CONFIRM_FUNCTION 104
 #define VR_MENU_PREVIOUS_FUNCTION 103
 #define VR_MENU_BUTTON_WIDTH 250
 #define VR_MENU_SETTINGS_PER_SCREEN 8
@@ -154,6 +155,9 @@ static struct vr_menu_page vr_menu_pages[] = {
  {"FOURTEEN",test_settings,2},{"FIFTEEN",test_settings,2},{"SIXTEEN",test_settings,2},{"SEVENTEEN",test_settings,2}
 };
 static long vr_menu_value_index(struct vr_menu_setting const *s){(void)s;return 0;}
+/* Test70: button rows have text of their own (tested by test_test70_controls) */
+static int vr_menu_button_action(char const *k){(void)k;return NONE;}
+static void vr_menu_button_row_text(struct vr_menu_setting const *s,int a,char *l,size_t n){(void)s;(void)a;snprintf(l,n,"BUTTON");}
 static int vr_gun_class(void){return 0;}
 static char const *vr_gun_class_label(int k){(void)k;return "RIFLE";}
 static char const *vr_gun_class_key(int k){(void)k;return "rifle";}
@@ -308,7 +312,7 @@ static void verify(void){
    assert(w->text_font.index!=NONE&&w->game_data_inputs.count==1);
    assert(((struct vr_menu_game_data_input*)w->game_data_inputs.address)->function==41);
    struct vr_menu_event_handler *e=w->event_handlers.address;
-   assert(w->event_handlers.count==3&&e[0].event_type==0&&e[0].function==102&&e[1].event_type==11&&e[1].function==102&&e[2].event_type==10&&e[2].function==103);
+   assert(w->event_handlers.count==3&&e[0].event_type==0&&e[0].function==104&&e[1].event_type==11&&e[1].function==102&&e[2].event_type==10&&e[2].function==103);
    assert(vr_menu_setting_text(tag,text,128)&&wcsstr(text,L"SETTING"));
   }
  }

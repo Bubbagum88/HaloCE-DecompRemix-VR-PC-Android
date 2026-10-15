@@ -222,6 +222,9 @@ one place (the same setting either way: changing one shows on the other) */
 /* Test65: Arkham Shadow's fist combat: how far a punch carries the player to
 an enemy, how many more punches enemies take, and counters */
 #define VR_IMMERSION_COMBAT_LUNGE { "LUNGE", "vr.combat_lunge_reach", _vr_setting_real, 5, { { "OFF", "0" }, { "3 M", "3" }, { "4.5 M", "4.5" }, { "6 M", "6" }, { "8 M", "8" } } }
+/* Test70: HIT ASSIST and LUNGE HOP (FIST COMBAT) */
+#define VR_IMMERSION_COMBAT_HIT_ASSIST { "HIT ASSIST", "vr.combat_hit_assist", _vr_setting_real, 5, { { "OFF", "0" }, { "15 CM", "0.15" }, { "30 CM", "0.30" }, { "40 CM", "0.40" }, { "50 CM", "0.50" } } }
+#define VR_IMMERSION_COMBAT_HOP { "LUNGE HOP", "vr.combat_lunge_hop", _vr_setting_real, 4, { { "OFF", "0" }, { "LOW", "0.10" }, { "NORMAL", "0.15" }, { "HIGH", "0.25" } } }
 #define VR_IMMERSION_COMBAT_HEALTH { "ENEMY HEALTH", "vr.combat_enemy_health", _vr_setting_real, 5, { { "1X", "1" }, { "2X", "2" }, { "3X", "3" }, { "4X", "4" }, { "6X", "6" } } }
 /* Test65: WEAPON PULL: a weapon within reach glows and a grip pulls it into
 the hand */
@@ -369,6 +372,9 @@ static struct vr_menu_setting const vr_menu_controls[] =
 	 * hand at every level start and respawn; the hands still swap by hand */
 	{ "LEFT-HAND MODE", "vr.left_handed", _vr_setting_handedness, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "MIRROR CONTROLS", "vr.mirror_controls", _vr_setting_string, 2, { { "AUTO", "auto" }, { "OFF", "off" } } },
+	/* Test70: the face buttons follow the gun hand on their own (left-hand
+	reload and magazine release on the gun's controller); bindings stay */
+	{ "MIRROR BUTTONS", "vr.mirror_buttons", _vr_setting_string, 2, { { "AUTO", "auto" }, { "OFF", "off" } } },
 	VR_MENU_TURNING_ROW,
 	{ "MOVE WITH", "vr.move_relative", _vr_setting_string, 3, { { "HEAD", "head" }, { "LEFT HAND", "left" }, { "RIGHT HAND", "right" } } },
 	/* test21: AUTO LOCK (default) locks the off hand at the support grip
@@ -471,12 +477,23 @@ static struct vr_menu_setting const vr_menu_locomotion[] =
 	VR_IMMERSION_ARM_RUN,
 	VR_IMMERSION_ARM_EFFORT,
 	VR_IMMERSION_SPRINT_SPEED,
+	/* Test70: SLIDE (sprint and crouch) */
+	{ "SLIDE", "vr.slide", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	{ "SLIDE DISTANCE", "vr.slide_momentum", _vr_setting_real, 5, { { "0.5X", "0.5" }, { "0.75X", "0.75" }, { "1X", "1" }, { "1.5X", "1.5" }, { "2X", "2" } } },
+	{ "SLIDE FRICTION", "vr.slide_friction", _vr_setting_real, 3, { { "LOW", "0.6" }, { "NORMAL", "1" }, { "HIGH", "1.5" } } },
+	{ "SLIDE IMPACT", "vr.slide_damage", _vr_setting_real, 4, { { "OFF", "0" }, { "LIGHT", "0.5" }, { "NORMAL", "1" }, { "HEAVY", "2" } } },
+	{ "CROUCH SLIDES", "vr.slide_physical_crouch", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	{ "JUMP CANCELS", "vr.slide_jump_cancel", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 };
 
 /* the feel of play, with the crosshair (formerly its own page) */
 static struct vr_menu_setting const vr_menu_vr[] =
 {
 	VR_IMMERSION_HAPTICS,
+	/* Test70: BULLET TIME (offline; its button on BUTTONS) */
+	{ "BULLET TIME", "vr.bullet_time", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	{ "TIME SCALE", "vr.bullet_time_scale", _vr_setting_real, 4, { { "25%", "0.25" }, { "40%", "0.4" }, { "50%", "0.5" }, { "65%", "0.65" } } },
+	{ "BULLET TIME KEY", "vr.bullet_time_toggle", _vr_setting_boolean, 2, { { "HOLD", "false" }, { "TOGGLE", "true" } } },
 	{ "SCOPE", "vr.scope", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "CUTSCENES", "vr.cutscenes", _vr_setting_string, 3, { { "IMMERSIVE", "immersive" }, { "3D SCREEN", "screen" }, { "FLAT", "flat" } } },
     { "GRAB CONTACT", "vr.grab_contact", _vr_setting_string, 3, { { "AUTO", "auto" }, { "OFF", "off" }, { "ON", "on" } } },
@@ -684,22 +701,24 @@ static struct vr_menu_setting const vr_menu_buttons[] =
     /* Test67: a player asked for a "reset to default controls" here: it was
     the page's last row, below every binding; now also its first, plainly
     named, and either says DONE once pressed */
-    { "ALL TO DEFAULT", "buttons", _vr_setting_reset_buttons, 0, { { NULL,NULL } } },
-    { "JUMP", "vr.button_jump", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
+    { "RESET CONTROLS TO DEFAULT", "buttons", _vr_setting_reset_buttons, 0, { { NULL,NULL } } },
+    { "JUMP", "vr.button_jump", _vr_setting_button, 10, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "R UP", "right_stick_up" }, { "NONE", "none" } } },
     VR_IMMERSION_SHOULDER_POUCH,
     VR_IMMERSION_HIP_POUCH,
     VR_IMMERSION_MANUAL_RELOAD,
     VR_IMMERSION_RELOAD_INPUT,
-    { "USE / RELOAD", "vr.button_action", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
-    { "MELEE", "vr.button_melee", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
-    { "CROUCH", "vr.button_crouch", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
-    { "NEXT WEAPON", "vr.button_switch_weapon", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
-    { "GRENADE", "vr.button_grenade", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
-    { "NEXT GRENADE", "vr.button_switch_grenade", _vr_setting_button, 10, { { "HOLD", "hold" }, { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
+    { "USE / RELOAD", "vr.button_action", _vr_setting_button, 10, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "R UP", "right_stick_up" }, { "NONE", "none" } } },
+    { "MELEE", "vr.button_melee", _vr_setting_button, 10, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "R UP", "right_stick_up" }, { "NONE", "none" } } },
+    { "CROUCH", "vr.button_crouch", _vr_setting_button, 10, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "R UP", "right_stick_up" }, { "NONE", "none" } } },
+    { "NEXT WEAPON", "vr.button_switch_weapon", _vr_setting_button, 10, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "R UP", "right_stick_up" }, { "NONE", "none" } } },
+    { "GRENADE", "vr.button_grenade", _vr_setting_button, 10, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "R UP", "right_stick_up" }, { "NONE", "none" } } },
+    { "NEXT GRENADE", "vr.button_switch_grenade", _vr_setting_button, 11, { { "HOLD", "hold" }, { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "R UP", "right_stick_up" }, { "NONE", "none" } } },
     /* test26: shows or hides the reticle (starts shown) */
-    { "RETICLE", "vr.button_reticle", _vr_setting_button, 9, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "NONE", "none" } } },
+    { "RETICLE", "vr.button_reticle", _vr_setting_button, 10, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "R UP", "right_stick_up" }, { "NONE", "none" } } },
     { "PUSH TO TALK", "vr.button_push_to_talk", _vr_setting_button, 7, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "NONE", "none" } } },
-    { "RESET BUTTONS", "buttons", _vr_setting_reset_buttons, 0, { { NULL,NULL } } },
+    /* Test70: BULLET TIME's button (the turning stick pushed up by default) */
+    { "BULLET TIME", "vr.button_bullet_time", _vr_setting_button, 10, { { "A", "a" }, { "B", "b" }, { "X", "x" }, { "Y", "y" }, { "R STICK", "right_stick" }, { "L STICK", "left_stick" }, { "R DOWN", "right_stick_down" }, { "GRIP", "grip" }, { "R UP", "right_stick_up" }, { "NONE", "none" } } },
+    { "RESET CONTROLS TO DEFAULT", "buttons", _vr_setting_reset_buttons, 0, { { NULL,NULL } } },
 };
 
 /* Build167 voice is off by default. Volume zero also mutes received voices;
@@ -754,9 +773,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_HOLSTER_HAPTICS,
 	VR_IMMERSION_MELEE,
 	VR_IMMERSION_MELEE_SPEED,
-	VR_IMMERSION_FIST_REQUIRED,
 	VR_IMMERSION_SHAKE_COOLING,
-	VR_IMMERSION_PROJECTILE_PARRY,
 	/* PICKUPS */
 	VR_IMMERSION_WEAPON_PULL,
 	VR_IMMERSION_PULL_REACH,
@@ -765,12 +782,17 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	/* FIST COMBAT */
 	VR_IMMERSION_COMBAT,
 	VR_IMMERSION_COMBAT_MOVES,
-	VR_IMMERSION_COMBAT_LIGHTS,
 	VR_IMMERSION_COMBAT_REACH,
+	VR_IMMERSION_COMBAT_HIT_ASSIST,
 	VR_IMMERSION_COMBAT_LUNGE,
+	VR_IMMERSION_COMBAT_HOP,
 	VR_IMMERSION_COMBAT_HEALTH,
 	VR_IMMERSION_COMBAT_COUNTERS,
-	VR_IMMERSION_AIM_STEADY,
+	/* FIST OPTIONS (Test70: gathered from WEAPONS; AIM STEADYING is on HUD +
+	RETICLE, its own page, once) */
+	VR_IMMERSION_COMBAT_LIGHTS,
+	VR_IMMERSION_PROJECTILE_PARRY,
+	VR_IMMERSION_FIST_REQUIRED,
 	/* GRENADES */
 	VR_IMMERSION_GRENADES,
 	VR_IMMERSION_GRENADE_FWD,
@@ -883,7 +905,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
-	{ "WEAPONS", 8 }, { "PICKUPS", 4 }, { "FIST COMBAT", 8 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
+	{ "WEAPONS", 6 }, { "PICKUPS", 4 }, { "FIST COMBAT", 8 }, { "FIST OPTIONS", 3 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
 	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 8 },
 	{ "VEHICLES", 8 }, { "VEHICLE OPTIONS", 6 }, { "WARTHOG + GHOST", 8 }, { "TANK + BANSHEE", 8 },
 	{ "RAGDOLLS", 7 }, { "ADVANCED", 8 },
@@ -960,6 +982,9 @@ static struct vr_menu_dependency
 	{ "vr.reload_shoulder", "vr.manual_reload", TRUE },
 	{ "vr.reload_hip", "vr.manual_reload", TRUE },
 	{ "vr.button_sprint_toggle", "vr.button_sprint", TRUE },
+	/* Test70: a slide needs a sprint: BUTTON SPRINT, unless ARM RUN sprints
+	already (vr_menu_requirement_met) */
+	{ "vr.slide", "vr.button_sprint", TRUE },
 	/* Test61: the grabs take every NPC and every piece of scenery (the owner
 	turned CUSTOM NPC RIGS and CUSTOM SCENERY on by hand in Test60) */
 	{ "vr.npc_interaction", "vr.custom_npc_rigs", TRUE },
@@ -967,6 +992,7 @@ static struct vr_menu_dependency
 };
 
 static boolean vr_menu_button_sprint_set(boolean enabled);
+#include "vr_button_remap.h"
 
 /* Test61: a requirement that is a choice, not a switch: the value it needs
 (on) and the one it goes back to (off); NULL for a switch */
@@ -974,7 +1000,9 @@ static char const *vr_menu_requirement_value(char const *requires, boolean on)
 {
 	if (!strcmp(requires, "vr.melee")) return on ? "impact" : "swing";
 	if (!strcmp(requires, "vr.melee_speed")) return on ? "2.0" : "0";
-	if (!strcmp(requires, "vr.npc_grab_assist")) return on ? "0.10" : "0.05";
+	/* Test70: 15 cm (the owner raised it by hand: Halo's body bubble keeps
+	the hand off the skin), 10 cm when no feature needs it */
+	if (!strcmp(requires, "vr.npc_grab_assist")) return on ? "0.15" : "0.10";
 	if (!strcmp(requires, "vr.object_throw")) return on ? "2" : "0";
 	if (!strcmp(requires, "vr.vehicle_view"))
 		return on ? "first_person" : "chase";
@@ -995,8 +1023,10 @@ static boolean vr_menu_requirement_met(struct vr_menu_dependency const *dependen
 	}
 	if (!strcmp(dependency->requires, "vr.npc_grab_assist")) {
 		real assist = config_real("vr.npc_grab_assist");
-		return isfinite(assist) && assist >= 0.095f;
+		return isfinite(assist) && assist >= 0.145f;
 	}
+	if (!strcmp(dependency->feature, "vr.slide") && !strcmp(dependency->requires, "vr.button_sprint"))
+		return config_boolean("vr.button_sprint") || config_boolean("vr.arm_run");
 	return value ? (boolean)config_matches(dependency->requires, value) : config_boolean(dependency->requires);
 }
 
@@ -1302,7 +1332,8 @@ static boolean vr_menu_button_sprint_set(boolean enabled)
 	}
 	else
 	{
-		if (saved < 0 || saved > 255) saved = 0;
+		/* (Test70: every action's bit; 255 dropped push-to-talk's, bit 8) */
+		if (saved < 0 || saved >= (1L << VR_BUTTON_ACTIONS)) saved = 0;
 		for (action = 0; action < VR_BUTTON_ACTIONS; ++action)
 		{
 			if (!(saved & (1L << action))) continue;
@@ -1357,6 +1388,227 @@ static boolean vr_menu_button_set(int action, int source)
 		platform_log("vr: vr.button_switch_grenade moved to %s (the grip cannot be held to switch)", vr_button_source_value(old));
 	}
 	return written;
+}
+
+/* Test70: a button row edited in place (vr_button_remap.h): A, or left
+and right, starts choosing on that row with nothing written; A sets the
+choice. One that another action has asks what to do (CANCEL, SWAP, CLEAR
+the other, USE BOTH), chosen with left and right and taken with A. The
+choosing lapses after a while untouched, or when another row changes. */
+static long vr_menu_value_index(struct vr_menu_setting const *setting);
+unsigned long system_milliseconds(void);
+enum { VR_REMAP_IDLE, VR_REMAP_CHOOSING, VR_REMAP_CONFLICT };
+#define VR_REMAP_TIMEOUT_MS 20000
+static struct
+{
+	int state, action, value, other, resolution;
+	unsigned long at;
+} vr_remap;
+
+static void vr_menu_remap_idle(void)
+{
+	memset(&vr_remap, 0, sizeof(vr_remap));
+	vr_remap.state = VR_REMAP_IDLE;
+}
+
+static boolean vr_menu_remap_active(int action)
+{
+	if (vr_remap.state != VR_REMAP_IDLE &&
+		(unsigned long)(system_milliseconds() - vr_remap.at) > VR_REMAP_TIMEOUT_MS)
+		vr_menu_remap_idle();
+	return vr_remap.state != VR_REMAP_IDLE && vr_remap.action == action;
+}
+
+/* an action's row label on the BUTTONS page ("USE / RELOAD") */
+static char const *vr_menu_button_label(int action)
+{
+	long index;
+	char const *key = vr_button_action_key(action);
+
+	for (index = 0; index < (long)NUMBEROF(vr_menu_buttons); index++)
+		if (vr_menu_buttons[index].type == _vr_setting_button && !strcmp(vr_menu_buttons[index].key, key))
+			return vr_menu_buttons[index].label;
+	return key;
+}
+
+/* every action's button now */
+static void vr_menu_button_sources(int *sources)
+{
+	int action;
+
+	for (action = 0; action < VR_BUTTON_ACTIONS; action++)
+		sources[action] = vr_menu_button_source(action);
+}
+
+/* the row's value index of a button (NONE: not among its values) */
+static long vr_menu_button_value(struct vr_menu_setting const *setting, int source)
+{
+	long index;
+
+	for (index = 0; index < setting->value_count; index++)
+		if (!strcmp(setting->values[index].value, vr_button_source_value(source)))
+			return index;
+	return NONE;
+}
+
+/* the row's value Button Sprint keeps (the left stick), or -1 */
+static int vr_menu_button_sprint_skip(struct vr_menu_setting const *setting)
+{
+	return config_boolean("vr.button_sprint") ?
+		(int)vr_menu_button_value(setting, VR_BUTTON_SOURCE_LEFT_STICK) : -1;
+}
+
+/* Writes the buttons that differ from `before` */
+static boolean vr_menu_button_sources_write(int const *before, int const *after)
+{
+	int action;
+	boolean written = TRUE;
+
+	for (action = 0; action < VR_BUTTON_ACTIONS; action++)
+	{
+		if (before[action] == after[action])
+			continue;
+		written = config_write_string(vr_button_action_key(action), vr_button_source_value(after[action])) && written;
+		platform_log("vr: %s set to %s (was %s)", vr_button_action_key(action),
+			vr_button_source_value(after[action]), vr_button_source_value(before[action]));
+	}
+	return written;
+}
+
+/* A, left or right on a button row (step 0 is A) */
+static void vr_menu_button_row_change(struct vr_menu_setting const *setting, int action, long step)
+{
+	int sources[VR_BUTTON_ACTIONS], before[VR_BUTTON_ACTIONS];
+	int skip = vr_menu_button_sprint_skip(setting);
+	long value_index;
+
+	vr_menu_button_sources(sources);
+	memcpy(before, sources, sizeof(before));
+	if (!vr_menu_remap_active(action))
+	{
+		vr_menu_remap_idle();
+		value_index = vr_menu_value_index(setting);
+		vr_remap.state = VR_REMAP_CHOOSING;
+		vr_remap.action = action;
+		vr_remap.value = value_index == NONE ? 0 : (int)value_index;
+		vr_remap.at = system_milliseconds();
+		/* left or right also steps at once: the row shows the next choice */
+		if (step)
+			vr_remap.value = vr_remap_step(vr_remap.value, (int)step, (int)setting->value_count, skip);
+		platform_log("vr: choosing a button for %s", vr_button_action_key(action));
+		return;
+	}
+	vr_remap.at = system_milliseconds();
+	if (vr_remap.state == VR_REMAP_CHOOSING)
+	{
+		int source = vr_button_source_of(setting->values[vr_remap.value].value, VR_BUTTON_SOURCE_NONE);
+
+		if (step)
+		{
+			vr_remap.value = vr_remap_step(vr_remap.value, (int)step, (int)setting->value_count, skip);
+			return;
+		}
+		vr_remap.other = vr_remap_conflict(sources, VR_BUTTON_ACTIONS, action, source,
+			VR_BUTTON_SOURCE_NONE, VR_BUTTON_SOURCE_HOLD);
+		if (source != sources[action] && vr_remap.other >= 0)
+		{
+			/* the player decides; CANCEL is offered first */
+			vr_remap.state = VR_REMAP_CONFLICT;
+			vr_remap.resolution = VR_REMAP_CANCEL;
+			platform_log("vr: %s is %s's: asking (cancel, swap, clear, use both)",
+				vr_button_source_value(source), vr_button_action_key(vr_remap.other));
+			return;
+		}
+		if (source != sources[action])
+		{
+			vr_remap_apply(sources, VR_BUTTON_ACTIONS, action, source, -1, VR_REMAP_SWAP,
+				VR_BUTTON_SOURCE_NONE, VR_BUTTON_SOURCE_HOLD);
+			if (!vr_menu_button_sources_write(before, sources))
+				platform_log("vr: %s not saved to config.toml", vr_button_action_key(action));
+			vr_reload_settings();
+		}
+		vr_menu_remap_idle();
+		return;
+	}
+	/* VR_REMAP_CONFLICT */
+	if (step)
+	{
+		vr_remap.resolution = (vr_remap.resolution + (step < 0 ? -1 : 1) + VR_REMAP_RESOLUTIONS) % VR_REMAP_RESOLUTIONS;
+		return;
+	}
+	{
+		int source = vr_button_source_of(setting->values[vr_remap.value].value, VR_BUTTON_SOURCE_NONE);
+
+		if (vr_remap_apply(sources, VR_BUTTON_ACTIONS, action, source, vr_remap.other, vr_remap.resolution,
+			VR_BUTTON_SOURCE_NONE, VR_BUTTON_SOURCE_HOLD))
+		{
+			if (!vr_menu_button_sources_write(before, sources))
+				platform_log("vr: %s not saved to config.toml", vr_button_action_key(action));
+			vr_reload_settings();
+		}
+		platform_log("vr: %s on %s: %s", vr_button_action_key(action), vr_button_source_value(source),
+			vr_remap.resolution == VR_REMAP_CANCEL ? "cancelled" : vr_remap.resolution == VR_REMAP_SWAP ? "swapped" :
+			vr_remap.resolution == VR_REMAP_CLEAR ? "the other cleared" : "both on one button");
+		vr_menu_remap_idle();
+	}
+}
+
+/* A button row's text: its button, and why it may do nothing now
+(Test70: contextual ownership the owner asked to see) */
+static void vr_menu_button_row_text(struct vr_menu_setting const *setting, int action, char *line, size_t size)
+{
+	int sources[VR_BUTTON_ACTIONS], other;
+	int source = vr_menu_button_source(action);
+	char const *value;
+
+	vr_menu_button_sources(sources);
+	if (vr_menu_remap_active(action))
+	{
+		int candidate = vr_button_source_of(setting->values[vr_remap.value].value, VR_BUTTON_SOURCE_NONE);
+		char const *label = setting->values[vr_remap.value].label;
+
+		if (vr_remap.state == VR_REMAP_CONFLICT)
+		{
+			static char const *const resolutions[VR_REMAP_RESOLUTIONS] = { "CANCEL", "SWAP", "CLEAR IT", "USE BOTH" };
+			snprintf(line, size, "%s IS %s'S: < %s > A: OK", label, vr_menu_button_label(vr_remap.other),
+				resolutions[vr_remap.resolution]);
+			return;
+		}
+		other = candidate == source ? -1 : vr_remap_conflict(sources, VR_BUTTON_ACTIONS, action, candidate,
+			VR_BUTTON_SOURCE_NONE, VR_BUTTON_SOURCE_HOLD);
+		if (other >= 0)
+			snprintf(line, size, "%s: < %s > USED BY %s", setting->label, label, vr_menu_button_label(other));
+		else
+			snprintf(line, size, "%s: < %s >%s A: SET", setting->label, label,
+				candidate == vr_button_default(action) ? " (DEFAULT)" : "");
+		return;
+	}
+	value = vr_menu_button_value(setting, source) != NONE ?
+		setting->values[vr_menu_button_value(setting, source)].label : "CUSTOM";
+	/* Button Sprint keeps the left stick's click: what was there is off
+	until it is turned off again (vr_menu_button_sprint_set) */
+	if (source == VR_BUTTON_SOURCE_NONE && config_boolean("vr.button_sprint") &&
+		(config_integer("vr.button_sprint_saved_mask") & (1L << action)))
+	{
+		snprintf(line, size, "%s: L STICK (OFF: BUTTON SPRINT)", setting->label);
+		return;
+	}
+	if (action == VR_BUTTON_ACTION_SWITCH_GRENADE && source == VR_BUTTON_SOURCE_HOLD &&
+		sources[VR_BUTTON_ACTION_GRENADE] == VR_BUTTON_SOURCE_GRIP)
+	{
+		snprintf(line, size, "%s: HOLD (OFF: GRENADE ON GRIP)", setting->label);
+		return;
+	}
+	if (source == VR_BUTTON_SOURCE_GRIP && !strcmp(config_string("vr.weapons"), "physical"))
+	{
+		snprintf(line, size, "%s: GRIP (LOCKED WEAPONS ONLY)", setting->label);
+		return;
+	}
+	other = vr_remap_conflict(sources, VR_BUTTON_ACTIONS, action, source, VR_BUTTON_SOURCE_NONE, VR_BUTTON_SOURCE_HOLD);
+	if (other >= 0)
+		snprintf(line, size, "%s: %s (ALSO %s)", setting->label, value, vr_menu_button_label(other));
+	else
+		snprintf(line, size, "%s: %s", setting->label, value);
 }
 
 /* the setting's value now, as an index into its values (NONE: none of them) */
@@ -2036,8 +2288,10 @@ void vr_menu_tags_loaded(void)
 	memset(handlers, 0, sizeof(handlers));
 	handlers[0].flags = VR_MENU_RUN_FUNCTION;
 	handlers[0].event_type = VR_MENU_EVENT_A;
-	handlers[0].function = VR_MENU_NEXT_FUNCTION;
+	/* Test70: A confirms (a button row's choice; elsewhere it steps on) */
+	handlers[0].function = VR_MENU_CONFIRM_FUNCTION;
 	handlers[1] = handlers[0];
+	handlers[1].function = VR_MENU_NEXT_FUNCTION;
 	handlers[1].event_type = VR_MENU_EVENT_DPAD_RIGHT;
 	handlers[2] = handlers[0];
 	handlers[2].event_type = VR_MENU_EVENT_DPAD_LEFT;
@@ -2218,7 +2472,7 @@ boolean vr_menu_setting_text(
 	}
 	else if (kind == _vr_menu_hints)
     {
-        snprintf(line, sizeof(line), "A/RIGHT: NEXT   LEFT: PREVIOUS   B: BACK");
+        snprintf(line, sizeof(line), "A: NEXT / SET   < >: CHANGE   B: BACK");
     }
 	else if (kind == _vr_menu_navigation && vr_menu.navigation[setting_index].jump == 1)
         snprintf(line, sizeof(line), "%s", vr_menu.navigation[setting_index].label);
@@ -2280,6 +2534,8 @@ boolean vr_menu_setting_text(
             snprintf(line,sizeof(line),"%s: %s",setting->label,
                 setting->type == _vr_setting_reset_buttons && vr_menu_buttons_reset_at &&
                 system_milliseconds() - vr_menu_buttons_reset_at < VR_MENU_RESET_DONE_MS ? "DONE" : "APPLY");
+        else if(setting->type == _vr_setting_button && vr_menu_button_action(setting->key) != NONE)
+            vr_menu_button_row_text(setting, vr_menu_button_action(setting->key), line, sizeof(line));
         else
 		snprintf(line, sizeof(line), setting->type == _vr_setting_real || setting->type == _vr_setting_snap_angle ?
 			"%s: < %s >" : "%s: %s", setting->label,
@@ -2304,6 +2560,14 @@ boolean vr_menu_setting_change(
 	if (vr_menu_widget_kind(definition_tag_index, &page, &setting_index) != _vr_menu_setting)
 		return FALSE;
 	setting = &vr_menu_pages[page].settings[setting_index];
+	/* Test70: A (step 0) sets a button row's choice; elsewhere it steps on,
+	as it always did. Changing another row ends a row's choosing */
+	if (setting->type != _vr_setting_button)
+	{
+		vr_menu_remap_idle();
+		if (!step)
+			step = 1;
+	}
     if(setting->type == _vr_setting_degrees || setting->type == _vr_setting_centimetres ||
 		setting->type == _vr_setting_scope_centimetres || setting->type == _vr_setting_vehicle_centimetres) {
         double value=config_real(setting->key), unit=setting->type==_vr_setting_degrees?5.0:0.01;
@@ -2391,6 +2655,7 @@ boolean vr_menu_setting_change(
     }
     if(setting->type == _vr_setting_reset_buttons) {
         int action;
+        vr_menu_remap_idle();
         written=vr_menu_button_sprint_set(FALSE);
         for(action=0;action<VR_BUTTON_ACTIONS;action++)
             written=config_write_string(vr_button_action_key(action),vr_button_source_value(vr_button_default(action)))&&written;
@@ -2400,17 +2665,12 @@ boolean vr_menu_setting_change(
         return TRUE;
     }
     if(setting->type == _vr_setting_button) {
+        /* Test70: chosen in place, a conflict resolved by the player
+        (vr_menu_button_row_change); Button Sprint's left stick still
+        skipped while it is on (Test63) */
         int action=vr_menu_button_action(setting->key);
         if(action==NONE) return TRUE;
-        value_index=vr_menu_value_index(setting);
-        value_index=value_index==NONE?0:(value_index+step+setting->value_count)%setting->value_count;
-        /* Test63: BUTTON SPRINT owns the left stick's click: no action is
-        put on it while sprint is on (the choice skips it) */
-        if(config_boolean("vr.button_sprint")&&
-            vr_button_source_of(setting->values[value_index].value,VR_BUTTON_SOURCE_NONE)==VR_BUTTON_SOURCE_LEFT_STICK)
-            value_index=(value_index+step+setting->value_count)%setting->value_count;
-        written=vr_menu_button_set(action,vr_button_source_of(setting->values[value_index].value,VR_BUTTON_SOURCE_NONE));
-        vr_reload_settings(); platform_log("vr: %s set to %s%s",setting->key,setting->values[value_index].value,written?"":" (save failed)");
+        vr_menu_button_row_change(setting, action, step);
         return TRUE;
     }
     if(setting->type == _vr_setting_gun_aim) {

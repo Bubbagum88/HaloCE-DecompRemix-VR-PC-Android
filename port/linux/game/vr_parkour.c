@@ -162,17 +162,76 @@ static boolean parkour_grab_through(long unit,real_point3d const *camera,real_po
 	best->t=0.0f;
 	return TRUE;
 }
+/* Test70: short rays from the hand to the surface beside it (the owner:
+ * "if the player's hand is clearly against a solid tree trunk, rock, wall or
+ * object and Grip is held, it should usually establish a grab"): along the
+ * palm, ahead of the head, to either side, up and down, each the grab
+ * radius long; the nearest climbable face they meet is the hold. For a thin
+ * trunk or a branch the sphere's features missed (or were too many) */
+static boolean parkour_grab_rays(long unit,real_point3d const *hand,real_vector3d const *palm,
+	real_vector3d const *look,real_vector3d const *up,real radius,real waist_z,struct collision_result *best)
+{
+	real_vector3d directions[8],left;
+	real nearest=2.0f;
+	int count=0,found=FALSE;
+	if(!(radius>0.0f)||!isfinite(radius))return FALSE;
+	cross_product3d(up,look,&left);
+	if(normalize3d(&left)<.001f)return FALSE;
+	directions[count++]=*palm;
+	directions[count++]=*look;
+	directions[count++]=left;
+	scale_vector3d(&left,-1.0f,&directions[count++]);
+	directions[count++]=*up;
+	scale_vector3d(up,-1.0f,&directions[count++]);
+	{
+		real_vector3d slant;
+		add_vectors3d(look,&left,&slant);if(normalize3d(&slant)>.001f)directions[count++]=slant;
+		scale_vector3d(&left,-1.0f,&slant);add_vectors3d(look,&slant,&slant);if(normalize3d(&slant)>.001f)directions[count++]=slant;
+	}
+	for(int d=0;d<count;d++){
+		struct collision_result hit;real_vector3d ray;
+		if(!valid_real_vector3d(&directions[d]))continue;
+		scale_vector3d(&directions[d],radius,&ray);
+		memset(&hit,0,sizeof(hit));hit.object_index=NONE;
+		/* (strictly within the radius: a face at its very end is out of reach) */
+		if(!collision_test_vector(PARKOUR_WALL_FLAGS,hand,&ray,unit,&hit)||!(hit.t>=0.0f&&hit.t<1.0f))continue;
+		/* a face met head-on from outside (not the inside of the solid) */
+		if(dot_product3d(&hit.plane.n,&directions[d])>-0.2f)continue;
+		if(!vr_pk_climbable(hit.plane.n.n,hit.point.z>=waist_z))continue;
+		if(hit.t<nearest){nearest=hit.t;*best=hit;found=TRUE;}
+	}
+	if(found){
+		if(best->type!=_collision_result_object)best->object_index=NONE;
+		best->t=0.0f;
+	}
+	return found;
+}
 static boolean parkour_grab_surface(long unit,real_point3d const *hand,real units,real waist_z,struct collision_result *best)
 {
 	real radius=parkour_grab_radius(units);
 	struct collision_plane contact;
-	int total=0;
-	if(!(radius>0.0f) || !collision_get_features_in_sphere(PARKOUR_WALL_FLAGS,hand,
-		radius,0.0f,radius,unit,&parkour_contact_features))return FALSE;
-	for(int type=0;type<NUMBER_OF_COLLISION_FEATURE_TYPES;type++){
-		if(parkour_contact_features.count[type]<0 ||
-			parkour_contact_features.count[type]>=MAXIMUM_COLLISION_FEATURES_PER_TEST)return FALSE;
-		total+=parkour_contact_features.count[type];
+	int total=0,attempt,full=FALSE;
+	/* Test70: a tree's upper trunk among its branches and leaves fills the
+	 * features' lists (256 of a kind) within the grab radius (and the 19 cm
+	 * the query adds), which refused the hold outright: the owner's report,
+	 * a tree climbed low but not high. A full list is tried again at half
+	 * and a quarter of the radius, which takes fewer features */
+	for(attempt=0;attempt<3;attempt++){
+		real r=radius*(attempt==0?1.0f:attempt==1?0.5f:0.25f);
+		total=0;full=FALSE;
+		if(!(r>0.0f) || !collision_get_features_in_sphere(PARKOUR_WALL_FLAGS,hand,
+			r,0.0f,r,unit,&parkour_contact_features))return FALSE;
+		for(int type=0;type<NUMBER_OF_COLLISION_FEATURE_TYPES;type++){
+			if(parkour_contact_features.count[type]<0)return FALSE;
+			if(parkour_contact_features.count[type]>=MAXIMUM_COLLISION_FEATURES_PER_TEST)full=TRUE;
+			total+=parkour_contact_features.count[type];
+		}
+		if(!full)break;
+	}
+	if(full){
+		static long logged;long now=game_time_get();
+		if(now-logged>TICKS_PER_SECOND||now<logged){logged=now;platform_log("VR parkour: the geometry by the hand is too dense to read even at a quarter of the grab radius; trying short rays");}
+		return FALSE;
 	}
 	if(total==0 || !collision_features_test_point(&parkour_contact_features,hand,&contact))return FALSE;
 	{
@@ -333,8 +392,10 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
         if(held&&!parkour.hand[hand].active&&parkour.hand[hand].grace>0){
             struct collision_result hit;
             parkour.hand[hand].grace--;
+			real_vector3d palm=forward;
 			if((parkour_grab_surface(unit,&point,units,waist_z,&hit)||
-				parkour_grab_through(unit,&camera,&point,parkour_grab_radius(units),waist_z,&hit))&&
+				parkour_grab_through(unit,&camera,&point,parkour_grab_radius(units),waist_z,&hit)||
+				parkour_grab_rays(unit,&point,&palm,&look,&up,parkour_grab_radius(units),waist_z,&hit))&&
 				vr_interaction_claim(hand,VR_INTERACTION_PARKOUR)){
                 long hit_object=parkour_hit_object(&hit);
                 struct object_datum *object=hit_object!=NONE?
@@ -390,7 +451,24 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
     if(config_boolean("vr.parkour_walljump")&&edge&&(airborne||contacts)&&wall_found&&!parkour.jumped_wall){
         real scale=vr_pk_bound(config_real("vr.walljump_scale"),1,0.5f,1.5f);
         real upward=biped_definition_get(biped->definition_index)->biped.jump_velocity*scale;
-        vr_pk_leap(look.n,wall.plane.n.n,5.0f*per_second*scale,upward,velocity->n);
+        /* Test70: the wall run along, not the nearest face a probe met (one
+         * looked at is not the one jumped from); the look leads */
+        real_vector3d from_wall=parkour.running&&parkour.wall_valid?parkour.wall_normal:wall.plane.n;
+        float stick[2]={0,0};
+        {
+            real_vector3d facing=biped->object.forward;facing.k=0;
+            if(normalize3d(&facing)>0.001f){
+                stick[0]=(float)(facing.i*biped->unit.throttle.i-facing.j*biped->unit.throttle.j);
+                stick[1]=(float)(facing.j*biped->unit.throttle.i+facing.i*biped->unit.throttle.j);
+            }
+        }
+        {
+            float carried[3]={(float)velocity->i,(float)velocity->j,(float)velocity->k};
+            vr_pk_wall_leap(look.n,from_wall.n,carried,stick,5.0f*per_second*scale,upward,velocity->n);
+        }
+        platform_log("VR parkour: wall jump look=%.2f/%.2f/%.2f wall=%.2f/%.2f/%.2f%s out=%.2f/%.2f/%.2f m/s",
+            look.i,look.j,look.k,from_wall.i,from_wall.j,from_wall.k,parkour.running?" (run wall)":"",
+            velocity->i*30.0f/units,velocity->j*30.0f/units,velocity->k*30.0f/units);
         parkour.jumped_wall=1;parkour.running=0;parkour.run_ticks=(int)(3*TICKS_PER_SECOND);parkour.walljump_age=0;
         for(int hand=0;hand<2;hand++){parkour.hand[hand].active=0;vr_interaction_release(hand,VR_INTERACTION_PARKOUR);}
         vr_haptic(0,0.30f,0.04f);vr_haptic(1,0.30f,0.04f);

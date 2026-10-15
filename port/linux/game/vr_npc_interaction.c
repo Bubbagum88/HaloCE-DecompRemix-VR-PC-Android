@@ -359,6 +359,13 @@ static int interaction_profile(short type,struct unit_datum *unit,long index,int
  * contact. Neither identifies a limb that can be pinned by the articulated
  * solver. Map those contacts to the nearest authored non-root joint, while
  * preserving valid explicit nodes and the distinct-node rule for heavy NPCs. */
+/* Test70: GRAB ASSIST's reach, while a squeeze is acquiring (world units).
+ * The owner: "maximum Grab Assist still sometimes requires almost direct
+ * physical overlap". A hand the assist let touch the body's shot geometry
+ * (25 cm from its skin at most) was then mapped to the nearest joint only
+ * within 22 cm of the HAND, so far from the skin it found none and the grab
+ * was thrown away after it had been found. The mapping allows the assist. */
+static real npc_contact_slack;
 static int npc_contact_node(struct vr_articulated_native const *rig,short hit_node,
     real_point3d const *contact,real units,int other_node,int *mapped)
 {
@@ -383,6 +390,7 @@ static int npc_contact_node(struct vr_articulated_native const *rig,short hit_no
         maximum_distance=MAX(maximum_distance,rig->body.nodes[node].radius*4.0f);
         if(distance_squared<best_distance_squared){best_distance_squared=distance_squared;best=node;}
     }
+    if(isfinite(npc_contact_slack)&&npc_contact_slack>0)maximum_distance+=npc_contact_slack;
     if(best==NONE||!isfinite(best_distance_squared)||best_distance_squared>maximum_distance*maximum_distance)return NONE;
     if(mapped)*mapped=TRUE;
     return best;
@@ -999,7 +1007,7 @@ static void tick_player(int use_remote,long player)
              * its skin), and the shot geometry took a 4 cm palm alone. Now
              * the shot geometry is touched by a palm grown by the assist, and
              * the capsules allow for the body round the bones (15 cm). */
-            real assist=npc_setting("vr.npc_grab_assist",0.10f,0.0f,0.25f)*units;
+            real assist=npc_setting("vr.npc_grab_assist",0.15f,0.0f,0.25f)*units;
             real surface_reach=contact_radius+assist;
             real body_reach=contact_radius+assist+.07f*units+.15f*units;
             int graph_rejects=0,node_rejects=0,capacity_rejects=0,acquired=0;
@@ -1052,8 +1060,10 @@ static void tick_player(int use_remote,long player)
                        !(hit.type==_collision_result_object && hit.object_index==it.index)) continue;
                     if(!existing && !captured && !vr_articulated_native_capture(it.index,&destination->rig)) {++graph_rejects;continue;}
                 }
+                npc_contact_slack=assist;
                 node=npc_contact_node(&destination->rig,(short)node,&contact,units,
                     destination->held[1-h]?destination->node[1-h]:NONE,&mapped);
+                npc_contact_slack=0;
                 if(node==NONE){++node_rejects;continue;}
                 if(!npc_contact_surface(&destination->rig,node,&probe,units,&contact)){
                     ++node_rejects;continue;

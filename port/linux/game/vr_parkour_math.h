@@ -21,6 +21,53 @@ static void vr_pk_leap(float const look[3], float const normal[3], float speed,
     if(out[2]<upward)out[2]=upward;
     vr_pk_cap(out,speed*1.5f);
 }
+/* Test70: the wall jump, where the player looks (the owner: "the intended
+ * wall-jump behavior should still primarily use head/view direction"; a
+ * player's report of launches in directions not expected). The level look
+ * sets the way (the head's pitch no longer shortens it), turned only as far
+ * as needed to leave the wall (at least 35% of it away from the wall), the
+ * stick bending it a fifth; the speed the body has is kept (up to 1.5x the
+ * jump's), the way it goes is the look's; the height is the jump's, more
+ * when looking up. `stick` world horizontal (zero: none) */
+static void vr_pk_wall_leap(float const look[3], float const normal[3], float const velocity[3],
+    float const stick[2], float speed, float upward, float out[3])
+{
+    float h[2] = { look[0], look[1] }, n[2] = { normal[0], normal[1] }, length, away, carried, s2;
+    length = sqrtf(n[0]*n[0]+n[1]*n[1]);
+    if (!(length > 0.1f) || !isfinite(length)) { vr_pk_leap(look, normal, speed, upward, out); return; }
+    n[0] /= length; n[1] /= length;
+    length = sqrtf(h[0]*h[0]+h[1]*h[1]);
+    /* (looking straight up or down: away from the wall) */
+    if (!(length > 0.15f) || !isfinite(length)) { h[0] = n[0]; h[1] = n[1]; }
+    else { h[0] /= length; h[1] /= length; }
+    s2 = stick ? sqrtf(stick[0]*stick[0]+stick[1]*stick[1]) : 0.0f;
+    if (s2 > 0.3f && isfinite(s2)) {
+        h[0] = h[0]*0.8f + stick[0]/s2*0.2f;
+        h[1] = h[1]*0.8f + stick[1]/s2*0.2f;
+        length = sqrtf(h[0]*h[0]+h[1]*h[1]);
+        if (length > 0.001f) { h[0] /= length; h[1] /= length; }
+    }
+    away = h[0]*n[0]+h[1]*n[1];
+    if (away < 0.35f) {
+        /* the look's way along the wall kept, 35% of it away from the wall */
+        float t[2] = { h[0]-away*n[0], h[1]-away*n[1] };
+        length = sqrtf(t[0]*t[0]+t[1]*t[1]);
+        if (length > 0.001f) {
+            t[0] /= length; t[1] /= length;
+            h[0] = 0.35f*n[0] + 0.9367497f*t[0];
+            h[1] = 0.35f*n[1] + 0.9367497f*t[1];
+        }
+        /* (looking straight at the wall: straight off it) */
+        else { h[0] = n[0]; h[1] = n[1]; }
+    }
+    carried = velocity ? sqrtf(velocity[0]*velocity[0]+velocity[1]*velocity[1]) : 0.0f;
+    if (!isfinite(carried)) carried = 0.0f;
+    carried = carried > speed ? carried : speed;
+    if (carried > speed*1.5f) carried = speed*1.5f;
+    out[0] = h[0]*carried;
+    out[1] = h[1]*carried;
+    out[2] = upward + (look[2] > 0.0f && isfinite(look[2]) ? look[2]*speed*0.5f : 0.0f);
+}
 static int vr_pk_vertical(float const normal[3])
 {
     float length=normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2];

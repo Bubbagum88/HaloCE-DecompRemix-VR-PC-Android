@@ -6,6 +6,8 @@ void vr_extra_reset(void);
 long vr_extra_action_owner(void);
 void vr_extra_projectile_feedback(int hand,real_point3d const *point);
 void vr_extra_tick(long unit);
+/* Test70: whether fist combat knocks this kind down (a slide into it too) */
+boolean vr_combat_knockable(long target);
 int vr_extra_render(float const camera[3]);
 /* Test63: the grenades' own models, in the world model pass (render_objects.c) */
 void vr_extra_models_render(void);

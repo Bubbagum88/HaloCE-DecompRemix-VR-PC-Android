@@ -124,6 +124,8 @@ static int lift_required;
 static int npc_lift_required(void){return lift_required;}
 static struct {long object,until;} npc_deferred_garbage[16];
 static void vr_body_reactions_reset(void){}
+/* Test70: GRAB ASSIST's reach, while a squeeze acquires (vr_npc_interaction.c) */
+static real npc_contact_slack;
 '''
 c=c.replace('#define VR_NPC_INTERACTION_POOL_SIZE {POOL_SIZE}',
             f'#define VR_NPC_INTERACTION_POOL_SIZE {POOL_SIZE}')
@@ -165,6 +167,12 @@ int main(void){
  assert(npc_contact_node(&contact_rig,3,&contact,1,NONE,&mapped)==3&&!mapped);
  assert(npc_contact_node(&contact_rig,3,&contact,1,3,&mapped)==2&&mapped);
  contact.n[0]=.6f;contact.n[1]=.6f;assert(npc_contact_node(&contact_rig,0,&contact,1,NONE,&mapped)==NONE&&!mapped);
+ /* Test70: a hand GRAB ASSIST let touch the body maps to its nearest joint
+    even 30 cm past the old 22 cm (the owner: maximum assist still needed
+    overlap); without the assist it is still refused */
+ contact.n[0]=.45f;contact.n[1]=0;assert(npc_contact_node(&contact_rig,0,&contact,1,NONE,&mapped)==NONE);
+ npc_contact_slack=.25f;assert(npc_contact_node(&contact_rig,0,&contact,1,NONE,&mapped)==2&&mapped);
+ npc_contact_slack=0;contact.n[0]=.6f;contact.n[1]=.6f;
  assert(npc_contact_node(&contact_rig,-2,&contact,1,NONE,&mapped)==NONE);
  assert(npc_contact_node(&contact_rig,99,&contact,1,NONE,&mapped)==NONE);
  actor_races[_actor_engineer]=_race_covenant;actor_races[_actor_assassin]=_race_covenant;

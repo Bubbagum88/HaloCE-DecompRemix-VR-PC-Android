@@ -3452,8 +3452,10 @@ boolean ui_widget_event_handler_function_invoke(
 		"(widget != NULL) && (widget_deleted != NULL)");
 #ifdef HALO_VR
 	/* the pause menu's VR settings (port/linux/game/vr_menu.c) */
-	if (function_index == VR_MENU_NEXT_FUNCTION || function_index == VR_MENU_PREVIOUS_FUNCTION)
-		return vr_menu_setting_change(widget->definition_tag_index, function_index == VR_MENU_NEXT_FUNCTION ? 1 : -1);
+	if (function_index == VR_MENU_NEXT_FUNCTION || function_index == VR_MENU_PREVIOUS_FUNCTION ||
+		function_index == VR_MENU_CONFIRM_FUNCTION)
+		return vr_menu_setting_change(widget->definition_tag_index, function_index == VR_MENU_NEXT_FUNCTION ? 1 :
+			function_index == VR_MENU_PREVIOUS_FUNCTION ? -1 : 0);
 #endif
 	/* port: a map's own widgets (not the menus' tags the port adds) may not
 	run what changes the player's files or settings: ui_widget_function_denied

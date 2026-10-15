@@ -50,6 +50,8 @@ static struct {
      * swing opens, the enemy countered (its swing undone, staggered), and a
      * knockdown to give the NPC module after the blow */
     int combo,strike_pending,strike_hand,strike_counter,knock_pending;
+    /* Test70: the lunge's leap is still to come */
+    int lunge_hop;
     long combo_until,last_strike_tick,strike_issued,counter_enemy,counter_until,countered,countered_until,
         knock_target,reason_logged;
     real strike_scale,lunge_metres,knock_speed;
@@ -184,6 +186,17 @@ int vr_combat_enabled(void)
 static real combat_lunge_reach(void){return extra_bound("vr.combat_lunge_reach",8.0f,0.0f,10.0f);}
 static real combat_reach(void){return MAX(extra_bound("vr.combat_reach",3.0f,.75f,3),combat_lunge_reach());}
 static real combat_health(void){return extra_bound("vr.combat_enemy_health",3.0f,1.0f,6.0f);}
+/* Test70: HIT ASSIST (metres): how near an in-reach enemy's body a punch
+ * thrown at it lands, without the fist's 3.5 cm sweep having to meet Halo's
+ * collision there (the owner: "the player should not need to physically
+ * intersect the enemy's visible face"; Halo's body bubble keeps the hand
+ * off the skin). 0: the sweep alone, as before. Not a reach: only an enemy
+ * already in striking range (the lunge closes on one farther off) */
+static real combat_hit_assist(void){return extra_bound("vr.combat_hit_assist",.30f,0.0f,.50f);}
+/* Test70: LUNGE HOP (metres): a lunge on the ground begins with a small
+ * leap of about this height (the owner: "a Spartan combat leap rather than
+ * simply sliding toward the enemy"); 0 slides as before */
+static real combat_lunge_hop(void){return extra_bound("vr.combat_lunge_hop",.15f,0.0f,.40f);}
 static boolean combat_counters_on(void){return config_boolean("vr.combat_counters");}
 /* Melee-only tuning; Halo still owns AI difficulty and projectile damage. */
 static int combat_difficulty(void){return PIN(game_difficulty_level_get(),0,3);}
@@ -244,6 +257,11 @@ static struct combat_kind const *combat_kind(long target)
     struct actor_datum *a=u&&u->unit.actor_index!=NONE?actor_try_and_get(u->unit.actor_index):NULL;
     if(a)for(unsigned k=0;k<NUMBEROF(combat_kinds);k++)if(combat_kinds[k].type==a->meta.type)return &combat_kinds[k];
     return &combat_kind_default;
+}
+/* Test70: whether a kind is knocked down (a slide into it: vr_slide.c) */
+boolean vr_combat_knockable(long target)
+{
+    return combat_kind(target)->knocked;
 }
 /* Test66: an enemy's head and chest from its own bones (the owner's Test65:
  * the target lights floated off the bodies: they were the tick's camera
@@ -591,7 +609,7 @@ void vr_extra_tick(long unit)
  * off), in sight; out of reach, a Spartan dash (up to 10 m/s) carries the
  * player there and the blow lands on arrival. Test63 never acquired: the
  * head was refused to this tick (vr_head_view_recent). */
-static void combat_engage(long unit,long target,int hand,boolean counter)
+static void combat_engage(long unit,long target,int hand,boolean counter,real_point3d const *fist)
 {
     long now=game_time_get();real units=vr_units_per_metre();
     real gap=combat_gap(unit,target),stop=combat_stop(unit,target);
@@ -623,12 +641,30 @@ static void combat_engage(long unit,long target,int hand,boolean counter)
         extra.approach_until=now+(long)ceilf(PIN(metres/10.0f+.15f,.25f,.9f)*(real)TICKS_PER_SECOND);
         extra.hold_until=extra.approach_until+TICKS_PER_SECOND/2;
         extra.strike_pending=1;extra.strike_issued=now;
+        extra.lunge_hop=extra.lunge_metres>=1.5f&&combat_lunge_hop()>0;
         platform_log("VR fist combat: %s enemy=%ld hand=%d, a %.1f m lunge (combo %d)",counter?"COUNTER, lunging to":"lunge to",
             target,hand,(float)metres,extra.combo);
     }else{
         extra.lunge_metres=0;
-        /* in reach: the fist's own sweep strikes; a counter lands at once */
+        /* in reach: the fist's own sweep strikes; a counter lands at once.
+         * Test70: so does a punch whose fist is within HIT ASSIST of the
+         * enemy's body (its chest or head, the bodies' gap allowed for) */
         if(counter){extra.strike_pending=1;extra.strike_issued=now;}
+        else if(fist&&combat_hit_assist()>0){
+            real_point3d head,chest;real_vector3d to;real near=1e9f,width;
+            real_point3d unused_base;real unused_height;
+            biped_get_physics_pill(target,&unused_base,&unused_height,&width);
+            if(!isfinite(width)||width<0)width=.25f*units;
+            if(combat_regions(target,&head,&chest)){
+                vector_from_points3d(fist,&chest,&to);near=MIN(near,magnitude3d(&to));
+                vector_from_points3d(fist,&head,&to);near=MIN(near,magnitude3d(&to));
+            }
+            if(isfinite(near)&&near<=width+combat_hit_assist()*units){
+                extra.strike_pending=1;extra.strike_issued=now;
+                platform_log("VR fist combat: hit assist: the fist %.0f cm from enemy=%ld's body lands (assist %.0f cm)",
+                    (float)(MAX(0,near-width)/units*100.0f),target,(float)(combat_hit_assist()*100.0f));
+            }
+        }
         platform_log("VR fist combat: %s enemy=%ld hand=%d at %.2f m (in reach, combo %d)",counter?"COUNTER":"punch acquired",
             target,hand,(float)(gap/units),extra.combo);
     }
@@ -671,7 +707,7 @@ int vr_combat_punch(long unit,int hand,real_point3d const *point,real_vector3d c
             score=1.4f*facing+.9f*MAX(0,thrown)-distance/reach;
             if(score>counter_score){counter_score=score;counter=m->target;}
         }
-        if(counter!=NONE){combat_engage(unit,counter,hand,TRUE);extra.swing_used[hand]=1;return 1;}
+        if(counter!=NONE){combat_engage(unit,counter,hand,TRUE,point);extra.swing_used[hand]=1;return 1;}
     }
     object_iterator_new(&it,_object_mask_biped,0);
     while((u=object_iterator_next(&it))!=NULL){
@@ -700,7 +736,7 @@ int vr_combat_punch(long unit,int hand,real_point3d const *point,real_vector3d c
             (u->unit.melee_attack_state?.15f:0)+(it.index==extra.target?.08f:0);
         if(score>best){best=score;choice=it.index;}
     }
-    if(choice!=NONE)combat_engage(unit,choice,hand,FALSE);
+    if(choice!=NONE)combat_engage(unit,choice,hand,FALSE,point);
     else if(now-extra.punch_logged>=TICKS_PER_SECOND||now<extra.punch_logged){
         extra.punch_logged=now;
         if(seen)platform_log("VR fist combat: punch took no target (nearest enemy %.2f m from the eyes, %.0f deg from the gaze, %s; reach %.2f m, cone 45 deg)",
@@ -993,6 +1029,14 @@ void vr_combat_velocity(long unit,real_point3d const *position,real_vector3d *ve
         /* a Spartan's dash, up to 10 m/s, easing in to striking range */
         real speed=MIN(10.0f*units/TICKS_PER_SECOND,(distance-stop)*.6f);
         velocity->i=delta.i*speed;velocity->j=delta.j*speed;
+        /* Test70: a combat leap: the first tick on the ground lifts the body
+         * to about LUNGE HOP's height (v = sqrt(2 g h)); gravity brings it
+         * down on the enemy. Once a lunge */
+        if(!airborne&&extra.lunge_hop){
+            real hop=combat_lunge_hop();
+            extra.lunge_hop=0;
+            velocity->k=sqrtf(2.0f*9.8f*hop)*units/TICKS_PER_SECOND;
+        }
         if(airborne){
             /* toward the enemy's own height (a downward blow falls at most as
              * fast as the dash, a rising one at half of it); gravity resumes

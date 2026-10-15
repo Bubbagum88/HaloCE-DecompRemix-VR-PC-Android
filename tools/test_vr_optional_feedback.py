@@ -57,12 +57,15 @@ weapons = (ROOT / "source/items/weapons.c").read_text(encoding="utf-8")
 config = (ROOT / "port/linux/src/port_config.c").read_text(encoding="utf-8")
 menu = (ROOT / "port/linux/game/vr_menu.c").read_text(encoding="utf-8")
 world = (ROOT / "port/linux/game/vr_world_interaction.c").read_text(encoding="utf-8")
+# Test70: the shake is told by its strokes (vr_shake_detect.h,
+# test_test70_weapons), sampled each tick while the gun is hot, and still
+# offline-only, the local player's held gun only, bounded to 3x.
 assert 'config_boolean("vr.cooldown_shake")' in cool
-assert 'game_connection()!=_game_connection_local' in cool
-assert 'weapon_index!=current_weapon' in cool
-assert 'vr_cooldown_shake_is_reversal(previous_speed,speed,direction_cosine)' in cool
-assert 'shake.reversal_count>=2' in cool
-assert 'vr_cooldown_shake_decay(shake.speed,(float)elapsed)' in cool
+assert 'game_connection() != _game_connection_local' in cool
+assert 'if (weapon_index != current_weapon) return FALSE;' in cool
+assert 'vr_shake_sample(&shake.detect, relative, shake.now)' in cool
+assert 'vr_shake_cooling_multiplier(&shake.detect, shake.now)' in cool
+assert 'multiplier >= 1.0f && multiplier <= 3.0f ? multiplier : 1.0f' in cool
 assert 'TEST_FLAG(weapon->weapon.flags, _weapon_overheated_bit)' in weapons
 assert 'heat_loss *= vr_cooldown_shake_rate(weapon_index)' in weapons
 assert '"vr.cooldown_shake", _config_boolean, "false"' in config

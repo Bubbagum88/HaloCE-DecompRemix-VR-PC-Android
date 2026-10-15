@@ -149,6 +149,12 @@ static struct
 	/* test20d: left-handed controls (vr.left_handed with vr.mirror_controls
 	"auto"): the sticks trade jobs and the face buttons swap hands */
 	int controls_mirrored;
+	/* Test70: the face buttons on the gun hand (A/B its lower/upper, X/Y
+	the other's): with controls_mirrored, or left-handed with
+	vr.mirror_buttons "auto" while the sticks stay standard. The owner: a
+	left-handed player had to reach the right controller's B to release a
+	magazine from the left hand's gun */
+	int buttons_mirrored;
 	/* the aim this frame: the right controller's, or with both hands on
 	the gun the line from the right to the left (vr.two_handed) */
 	struct halo_xr_pose aim_pose;
@@ -250,6 +256,8 @@ static struct
 	squeeze (vr.hand_swap_distance; 0 off) */
 	float hand_swap_distance;
 	int hud_tap_armed, hud_hidden, reticle_hidden, reticle_press, reticle_cancelled, turn_stick_down;
+	/* Test70: the turning stick pushed up, and BULLET TIME's button held */
+	int turn_stick_up, bullet_time_held;
 	int wrist_hud, menus_active;
 	/* Test61: X held while a menu was up, not yet let go */
 	int reload_held_from_menu;
@@ -801,8 +809,12 @@ void vr_reload_settings(void)
 		vr.weapon_hand = left_handed ? 0 : 1;
 	}
 	vr.controls_mirrored = left_handed && strcmp(config_string("vr.mirror_controls"), "off") != 0;
-	platform_log("vr: %s-handed; sticks and face buttons %s", left_handed ? "left" : "right",
-		vr.controls_mirrored ? "mirrored (move on the right stick, turn on the left)" : "standard (move on the left stick)");
+	vr.buttons_mirrored = vr.controls_mirrored ||
+		(left_handed && strcmp(config_string("vr.mirror_buttons"), "off") != 0);
+	platform_log("vr: %s-handed; sticks and face buttons %s%s", left_handed ? "left" : "right",
+		vr.controls_mirrored ? "mirrored (move on the right stick, turn on the left)" : "standard (move on the left stick)",
+		vr.buttons_mirrored && !vr.controls_mirrored ?
+			"; face buttons on the gun hand (vr.mirror_buttons: A/B and reload on the left controller)" : "");
 	vr.melee_speed = (float)config_real("vr.melee_speed");
 	vr.melee_multiplayer = config_boolean("vr.melee_multiplayer");
 	vr.melee_requires_fist = config_boolean("vr.melee_requires_fist");
@@ -1094,6 +1106,20 @@ void vr_initialize(void)
 	migrate_two_hand_auto();
 	migrate_gun_aim_reset();
 	migrate_reticle_button();
+	/* Test70: better defaults without overriding a player's own: GRAB ASSIST
+	still at the 10 cm NPC GRAB and FIST COMBAT brought (untouched) goes to
+	their 15 cm, once; any other value was the player's and stays */
+	if (!config_boolean("vr.test70_defaults_applied"))
+	{
+		double assist = config_real("vr.npc_grab_assist");
+		if ((config_boolean("vr.assisted_combat") || config_boolean("vr.npc_interaction")) &&
+			fabs(assist - 0.10) < 0.001)
+		{
+			config_write_real("vr.npc_grab_assist", 0.15);
+			platform_log("vr: GRAB ASSIST 10 cm (the old automatic value) raised to the new 15 cm, once; a value of your own is never changed");
+		}
+		config_write_boolean("vr.test70_defaults_applied", 1);
+	}
 	vr_reload_settings();
 	vr.zoom_level = -1;
 	vr.flashlight_armed = 1;
@@ -1171,6 +1197,23 @@ static int physical_weapons(void)
 	return vr.physical_setting && vr.physical_allowed && vr.hand_aim;
 }
 
+/* Test70: locked weapons (vr.weapons "locked") never fall when the grip
+lets go, but a gun can still be put away at a holster, leaving the hand
+truly empty (nothing drawn, nothing to fire, free to climb and grab), and
+drawn again there: the owner's "locked must still allow holstering". Where
+physical weapons are allowed (a local game, or vr.physical_multiplayer);
+elsewhere a holster's grip switches weapons as it always did */
+static int locked_holstering(void)
+{
+	return !vr.physical_setting && vr.physical_allowed && vr.hand_aim && vr.holsters;
+}
+
+/* the weapon hand's states (held, loose, empty) in use */
+static int hand_states(void)
+{
+	return physical_weapons() || locked_holstering();
+}
+
 void vr_set_impact_melee_allowed(int allowed)
 {
 	vr.impact_allowed = allowed != 0;
@@ -1239,11 +1282,12 @@ static const char *const button_action_keys[VR_BUTTON_ACTIONS] =
 {
 	"vr.button_jump", "vr.button_action", "vr.button_melee", "vr.button_crouch",
 	"vr.button_switch_weapon", "vr.button_grenade", "vr.button_switch_grenade", "vr.button_reticle",
-	"vr.button_push_to_talk"
+	"vr.button_push_to_talk", "vr.button_bullet_time"
 };
 static const char *const button_source_values[VR_BUTTON_SOURCES] =
 {
-	"none", "a", "b", "x", "y", "right_stick", "left_stick", "grip", "right_stick_down", "hold"
+	"none", "a", "b", "x", "y", "right_stick", "left_stick", "grip", "right_stick_down", "hold",
+	"right_stick_up"
 };
 /* test26: the reticle toggle took the left stick's click, and crouching
 the turning stick held down (a room-scale crouch works as ever) */
@@ -1251,7 +1295,7 @@ static const int button_defaults[VR_BUTTON_ACTIONS] =
 {
 	VR_BUTTON_SOURCE_A, VR_BUTTON_SOURCE_B, VR_BUTTON_SOURCE_RIGHT_STICK, VR_BUTTON_SOURCE_RIGHT_STICK_DOWN,
 	VR_BUTTON_SOURCE_Y, VR_BUTTON_SOURCE_X, VR_BUTTON_SOURCE_HOLD, VR_BUTTON_SOURCE_LEFT_STICK,
-	VR_BUTTON_SOURCE_NONE
+	VR_BUTTON_SOURCE_NONE, VR_BUTTON_SOURCE_RIGHT_STICK_UP
 };
 
 const char *vr_button_action_key(int action)
@@ -1477,7 +1521,7 @@ void vr_note_weapon(long unit_index, long weapon_index, long const inventory[4])
 	vr.pending_expected_weapon = -1;
 	vr.ungripped_seconds = 0.0f;
 	vr.ungripped_warned = 0;
-	if (state != vr.hand_state && physical_weapons())
+	if (state != vr.hand_state && hand_states())
 		platform_log("vr: the weapon hand holds %s", hand_state_names[state]);
 	vr.hand_state = state;
 	vr.gun_held = state == HAND_HELD;
@@ -1503,7 +1547,7 @@ void vr_holster_draw_request_failed(long weapon_index)
 
 int vr_hand_empty(void)
 {
-	return physical_weapons() && vr.hand_state == HAND_EMPTY;
+	return hand_states() && vr.hand_state == HAND_EMPTY;
 }
 
 int vr_cinema_immersive(void)
@@ -1535,18 +1579,25 @@ back */
 hand's buttons, "left" the other's (as layout_controls has them); the grip
 is the weapon hand's, a button only with locked weapons (physical weapons
 hold the gun with it) and away from the holsters (where it draws) */
+/* (Test70: the face buttons as layout_controls passes them, the gun hand's
+with vr.buttons_mirrored; the stick clicks always with their sticks,
+vr.controls_mirrored: the same whenever the two agree, as they did before) */
 static int touch_source_down(int source, unsigned int right, unsigned int left)
 {
+	int stick_major = vr.controls_mirrored ? 0 : 1;
+
 	switch (source)
 	{
 	case VR_BUTTON_SOURCE_A: return (right & HALO_XR_HAND_SOUTH) != 0;
 	case VR_BUTTON_SOURCE_B: return (right & HALO_XR_HAND_EAST) != 0;
 	case VR_BUTTON_SOURCE_X: return (left & HALO_XR_HAND_SOUTH) != 0;
 	case VR_BUTTON_SOURCE_Y: return (left & HALO_XR_HAND_EAST) != 0;
-	case VR_BUTTON_SOURCE_RIGHT_STICK: return (right & HALO_XR_HAND_STICK) != 0;
-	case VR_BUTTON_SOURCE_LEFT_STICK: return (left & HALO_XR_HAND_STICK) != 0;
-	case VR_BUTTON_SOURCE_GRIP: return !physical_weapons() && vr.grip_held[vr.weapon_hand] && !vr.in_holster;
+	case VR_BUTTON_SOURCE_RIGHT_STICK: return (vr.frame.hand_buttons[stick_major] & HALO_XR_HAND_STICK) != 0;
+	case VR_BUTTON_SOURCE_LEFT_STICK: return (vr.frame.hand_buttons[1 - stick_major] & HALO_XR_HAND_STICK) != 0;
+	case VR_BUTTON_SOURCE_GRIP: return !physical_weapons() && vr.grip_held[vr.weapon_hand] && !vr.in_holster &&
+		!vr_hand_empty();
 	case VR_BUTTON_SOURCE_RIGHT_STICK_DOWN: return vr.turn_stick_down;
+	case VR_BUTTON_SOURCE_RIGHT_STICK_UP: return vr.turn_stick_up;
 	}
 	return 0;
 }
@@ -1554,14 +1605,18 @@ static int touch_source_down(int source, unsigned int right, unsigned int left)
 /* test26: the hand (0 left, 1 right) a source is on, for its buzz */
 static int touch_source_hand(int source)
 {
-	int major = vr.controls_mirrored ? 0 : 1;
+	int major = vr.buttons_mirrored ? 0 : 1, stick_major = vr.controls_mirrored ? 0 : 1;
 
 	switch (source)
 	{
 	case VR_BUTTON_SOURCE_X:
 	case VR_BUTTON_SOURCE_Y:
-	case VR_BUTTON_SOURCE_LEFT_STICK:
 		return 1 - major;
+	case VR_BUTTON_SOURCE_LEFT_STICK:
+		return 1 - stick_major;
+	case VR_BUTTON_SOURCE_RIGHT_STICK:
+	case VR_BUTTON_SOURCE_RIGHT_STICK_DOWN:
+		return stick_major;
 	case VR_BUTTON_SOURCE_GRIP:
 		return vr.weapon_hand;
 	}
@@ -1672,8 +1727,9 @@ static void layout_controls(void)
 	static const float zoom_on = 0.6f, zoom_off = 0.45f;
 	static int previous_zoom_input_state = -1;
 	/* "right" is the major hand's buttons, "left" the other's: mirrored
-	for left-handed play (vr.controls_mirrored) */
-	int major = vr.controls_mirrored ? 0 : 1;
+	for left-handed play (Test70: vr.buttons_mirrored, the face buttons;
+	the sticks' clicks follow vr.controls_mirrored, touch_source_down) */
+	int major = vr.buttons_mirrored ? 0 : 1;
 	unsigned int right = vr.frame.hand_buttons[major], left = vr.frame.hand_buttons[1 - major];
 	unsigned int buttons = 0;
 	double seconds = vr.frame.predicted_display_period * 1e-9;
@@ -1694,6 +1750,10 @@ static void layout_controls(void)
 	sooner than taken; never in a seat */
 	vr.turn_stick_down = !vr.seated && fabsf(vr.frame.thumb[2]) < 0.6f &&
 		vr.frame.thumb[3] < (vr.turn_stick_down ? -0.55f : -0.75f);
+	vr.turn_stick_up = !vr.seated && fabsf(vr.frame.thumb[2]) < 0.6f &&
+		vr.frame.thumb[3] > (vr.turn_stick_up ? 0.55f : 0.75f);
+	vr.bullet_time_held = vr.touch_layout && !vr.menus_active &&
+		touch_source_down(vr.button_source[VR_BUTTON_ACTION_BULLET_TIME], right, left);
 	if (vr.frame.hand_buttons[1 - vr.weapon_hand] & HALO_XR_HAND_BUMPER)
 		buttons |= HALO_XR_BUTTON_WHITE;                                    /* flashlight, the off hand's */
 	if ((right | left) & HALO_XR_HAND_MENU) buttons |= HALO_XR_BUTTON_START;
@@ -1710,8 +1770,11 @@ static void layout_controls(void)
 	if (right & HALO_XR_HAND_EAST) buttons |= HALO_XR_BUTTON_X;            /* action, reload */
 	if (right & HALO_XR_HAND_WEST) buttons |= HALO_XR_BUTTON_BLACK;        /* switch grenades */
 	if (right & HALO_XR_HAND_NORTH) buttons |= HALO_XR_BUTTON_Y;           /* switch weapons */
-	if (right & HALO_XR_HAND_STICK) buttons |= HALO_XR_BUTTON_B;           /* melee (and the swing) */
-	if (left & HALO_XR_HAND_STICK) buttons |= HALO_XR_BUTTON_LEFT_THUMB;   /* crouch */
+	/* (the sticks' clicks with their sticks, Test70: vr.controls_mirrored) */
+	if (vr.frame.hand_buttons[vr.controls_mirrored ? 0 : 1] & HALO_XR_HAND_STICK)
+		buttons |= HALO_XR_BUTTON_B;                                        /* melee (and the swing) */
+	if (vr.frame.hand_buttons[vr.controls_mirrored ? 1 : 0] & HALO_XR_HAND_STICK)
+		buttons |= HALO_XR_BUTTON_LEFT_THUMB;                               /* crouch */
 	/* controllers with two face buttons a hand (Touch, Index): the left's
 	lower switches grenades, its upper goes back (the Quest's: switches
 	weapons; both sticks recentre). With physical weapons the grip holds the
@@ -1752,7 +1815,7 @@ static void layout_controls(void)
 	if (vr.menus_active && vr.touch_layout)
 	{
 		unsigned int physical_right = vr.frame.hand_buttons[1], physical_left = vr.frame.hand_buttons[0];
-		unsigned int back = vr.controls_mirrored ? HALO_XR_BUTTON_Y : HALO_XR_BUTTON_B;
+		unsigned int back = vr.buttons_mirrored ? HALO_XR_BUTTON_Y : HALO_XR_BUTTON_B;
 
 		buttons &= ~(HALO_XR_BUTTON_A | HALO_XR_BUTTON_B | HALO_XR_BUTTON_X | HALO_XR_BUTTON_Y | HALO_XR_BUTTON_BLACK);
 		if (physical_right & HALO_XR_HAND_SOUTH) buttons |= HALO_XR_BUTTON_A;
@@ -1846,7 +1909,7 @@ static void layout_controls(void)
 	vr.pad_trigger[1] = vr.frame.trigger[vr.weapon_hand];
 	/* A vehicle weapon is independent of the holstered handheld weapon.
 	Seated triggers still pass through the native primary/secondary mapping. */
-	if (!vr.seated && physical_weapons() && vr.hand_state == HAND_EMPTY)
+	if (!vr.seated && vr_hand_empty())
 		vr.pad_trigger[1] = 0.0f;
 }
 
@@ -2302,6 +2365,51 @@ void vr_interaction_release(int hand, int owner)
         interaction_owner[hand] = VR_INTERACTION_NONE;
 }
 
+/* An empty weapon hand's grip at a holster: the weapon kept there drawn
+(or the hand's own weapon, not yet kept anywhere, remembered there). Shared
+by physical and (Test70) locked weapons */
+static void holster_draw(int w, const char *holster)
+{
+	int zone = vr.holster_zone - 1, mapped_elsewhere = 0, index;
+	long stored = zone >= 0 && zone < HOLSTER_COUNT ? vr.holster_weapon[zone] : -1;
+	if (stored != -1 && stored != vr.noted_weapon)
+	{
+		vr.pending_state = HAND_HELD;
+		vr.pending_expected_weapon = stored;
+		vr.pending_until = now_ms() * 1e-3 + PENDING_SECONDS;
+		vr.holster_draw_request = stored;
+		platform_log("vr: holster draw requested %s weapon=%ld; current=%ld",
+			holster, stored, vr.noted_weapon);
+	}
+	else if (stored == vr.noted_weapon)
+	{
+		vr.hand_state = HAND_HELD;
+		vr.pending_state = -1;
+		vr.pending_expected_weapon = -1;
+		platform_log("vr: exact weapon=%ld drawn from %s holster", stored, holster);
+	}
+	else
+	{
+		for (index = 0; index < HOLSTER_COUNT; ++index)
+			if (index != zone && vr.holster_weapon[index] == vr.noted_weapon)
+				mapped_elsewhere = 1;
+		if (mapped_elsewhere)
+			platform_log("vr: %s holster is empty; weapon=%ld is stored at another holster",
+				holster, vr.noted_weapon);
+		else
+		{
+			vr_holster_store(vr.holster_weapon, zone, vr.noted_weapon);
+			vr.hand_state = HAND_HELD;
+			vr.pending_state = -1;
+			vr.pending_expected_weapon = -1;
+			platform_log("vr: unassigned inventory weapon=%ld drawn at %s; its holster now remembers it",
+				vr.noted_weapon, holster);
+		}
+	}
+	if (vr.hand_state == HAND_HELD)
+		holster_haptic(w, 0.5f, 0.05f);
+}
+
 static void update_gestures(void)
 {
 	static const float melee_rearm_seconds = 0.4f;
@@ -2544,7 +2652,28 @@ static void update_gestures(void)
 			holster_haptic(w, 0.45f, 0.05f);
 		vr.holster_zone = zone;
 		vr.in_holster = zone != 0;
-		if (zone && vr.grip_pressed[w] && !physical_weapons())
+		if (zone && vr.grip_pressed[w] && locked_holstering())
+		{
+			/* Test70: locked weapons: a grip at a holster puts the gun away
+			there (the hand empty, as physical weapons' is), and an empty
+			hand's grip draws what the holster keeps */
+			if (vr.hand_state != HAND_EMPTY)
+			{
+				long stored_weapon = vr.noted_weapon;
+				if (stored_weapon != -1)
+					vr_holster_store(vr.holster_weapon, zone - 1, stored_weapon);
+				vr.hand_state = HAND_EMPTY;
+				vr.gun_held = 0;
+				vr.actions |= VR_ACTION_SWITCH_WEAPON;
+				hand_pending(HAND_EMPTY);
+				holster_haptic(w, 0.6f, 0.06f);
+				platform_log("vr: locked weapons: weapon=%ld put away in the %s holster; the hand is empty",
+					stored_weapon, holster_names[zone - 1]);
+			}
+			else if (vr.noted_weapon != -1)
+				holster_draw(w, holster_names[zone - 1]);
+		}
+		else if (zone && vr.grip_pressed[w] && !physical_weapons())
 		{
 			vr.actions |= VR_ACTION_SWITCH_WEAPON;
 			holster_haptic(w, 0.6f, 0.06f);
@@ -2579,44 +2708,7 @@ static void update_gestures(void)
 			}
 			else if (vr.in_holster && vr.noted_weapon != -1)
 			{
-				int zone = vr.holster_zone - 1, mapped_elsewhere = 0, index;
-				long stored = zone >= 0 && zone < HOLSTER_COUNT ? vr.holster_weapon[zone] : -1;
-				if (stored != -1 && stored != vr.noted_weapon)
-				{
-					vr.pending_state = HAND_HELD;
-					vr.pending_expected_weapon = stored;
-					vr.pending_until = now_ms() * 1e-3 + PENDING_SECONDS;
-					vr.holster_draw_request = stored;
-					platform_log("vr: holster draw requested %s weapon=%ld; current=%ld",
-						holster, stored, vr.noted_weapon);
-				}
-				else if (stored == vr.noted_weapon)
-				{
-					vr.hand_state = HAND_HELD;
-					vr.pending_state = -1;
-					vr.pending_expected_weapon = -1;
-					platform_log("vr: exact weapon=%ld drawn from %s holster", stored, holster);
-				}
-				else
-				{
-					for (index = 0; index < HOLSTER_COUNT; ++index)
-						if (index != zone && vr.holster_weapon[index] == vr.noted_weapon)
-							mapped_elsewhere = 1;
-					if (mapped_elsewhere)
-						platform_log("vr: %s holster is empty; weapon=%ld is stored at another holster",
-							holster, vr.noted_weapon);
-					else
-					{
-						vr_holster_store(vr.holster_weapon, zone, vr.noted_weapon);
-						vr.hand_state = HAND_HELD;
-						vr.pending_state = -1;
-						vr.pending_expected_weapon = -1;
-						platform_log("vr: unassigned inventory weapon=%ld drawn at %s; its holster now remembers it",
-							vr.noted_weapon, holster);
-					}
-				}
-				if (vr.hand_state == HAND_HELD)
-					holster_haptic(w, 0.5f, 0.05f);
+				holster_draw(w, holster);
 			}
 			else
 			{
@@ -2817,6 +2909,17 @@ void vr_haptic(int hand, float amplitude, float seconds)
 	/* the host's controller (it called itself here, without end: every buzz
 	hung the game - a menu click, a shot, a holster) */
 	host_xr_haptic((unsigned int)hand, scaled_amplitude, seconds);
+}
+
+int vr_bullet_time_held(void)
+{
+	return vr.active && vr.bullet_time_held;
+}
+
+/* Test70: the head lowered to crouch on foot (SLIDE's CROUCH SLIDES) */
+int vr_physical_crouching(void)
+{
+	return vr.active && !vr.seated && vr.crouching;
 }
 
 unsigned int vr_take_actions(void)
@@ -4911,7 +5014,7 @@ int vr_ui_pointer(int menus_active, struct halo_ui_pointer *pointer)
 		pointer->left_clicks = 1;
 		vr_haptic(vr.weapon_hand, 0.3f, 0.02f);
 	}
-	back_down = (vr.frame.hand_buttons[vr.controls_mirrored ? 0 : 1] & HALO_XR_HAND_EAST) != 0;
+	back_down = (vr.frame.hand_buttons[vr.buttons_mirrored ? 0 : 1] & HALO_XR_HAND_EAST) != 0;
 	if (back_down && !vr.pointer_back)
 		pointer->right_clicks = 1;
 	if (!vr.pointer_age || pointer->left_clicks || pointer->right_clicks)
