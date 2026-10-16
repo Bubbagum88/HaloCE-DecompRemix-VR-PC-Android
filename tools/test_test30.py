@@ -72,19 +72,20 @@ int main(void){
  g=0; assert(run(0, S, 0, &g)==A); assert(run(0, 0, E, &g)==Y); assert(run(X, E, 0, &g)==0);
  /* the table's other buttons the face buttons gave are replaced; the rest (Start, sticks, Back) kept */
  assert(run(BLACK|HALO_XR_BUTTON_START|HALO_XR_BUTTON_BACK, 0, 0, &g)==(HALO_XR_BUTTON_START|HALO_XR_BUTTON_BACK));
- /* left-handed (mirrored): the pointer's back is the left's upper (Y); B is the Xbox's B */
- vr.controls_mirrored=vr.buttons_mirrored=1; assert(run(0, E, 0, &g)==B); assert(run(0, 0, E, &g)==0); assert(run(0, 0, S, &g)==X);
+ /* Test72: left-handed (mirrored) too, the pointer's back is the right controller's B (the
+    owner's Discord report: it had become Y); Y is the Xbox's Y */
+ vr.controls_mirrored=vr.buttons_mirrored=1; assert(run(0, E, 0, &g)==0); assert(run(0, 0, E, &g)==Y); assert(run(0, 0, S, &g)==X);
  vr.controls_mirrored=vr.buttons_mirrored=0;
  /* in play (no menu), or another controller's layout: the table's buttons and the grenade as before */
  vr.menus_active=0; g=1; vr.grenade_pulse=0.1; assert(run(X|BLACK, 0, S, &g)==(X|BLACK) && g==1 && vr.grenade_pulse==0.1);
  vr.menus_active=1; vr.touch_layout=0; g=1; assert(run(X|BLACK, 0, S, &g)==(X|BLACK) && g==1);
  puts("PASS: in the menus the Quest's X is the Xbox's X (a profile deleted), A A, Y Y, B the pointer's back alone "
-      "(left-handed: Y back, B the Xbox's B); no grenade from a menu; in play and on other controllers as before");
+      "(left-handed too: B back, Y the Xbox's Y); no grenade from a menu; in play and on other controllers as before");
 }
 ''')
 pointer = fn(frame, 'vr_ui_pointer')
 assert 'vr.menus_active = menus_active != 0;' in pointer
-assert 'back_down = (vr.frame.hand_buttons[vr.buttons_mirrored ? 0 : 1] & HALO_XR_HAND_EAST) != 0;' in pointer, 'the back the block leaves out'
+assert 'back_down = (vr.frame.hand_buttons[1] & HALO_XR_HAND_EAST) != 0;' in pointer, 'the back the block leaves out'
 
 # --- 2. the co-op host's server name: format 3, the name on its own line
 reader = fn(session, 'coop_request_read')

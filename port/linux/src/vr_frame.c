@@ -258,6 +258,8 @@ static struct
 	int hud_tap_armed, hud_hidden, reticle_hidden, reticle_press, reticle_cancelled, turn_stick_down;
 	/* Test70: the turning stick pushed up, and BULLET TIME's button held */
 	int turn_stick_up, bullet_time_held;
+	/* Test72: the stick pushed up as BULLET TIME's button, in a seat too */
+	int bullet_stick_up;
 	int wrist_hud, menus_active;
 	/* Test72: MENU POSITION: the menus' panel in the world (vr.menu_anchor
 	"world" or "follow"): placed this menu session, its pose (LOCAL) and
@@ -1784,8 +1786,18 @@ static void layout_controls(void)
 		vr.frame.thumb[3] < (vr.turn_stick_down ? -0.55f : -0.75f);
 	vr.turn_stick_up = !vr.seated && fabsf(vr.frame.thumb[2]) < 0.6f &&
 		vr.frame.thumb[3] > (vr.turn_stick_up ? 0.55f : 0.75f);
-	vr.bullet_time_held = vr.touch_layout && !vr.menus_active &&
-		touch_source_down(vr.button_source[VR_BUTTON_ACTION_BULLET_TIME], right, left);
+	/* Test72: BULLET TIME on R UP works in a seat too (Discord: on before a
+	vehicle or turret it stayed on there, and could not be turned on there;
+	on the stick's click it worked). In a seat the head or hand aims (the
+	stick's up and down are overridden each frame), so the stick pushed up is
+	its button; its other actions keep "never in a seat" (turn_stick_up) */
+	{
+		int source = vr.button_source[VR_BUTTON_ACTION_BULLET_TIME];
+		vr.bullet_stick_up = fabsf(vr.frame.thumb[2]) < 0.6f &&
+			vr.frame.thumb[3] > (vr.bullet_stick_up ? 0.55f : 0.75f);
+		vr.bullet_time_held = vr.touch_layout && !vr.menus_active &&
+			(source == VR_BUTTON_SOURCE_RIGHT_STICK_UP ? vr.bullet_stick_up : touch_source_down(source, right, left));
+	}
 	if (vr.frame.hand_buttons[1 - vr.weapon_hand] & HALO_XR_HAND_BUMPER)
 		buttons |= HALO_XR_BUTTON_WHITE;                                    /* flashlight, the off hand's */
 	if ((right | left) & HALO_XR_HAND_MENU) buttons |= HALO_XR_BUTTON_START;
@@ -1847,7 +1859,9 @@ static void layout_controls(void)
 	if (vr.menus_active && vr.touch_layout)
 	{
 		unsigned int physical_right = vr.frame.hand_buttons[1], physical_left = vr.frame.hand_buttons[0];
-		unsigned int back = vr.buttons_mirrored ? HALO_XR_BUTTON_Y : HALO_XR_BUTTON_B;
+		/* Test72: the right controller's B, left-handed too (Discord: LEFT-HAND
+		MODE's mirrored face buttons had made back Y) */
+		unsigned int back = HALO_XR_BUTTON_B;
 
 		buttons &= ~(HALO_XR_BUTTON_A | HALO_XR_BUTTON_B | HALO_XR_BUTTON_X | HALO_XR_BUTTON_Y | HALO_XR_BUTTON_BLACK);
 		if (physical_right & HALO_XR_HAND_SOUTH) buttons |= HALO_XR_BUTTON_A;
@@ -2992,6 +3006,11 @@ int vr_vignette_shown(void)
 {
 	return vr.vignette_strength > 0.0f && vr.stereo && !vr.cinema && (vr.aiming || vr.aiming_last_frame) &&
 		vr.pointer_age == 0 && vr.vignette_amount > 0.01f;
+}
+
+int vr_buttons_mirrored(void)
+{
+	return vr.buttons_mirrored;
 }
 
 int vr_weapon_hand(void)
@@ -5044,8 +5063,8 @@ int vr_ui_pointer(int menus_active, struct halo_ui_pointer *pointer)
 	pointer->moved = x != vr.pointer_x || y != vr.pointer_y || !vr.pointer_age;
 	pointer->x = pointer->click_x = x;
 	pointer->y = pointer->click_y = y;
-	/* the weapon hand's trigger clicks; the major hand's upper face button
-	(right B; left-handed, left Y) goes back */
+	/* the weapon hand's trigger clicks; the right controller's B goes back
+	(Test72: left-handed too; Y before) */
 	trigger = vr.frame.trigger[vr.weapon_hand];
 	trigger_down = vr.pointer_trigger ? trigger > trigger_off : trigger > trigger_on;
 	if (trigger_down && !vr.pointer_trigger)
@@ -5053,7 +5072,8 @@ int vr_ui_pointer(int menus_active, struct halo_ui_pointer *pointer)
 		pointer->left_clicks = 1;
 		vr_haptic(vr.weapon_hand, 0.3f, 0.02f);
 	}
-	back_down = (vr.frame.hand_buttons[vr.buttons_mirrored ? 0 : 1] & HALO_XR_HAND_EAST) != 0;
+	/* Test72: back is the right controller's B, whatever the handedness */
+	back_down = (vr.frame.hand_buttons[1] & HALO_XR_HAND_EAST) != 0;
 	if (back_down && !vr.pointer_back)
 		pointer->right_clicks = 1;
 	if (!vr.pointer_age || pointer->left_clicks || pointer->right_clicks)

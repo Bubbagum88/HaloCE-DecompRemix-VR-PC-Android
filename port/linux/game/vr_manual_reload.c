@@ -71,6 +71,9 @@ static struct {
      * frame), the last centimetre of the well's approach felt, the grip */
     real_point3d charge_grip;
     int charge_grip_valid, well_felt, authored_logged;
+    /* Test72: the magazine in hand is held as the reload animation holds it
+     * (it follows the drawn wrist: reload_hold) */
+    int held_authored;
     double grip_press_time;
     struct vr_magazine_debris_transaction debris_transaction;
     real_point3d bounds_min[2], bounds_max[2];
@@ -141,6 +144,22 @@ static boolean reload_attach_to_hand(real_matrix4x3 const *hand_matrix,
 	reload.held = *world_item;
 	reload.have_attachment = TRUE;
 	return TRUE;
+}
+
+/* Test72 (Discord: "the magazine/ammo position in the hand is still a
+ * little wonky"): a replacement held as the reload animation holds it
+ * follows the drawn wrist every frame, the fingers being posed round it
+ * there; captured once against the controller's pose, it drifted off the
+ * fingers as the arm's IK turned the drawn wrist. Otherwise the hold
+ * relative to the hand, as before. */
+static void reload_hold(real_matrix4x3 const *hand_matrix)
+{
+    real_matrix4x3 authored;
+    if (!reload.have_attachment) return;
+    if (reload.held_authored && reload.state.phase == VR_MR_NEW_HELD && vr_render_reload_grip(0, &authored))
+        reload.held = authored;
+    else
+        matrix4x3_multiply(hand_matrix, &reload.attachment, &reload.held);
 }
 
 /* A dropped mag is provisional until the native ammunition transaction
@@ -572,7 +591,7 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
     }
     matrix4x3_from_point_and_vectors(&hand_matrix, &hand, &forward, &up);
-    if (reload.have_attachment) matrix4x3_multiply(&hand_matrix, &reload.attachment, &reload.held);
+    reload_hold(&hand_matrix);
     /* The selected input applies only to the free-hand manual-reload state
      * machine. Other grab systems and game firing continue to use their usual
      * grip/weapon-trigger paths. */
@@ -797,6 +816,7 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
              * must also replace an old magazine's prior hand offset after
              * direct pull-out. */
             real_matrix4x3 attached = reload.socket, gun_matrix;
+            reload.held_authored = FALSE;
             attached.position = hand;
             /* Test55: held as it sits in the gun: the magazine keeps the same
              * relation to the free hand that it has to the gun hand, with its
@@ -827,6 +847,7 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
                 real_matrix4x3 authored;
                 if (vr_render_reload_grip(0, &authored)) {
                     attached = authored;
+                    reload.held_authored = TRUE;
                     if (!reload.authored_logged) {
                         platform_log("VR manual reload: the magazine taken in hand as the reload animation holds it");
                         reload.authored_logged = TRUE;
@@ -848,10 +869,11 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
                 vr_manual_reload_reset(); return suppress_native ? VR_MANUAL_SUPPRESS_AUTO : 0;
             }
             lying = dropped_magazines[slot_index].matrices[reload.magazine];
+            reload.held_authored = FALSE;
             {
                 /* Test66: picked up into the authored grip too */
                 real_matrix4x3 authored;
-                if (vr_render_reload_grip(0, &authored)) lying = authored;
+                if (vr_render_reload_grip(0, &authored)) {lying = authored; reload.held_authored = TRUE;}
             }
             if (!reload_attach_to_hand(&hand_matrix, &lying)) {
                 reload_log_gate(weapon_index, "dropped-magazine-attachment-invalid");
@@ -882,7 +904,7 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
         }
     }
     if (reload.have_attachment) {
-        matrix4x3_multiply(&hand_matrix, &reload.attachment, &reload.held);
+        reload_hold(&hand_matrix);
         reload_well_assist(&reload.held);
     }
     /* Test66: the well felt coming: a light tick each centimetre closer in
@@ -1025,7 +1047,7 @@ static void reload_refresh_held_pose(void)
         real_point3d hand;real_vector3d forward,up;real_matrix4x3 matrix;
         if(vr_hand_pose(reload.hand,reload.camera.n,hand.n,forward.n,up.n)) {
             matrix4x3_from_point_and_vectors(&matrix,&hand,&forward,&up);
-            if(reload_matrix_valid(&matrix))matrix4x3_multiply(&matrix,&reload.attachment,&reload.held);
+            if(reload_matrix_valid(&matrix))reload_hold(&matrix);
             reload_well_assist(&reload.held);
         }
     }

@@ -9,8 +9,9 @@ stable as at full speed, and the head and hands, drawn each display frame
 between ticks (render_interpolation.c), stay as responsive as ever.
 
 A local game only: never a network game's client or host, co-op or
-multiplayer (their machines must tick together). Not in a seat, a menu, a
-cutscene or while paused. A speed a map's script set (game_speed) is kept and
+multiplayer (their machines must tick together). Not in a menu, a cutscene
+or while paused; in a seat as on foot (Test72: its button, R UP too, works
+there: vr_frame.c's bullet_stick_up). A speed a map's script set (game_speed) is kept and
 given back; if something else changes the speed meanwhile, that is left as it
 is. Eased in and out over a sixth of a second.
 */

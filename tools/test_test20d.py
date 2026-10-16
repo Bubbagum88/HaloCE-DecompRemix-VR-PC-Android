@@ -75,7 +75,7 @@ assert 'if (!vr_render_hands_only() && vr_hand_tracking_mode() != 1) return;' in
 begin = fn(frame, 'frame_begin')
 assert begin.index('if (vr.controls_mirrored)') < begin.index('layout_controls();'), 'sticks swap before anything reads them'
 assert 'vr.frame.thumb[0] = vr.frame.thumb[2];' in begin and 'vr.frame.thumb[2] = move[0];' in begin
-assert 'back_down = (vr.frame.hand_buttons[vr.buttons_mirrored ? 0 : 1] & HALO_XR_HAND_EAST) != 0;' in frame
+assert 'back_down = (vr.frame.hand_buttons[1] & HALO_XR_HAND_EAST) != 0;' in frame
 reload = fn(frame, 'vr_reload_settings')
 assert 'vr.controls_mirrored = left_handed && strcmp(config_string("vr.mirror_controls"), "off") != 0;' in reload
 init = frame[frame.index('migrate_calibration_split();\n\tmigrate_handedness();'):]

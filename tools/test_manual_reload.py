@@ -45,7 +45,8 @@ assert "VR_MR_EJECT" in reload_source and "reload.debris_pending = TRUE;" in rel
 assert "VR manual reload attempt: weapon=%ld phase=%d action=%s" in reload_source
 assert "unsigned manual = vr_manual_reload_update(weapon_index" in source
 assert "weapon->weapon.control_flags, _weapon_control_reload_bit" in source
-assert 'if (reload.have_attachment) matrix4x3_multiply(&hand_matrix, &reload.attachment, &reload.held);' in reload_source
+# (Test72: through reload_hold, which keeps the hand-relative hold unless the animation's grip holds it)
+assert 'reload_hold(&hand_matrix);' in reload_source and 'matrix4x3_multiply(hand_matrix, &reload.attachment, &reload.held);' in reload_source
 assert "static boolean reload_attach_to_hand(" in reload_source
 assert "if (event == VR_MR_PICKUP)" in reload_source
 assert "attached.position = hand;" in reload_source

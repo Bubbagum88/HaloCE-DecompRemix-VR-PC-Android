@@ -1647,6 +1647,27 @@ static char vr_menu_button_mark(int action, int const *sources)
 	return 0;
 }
 
+/* Test72: a button choice as the player's controllers name it: with the
+face buttons mirrored (LEFT-HAND MODE), the gun hand's A and B are the left
+controller's X and Y, and X and Y the right controller's A and B. The
+binding saved stays the logical one. */
+static char const *vr_menu_value_label(struct vr_menu_setting const *setting, int index)
+{
+	char const *value, *label;
+
+	if (!setting || index < 0 || index >= setting->value_count)
+		return "";
+	value = setting->values[index].value;
+	label = setting->values[index].label;
+	if (setting->type != _vr_setting_button || !vr_buttons_mirrored() || !value)
+		return label;
+	if (!strcmp(value, "a")) return "X";
+	if (!strcmp(value, "b")) return "Y";
+	if (!strcmp(value, "x")) return "A";
+	if (!strcmp(value, "y")) return "B";
+	return label;
+}
+
 /* A button row's text, kept to the row's width: its button and mark; while
 choosing, the choice with a '?' (not yet set); while asking, the answer
 chosen with a '?' */
@@ -1661,7 +1682,7 @@ static void vr_menu_button_row_text(struct vr_menu_setting const *setting, int a
 	{
 		static char const *const resolutions[VR_REMAP_RESOLUTIONS] = { "CANCEL", "SWAP", "CLEAR", "BOTH" };
 		snprintf(line, size, "%s: %s?", setting->label, vr_remap.state == VR_REMAP_CONFLICT ?
-			resolutions[vr_remap.resolution] : setting->values[vr_remap.value].label);
+			resolutions[vr_remap.resolution] : vr_menu_value_label(setting, vr_remap.value));
 		return;
 	}
 	mark = vr_menu_button_mark(action, sources);
@@ -1673,7 +1694,7 @@ static void vr_menu_button_row_text(struct vr_menu_setting const *setting, int a
 		return;
 	}
 	snprintf(line, size, mark ? "%s: %s%c" : "%s: %s", setting->label,
-		vr_menu_button_value(setting, source) != NONE ? setting->values[vr_menu_button_value(setting, source)].label : "CUSTOM",
+		vr_menu_button_value(setting, source) != NONE ? vr_menu_value_label(setting, vr_menu_button_value(setting, source)) : "CUSTOM",
 		mark);
 }
 
@@ -1696,7 +1717,7 @@ static boolean vr_menu_button_hints(char *line, size_t size)
 				setting = &vr_menu_buttons[index];
 		if (!setting)
 			return FALSE;
-		candidate = setting->values[vr_remap.value].label;
+		candidate = vr_menu_value_label(setting, vr_remap.value);
 		if (vr_remap.state == VR_REMAP_CONFLICT)
 		{
 			other = vr_menu_button_label(vr_remap.other);

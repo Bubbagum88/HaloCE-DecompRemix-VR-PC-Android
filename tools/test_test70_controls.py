@@ -50,7 +50,7 @@ assert '"MIRROR BUTTONS", "vr.mirror_buttons"' in menu
 assert "vr.buttons_mirrored = vr.controls_mirrored ||" in frame
 assert "int major = vr.buttons_mirrored ? 0 : 1;\n\tunsigned int right = vr.frame.hand_buttons[major]" in frame
 assert "case VR_BUTTON_SOURCE_RIGHT_STICK: return (vr.frame.hand_buttons[stick_major] & HALO_XR_HAND_STICK) != 0;" in frame
-assert "back_down = (vr.frame.hand_buttons[vr.buttons_mirrored ? 0 : 1] & HALO_XR_HAND_EAST) != 0;" in frame
+assert "back_down = (vr.frame.hand_buttons[1] & HALO_XR_HAND_EAST) != 0;" in frame
 
 check = r'''
 #include <assert.h>
