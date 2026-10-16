@@ -402,6 +402,17 @@ static const struct config_setting config_settings[] =
 		"its energy slower, in its own color (the powerup's), on the first-person\n"
 		"arms too with viewmodel_shield; a hit on it plays what the projectile\n"
 		"plays on an Elite's shield. Only what is drawn and heard changes." },
+#ifdef HALO_ANDROID
+	{ "game.blood_layers", _config_integer, "6", "HALO_BLOOD_LAYERS", _environment_value, _platform_all,
+		"BLOOD LAYERS (Test72, HaloFreak95's): how many splats of blood one place carries at once\n"
+		"(0: as many as land there, the game's own). Blood on blood is solid after a few layers and\n"
+		"no redder for the rest, and each layer is its pixels drawn again: 6 on Android and the Quest." },
+#else
+	{ "game.blood_layers", _config_integer, "0", "HALO_BLOOD_LAYERS", _environment_value, _platform_all,
+		"BLOOD LAYERS (Test72, HaloFreak95's): how many splats of blood one place carries at once\n"
+		"(0: as many as land there, the game's own). Blood on blood is solid after a few layers and\n"
+		"no redder for the rest, and each layer is its pixels drawn again." },
+#endif
 	{ "game.dynamic_blood", _config_boolean, "false", "HALO_DYNAMIC_BLOOD", _environment_value, _platform_all,
 		"Blood thrown onto the wall behind a body hit, running down walls in\n"
 		"drops, and landing on trees and fences (port/linux/game/blood.c).\n"
@@ -511,7 +522,8 @@ static const struct config_setting config_settings[] =
 		"Magnetism while aiming with the mouse, as with a controller: the view\n"
 		"slowed and dragged along by a target. The last of the mouse and the\n"
 		"right stick to move decides. The bullets' autoaim (bent toward the\n"
-		"target) stays either way." },
+		"target) stays either way. On Android it is the touch controls' too:\n"
+		"swipe and gyro aim (HaloFreak95's input.touch_aim_assist)." },
 
 	{ "game.console_log", _config_string, "\"important\"", "HALO_CONSOLE_LOG", _environment_value, _platform_all,
 		"What the game's console shows on screen of what it logs: \"important\"\n"

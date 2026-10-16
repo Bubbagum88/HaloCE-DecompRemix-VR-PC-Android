@@ -2414,6 +2414,74 @@ void decal_new_from_collision(
 	return;
 }
 
+/* port: Test72 (HaloFreak95's game.blood_layers): how many splats of blood
+one place carries at once; 0, as many as land there (the game's own). A splat
+landing where that many splats of blood, not yet faded, already lie within
+its own radius is not laid: blood on blood is solid after a few layers and no
+redder for the rest, and every layer more is the pixels it covers drawn again,
+blended (a pile seen from a step away is the same marks over far more
+pixels). Only blood (a decal named so, as blood.c tells it), only lasting
+marks' neighbours in the cluster it lands in, never a permanent decal or the
+editor's. Decals are this machine's own: nothing of the game's changes. */
+long config_integer(const char *name);
+unsigned long config_changes(void);
+
+static boolean decal_blood_named(
+	long decal_definition_index)
+{
+	char const *name = decal_definition_index != NONE ? tag_get_name(decal_definition_index) : NULL;
+
+	return name && strstr(name, "blood") != NULL;
+}
+
+static boolean decal_blood_layers_full(
+	long decal_definition_index,
+	struct collision_result const *collision,
+	real radius_modifier)
+{
+	static unsigned long changes = (unsigned long)-1;
+	static long layers = 0;
+	struct decal_definition *definition;
+	short cluster_index = collision->location.cluster_index;
+	short layer;
+	long count = 0;
+	real radius;
+
+	if (changes != config_changes())
+	{
+		changes = config_changes();
+		layers = config_integer("game.blood_layers");
+	}
+	if (layers <= 0 || !decal_globals || cluster_index < 0 || cluster_index >= MAXIMUM_CLUSTERS_PER_STRUCTURE ||
+		!decal_blood_named(decal_definition_index))
+	{
+		return FALSE;
+	}
+	definition = decal_definition_get(decal_definition_index);
+	radius = definition->radius_upper_bound * (radius_modifier == 0.0f ? 1.0f : radius_modifier);
+	if (!(radius > 0.0f))
+		return FALSE;
+	for (layer = 0; layer < NUMBER_OF_DECAL_LAYERS; layer++)
+	{
+		long decal_index = decal_get_first_decal_index(cluster_index, layer);
+
+		while (decal_index != NONE)
+		{
+			struct decal_datum *decal = DECAL_GET(decal_index);
+
+			if (decal->intensity >= 128 &&
+				distance_squared3d(&decal->position, &collision->point) < radius * radius &&
+				decal_blood_named(decal->definition_index) &&
+				++count >= layers)
+			{
+				return TRUE;
+			}
+			decal_index = decal->next_decal_index;
+		}
+	}
+	return FALSE;
+}
+
 void decal_new(
 	long decal_definition_index,
 	real_point3d const *origin,
@@ -2475,7 +2543,10 @@ void decal_new(
 			{
 				struct decal_definition *definition= decal_definition_get(decal_definition_index);
 
-				if (!TEST_FLAG(definition->flags, _decal_definition_water_effect_bit))
+				/* port: (Test72) not where enough blood lies (game.blood_layers) */
+				if (!TEST_FLAG(definition->flags, _decal_definition_water_effect_bit) &&
+					(permanent || editor_geometry ||
+						!decal_blood_layers_full(decal_definition_index, &collision, radius_modifier)))
 				{
 					decal_new_from_collision(decal_definition_index, &collision, velocity,
 						radius_modifier, permanent, forced_sequence_index, editor_geometry);

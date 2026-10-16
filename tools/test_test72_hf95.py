@@ -9,6 +9,15 @@ every frame; and quad lists drawn with one kept index buffer instead of a list
 made, uploaded and thrown away per draw. On for the desktop builds (theirs);
 off by default on Android and the Quest (draw-bound frames, not yet measured
 there): FAST DECALS in Extra Effects (flat) and DISPLAY (VR).
+
+Blood layers (game.blood_layers): a splat of blood is not laid where that many
+splats of blood, not yet faded, already lie within its radius (in the cluster
+it lands in): blood on blood is solid after a few layers, and each one more is
+its pixels drawn again, blended. 0 (all, the game's own) on desktop; 6 on
+Android and the Quest. BLOOD LAYERS in VR DISPLAY.
+
+Touch aim assist (their input.touch_aim_assist): already here, as AIM ASSIST
+(input.mouse_aim_assist), which covers swipe and gyro aim on Android.
 """
 from pathlib import Path
 import re
@@ -75,5 +84,40 @@ labels = extra[extra.index('extra_effects/labels">'):]
 labels = labels[:labels.index("</strings>")]
 assert re.findall(r'<string text="([^"]*)"', labels)[8] == "FAST DECALS:"
 
+# ---- blood layers
+effects_decals = read("source/effects/decals.c")
+layers = effects_decals[effects_decals.index("static boolean decal_blood_layers_full("):]
+layers = layers[:layers.index("\n}\n")]
+assert 'layers = config_integer("game.blood_layers");' in layers
+assert "if (layers <= 0 ||" in layers and "!decal_blood_named(decal_definition_index))" in layers
+assert "decal_get_first_decal_index(cluster_index, layer);" in layers and "decal->intensity >= 128" in layers
+assert "distance_squared3d(&decal->position, &collision->point) < radius * radius" in layers
+assert "++count >= layers)" in layers
+gate = effects_decals[effects_decals.index("/* port: (Test72) not where enough blood lies (game.blood_layers) */"):]
+gate = gate[:gate.index("decal_new_from_collision(")]
+assert "(permanent || editor_geometry ||\n\t\t\t\t\t\t!decal_blood_layers_full(decal_definition_index, &collision, radius_modifier)))" in gate
+android = config[config.index('#ifdef HALO_ANDROID\n\t{ "game.blood_layers"'):]
+android = android[:android.index("#endif")]
+assert re.search(r'\{ "game\.blood_layers", _config_integer, "6",', android.split("#else")[0])
+assert re.search(r'\{ "game\.blood_layers", _config_integer, "0",', android.split("#else")[1])
+assert '{ "BLOOD LAYERS", "game.blood_layers", _vr_setting_multi, 3, { { "ALL", "game.blood_layers=0" }, { "6", "game.blood_layers=6" }, { "3", "game.blood_layers=3" } } },' in menu
+# the rule, worked through: the n+1th splat on a spot is not laid; faded, far or other marks do not count
+def laid(cap, existing):
+    if cap <= 0:
+        return True
+    count = sum(1 for (blood, intensity, distance) in existing if blood and intensity >= 128 and distance < 1.0)
+    return count < cap
+assert laid(0, [(True, 255, 0.0)] * 50)
+assert laid(6, [(True, 255, 0.1)] * 5) and not laid(6, [(True, 255, 0.1)] * 6)
+assert laid(6, [(True, 255, 0.1)] * 5 + [(False, 255, 0.0)] * 9 + [(True, 60, 0.0)] * 9 + [(True, 255, 1.5)] * 9)
+
+# ---- touch aim assist: AIM ASSIST, said for swipe and gyro
+mouse = read("port/assets/menus/ce/main_menu.settings_select.player_setup.player_profile_edit.mouse_settings.xml")
+assert "aiming by mouse, swipe or gyro, as a controller." in mouse
+assert "swipe and gyro aim (HaloFreak95's input.touch_aim_assist)." in config
+xinput = read("port/linux/src/xinput_sdl.c")
+assert "if (touch.yaw != 0.f || touch.pitch != 0.f) mouse_aimed_ms = SDL_GetTicks();" in xinput
+
 print("PASS: Test72 HaloFreak95: fast decals (kept quad indices; decals drawn from their stream; "
-      "FAST DECALS on for desktop, off on Android/Quest until measured)")
+      "FAST DECALS on for desktop, off on Android/Quest until measured); blood layers (6 on Android/Quest); "
+      "touch aim assist as AIM ASSIST")
