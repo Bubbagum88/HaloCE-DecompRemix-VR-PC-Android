@@ -897,6 +897,17 @@ static const struct config_setting config_settings[] =
 	{ "vr.hud_distance", _config_real, "15.0", "HALO_VR_HUD_DISTANCE", _environment_value, _platform_vr,
 		"How far ahead of the eyes the HUD floats, in metres: far, so the eyes\n"
 		"need not refocus between it and the world." },
+	{ "vr.menu_anchor", _config_string, "\"head\"", "HALO_VR_MENU_ANCHOR", _environment_value, _platform_vr,
+		"Test72: MENU POSITION: \"head\" (the menus ride ahead of the head, as before); \"world\" (placed in\n"
+		"front of you as a menu opens and fixed there: lean in to read small text, look around it);\n"
+		"\"follow\" (fixed, brought back in front when you have looked well away for a moment). A stick\n"
+		"click, or holding VIEW to recentre, brings it back in front." },
+	{ "vr.menu_distance", _config_real, "1.6", "HALO_VR_MENU_DISTANCE", _environment_value, _platform_vr,
+		"Test72: MENU DISTANCE: how far ahead a fixed menu is placed, in metres (0.5 to 5)." },
+	{ "vr.menu_scale", _config_real, "1.0", "HALO_VR_MENU_SCALE", _environment_value, _platform_vr,
+		"Test72: MENU SIZE: a fixed menu's size, 0.5 to 2 (1: as large in view as the head-locked menu)." },
+	{ "vr.menu_height", _config_real, "0.0", "HALO_VR_MENU_HEIGHT", _environment_value, _platform_vr,
+		"Test72: MENU HEIGHT: a fixed menu's height above (or below, negative) the eyes, in metres (-1 to 1)." },
 	{ "vr.hud_width", _config_real, "10.0", "HALO_VR_HUD_WIDTH", _environment_value, _platform_vr,
 		"The HUD's width, in metres (its height is three quarters); with\n"
 		"vr.hud_distance, how much of the view it spans (10 at 15: 37 degrees)." },

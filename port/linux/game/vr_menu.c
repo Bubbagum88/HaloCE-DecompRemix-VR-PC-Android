@@ -255,6 +255,26 @@ the hand */
 #define VR_IMMERSION_MELEE_SPEED { "MELEE SPEED", "vr.melee_speed", _vr_setting_real, 12, { { "OFF", "0" }, { "1.0", "1.0" }, { "1.2", "1.2" }, { "1.4", "1.4" }, { "1.6", "1.6" }, { "1.8", "1.8" }, { "2.0", "2.0" }, { "2.3", "2.3" }, { "2.6", "2.6" }, { "2.9", "2.9" }, { "3.2", "3.2" }, { "3.6", "3.6" } } }
 #define VR_IMMERSION_FIST_REQUIRED { "FIST REQUIRED", "vr.melee_requires_fist", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_ARM_RUN { "ARM RUN", "vr.arm_run", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+/* Test72: LOCOMOTION's rows, shared with IMMERSION (the owner: "missing toggles
+that should also be in the immersion section"; "Bullet Time is not a haptics
+feature"). BULLET TIME's own button stays on BUTTONS, with the other buttons'
+remapping (conflicts, NONE, the saved binding). */
+/* Test72: TWO HANDS (CONTROLS), SCOPE (GAMEPLAY), the vehicles' VIEW (VEHICLES), also on IMMERSION */
+#define VR_IMMERSION_TWO_HANDS { "TWO HANDS", "vr.two_handed", _vr_setting_string, 3, { { "AUTO LOCK", "auto" }, { "SQUEEZE", "grip" }, { "OFF", "off" } } }
+#define VR_IMMERSION_SCOPE { "SCOPE", "vr.scope", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_VEHICLE_VIEW { "VIEW", "vr.vehicle_view", _vr_setting_string, 2, { { "THIRD PERSON", "chase" }, { "FIRST PERSON", "first_person" } } }
+#define VR_IMMERSION_BUTTON_SPRINT { "BUTTON SPRINT", "vr.button_sprint", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_SPRINT_TOGGLE { "SPRINT TOGGLE", "vr.button_sprint_toggle", _vr_setting_boolean, 2, { { "HOLD", "false" }, { "TOGGLE", "true" } } }
+#define VR_IMMERSION_SLIDE { "SLIDE", "vr.slide", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_SLIDE_DISTANCE { "SLIDE DISTANCE", "vr.slide_momentum", _vr_setting_real, 5, { { "0.5X", "0.5" }, { "0.75X", "0.75" }, { "1X", "1" }, { "1.5X", "1.5" }, { "2X", "2" } } }
+#define VR_IMMERSION_SLIDE_FRICTION { "SLIDE FRICTION", "vr.slide_friction", _vr_setting_real, 3, { { "LOW", "0.6" }, { "MID", "1" }, { "HIGH", "1.5" } } }
+#define VR_IMMERSION_SLIDE_IMPACT { "SLIDE IMPACT", "vr.slide_damage", _vr_setting_real, 4, { { "OFF", "0" }, { "LIGHT", "0.5" }, { "MID", "1" }, { "HEAVY", "2" } } }
+#define VR_IMMERSION_CROUCH_SLIDES { "CROUCH SLIDES", "vr.slide_physical_crouch", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_JUMP_CANCELS { "JUMP CANCELS", "vr.slide_jump_cancel", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_BULLET_TIME { "BULLET TIME", "vr.bullet_time", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+#define VR_IMMERSION_BULLET_SCALE { "TIME SCALE", "vr.bullet_time_scale", _vr_setting_real, 4, { { "25%", "0.25" }, { "40%", "0.4" }, { "50%", "0.5" }, { "65%", "0.65" } } }
+/* (BULLET TIME KEY before: hold or toggle, not its button) */
+#define VR_IMMERSION_BULLET_MODE { "BULLET TIME MODE", "vr.bullet_time_toggle", _vr_setting_boolean, 2, { { "HOLD", "false" }, { "TOGGLE", "true" } } }
 #define VR_IMMERSION_MANUAL_RELOAD { "MANUAL RELOAD", "vr.manual_reload", _vr_setting_multi, 2, { { "OFF", "vr.manual_reload=false;vr.dropped_magazines=false" }, { "ON", "vr.manual_reload=true" } } }
 #define VR_IMMERSION_RELOAD_INPUT { "RELOAD INPUT", "vr.reload_input", _vr_setting_string, 2, { { "GRIP", "grip" }, { "TRIGGER", "trigger" } } }
 #define VR_IMMERSION_SHOULDER_POUCH { "SHOULDER POUCH", "vr.reload_shoulder", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
@@ -384,7 +404,7 @@ static struct vr_menu_setting const vr_menu_controls[] =
 	{ "MOVE WITH", "vr.move_relative", _vr_setting_string, 3, { { "HEAD", "head" }, { "LEFT HAND", "left" }, { "RIGHT HAND", "right" } } },
 	/* test21: AUTO LOCK (default) locks the off hand at the support grip
 	without squeezing; SQUEEZE needs the grip held there */
-	{ "TWO HANDS", "vr.two_handed", _vr_setting_string, 3, { { "AUTO LOCK", "auto" }, { "SQUEEZE", "grip" }, { "OFF", "off" } } },
+	VR_IMMERSION_TWO_HANDS,
 	/* Test65: how close the palms come for the off hand's squeeze to take the
 	gun (a slide rack or a magazine change no longer passes it) */
 	{ "HAND SWAP", "vr.hand_swap_distance", _vr_setting_real, 7, { { "OFF", "0" }, { "6 CM", "0.06" }, { "8 CM", "0.08" }, { "10 CM", "0.1" }, { "12 CM", "0.12" }, { "15 CM", "0.15" }, { "20 CM", "0.2" } } },
@@ -478,42 +498,47 @@ static struct vr_menu_setting const vr_menu_body[] =
 	VR_IMMERSION_FIST_REQUIRED,
 };
 
+/* Test72: LOCOMOTION / PARKOUR: sprint, slide, BULLET TIME (from GAMEPLAY,
+whose first row is HAPTICS) and the wall runs and climbing (from GAMEPLAY) */
 static struct vr_menu_setting const vr_menu_locomotion[] =
 {
-	{ "BUTTON SPRINT", "vr.button_sprint", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-	{ "SPRINT TOGGLE", "vr.button_sprint_toggle", _vr_setting_boolean, 2, { { "HOLD", "false" }, { "TOGGLE", "true" } } },
+	VR_IMMERSION_BUTTON_SPRINT,
+	VR_IMMERSION_SPRINT_TOGGLE,
 	VR_IMMERSION_ARM_RUN,
 	VR_IMMERSION_ARM_EFFORT,
 	VR_IMMERSION_SPRINT_SPEED,
 	/* Test70: SLIDE (sprint and crouch) */
-	{ "SLIDE", "vr.slide", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-	{ "SLIDE DISTANCE", "vr.slide_momentum", _vr_setting_real, 5, { { "0.5X", "0.5" }, { "0.75X", "0.75" }, { "1X", "1" }, { "1.5X", "1.5" }, { "2X", "2" } } },
-	{ "SLIDE FRICTION", "vr.slide_friction", _vr_setting_real, 3, { { "LOW", "0.6" }, { "MID", "1" }, { "HIGH", "1.5" } } },
-	{ "SLIDE IMPACT", "vr.slide_damage", _vr_setting_real, 4, { { "OFF", "0" }, { "LIGHT", "0.5" }, { "MID", "1" }, { "HEAVY", "2" } } },
-	{ "CROUCH SLIDES", "vr.slide_physical_crouch", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-	{ "JUMP CANCELS", "vr.slide_jump_cancel", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	VR_IMMERSION_SLIDE,
+	VR_IMMERSION_SLIDE_DISTANCE,
+	VR_IMMERSION_SLIDE_FRICTION,
+	VR_IMMERSION_SLIDE_IMPACT,
+	VR_IMMERSION_CROUCH_SLIDES,
+	VR_IMMERSION_JUMP_CANCELS,
+	/* Test70: BULLET TIME (offline; its button on BUTTONS) */
+	VR_IMMERSION_BULLET_TIME,
+	VR_IMMERSION_BULLET_SCALE,
+	VR_IMMERSION_BULLET_MODE,
+	/* PARKOUR */
+	VR_IMMERSION_WALLRUN,
+	VR_IMMERSION_WALLJUMP,
+	VR_IMMERSION_GRIP_CLIMB,
+	VR_IMMERSION_WALL_SPEED,
+	VR_IMMERSION_WALL_TIME,
+	VR_IMMERSION_WALL_LEAP,
+	VR_IMMERSION_CLIMB_LAUNCH,
+	VR_IMMERSION_CLIMB_GRAB,
 };
 
 /* the feel of play, with the crosshair (formerly its own page) */
 static struct vr_menu_setting const vr_menu_vr[] =
 {
 	VR_IMMERSION_HAPTICS,
-	/* Test70: BULLET TIME (offline; its button on BUTTONS) */
-	{ "BULLET TIME", "vr.bullet_time", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
-	{ "TIME SCALE", "vr.bullet_time_scale", _vr_setting_real, 4, { { "25%", "0.25" }, { "40%", "0.4" }, { "50%", "0.5" }, { "65%", "0.65" } } },
-	{ "BULLET TIME KEY", "vr.bullet_time_toggle", _vr_setting_boolean, 2, { { "HOLD", "false" }, { "TOGGLE", "true" } } },
-	{ "SCOPE", "vr.scope", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	/* (Test72: BULLET TIME went to LOCOMOTION) */
+	VR_IMMERSION_SCOPE,
 	{ "CUTSCENES", "vr.cutscenes", _vr_setting_string, 3, { { "IMMERSIVE", "immersive" }, { "3D SCREEN", "screen" }, { "FLAT", "flat" } } },
     { "GRAB CONTACT", "vr.grab_contact", _vr_setting_string, 3, { { "AUTO", "auto" }, { "OFF", "off" }, { "ON", "on" } } },
     { "BODY RADIUS", "vr.grab_radius", _vr_setting_real, 9, { { "18 CM", "0.18" }, { "20 CM", "0.20" }, { "22 CM", "0.22" }, { "25 CM", "0.25" }, { "30 CM", "0.30" }, { "35 CM", "0.35" }, { "40 CM", "0.40" }, { "50 CM", "0.50" }, { "60 CM", "0.60" } } },
-    VR_IMMERSION_WALLRUN,
-    VR_IMMERSION_WALLJUMP,
-    VR_IMMERSION_GRIP_CLIMB,
-    VR_IMMERSION_WALL_SPEED,
-    VR_IMMERSION_WALL_TIME,
-    VR_IMMERSION_WALL_LEAP,
-    VR_IMMERSION_CLIMB_LAUNCH,
-    VR_IMMERSION_CLIMB_GRAB,
+	/* (Test72: the wall runs and climbing went to LOCOMOTION) */
 	VR_IMMERSION_CLOSE_CONTACT,
 };
 
@@ -523,6 +548,12 @@ itself shown or hidden (as the head tap does) and the head tap's reach or
 off (as on HEAD GESTURES), first; the wrist HUD's place and size */
 static struct vr_menu_setting const vr_menu_hud[] =
 {
+	/* Test72: MENU POSITION (head-locked, fixed in the world, or following
+	lazily), and a fixed menu's distance, size and height */
+	{ "MENU POSITION", "vr.menu_anchor", _vr_setting_string, 3, { { "HEAD LOCKED", "head" }, { "WORLD", "world" }, { "FOLLOW", "follow" } } },
+	{ "MENU DISTANCE", "vr.menu_distance", _vr_setting_real, 6, { { "0.8 M", "0.8" }, { "1.2 M", "1.2" }, { "1.6 M", "1.6" }, { "2 M", "2" }, { "2.5 M", "2.5" }, { "3 M", "3" } } },
+	{ "MENU SIZE", "vr.menu_scale", _vr_setting_real, 5, { { "75%", "0.75" }, { "90%", "0.9" }, { "100%", "1" }, { "120%", "1.2" }, { "150%", "1.5" } } },
+	{ "MENU HEIGHT", "vr.menu_height", _vr_setting_real, 5, { { "-30 CM", "-0.3" }, { "-15 CM", "-0.15" }, { "EYES", "0" }, { "+15 CM", "0.15" }, { "+30 CM", "0.3" } } },
     VR_IMMERSION_AIM_STEADY,
 	{ "HUD", "hud", _vr_setting_hud_shown, 2, { { "SHOWN", "true" }, { "HIDDEN", "false" } } },
 	{ "HEAD TAP", "vr.hud_tap_distance", _vr_setting_real, 6, { { "OFF", "0" }, { "6 CM", "0.06" }, { "8 CM", "0.08" }, { "10 CM", "0.1" }, { "12 CM", "0.12" }, { "15 CM", "0.15" } } },
@@ -548,7 +579,7 @@ static struct vr_menu_setting const vr_menu_gestures[] =
 
 static struct vr_menu_setting const vr_menu_vehicles[] =
 {
-	{ "VIEW", "vr.vehicle_view", _vr_setting_string, 2, { { "THIRD PERSON", "chase" }, { "FIRST PERSON", "first_person" } } },
+	VR_IMMERSION_VEHICLE_VIEW,
 	/* test25: first person, a driver's view: the horizon level (the
 	cockpit tilts against the view), or tilting with the vehicle, half or
 	whole (the cockpit stays put) */
@@ -691,15 +722,28 @@ static struct vr_menu_setting const vr_menu_comfort[] =
 rifle's apart (vr.scope_pistol_*, vr.scope_sniper_*: 0 and 100%, the usual) */
 static struct vr_menu_setting const vr_menu_scopes[] =
 {
+/* Test72: a section a weapon (vr_menu_scopes_sections), its name the
+screen's title, so the rows say only what they move */
 #define SCOPE_MENU(key, label, gun) \
-    { label " FWD", "vr.scope_" #key "_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }, \
-    { label " UP", "vr.scope_" #key "_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }, \
-    { label " RGT", "vr.scope_" #key "_right", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }, \
-    { label " SIZE", "vr.scope_" #key "_scale", _vr_setting_real, 7, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "125%", "1.25" }, { "150%", "1.5" }, { "175%", "1.75" }, { "200%", "2" } } },
+    { "FORWARD", "vr.scope_" #key "_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }, \
+    { "UP", "vr.scope_" #key "_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }, \
+    { "RIGHT", "vr.scope_" #key "_right", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }, \
+    { "SIZE", "vr.scope_" #key "_scale", _vr_setting_real, 7, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "125%", "1.25" }, { "150%", "1.5" }, { "175%", "1.75" }, { "200%", "2" } } },
     VR_SCOPE_PROFILES(SCOPE_MENU)
 #undef SCOPE_MENU
     { "RESET SCOPES", "scopes", _vr_setting_reset_scopes, 0, { { NULL,NULL } } },
 };
+/* Test72: each weapon's scope its own topic, named in full, in
+VR_SCOPE_PROFILES' order (pistol, sniper, rocket launcher, other, plasma
+pistol, assault rifle, plasma rifle, shotgun, needler, fuel rod, flamethrower) */
+static struct vr_menu_section const vr_menu_scopes_sections[] =
+{
+	{ "PISTOL", 4 }, { "SNIPER RIFLE", 4 }, { "ROCKET LAUNCHER", 4 }, { "OTHER WEAPONS", 4 },
+	{ "PLASMA PISTOL", 4 }, { "ASSAULT RIFLE", 4 }, { "PLASMA RIFLE", 4 }, { "SHOTGUN", 4 },
+	{ "NEEDLER", 4 }, { "FUEL ROD GUN", 4 }, { "FLAMETHROWER", 4 }, { "RESET", 1 },
+};
+typedef char vr_menu_scopes_sections_cover_the_profiles[
+	NUMBEROF(vr_menu_scopes_sections) == VR_SCOPE_PROFILE_COUNT + 1 ? 1 : -1];
 
 /* test23: the Quest's buttons (vr.button_*), remappable. "A"/"B" are the
 gun hand's lower/upper buttons and "X"/"Y" the other hand's (mirrored with
@@ -777,6 +821,8 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 {
 	/* WEAPONS */
 	VR_IMMERSION_WEAPONS,
+	VR_IMMERSION_TWO_HANDS,
+	VR_IMMERSION_SCOPE,
 	VR_IMMERSION_HOLSTERS,
 	VR_IMMERSION_HOLSTER_HAPTICS,
 	VR_IMMERSION_MELEE,
@@ -833,7 +879,24 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_HOLSTER_SHOULDER_OUT,
 	VR_IMMERSION_HOLSTER_SHOULDER_UP,
 	VR_IMMERSION_HOLSTER_SHOULDER_BACK,
-	/* MOVEMENT */
+	/* Test72: LOCOMOTION (sprint, slide, BULLET TIME) before PARKOUR */
+	/* LOCOMOTION */
+	VR_IMMERSION_BUTTON_SPRINT,
+	VR_IMMERSION_SPRINT_TOGGLE,
+	VR_IMMERSION_ARM_RUN,
+	VR_IMMERSION_ARM_EFFORT,
+	VR_IMMERSION_SPRINT_SPEED,
+	VR_IMMERSION_SLIDE,
+	VR_IMMERSION_BULLET_TIME,
+	VR_IMMERSION_BULLET_MODE,
+	/* LOCOMOTION OPTIONS */
+	VR_IMMERSION_BULLET_SCALE,
+	VR_IMMERSION_SLIDE_DISTANCE,
+	VR_IMMERSION_SLIDE_FRICTION,
+	VR_IMMERSION_SLIDE_IMPACT,
+	VR_IMMERSION_CROUCH_SLIDES,
+	VR_IMMERSION_JUMP_CANCELS,
+	/* PARKOUR */
 	VR_IMMERSION_WALLRUN,
 	VR_IMMERSION_WALLJUMP,
 	VR_IMMERSION_GRIP_CLIMB,
@@ -843,9 +906,6 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_WALL_LEAP,
 	VR_IMMERSION_CLIMB_LAUNCH,
 	/* BODY */
-	VR_IMMERSION_ARM_RUN,
-	VR_IMMERSION_ARM_EFFORT,
-	VR_IMMERSION_SPRINT_SPEED,
 	VR_IMMERSION_HAPTICS,
 	VR_IMMERSION_FINGERS,
 	VR_IMMERSION_ROOM_SCALE,
@@ -870,6 +930,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
     VR_IMMERSION_COMFORT_REACH,
     VR_IMMERSION_TANK_DRIVE,
 	/* VEHICLE OPTIONS */
+    VR_IMMERSION_VEHICLE_VIEW,
     VR_IMMERSION_BANSH_SLIDE,
     VR_IMMERSION_TANK_HATCH,
     VR_IMMERSION_CTRL_REACH,
@@ -915,9 +976,9 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
-	{ "WEAPONS", 6 }, { "PICKUPS", 4 }, { "FIST COMBAT", 8 }, { "FIST OPTIONS", 5 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
-	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 8 },
-	{ "VEHICLES", 8 }, { "VEHICLE OPTIONS", 6 }, { "WARTHOG + GHOST", 8 }, { "TANK + BANSHEE", 8 },
+	{ "WEAPONS", 8 }, { "PICKUPS", 4 }, { "FIST COMBAT", 8 }, { "FIST OPTIONS", 5 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
+	{ "LOCOMOTION", 8 }, { "LOCOMOTION OPTIONS", 6 }, { "PARKOUR", 8 }, { "BODY", 4 }, { "GRAB + NPCS", 8 },
+	{ "VEHICLES", 8 }, { "VEHICLE OPTIONS", 7 }, { "WARTHOG + GHOST", 8 }, { "TANK + BANSHEE", 8 },
 	{ "RAGDOLLS", 7 }, { "ADVANCED", 8 },
 };
 
@@ -1212,7 +1273,8 @@ static struct vr_menu_page
 	{ "COMFORT", vr_menu_comfort, NUMBEROF(vr_menu_comfort) },
 	{ "BODY", vr_menu_body, NUMBEROF(vr_menu_body) },
 	{ "HANDS + GUN", vr_menu_hands, NUMBEROF(vr_menu_hands) },
-	{ "SCOPES", vr_menu_scopes, NUMBEROF(vr_menu_scopes) },
+	{ "SCOPES", vr_menu_scopes, NUMBEROF(vr_menu_scopes),
+		vr_menu_scopes_sections, NUMBEROF(vr_menu_scopes_sections) },
 	{ "GAMEPLAY", vr_menu_vr, NUMBEROF(vr_menu_vr) },
 	{ "HUD + RETICLE", vr_menu_hud, NUMBEROF(vr_menu_hud) },
 	{ "HEAD GESTURES", vr_menu_gestures, NUMBEROF(vr_menu_gestures) },
@@ -1758,6 +1820,9 @@ static struct
 	long *setting_tag_indices[NUMBEROF(vr_menu_pages)];
  struct vr_menu_navigation *navigation;
  long navigation_count, navigation_capacity;
+ /* Test72: the title the next screen built shows (a sectioned page's
+ topic), else the shared "VR SETTINGS" one */
+ long screen_title_tag_index;
  void **allocations;
  long allocation_count, allocation_capacity;
 } vr_menu;
@@ -1982,7 +2047,9 @@ static long vr_menu_screen(
     screen_tag_index = vr_menu_clone(pause_index, screen_name, widget_name, &screen);
     if (screen_tag_index == NONE || !(children = vr_menu_allocate(3 * sizeof(*children))))
         return NONE;
-    vr_menu_child_set(&children[0], vr_menu.title_tag_index, 64, 90);
+    vr_menu_child_set(&children[0], vr_menu.screen_title_tag_index != NONE ?
+        vr_menu.screen_title_tag_index : vr_menu.title_tag_index, 64, 90);
+    vr_menu.screen_title_tag_index = NONE;
     vr_menu_child_set(&children[1], list_tag_index, 64, 142);
     vr_menu_child_set(&children[2], vr_menu.hints_tag_index, 64, 340);
     screen->child_widgets.count = 3;
@@ -2050,6 +2117,25 @@ static long vr_menu_paged(long pause, long list, long resume, long group,
             vr_menu.navigation[slot].label = sections && section_count > 0 ? sections[sub + 1].label : NULL;
             vr_menu.navigation[slot].jump = 0;
             vr_menu.navigation_count++;
+        }
+        /* Test72: a topic's screen titled "PAGE: TOPIC" (the owner's
+         * SCOPES: which weapon a screen moves; IMMERSION's topics too) */
+        vr_menu.screen_title_tag_index = NONE;
+        if (sections && section_count > 0 && group >= 0 && group < VR_MENU_PAGE_COUNT) {
+            long slot = vr_menu.navigation_count, title;
+            if (slot >= vr_menu.navigation_capacity) return NONE;
+            title = vr_menu_button(resume,
+                vr_menu_name("ui\\shell\\solo_game\\pause_game\\vr_title_%ld_%ld", group, sub),
+                "vr_title", NULL, 0);
+            if (title == NONE) return NONE;
+            vr_menu_widget_get(title)->bounds.x1 = 512;
+            vr_menu.navigation[slot].tag = title;
+            vr_menu.navigation[slot].next = group;
+            vr_menu.navigation[slot].total = pages;
+            vr_menu.navigation[slot].label = sections[sub].label;
+            vr_menu.navigation[slot].jump = 4;
+            vr_menu.navigation_count++;
+            vr_menu.screen_title_tag_index = title;
         }
         next = vr_menu_screen(pause, list,
             vr_menu_name("ui\\shell\\solo_game\\pause_game\\vr_page_%ld_%ld", group, sub),
@@ -2276,6 +2362,7 @@ void vr_menu_tags_unloaded(void)
     memset(&vr_menu, 0, sizeof(vr_menu));
     vr_menu.button_tag_index = vr_menu.categories_tag_index = NONE;
     vr_menu.title_tag_index = vr_menu.hints_tag_index = NONE;
+    vr_menu.screen_title_tag_index = NONE;
     for (index = 0; index < VR_MENU_PAGE_COUNT; index++)
         vr_menu.category_tag_indices[index] = vr_menu.page_tag_indices[index] = NONE;
 }
@@ -2321,6 +2408,7 @@ void vr_menu_tags_loaded(void)
     widget->text_color.blue = 1.0f;
     widget->horizontal_offset = 2;
     widget->vertical_offset = 4;
+    vr_menu.screen_title_tag_index = NONE; /* Test72: no topic title yet (a first load has had no unload) */
     vr_menu.title_tag_index = vr_menu_button(resume_index,
         vr_menu_name("vr\\menu\\title", 0, 0), "vr_title", NULL, 0);
     vr_menu.hints_tag_index = vr_menu_button(resume_index,
@@ -2332,6 +2420,9 @@ void vr_menu_tags_loaded(void)
         long screens = vr_menu_screen_count(vr_menu_pages[page].sections,
             vr_menu_pages[page].section_count, vr_menu_pages[page].count);
         vr_menu.navigation_capacity += screens;
+        /* Test72: a sectioned page's screen titles */
+        if (vr_menu_pages[page].sections && vr_menu_pages[page].section_count > 0)
+            vr_menu.navigation_capacity += screens;
         /* Test63: the index's rows and MORE rows */
         if (screens >= VR_MENU_INDEX_FROM)
             vr_menu.navigation_capacity += screens + VR_MENU_PAGES(screens);
@@ -2540,6 +2631,11 @@ boolean vr_menu_setting_text(
         snprintf(line, sizeof(line), "%s", vr_menu.navigation[setting_index].label);
 	else if (kind == _vr_menu_navigation && vr_menu.navigation[setting_index].jump == 2)
         snprintf(line, sizeof(line), "PAGE %ld: %s...", vr_menu.navigation[setting_index].next,
+            vr_menu.navigation[setting_index].label);
+	else if (kind == _vr_menu_navigation && vr_menu.navigation[setting_index].jump == 4)
+        snprintf(line, sizeof(line), "%s: %s", vr_menu.navigation[setting_index].next >= 0 &&
+            vr_menu.navigation[setting_index].next < VR_MENU_PAGE_COUNT ?
+            vr_menu_pages[vr_menu.navigation[setting_index].next].label : "VR SETTINGS",
             vr_menu.navigation[setting_index].label);
 	else if (kind == _vr_menu_navigation && vr_menu.navigation[setting_index].jump == 3)
         snprintf(line, sizeof(line), "MORE (%ld/%ld)", vr_menu.navigation[setting_index].next,

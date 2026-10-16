@@ -259,6 +259,14 @@ static struct
 	/* Test70: the turning stick pushed up, and BULLET TIME's button held */
 	int turn_stick_up, bullet_time_held;
 	int wrist_hud, menus_active;
+	/* Test72: MENU POSITION: the menus' panel in the world (vr.menu_anchor
+	"world" or "follow"): placed this menu session, its pose (LOCAL) and
+	width, the sticks' clicks last frame, since when the head has looked
+	well away from it (follow) */
+	int menu_placed, menu_sticks;
+	struct halo_xr_pose menu_pose;
+	float menu_width;
+	double menu_away_since;
 	/* Test61: X held while a menu was up, not yet let go */
 	int reload_held_from_menu;
 	/* test29: how long the weapon hand has been held still by its temple
@@ -4992,11 +5000,18 @@ int vr_ui_pointer(int menus_active, struct halo_ui_pointer *pointer)
 	if (!vr.active || !menus_active)
 	{
 		vr.pointer_age = 0;
+		vr.menu_placed = 0; /* Test72: the next menu is put in front anew */
 		return 0;
 	}
 	/* the screen the menus are on: the flat screen, or in stereo (the
 	pause menu) the HUD's panel ahead of the head */
-	if (vr.mode == VR_MODE_STEREO)
+	if (vr.mode == VR_MODE_STEREO && menu_world_pose())
+	{
+		/* Test72: MENU POSITION WORLD or FOLLOW: the panel where it was put */
+		screen = vr.menu_pose;
+		width = vr.menu_width;
+	}
+	else if (vr.mode == VR_MODE_STEREO)
 	{
 		static const float ahead[3] = { 0.0f, 0.0f, -1.0f };
 		float offset[3];
@@ -5336,6 +5351,91 @@ static void place_screen(float distance)
 	vr.screen_pose.position[2] = vr.frame.head.position[2] - cosf(yaw) * distance;
 }
 
+/* Test72: MENU POSITION: 0 head-locked (as before), 1 world, 2 follow */
+static int menu_anchor(void)
+{
+	char const *anchor = config_string("vr.menu_anchor");
+	return !strcmp(anchor, "world") ? 1 : !strcmp(anchor, "follow") ? 2 : 0;
+}
+
+/* the menus' panel put in front of the head, level (its yaw only), at
+MENU DISTANCE and MENU HEIGHT, as wide as the head-locked panel looks
+(vr.hud_width at vr.hud_distance) times MENU SIZE */
+static void place_menu(void)
+{
+	static const float xr_forward[3] = { 0.0f, 0.0f, -1.0f };
+	float forward[3], yaw, distance, scale, height, angular;
+
+	distance = (float)config_real("vr.menu_distance");
+	scale = (float)config_real("vr.menu_scale");
+	height = (float)config_real("vr.menu_height");
+	if (!(distance >= 0.5f && distance <= 5.0f))
+		distance = 1.6f;
+	if (!(scale >= 0.5f && scale <= 2.0f))
+		scale = 1.0f;
+	if (!(height >= -1.0f && height <= 1.0f))
+		height = 0.0f;
+	rotate(vr.frame.head.orientation, xr_forward, forward);
+	yaw = (forward[0] * forward[0] + forward[2] * forward[2] > 1e-4f) ? atan2f(-forward[0], -forward[2]) : 0.0f;
+	vr.menu_pose.orientation[0] = 0.0f;
+	vr.menu_pose.orientation[1] = sinf(yaw * 0.5f);
+	vr.menu_pose.orientation[2] = 0.0f;
+	vr.menu_pose.orientation[3] = cosf(yaw * 0.5f);
+	vr.menu_pose.position[0] = vr.frame.head.position[0] - sinf(yaw) * distance;
+	vr.menu_pose.position[1] = vr.frame.head.position[1] + height;
+	vr.menu_pose.position[2] = vr.frame.head.position[2] - cosf(yaw) * distance;
+	angular = vr.hud_distance > 0.0f ? vr.hud_width / vr.hud_distance : 0.667f;
+	vr.menu_width = angular * distance * scale;
+	vr.menu_placed = 1;
+	vr.menu_away_since = 0.0;
+	platform_log("vr: menu placed in the world %.2f m ahead, %.2f m wide, %.2f m above the eyes (%s)",
+		distance, vr.menu_width, height, menu_anchor() == 2 ? "follow" : "world");
+}
+
+/* Test72: the panel's pose this frame, while a menu is up in stereo:
+placed as a menu session begins; again on a stick click, the runtime's
+recentre (VIEW held, or the system's), or (follow) the head turned more
+than 50 degrees from it for 0.75 s. FALSE: head-locked. */
+static int menu_world_pose(void)
+{
+	static const float xr_forward[3] = { 0.0f, 0.0f, -1.0f };
+	int anchor = menu_anchor(), sticks;
+
+	if (!vr.menus_active || vr.mode != VR_MODE_STEREO || !anchor)
+	{
+		vr.menu_placed = 0;
+		vr.menu_sticks = 0;
+		return 0;
+	}
+	sticks = ((vr.frame.hand_buttons[0] | vr.frame.hand_buttons[1]) & HALO_XR_HAND_STICK) != 0;
+	if (!vr.menu_placed || (vr.frame.flags & HALO_XR_FRAME_RECENTRED) || (sticks && !vr.menu_sticks))
+		place_menu();
+	vr.menu_sticks = sticks;
+	if (anchor == 2)
+	{
+		float head[3], to[3], along;
+		int axis;
+		double now = now_ms();
+
+		rotate(vr.frame.head.orientation, xr_forward, head);
+		for (axis = 0; axis < 3; axis++)
+			to[axis] = vr.menu_pose.position[axis] - vr.frame.head.position[axis];
+		head[1] = to[1] = 0.0f;
+		along = (head[0] * to[0] + head[2] * to[2]) /
+			fmaxf(1e-4f, sqrtf((head[0] * head[0] + head[2] * head[2]) * (to[0] * to[0] + to[2] * to[2])));
+		if (along < 0.64f)
+		{
+			if (vr.menu_away_since <= 0.0)
+				vr.menu_away_since = now;
+			else if (now - vr.menu_away_since >= 750.0)
+				place_menu();
+		}
+		else
+			vr.menu_away_since = 0.0;
+	}
+	return 1;
+}
+
 /* the fade layer's image: black, `amount` opaque (premultiplied) */
 static void draw_fade(float amount)
 {
@@ -5440,11 +5540,23 @@ int vr_present(unsigned int source, unsigned int texture, int width, int height)
 		}
 		if (copy_hud(texture))
 		{
+			/* Test72: a menu's panel fixed in the world (MENU POSITION),
+			else ahead of the head as before */
+			if (vr.menus_active && vr.menu_placed && menu_anchor())
+			{
+				layers.flags |= HALO_XR_LAYER_QUAD | HALO_XR_LAYER_QUAD_ALPHA;
+				layers.quad_pose = vr.menu_pose;
+				layers.quad_size[0] = vr.menu_width;
+				layers.quad_size[1] = vr.menu_width * 0.75f;
+			}
+			else
+			{
 			layers.flags |= HALO_XR_LAYER_QUAD | HALO_XR_LAYER_QUAD_HEAD_LOCKED | HALO_XR_LAYER_QUAD_ALPHA;
 			layers.quad_pose.position[2] = -vr.hud_distance;
 			layers.quad_pose.orientation[3] = 1.0f;
 			layers.quad_size[0] = vr.hud_width;
 			layers.quad_size[1] = vr.hud_width * 0.75f;
+			}
 			/* test26: and the wrist HUD's panel, while it faces the eyes */
 			if (wrist_hud_active() && place_wrist(&layers) && copy_wrist(texture))
 				layers.flags |= HALO_XR_LAYER_WRIST;
