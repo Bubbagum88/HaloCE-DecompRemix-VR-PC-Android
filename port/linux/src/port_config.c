@@ -971,8 +971,19 @@ static const struct config_setting config_settings[] =
         "Optional enemy-only gaze/punch combo assist, local play or a co-op host. Native collision and damage remain in use." },
     { "vr.combat_moves", _config_boolean, "true", "HALO_VR_COMBAT_MOVES", _environment_value, _platform_vr,
         "COMBAT MOVES: optional enemy-specific attack poses, physical duck/sidestep dodges, arm-control and jump-pummel openings within FIST COMBAT. Enemy-only; real contacts and native collision remain required." },
-    { "vr.projectile_parry", _config_boolean, "false", "HALO_VR_PROJECTILE_PARRY", _environment_value, _platform_vr,
-        "DEFLECT SHOTS: physically deflect moving projectiles or airborne grenades with a closed empty fist (Grip + Trigger), or deliberately swing the hand carrying your gun. Aiming/firing alone does not parry. Native fuse and damage remain intact. Enabled with FIST COMBAT; may be switched off separately. Local solo or compatible enabled co-op host only; no hitscan, attached or settled grenades." },
+    { "vr.projectile_parry", _config_boolean, "true", "HALO_VR_PROJECTILE_PARRY", _environment_value, _platform_vr,
+        "DEFLECT SHOTS: projectiles met by your gun or your fist turn away. A gun held in a shot's path blocks it\n"
+        "(it glances off, no swing needed); a gun or a closed hand (the grip) swung at 1.2 m/s bats it along\n"
+        "the swing. By kind: plasma, needles and vehicles' bolts by any of them; bullets only off a gun;\n"
+        "grenades batted or bounced; rockets and fuel rods only by a hard swing (2.5 m/s); tank shells,\n"
+        "mortars and flame never. A deflected shot is yours (its damage and kills). Local solo or an enabled\n"
+        "co-op host only; nothing on a client. Test72: on by default." },
+    { "vr.deflect_assist", _config_real, "0.03", "HALO_VR_DEFLECT_ASSIST", _environment_value, _platform_vr,
+        "DEFLECT AID: metres added round the gun and the fist where a shot is met: 0 (as they are),\n"
+        "0.03 (default) or 0.06." },
+    { "vr.deflect_strength", _config_real, "1.0", "HALO_VR_DEFLECT_STRENGTH", _environment_value, _platform_vr,
+        "DEFLECT FORCE: the deflected shot's speed against what it had (a block keeps a little less):\n"
+        "0.75, 1.0 (default) or 1.25." },
     { "vr.combat_highlights", _config_boolean, "true", "HALO_VR_COMBAT_HIGHLIGHTS", _environment_value, _platform_vr,
         "Highlight a locked enemy head/chest and show stun/impact feedback with assisted combat." },
     { "vr.combat_combo_display", _config_boolean, "true", "HALO_VR_COMBAT_COMBO_DISPLAY", _environment_value, _platform_vr,

@@ -217,6 +217,9 @@ one place (the same setting either way: changing one shows on the other) */
 #define VR_IMMERSION_COMBAT { "FIST COMBAT", "vr.assisted_combat", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_COMBAT_MOVES { "COMBAT MOVES", "vr.combat_moves", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_PROJECTILE_PARRY { "DEFLECT SHOTS", "vr.projectile_parry", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+/* Test72: the deflection's contact and the returned shot's speed */
+#define VR_IMMERSION_DEFLECT_ASSIST { "DEFLECT AID", "vr.deflect_assist", _vr_setting_real, 3, { { "OFF", "0" }, { "NORMAL", "0.03" }, { "WIDE", "0.06" } } }
+#define VR_IMMERSION_DEFLECT_STRENGTH { "DEFLECT FORCE", "vr.deflect_strength", _vr_setting_real, 3, { { "75%", "0.75" }, { "100%", "1.0" }, { "125%", "1.25" } } }
 #define VR_IMMERSION_COMBAT_LIGHTS { "HIT HIGHLIGHTS", "vr.combat_highlights", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 /* Test72: the combo as a Halo-styled counter */
 #define VR_IMMERSION_COMBAT_COMBO { "COMBO DISPLAY", "vr.combat_combo_display", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
@@ -461,6 +464,8 @@ static struct vr_menu_setting const vr_menu_controls[] =
 	/* test26: the left stick's click: the reticle's toggle or crouch, as before */
 	{ "L STICK CLICK", "buttons", _vr_setting_crouch_click, 2, { { "RETICLE", "reticle" }, { "CROUCH", "crouch" } } },
     VR_IMMERSION_PROJECTILE_PARRY,
+    VR_IMMERSION_DEFLECT_ASSIST,
+    VR_IMMERSION_DEFLECT_STRENGTH,
     VR_IMMERSION_COMBAT,
     VR_IMMERSION_COMBAT_MOVES,
     VR_IMMERSION_COMBAT_LIGHTS,
@@ -850,6 +855,8 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_COMBAT_LIGHTS,
 	VR_IMMERSION_COMBAT_COMBO,
 	VR_IMMERSION_PROJECTILE_PARRY,
+	VR_IMMERSION_DEFLECT_ASSIST,
+	VR_IMMERSION_DEFLECT_STRENGTH,
 	VR_IMMERSION_FIST_REQUIRED,
 	VR_IMMERSION_AIM_STEADY,
 	/* GRENADES */
@@ -979,7 +986,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
-	{ "WEAPONS", 8 }, { "PICKUPS", 4 }, { "FIST COMBAT", 8 }, { "FIST OPTIONS", 5 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
+	{ "WEAPONS", 8 }, { "PICKUPS", 4 }, { "FIST COMBAT", 8 }, { "FIST OPTIONS", 7 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
 	{ "LOCOMOTION", 8 }, { "LOCOMOTION OPTIONS", 6 }, { "PARKOUR", 8 }, { "BODY", 4 }, { "GRAB + NPCS", 8 },
 	{ "VEHICLES", 8 }, { "VEHICLE OPTIONS", 7 }, { "WARTHOG + GHOST", 8 }, { "TANK + BANSHEE", 8 },
 	{ "RAGDOLLS", 7 }, { "ADVANCED", 8 },

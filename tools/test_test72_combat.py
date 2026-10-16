@@ -169,7 +169,7 @@ assert 'config_boolean("vr.combat_combo_display")||extra.combo<2' in display
 assert "combat_ui_digit(" in display and "COMBAT_SPECIAL" in display
 assert '#define VR_IMMERSION_COMBAT_COMBO { "COMBO DISPLAY", "vr.combat_combo_display"' in menu
 assert menu.count("VR_IMMERSION_COMBAT_COMBO,") == 2  # its page and IMMERSION
-assert '{ "FIST OPTIONS", 5 }' in menu
+assert '{ "FIST OPTIONS", 7 }' in menu  # (+ DEFLECT ASSIST and DEFLECT POWER)
 
 print("PASS: Test72 fist combat: the Shade shove (game strength, level, away; no pull-back blow), riders struck and "
       "targeted where they are, the held enemy struck where held, 3D intent with close-range forgiveness, 12 m leaping "

@@ -63,6 +63,8 @@ static struct {
      * switch to another counts), a parry's second pulse, the hands' grab
      * owners last tick (a grab in the combo counts) */
     long combo_last_target,parry_echo_tick;
+    /* Test72: a deflection's ring after its crack, and its sound, rate-limited */
+    long deflect_echo_tick,deflect_sound_tick;int deflect_echo_hand;float deflect_echo_amplitude;
     int grab_owner[2];
     long combo_until,last_strike_tick,strike_issued,counter_enemy,counter_until,countered,countered_until,
         knock_target,reason_logged;
@@ -173,13 +175,23 @@ static long extra_player(boolean input)
 }
 long vr_extra_action_owner(void) { return extra_player(TRUE); }
 
-void vr_extra_projectile_feedback(int hand,real_point3d const *point)
+void vr_extra_projectile_feedback(int hand,real_point3d const *point,int block,int light)
 {
-    long owner=extra_player(TRUE);
+    long owner=extra_player(TRUE),now=game_time_get();
+    float strength=light?.75f:1.0f;
+    int both=block&&vr_two_handed();
     if(owner==NONE||hand<0||hand>1||!point||!valid_real_point3d(point))return;
-    extra_pulse(hand,1.0f,.07f);
-    extra.defence_point=*point;extra.defence_until=game_time_get()+8;extra.defence_parry=1;
-    unit_vr_guard_feedback(owner,TRUE);
+    /* Test72: a crack (a short full pulse) and, two ticks on, a softer ring:
+     * unlike a block's single tap or a punch landing; a gun held in two hands
+     * rings in both; a bullet off a gun is lighter (a rifle's stream of them
+     * would numb the hand) */
+    extra_pulse(hand,strength,.05f);
+    if(both)extra_pulse(1-hand,strength*.7f,.05f);
+    extra.deflect_echo_tick=now+2;extra.deflect_echo_hand=both?2:hand;extra.deflect_echo_amplitude=strength*.55f;
+    extra.defence_point=*point;extra.defence_until=now+8;extra.defence_parry=1;
+    /* the armour's metal: thick for a stroke, hollow for the gun, at most
+     * every tenth of a second */
+    if(now>=extra.deflect_sound_tick){unit_vr_guard_feedback(owner,!block);extra.deflect_sound_tick=now+3;}
 }
 
 /* Combat enters the physical-melee sweep even when network gesture mode
@@ -621,6 +633,12 @@ void vr_extra_tick(long unit)
 {
     long now=game_time_get();real units=vr_units_per_metre();real_point3d camera,slots[2];
     vr_projectile_parry_tick(unit);
+    /* Test72: a deflection's ring (deflection works without FIST COMBAT) */
+    if(extra.deflect_echo_tick>0&&now>=extra.deflect_echo_tick){
+        extra.deflect_echo_tick=0;
+        if(extra.deflect_echo_hand==2){extra_pulse(0,extra.deflect_echo_amplitude,.04f);extra_pulse(1,extra.deflect_echo_amplitude,.04f);}
+        else extra_pulse(extra.deflect_echo_hand,extra.deflect_echo_amplitude,.04f);
+    }
     if(unit==NONE||unit!=extra_player(TRUE)||!(units>0&&units<10)||
         (!config_boolean("vr.physical_grenades")&&!extra_combat_on()&&!config_boolean("vr.projectile_parry"))){vr_extra_reset();return;}
     if(extra.unit!=unit||now<extra.tick||now>extra.tick+1)vr_extra_reset();

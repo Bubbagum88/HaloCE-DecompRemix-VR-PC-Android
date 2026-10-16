@@ -54,7 +54,7 @@ enum {VR_INTERACTION_NONE,VR_INTERACTION_RELOAD,VR_INTERACTION_VEHICLE,VR_INTERA
       VR_INTERACTION_PARKOUR,VR_INTERACTION_NPC,VR_INTERACTION_GRENADE,VR_INTERACTION_COUNT};
 struct object_fields {int type;unsigned flags,damage_flags;long parent_object_index;
     long owner_object_index,owner_player_index;short owner_team_index;
-    real_point3d position;real_vector3d translational_velocity,forward,up;};
+    real_point3d position;real_vector3d translational_velocity,forward,up;real bounding_sphere_radius;};
 struct object_datum {long definition_index;struct object_fields object;};
 struct unit_fields {long player_index;unsigned flags;short current_weapon_index;long weapons[4];};
 struct unit_datum {long definition_index;struct object_fields object;struct unit_fields unit;};
@@ -63,7 +63,8 @@ struct projectile_datum {long definition_index;struct object_fields object;
  struct {unsigned flags;short action;long ignore_object_index,target_object_index;
  real detonation_timer,detonation_timer_delta,arming_time,arming_time_delta,odometer;
  real deceleration_timer,deceleration_timer_delta,maximum_damage_distance;}projectile;};
-struct projectile_definition {struct {real collision_radius;}projectile;};
+struct projectile_definition {struct {real collision_radius,initial_velocity,air_gravity_scale,maximum_range,timer_upper_bound;
+ struct {long index;}effect,impact_damage;}projectile;};
 static struct projectile_datum shot;
 static struct projectile_definition definition;
 static struct biped_datum body;
@@ -73,7 +74,8 @@ static long live_index,tick;
 static double pose_time;
 static int enabled,connection,coop,host_permission,peers,active,paused,inhibited,controller,cinematic;
 static int tracking[2],grip[2],trigger[2],busy[2],weapon_hand,empty,two_handed,palm_valid;
-static int feedback,feedback_hand,object_deleted,target_updates;
+static int feedback,feedback_hand,feedback_block,feedback_light,object_deleted,target_updates;
+static real assist_setting,strength_setting=1;
 static real speed[2],units,palm_radius;
 static real_point3d palms[2],camera,feedback_point;
 static real_vector3d up={.n={0,0,1}};
@@ -82,7 +84,12 @@ static int config_boolean(char const *key){
  if(!strcmp(key,"net.host_vr_actions"))return host_permission;
  return 0;
 }
-static double config_real(char const *key){assert(!strcmp(key,"vr.interaction_reach"));return palm_radius;}
+static double config_real(char const *key){
+ if(!strcmp(key,"vr.deflect_assist"))return assist_setting;
+ if(!strcmp(key,"vr.deflect_strength"))return strength_setting;
+ assert(!strcmp(key,"vr.interaction_reach"));return palm_radius;}
+void platform_log(char const *format,...){(void)format;}
+static int vr_weapon_view(float const *anchor,float *p,float *f,float *u){(void)anchor;(void)p;(void)f;(void)u;return 0;}
 static short local_player_get_next(short previous){(void)previous;return 0;}
 static long local_player_get_player_index(short local){(void)local;return 3;}
 #define player_get(index) ((void)(index),&player_data)
@@ -134,7 +141,7 @@ static real vr_hand_speed(int hand){return speed[hand];}
 static int vr_interaction_grip(int hand,int *pressed,int *released){(void)pressed;(void)released;return grip[hand];}
 static int vr_interaction_trigger(int hand){return trigger[hand];}
 static void projectile_set_target_object_index(long index,long target){assert(index==live_index);shot.projectile.target_object_index=target;target_updates++;}
-static void vr_extra_projectile_feedback(int hand,real_point3d const *point){feedback++;feedback_hand=hand;feedback_point=*point;}
+static void vr_extra_projectile_feedback(int hand,real_point3d const *point,int block,int light){feedback++;feedback_hand=hand;feedback_point=*point;feedback_block=block;feedback_light=light;}
 '''
 
 checks = r'''
@@ -144,7 +151,9 @@ static void reset(void){
  connection=coop=host_permission=peers=paused=inhibited=cinematic=0;
  body.object.parent_object_index=NONE;body.object.owner_team_index=4;body.unit.player_index=3;player_data.unit_index=0;
  body.unit.current_weapon_index=0;body.unit.weapons[0]=4;
- guns[0].object.type=guns[1].object.type=_object_type_weapon;
+ guns[0].object.type=guns[1].object.type=_object_type_weapon;guns[0].object.bounding_sphere_radius=guns[1].object.bounding_sphere_radius=.3f;
+ definition.projectile.initial_velocity=1.7f;definition.projectile.impact_damage.index=1;definition.projectile.effect.index=NONE;
+ assist_setting=0;strength_setting=1;feedback_block=feedback_light=0;
  shot.object.parent_object_index=NONE;shot.object.type=_object_type_projectile;shot.object.owner_object_index=8;
  shot.object.owner_player_index=9;shot.object.owner_team_index=2;shot.object.up=up;
  shot.object.position=(real_point3d){.n={-10,0,1}};
@@ -182,7 +191,7 @@ int main(void){
  assert(shot.projectile.ignore_object_index==0&&shot.projectile.target_object_index==NONE);
  assert(fabsf(shot.object.translational_velocity.i+20)<.001f);lifetime();
  assert(!attempt(1));vr_projectile_parry_reset();stroke(0);assert(!attempt(1));assert(feedback==1);
- vr_projectile_parry_forget(live_index);assert(attempt(1));
+ vr_projectile_parry_forget(live_index);shot.object.owner_object_index=8; /* (a new projectile in the slot: an enemy's) */assert(attempt(1));
  /* Every title/projectile tag uses the same movement; a native radius counts
   * for Wraith/Banshee-sized shots, with no unbounded proximity shield. */
  reset();shot.definition_index=77;definition.projectile.collision_radius=.12f;palms[0].y=.15f;stroke(0);assert(attempt(1));lifetime();
@@ -199,7 +208,8 @@ int main(void){
   stroke(h);assert(attempt(1)&&feedback_hand==h);
   reset();palms[h].y=0;palms[1-h].y=2;weapon_hand=h;empty=0;grip[h]=0;trigger[h]=firing;
   vr_projectile_parry_tick(0);tick++;pose_time+=1.0/30.0;vr_projectile_parry_tick(0);
-  assert(!attempt(1));unchanged(); /* aim/fire with no deliberate swipe */
+  /* Test72 (the owner): a gun held in the shot's path blocks it, no swing */
+  assert(attempt(1)&&feedback_hand==h&&feedback_block);
   reset();palms[h].y=0;palms[1-h].y=2;weapon_hand=h;empty=0;stroke(h);busy[h]=VR_INTERACTION_RELOAD;
   assert(!attempt(1));unchanged();
  }
@@ -231,7 +241,7 @@ int main(void){
  /* The hand must actually move as a fist; no standing shield or remote aim. */
  reset();vr_projectile_parry_tick(0);assert(!attempt(1));unchanged();
  reset();grip[0]=0;stroke(0);assert(!attempt(1));unchanged();
- reset();trigger[0]=0;stroke(0);assert(!attempt(1));unchanged();
+ reset();trigger[0]=0;stroke(0);assert(attempt(1)&&!feedback_block); /* Test72: the grip alone is a fist */
  reset();speed[0]=.5f;stroke(0);assert(!attempt(1));unchanged();
  reset();tracking[0]=0;stroke(0);assert(!attempt(1));unchanged();
  reset();palms[0].y=.2f;stroke(0);assert(!attempt(1));unchanged();
@@ -268,9 +278,49 @@ int main(void){
  }
  reset();stroke(0);assert(!attempt(NAN));unchanged();
  reset();stroke(0);live_index=0x100ff;assert(!attempt(1));unchanged();
+ /* Test72: each kind by its tag's data. Bullets: off a gun, never a bare fist. */
+ reset();definition.projectile.initial_velocity=10.8f;stroke(0);assert(!attempt(1));unchanged();
+ reset();definition.projectile.initial_velocity=10.8f;weapon_hand=0;empty=0;grip[0]=trigger[0]=0;
+ vr_projectile_parry_tick(0);tick++;pose_time+=1.0/30.0;vr_projectile_parry_tick(0);
+ assert(attempt(1)&&feedback_block&&feedback_light);
+ assert(fabsf(shot.object.translational_velocity.i+20*.70f)<.01f); /* glanced off: a round keeps 70% */
+ reset();definition.projectile.initial_velocity=10.8f;weapon_hand=0;empty=0;stroke(0);assert(attempt(1)&&!feedback_block);
+ /* a bolt off a held gun keeps 85%; DEFLECT FORCE scales it */
+ reset();weapon_hand=0;empty=0;vr_projectile_parry_tick(0);tick++;pose_time+=1.0/30.0;vr_projectile_parry_tick(0);
+ assert(attempt(1)&&fabsf(shot.object.translational_velocity.i+20*.85f)<.01f);
+ reset();strength_setting=1.25f;weapon_hand=0;empty=0;vr_projectile_parry_tick(0);tick++;pose_time+=1.0/30.0;vr_projectile_parry_tick(0);
+ assert(attempt(1)&&fabsf(shot.object.translational_velocity.i+20*.85f*1.25f)<.01f);
+ /* grenades: a fuse and gravity: batted by a fist, bounced off a gun (45%) */
+ reset();definition.projectile.initial_velocity=0;definition.projectile.impact_damage.index=NONE;definition.projectile.effect.index=2;
+ definition.projectile.timer_upper_bound=.5f;definition.projectile.air_gravity_scale=1;stroke(0);assert(attempt(1));
+ reset();definition.projectile.initial_velocity=0;definition.projectile.impact_damage.index=NONE;definition.projectile.effect.index=2;
+ definition.projectile.timer_upper_bound=.5f;definition.projectile.air_gravity_scale=1;weapon_hand=0;empty=0;
+ vr_projectile_parry_tick(0);tick++;pose_time+=1.0/30.0;vr_projectile_parry_tick(0);
+ assert(attempt(1)&&fabsf(shot.object.translational_velocity.i+20*.45f)<.01f);
+ /* rockets and fuel rods: only a hard swing (2.5 m/s; this stroke is 3), never a held gun */
+ reset();definition.projectile.initial_velocity=.4f;definition.projectile.impact_damage.index=NONE;definition.projectile.effect.index=2;
+ stroke(0);assert(attempt(1));
+ reset();definition.projectile.initial_velocity=.4f;definition.projectile.impact_damage.index=NONE;definition.projectile.effect.index=2;
+ vr_projectile_parry_tick(0);tick++;pose_time+=1.0/30.0;palms[0].x-=.05f;vr_projectile_parry_tick(0);assert(!attempt(1));unchanged();
+ reset();definition.projectile.initial_velocity=.4f;definition.projectile.impact_damage.index=NONE;definition.projectile.effect.index=2;
+ weapon_hand=0;empty=0;vr_projectile_parry_tick(0);tick++;pose_time+=1.0/30.0;vr_projectile_parry_tick(0);assert(!attempt(1));unchanged();
+ /* never: a tank shell (fast, it detonates), a mortar (wide), flame (a short stream) */
+ reset();definition.projectile.initial_velocity=3.3f;definition.projectile.impact_damage.index=NONE;definition.projectile.effect.index=2;
+ stroke(0);assert(!attempt(1));unchanged();
+ reset();definition.projectile.initial_velocity=.3f;definition.projectile.collision_radius=.5f;definition.projectile.impact_damage.index=NONE;
+ definition.projectile.effect.index=2;stroke(0);assert(!attempt(1));unchanged();
+ reset();definition.projectile.maximum_range=2.5f;stroke(0);assert(!attempt(1));unchanged();
+ /* the player's own shots never meet the player's own gun */
+ reset();shot.object.owner_object_index=0;weapon_hand=0;empty=0;vr_projectile_parry_tick(0);tick++;pose_time+=1.0/30.0;
+ vr_projectile_parry_tick(0);assert(!attempt(1));
+ /* DEFLECT AID widens the contact */
+ reset();palms[0].y=.09f;stroke(0);assert(!attempt(1));unchanged();
+ reset();assist_setting=.06f;palms[0].y=.09f;stroke(0);assert(attempt(1));
  /* Slot reuse with a new salted handle does not inherit another projectile. */
- reset();stroke(0);assert(attempt(1));live_index=0x20001;shot.object.translational_velocity.i=20;assert(attempt(1));
- puts("PASS: production projectile parry authority, swept contact, both hands, ownership/homing, fuse, lifecycle, malformed inputs");
+ reset();stroke(0);assert(attempt(1));live_index=0x20001;shot.object.translational_velocity.i=20;shot.object.owner_object_index=8;assert(attempt(1));
+ puts("PASS: production projectile parry authority, swept contact, both hands, ownership/homing, fuse, lifecycle, malformed inputs; "
+      "Test72: a held gun blocks (no swing), the grip a fist, each kind by its data (bolts, bullets off a gun, grenades, "
+      "explosives only by a hard swing, shells/mortars/flame never), DEFLECT AID and FORCE");
 }
 '''
 

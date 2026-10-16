@@ -4,7 +4,9 @@
 #ifdef HALO_VR
 void vr_extra_reset(void);
 long vr_extra_action_owner(void);
-void vr_extra_projectile_feedback(int hand,real_point3d const *point);
+/* Test72: a deflection's feedback: by a held gun (block) or a stroke; a
+ * bullet's lighter (a rifle's stream of them) */
+void vr_extra_projectile_feedback(int hand,real_point3d const *point,int block,int light);
 void vr_extra_tick(long unit);
 /* Test70: whether fist combat knocks this kind down (a slide into it too) */
 boolean vr_combat_knockable(long target);

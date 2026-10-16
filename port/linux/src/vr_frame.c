@@ -1152,6 +1152,14 @@ void vr_initialize(void)
 					moves[index].key, moves[index].old_value, moves[index].new_value);
 			}
 		}
+		/* DEFLECT SHOTS: off by default before, and turned on only at the
+		moment FIST COMBAT was (a player with it on before Test67 never had
+		it): on now; OFF in FIST OPTIONS keeps it off from here on */
+		if (!config_boolean("vr.projectile_parry"))
+		{
+			config_write_boolean("vr.projectile_parry", 1);
+			platform_log("vr: vr.projectile_parry (DEFLECT SHOTS) at its old default off goes on, once");
+		}
 		config_write_boolean("vr.test72_combat_defaults_applied", 1);
 	}
 	vr_reload_settings();
