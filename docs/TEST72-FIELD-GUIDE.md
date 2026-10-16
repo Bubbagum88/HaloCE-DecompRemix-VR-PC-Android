@@ -55,7 +55,7 @@ its own: everything from it is here too (its notes follow this section).
 **Vehicles, menus and controls (VR)**
 - Passengers (Warthog, the Scorpion's riders) aim the gun in hand, 6DoF, as on
   foot; the head looks freely.
-- MENU POSITION (HUD + RETICLE): HEAD LOCKED, WORLD (fixed in front of you:
+- MENU POSITION (HUD + RETICLE): HEAD (as before), WORLD (fixed in front of you:
   lean in to read) or FOLLOW; MENU DISTANCE, SIZE and HEIGHT. A stick click
   brings a fixed menu back in front.
 - BULLET TIME's settings moved to LOCOMOTION (and IMMERSION > LOCOMOTION);

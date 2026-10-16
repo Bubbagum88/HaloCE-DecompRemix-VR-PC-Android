@@ -67,6 +67,7 @@ static struct {
     long combo_until,last_strike_tick,strike_issued,counter_enemy,counter_until,countered,countered_until,
         knock_target,reason_logged;
     real strike_scale,lunge_metres,knock_speed;
+    int knock_takedown; /* Test72: the pending knockdown is a takedown's (it spent the combo) */
     real_vector3d strike_dir,knock_dir;
     real_point3d knock_point;
     /* Test66: the fist blow's damage share (ENEMY HEALTH, the combo, a
@@ -610,8 +611,10 @@ static void combat_tick(long unit)
          * would make every knockdown a rear takedown) */
         if(target!=NONE&&unit_try_and_get(target)&&!TEST_FLAG(unit_get(target)->object.damage_flags,_object_dead_bit)&&
            unit_get(target)->object.parent_object_index==NONE&&
-           vr_npc_interaction_knock(target,&extra.knock_point,&extra.knock_dir,extra.knock_speed))
+           vr_npc_interaction_knock(target,&extra.knock_point,&extra.knock_dir,extra.knock_speed)&&
+           !extra.knock_takedown) /* (a takedown spent the meter: its own knockdown adds none back) */
             combat_combo_add(1,"a knockdown");
+        extra.knock_takedown=0;
     }
 }
 void vr_extra_tick(long unit)
@@ -872,6 +875,9 @@ static int combat_intent(real_vector3d const *gaze,real_vector3d const *stroke,r
     if(magnitude3d(stroke)>.0001f&&fist_distance>.001f)thrown=dot_product3d(stroke,&from_fist);
     if(near&&fist_distance<.25f*units)thrown=1.0f; /* the fist at the body */
     *facing_out=facing;*thrown_out=thrown;
+    /* (a stroke thrown away from the enemy is never meant for it, however
+     * the eyes are turned: an elbow back at someone behind, a wind-up) */
+    if(magnitude3d(stroke)>.0001f&&fist_distance>.001f&&thrown<-.3f)return COMBAT_INTENT_BEHIND;
     if(!(facing>=.64f||(thrown>=.75f&&facing>=.17f)||(near&&facing>=0.0f&&thrown>=.2f)))return COMBAT_INTENT_CONE;
     if(!near&&level_punch){
         real_vector3d flat=from_fist;flat.k=0;
@@ -1086,7 +1092,7 @@ real vr_combat_hit(long unit,long target,real_point3d const *point,real_vector3d
         /* Test66: Elites only by a takedown or a counter; Hunters never */
         if(kind->type==_actor_hunter||(!kind->knocked&&!takedown&&!(extra.strike_counter&&target==extra.countered)))knock=0;
         if(knock>0&&config_boolean("vr.active_ragdoll")){
-            extra.knock_pending=1;extra.knock_target=target;extra.knock_speed=knock;
+            extra.knock_pending=1;extra.knock_target=target;extra.knock_speed=knock;extra.knock_takedown=takedown;
             extra.knock_dir=along;extra.knock_point=*point;
         }else{
             struct object_definition *definition=object_definition_get(unit_get(target)->definition_index);
@@ -1162,7 +1168,7 @@ real vr_combat_defend(long victim,long attacker)
         unit_vr_guard_feedback(victim,TRUE);
         if(kind->knocked&&config_boolean("vr.active_ragdoll")){
             real_vector3d back=to;back.k=0;
-            if(normalize3d(&back)>.001f){extra.knock_pending=1;extra.knock_target=attacker;extra.knock_speed=2.5f;extra.knock_dir=back;extra.knock_point=chest;}
+            if(normalize3d(&back)>.001f){extra.knock_pending=1;extra.knock_takedown=0;extra.knock_target=attacker;extra.knock_speed=2.5f;extra.knock_dir=back;extra.knock_point=chest;}
         }
         platform_log("VR fist combat: PARRY enemy=%ld hand=%d; its blow undone, staggered a second (punch, grab or go behind it)",attacker,parry);
         return 0;

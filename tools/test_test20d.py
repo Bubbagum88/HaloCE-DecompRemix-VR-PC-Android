@@ -353,6 +353,7 @@ enum { HAND_LOOSE, HAND_HELD, HAND_EMPTY };
 static struct { struct { uint32_t hand_buttons[2], buttons; float trigger[2], thumb[4]; int64_t predicted_display_period; } frame;
  int layout_vr, weapon_hand, touch_layout, zoom_down, view_recentred, back_pulse, heading_valid, x_hold_switched, controls_mirrored,
  buttons_mirrored, turn_stick_up, bullet_time_held, /* Test70 */
+ bullet_stick_up, /* Test72: R UP for BULLET TIME, in seats too */
  grip_held[2], in_holster, hand_state, physical, button_source[VR_BUTTON_ACTIONS], recentre_source; unsigned pad_buttons; float pad_trigger[2];
  double x_held, grenade_pulse, view_held;
  /* test26: crouch on the turning stick held down, the reticle's toggle */

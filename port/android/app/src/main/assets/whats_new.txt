@@ -17,7 +17,7 @@ FIST COMBAT (Quest)
 
 VEHICLES, MENUS AND CONTROLS (Quest)
 • Passengers (the Warthog's, the Scorpion's riders) aim the gun in their hand, 6DoF, as on foot; the head looks freely.
-• NEW: MENU POSITION (HUD + RETICLE): HEAD LOCKED, WORLD (fixed in front of you: lean in to read) or FOLLOW, with MENU DISTANCE, SIZE and HEIGHT. A stick click brings a fixed menu back in front.
+• NEW: MENU POSITION (HUD + RETICLE): HEAD (as before), WORLD (fixed in front of you: lean in to read) or FOLLOW, with MENU DISTANCE, SIZE and HEIGHT. A stick click brings a fixed menu back in front.
 • BULLET TIME's settings moved to LOCOMOTION (and IMMERSION); its button stays on BUTTONS. FIX: with R UP it now works in vehicles and turrets too (it could stick on there).
 • IMMERSION gains LOCOMOTION (sprint, slide, bullet time), PARKOUR, TWO HANDS, SCOPE and the vehicles' VIEW. SCOPES: one topic a weapon, each screen titled.
 • LEFT-HAND MODE: BUTTONS rows show the button you actually press (an Index's left controller as L-A and L-B); the menus' Back stays the right controller's B.

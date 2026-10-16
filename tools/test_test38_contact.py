@@ -71,7 +71,10 @@ assert 'if (pressed && action.weight[side] == 0) vr_pressure_buzz(controller, de
 assert 'else if (contacts && action.weight[side] == 0) vr_haptic(controller, 0.05f + 0.05f * contacts, 0.03f);' in render
 assert 'if (action.weight[side] >= 1) continue;' in render
 host = (ROOT / "port/android/host/host_xr.c").read_text()
-assert '"/user/hand/" hand "/output/haptic"' in host
+# (Test72: the bindings are shared with the Windows PC VR host, halo_xr_bindings.h)
+bindings = (ROOT / "port/android/include/halo_xr_bindings.h").read_text()
+assert '#include "halo_xr_bindings.h"' in host
+assert '"/user/hand/" hand "/output/haptic"' in bindings
 assert 'check(result, "xrApplyHapticFeedback")' in host
 assert 'controller haptic output accepted by runtime' in host
 frame = (ROOT / "port/linux/src/vr_frame.c").read_text()

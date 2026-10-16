@@ -550,7 +550,7 @@ static struct vr_menu_setting const vr_menu_hud[] =
 {
 	/* Test72: MENU POSITION (head-locked, fixed in the world, or following
 	lazily), and a fixed menu's distance, size and height */
-	{ "MENU POSITION", "vr.menu_anchor", _vr_setting_string, 3, { { "HEAD LOCKED", "head" }, { "WORLD", "world" }, { "FOLLOW", "follow" } } },
+	{ "MENU POSITION", "vr.menu_anchor", _vr_setting_string, 3, { { "HEAD", "head" }, { "WORLD", "world" }, { "FOLLOW", "follow" } } },
 	{ "MENU DISTANCE", "vr.menu_distance", _vr_setting_real, 6, { { "0.8 M", "0.8" }, { "1.2 M", "1.2" }, { "1.6 M", "1.6" }, { "2 M", "2" }, { "2.5 M", "2.5" }, { "3 M", "3" } } },
 	{ "MENU SIZE", "vr.menu_scale", _vr_setting_real, 5, { { "75%", "0.75" }, { "90%", "0.9" }, { "100%", "1" }, { "120%", "1.2" }, { "150%", "1.5" } } },
 	{ "MENU HEIGHT", "vr.menu_height", _vr_setting_real, 5, { { "-30 CM", "-0.3" }, { "-15 CM", "-0.15" }, { "EYES", "0" }, { "+15 CM", "0.15" }, { "+30 CM", "0.3" } } },

@@ -232,6 +232,9 @@ else:
 # --- 4. the HUD page: HUD shown/hidden (the session's), the head tap, the wrist HUD's place and size
 hud_page = between(menu, 'static struct vr_menu_setting const vr_menu_hud[] =', '};')
 rows = re.findall(r'^	\{ "([A-Z ]+)", "', hud_page, re.M)
+# (Test72: MENU POSITION and its distance, size and height come first)
+assert rows[:4] == ['MENU POSITION', 'MENU DISTANCE', 'MENU SIZE', 'MENU HEIGHT'], rows
+rows = rows[4:]
 assert rows[:2] == ['HUD', 'HEAD TAP'], rows
 assert rows == ['HUD', 'HEAD TAP', 'CROSSHAIR', 'CROSSHAIR SIZE', 'OPACITY', 'WRIST HUD', 'WRIST ALONG', 'WRIST ACROSS',
                 'WRIST HEIGHT', 'WRIST SIZE', 'RESET WRIST'], rows

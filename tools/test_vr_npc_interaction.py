@@ -505,7 +505,7 @@ remote_submit=source[source.index('int vr_npc_interaction_remote(long player_ind
 assert 'probe_remote(&point,&camera,player->unit_index,required,hand)' in remote_submit
 assert 'remote.candidate[hand]=selected' in remote_submit
 npc_tick=function('static void tick_player(')
-assert '(use_remote&&remote.candidate[h]!=it.index)' in npc_tick
+assert '(use_remote&&remote.candidate[h]!=candidate_index)' in npc_tick  # (Test72: candidates nearest first)
 network=(ROOT/'port/linux/game/network_interaction.c').read_text()
 assert 'else if(r->pressed||!r->held)' in network
 assert 'vr_npc_interaction_remote(r->player,hand,r->held,r->position.n)' in network

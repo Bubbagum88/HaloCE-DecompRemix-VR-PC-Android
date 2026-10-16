@@ -110,7 +110,7 @@ for label, key, kind, count, values in rows:
             over.append(label + ': ' + t)
 assert not over, over
 for name in ['ALL FWD', 'HOG FWD', 'USE / RELOAD', 'NEXT WEAPON', 'NEXT GRENADE', 'VIGNETTE ON', 'OPACITY',
-             'PISTOL FWD', 'SNIPER FWD', 'RESET OFFSETS', 'HORIZON']:
+             'FORWARD', 'RESET OFFSETS', 'HORIZON']:  # (Test72: SCOPES a topic a weapon, its rows FORWARD, UP, RIGHT, SIZE)
     assert '{ "%s", ' % name in menu, name
 for key in ['vr.vehicle_all_forward', 'vr.button_action', 'vr.button_switch_grenade', 'vr.vignette_when',
             'vr.crosshair_opacity', 'vr.scope_pistol_forward']:

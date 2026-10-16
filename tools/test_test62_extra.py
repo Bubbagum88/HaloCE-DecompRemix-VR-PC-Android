@@ -55,10 +55,10 @@ static int rendered_hand;static real_point3d rendered_palm;static float collisio
 static int vr_render_palm_point(int h,long u,float p[3]){(void)h;(void)u;if(rendered_hand)memcpy(p,rendered_palm.n,12);return rendered_hand;}
 static real_vector3d zero,*global_zero_vector3d=&zero,gaze={.n={1,0,0}},last_throw;
 static real_point3d hands[2];
-static float combat_reach_setting=2.5f,lunge_setting=0,health_setting=1;static int counters_setting=1;
+static float combat_reach_setting=2.5f,lunge_setting=0,health_setting=1,hop_setting=0; /* (Test72: LUNGE HOP off unless a check sets it) */static int counters_setting=1;
 static char const *melee_mode="impact";static char const*config_string(char const*k){return !strcmp(k,"vr.melee")?melee_mode:"";}
 static float melee_speed=2;static float vr_melee_speed(void){return melee_speed;}
-static float config_real(char const*k){if(!strcmp(k,"vr.grenade_chest_forward"))return .16f;if(!strcmp(k,"vr.grenade_chest_down"))return .30f;if(!strcmp(k,"vr.grenade_chest_spread"))return .14f;if(!strcmp(k,"vr.combat_reach"))return combat_reach_setting;if(!strcmp(k,"vr.combat_lunge_reach"))return lunge_setting;if(!strcmp(k,"vr.combat_enemy_health"))return health_setting;return 1;}
+static float config_real(char const*k){if(!strcmp(k,"vr.grenade_chest_forward"))return .16f;if(!strcmp(k,"vr.grenade_chest_down"))return .30f;if(!strcmp(k,"vr.grenade_chest_spread"))return .14f;if(!strcmp(k,"vr.combat_reach"))return combat_reach_setting;if(!strcmp(k,"vr.combat_lunge_reach"))return lunge_setting;if(!strcmp(k,"vr.combat_enemy_health"))return health_setting;if(!strcmp(k,"vr.combat_lunge_hop"))return hop_setting;return 1;}
 static int config_boolean(char const*k){return !strcmp(k,"vr.projectile_parry")?projectile_parry:!strcmp(k,"vr.physical_grenades")?enabled:!strcmp(k,"vr.assisted_combat")?combat:!strcmp(k,"vr.combat_highlights")?highlights:!strcmp(k,"net.host_vr_actions")?host_allowed:!strcmp(k,"vr.combat_counters")?counters_setting:!strcmp(k,"vr.active_ragdoll")?1:0;}
 static short local_player_get_next(short p){(void)p;return 0;}
 static long local_player_get_player_index(short p){(void)p;return 0;}
@@ -233,7 +233,7 @@ int main(void){
  actors[1].meta.team_index=actors[2].meta.team_index=1;vr_combat_punch(0,0,&p,&punch);assert(extra.target==1);
  bodies[2].object.bounding_sphere_center.x=.7f;vr_combat_punch(0,0,&p,&punch);assert(extra.target==1);
  real_vector3d velocity={.n={0,0,-.03f}};bodies[1].object.bounding_sphere_radius=3; // visual bounds must not keep a tall actor out of reach
- vr_combat_velocity(0,&bodies[0].object.position,&velocity);assert(velocity.i>0&&velocity.i<=10.0f/30+1e-6f&&velocity.k==-.03f); /* Test65: a dash up to 10 m/s */
+ vr_combat_velocity(0,&bodies[0].object.position,&velocity);assert(velocity.i>0&&velocity.i<=14.0f/30+1e-6f&&velocity.k==-.03f); /* Test65: a dash, up to 14 m/s since Test72 */
  widths[1]=1.1f;velocity.i=0;vr_combat_velocity(0,&bodies[0].object.position,&velocity);assert(velocity.i==0&&extra.approach_until==0); // native collision width still keeps clearance
  widths[1]=.3f;extra.approach_until=0;vr_combat_punch(0,0,&p,&punch);widths[1]=NAN;vr_combat_velocity(0,&bodies[0].object.position,&velocity);assert(extra.approach_until==0);widths[1]=.3f;
  real_point3d hit;unit_get_camera_position(1,&hit);assert(vr_combat_hit(0,1,&hit,NULL,1.0f,0)==1&&extra.stun_until==now+27);
@@ -345,14 +345,14 @@ int main(void){
  setup();combat=1;enabled=0;grip[0]=1;tick();health_setting=3;
  {real_point3d body_hit={.n={1.2f,0,.8f}};float blow;int before=knocks;
   for(int i=1;i<=7;i++){blow=vr_combat_hit(0,1,&body_hit,NULL,.9f,0);assert(extra.combo==i&&blow==1);
-   blow=vr_combat_damage_share();assert(fabsf(blow-(1+.08f*(i-1))/3.0f)<1e-5f);assert(vr_combat_damage_share()==1); /* once */extra.stun_until=0;extra.hit_count=0;tick();tick();tick();}
+   blow=vr_combat_damage_share();assert(fabsf(blow-(1+.05f*(i-1))/3.0f)<1e-5f); /* (Test72: 5% a hit in a row) */assert(vr_combat_damage_share()==1); /* once */extra.stun_until=0;extra.hit_count=0;tick();tick();tick();}
   blow=vr_combat_hit(0,1,&body_hit,NULL,.9f,0);assert(extra.combo==8);tick();tick();tick();extra.stun_until=0;extra.hit_count=0;
   blow=vr_combat_hit(0,1,&body_hit,NULL,1.2f,0);assert(blow==1&&vr_combat_damage_share()==6&&extra.combo==0&&extra.knock_pending);
   tick();assert(knocks==before+1&&knocked==1&&knock_speed==6);
   tick();tick();tick();vr_combat_hit(0,1,&body_hit,NULL,.9f,0);tick();tick();tick();vr_combat_hit(0,1,&body_hit,NULL,.9f,0);assert(extra.combo==2);
   vr_combat_note_damage(1);assert(extra.combo==2);vr_combat_note_damage(0);assert(extra.combo==0);
-  /* the meter runs out two seconds after the last hit */
-  tick();tick();tick();vr_combat_hit(0,1,&body_hit,NULL,.9f,0);assert(extra.combo==1);for(int t=0;t<61;t++)tick();assert(extra.combo==0);}
+  /* the meter runs out three seconds after the last hit (Test72; two before) */
+  tick();tick();tick();vr_combat_hit(0,1,&body_hit,NULL,.9f,0);assert(extra.combo==1);for(int t=0;t<61;t++)tick();assert(extra.combo==1);for(int t=0;t<30;t++)tick();assert(extra.combo==0);}
  health_setting=1;
  /* Test66 1. ENEMY HEALTH as the damage multiplier (6X: a sixth of a blow;
   * the swing's scale untouched), and only for the tick of that blow */
@@ -360,7 +360,7 @@ int main(void){
  {real_point3d body_hit={.n={1.2f,0,.8f}};
   assert(vr_combat_hit(0,1,&body_hit,NULL,.8f,0)==1);tick();assert(vr_combat_damage_share()==1); /* a tick on: spent */
   tick();tick();extra.stun_until=0;assert(vr_combat_hit(0,1,&body_hit,NULL,.8f,0)==1);
-  assert(fabsf(vr_combat_damage_share()-(1+.08f)/6.0f)<1e-5f);}
+  assert(fabsf(vr_combat_damage_share()-(1+.05f)/6.0f)<1e-5f);}
  health_setting=1;
  /* 2. kinds: a Grunt staggers in two blows, an Elite in four, a Hunter
   *    never; a Hunter's front takes 40%, its back 160%; a Jackal's shield
@@ -372,7 +372,7 @@ int main(void){
   for(int i=0;i<3;i++){vr_combat_hit(0,1,&body_hit,NULL,.8f,0);assert(!extra.stun_until);for(int t=0;t<8;t++)tick();}
   vr_combat_hit(0,1,&body_hit,NULL,.8f,0);assert(extra.stun_until>now);
   setup();combat=1;enabled=0;grip[0]=1;tick();actors[1].meta.type=_actor_hunter;bodies[1].object.forward=(real_vector3d){.n={-1,0,0}};
-  for(int i=0;i<6;i++){vr_combat_hit(0,1,&body_hit,NULL,.8f,0);assert(!extra.stun_until&&fabsf(vr_combat_damage_share()-.40f*(1+.08f*(real)i))<1e-4f);tick();tick();tick();}
+  for(int i=0;i<6;i++){vr_combat_hit(0,1,&body_hit,NULL,.8f,0);assert(!extra.stun_until&&fabsf(vr_combat_damage_share()-.40f*(1+.05f*(real)i))<1e-4f);tick();tick();tick();}
   bodies[1].object.forward=(real_vector3d){.n={1,0,0}};vr_combat_hit(0,1,&body_hit,NULL,.8f,0);assert(vr_combat_damage_share()>1.5f);
   assert(!extra.knock_pending); /* never knocked down */
   setup();combat=1;enabled=0;grip[0]=1;tick();actors[1].meta.type=_actor_jackal;bodies[1].object.forward=(real_vector3d){.n={-1,0,0}};
@@ -450,7 +450,7 @@ int main(void){
   * bullets and armed melee retain their damage and rear-kill rules. */
  for(int d=0;d<4;d++) {
   setup();combat=1;enabled=0;grip[0]=1;difficulty=d;health_setting=3;tick();
-  real_point3d body_hit={.n={1.2f,0,.8f}};float durability[]={.85f,1,1.25f,1.5f};
+  real_point3d body_hit={.n={1.2f,0,.8f}};float durability[]={.80f,1,1.30f,1.60f}; /* (Test72: durability follows the difficulty more) */
   assert(vr_combat_hit(0,1,&body_hit,NULL,.8f,0)==1);
   assert(fabsf(vr_combat_damage_share()-1/(3*durability[d]))<1e-5f);
   assert(vr_combat_regular_blow(0,1)&&!vr_combat_regular_blow(0,2)&&!vr_combat_regular_blow(1,1));

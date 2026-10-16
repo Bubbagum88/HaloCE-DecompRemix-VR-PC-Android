@@ -224,7 +224,8 @@ print('PASS: static wiring (left-hand display mirrored back with its own winding
 for kind in ('pistol', 'sniper'):
     for part, default in (('forward', '0.0'), ('up', '0.0'), ('right', '0.0'), ('scale', '1.0')):
         assert re.search(r'\{ "vr\.scope_%s_%s", _config_real, "%s"' % (kind, part, re.escape(default)), config), (kind, part)
-assert '{ "SCOPES", vr_menu_scopes, NUMBEROF(vr_menu_scopes) },' in menu
+# (Test72: SCOPES a topic per weapon, its sections)
+assert '{ "SCOPES", vr_menu_scopes, NUMBEROF(vr_menu_scopes),\n\t\tvr_menu_scopes_sections, NUMBEROF(vr_menu_scopes_sections) },' in menu
 assert '{ "RESET SCOPES", "scopes", _vr_setting_reset_scopes' in menu
 run('scope', r'''
 #include <assert.h>

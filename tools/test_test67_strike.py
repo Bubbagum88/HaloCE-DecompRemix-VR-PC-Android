@@ -40,7 +40,7 @@ typedef union {real n[3];struct {real x,y,z;};struct {real i,j,k;};} real_point3
 #define SET_FLAG(v,b,on) ((v) = (on) ? (v) | FLAG(b) : (v) & ~FLAG(b))
 #define MAXIMUM_COLLISION_USER_STACK_DEPTH 8
 enum {_collision_test_for_projectiles_flags=1,_collision_result_structure=2,_collision_result_object=3};
-enum {_object_type_biped=1,_object_type_weapon=2,_object_type_vehicle=3,_object_type_machine=4};
+enum {_object_type_biped=1,_object_type_weapon=2,_object_type_vehicle=3,_object_type_machine=4,_object_type_scenery=5};
 enum {_collision_result_breakable_surface_bit=0,_damage_from_weapon_bit=1};
 struct object_fields {real bounding_sphere_radius;real_point3d bounding_sphere_center,position;int type;long parent_object_index;int location,owner_team_index;};
 struct object_datum {long definition_index;struct object_fields object;};
@@ -123,8 +123,13 @@ int main(void){
  reset();hit_type=0;assert(!unit_vr_combat_strike(0,1,&direction,1));untouched();
  /* Parent resolution accepts an actual piece of the intended enemy, while
   * a child of another actor and another actor's weapon cannot redirect it. */
- reset();hit_index=7;bodies[7].object.parent_object_index=1;assert(unit_vr_combat_strike(0,1,&direction,1));assert(contacts==1&&last_contact==1);
- reset();hit_index=7;bodies[7].object.parent_object_index=2;assert(!unit_vr_combat_strike(0,1,&direction,1));untouched();
+ /* (Test72: a piece is a part, not a biped: an attached biped is a rider,
+  * who takes its own blow) */
+ reset();hit_index=7;bodies[7].object.parent_object_index=1;bodies[7].object.type=_object_type_scenery;assert(unit_vr_combat_strike(0,1,&direction,1));assert(contacts==1&&last_contact==1);
+ /* Test72: a rider (a Shade's gunner) struck through its seat is the one aimed at */
+ reset();hit_index=3;bodies[3].object.type=_object_type_vehicle;bodies[7].object.parent_object_index=3;assert(unit_vr_combat_strike(0,7,&direction,1));assert(contacts==1&&last_contact==7&&!vehicle_pushes);
+ reset();hit_index=7;bodies[7].object.parent_object_index=3;assert(unit_vr_combat_strike(0,7,&direction,1));assert(last_contact==7); /* hit itself: its own */
+ reset();hit_index=7;bodies[7].object.parent_object_index=2;bodies[7].object.type=_object_type_scenery;assert(!unit_vr_combat_strike(0,1,&direction,1));untouched();
  reset();hit_index=7;bodies[7].object.parent_object_index=1;bodies[7].object.type=_object_type_weapon;assert(!unit_vr_combat_strike(0,1,&direction,1));untouched();
  reset();obstruction_type=_collision_result_object;obstruction_index=1;assert(unit_vr_combat_strike(0,1,&direction,1));assert(last_contact==1&&contacts==1);
  /* Public physical/weapon entry retains ordinary collision ownership. */

@@ -94,7 +94,7 @@ From the owner's 17:32 log and video (the review is in the commit).
   row the same as on its usual page (`tools/test_vr_immersion_menu.py`).
 - [s] SCOPES: one topic a weapon, rows FORWARD / UP / RIGHT / SIZE; each
   screen titled "PAGE: TOPIC".
-- [s] MENU POSITION: HEAD LOCKED, WORLD, FOLLOW; distance, size, height;
+- [s] MENU POSITION: HEAD, WORLD, FOLLOW; distance, size, height;
   recentred by a stick click or the runtime's recentre.
 - [s] LEFT-HAND MODE: BUTTONS rows show the physical letter (the saved
   bindings unchanged); Back is the right controller's B; BULLET TIME on R UP
