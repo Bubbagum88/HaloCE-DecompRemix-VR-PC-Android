@@ -218,13 +218,17 @@ one place (the same setting either way: changing one shows on the other) */
 #define VR_IMMERSION_COMBAT_MOVES { "COMBAT MOVES", "vr.combat_moves", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_PROJECTILE_PARRY { "DEFLECT SHOTS", "vr.projectile_parry", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_COMBAT_LIGHTS { "HIT HIGHLIGHTS", "vr.combat_highlights", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+/* Test72: the combo as a Halo-styled counter */
+#define VR_IMMERSION_COMBAT_COMBO { "COMBO DISPLAY", "vr.combat_combo_display", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_COMBAT_REACH { "FIST REACH", "vr.combat_reach", _vr_setting_real, 5, { { "1 M", "1" }, { "1.5 M", "1.5" }, { "2 M", "2" }, { "2.5 M", "2.5" }, { "3 M", "3" } } }
 /* Test65: Arkham Shadow's fist combat: how far a punch carries the player to
 an enemy, how many more punches enemies take, and counters */
-#define VR_IMMERSION_COMBAT_LUNGE { "LUNGE", "vr.combat_lunge_reach", _vr_setting_real, 5, { { "OFF", "0" }, { "3 M", "3" }, { "4.5 M", "4.5" }, { "6 M", "6" }, { "8 M", "8" } } }
+/* Test72: up to 15 m, 12 by default (the owner's 8 m, the old maximum, was too short) */
+#define VR_IMMERSION_COMBAT_LUNGE { "LUNGE", "vr.combat_lunge_reach", _vr_setting_real, 7, { { "OFF", "0" }, { "4 M", "4" }, { "6 M", "6" }, { "8 M", "8" }, { "10 M", "10" }, { "12 M", "12" }, { "15 M", "15" } } }
 /* Test70: HIT ASSIST and LUNGE HOP (FIST COMBAT) */
-#define VR_IMMERSION_COMBAT_HIT_ASSIST { "HIT ASSIST", "vr.combat_hit_assist", _vr_setting_real, 5, { { "OFF", "0" }, { "15 CM", "0.15" }, { "30 CM", "0.30" }, { "40 CM", "0.40" }, { "50 CM", "0.50" } } }
-#define VR_IMMERSION_COMBAT_HOP { "LUNGE HOP", "vr.combat_lunge_hop", _vr_setting_real, 4, { { "OFF", "0" }, { "LOW", "0.10" }, { "NORMAL", "0.15" }, { "HIGH", "0.25" } } }
+/* Test72: HIT ASSIST up to 70 cm, 50 by default; LUNGE HOP's NORMAL 30 cm */
+#define VR_IMMERSION_COMBAT_HIT_ASSIST { "HIT ASSIST", "vr.combat_hit_assist", _vr_setting_real, 6, { { "OFF", "0" }, { "20 CM", "0.20" }, { "35 CM", "0.35" }, { "50 CM", "0.50" }, { "60 CM", "0.60" }, { "70 CM", "0.70" } } }
+#define VR_IMMERSION_COMBAT_HOP { "LUNGE HOP", "vr.combat_lunge_hop", _vr_setting_real, 4, { { "OFF", "0" }, { "LOW", "0.15" }, { "NORMAL", "0.30" }, { "HIGH", "0.45" } } }
 #define VR_IMMERSION_COMBAT_HEALTH { "ENEMY HEALTH", "vr.combat_enemy_health", _vr_setting_real, 5, { { "1X", "1" }, { "2X", "2" }, { "3X", "3" }, { "4X", "4" }, { "6X", "6" } } }
 /* Test65: WEAPON PULL: a weapon within reach glows and a grip pulls it into
 the hand */
@@ -318,7 +322,8 @@ the hand */
 /* Test66: OBJECT THROW: a prop or vehicle let go of while moving flies off
  * the hand (the owner's Test65 request); WORLD GRAB and LIFT VEHICLES bring it */
 #define VR_IMMERSION_OBJECT_THROW { "OBJECT THROW", "vr.object_throw", _vr_setting_real, 5, { { "OFF", "0" }, { "1X", "1" }, { "1.5X", "1.5" }, { "2X", "2" }, { "3X", "3" } } }
-#define VR_IMMERSION_NPC_GRAB_ASSIST { "GRAB ASSIST", "vr.npc_grab_assist", _vr_setting_real, 6, { { "TOUCH", "0" }, { "5 CM", "0.05" }, { "10 CM", "0.10" }, { "15 CM", "0.15" }, { "20 CM", "0.20" }, { "25 CM", "0.25" } } }
+/* Test72: up to 50 cm, 30 by default (the owner's 25 cm, the old maximum, still needed a near touch) */
+#define VR_IMMERSION_NPC_GRAB_ASSIST { "GRAB ASSIST", "vr.npc_grab_assist", _vr_setting_real, 7, { { "TOUCH", "0" }, { "10 CM", "0.10" }, { "15 CM", "0.15" }, { "20 CM", "0.20" }, { "30 CM", "0.30" }, { "40 CM", "0.40" }, { "50 CM", "0.50" } } }
 /* Test56: NPC HOLD became LIFT (strength): the same setting (and saved key),
 now for everything a hand lifts (NPCs, props, turrets, vehicles) */
 #define VR_IMMERSION_NPC_HOLD { "LIFT", "vr.npc_hold_strength", _vr_setting_real, 4, { { "LIGHT", "0.75" }, { "NORMAL", "1.0" }, { "SPARTAN", "1.5" }, { "IRON", "2.5" } } }
@@ -439,6 +444,7 @@ static struct vr_menu_setting const vr_menu_controls[] =
     VR_IMMERSION_COMBAT,
     VR_IMMERSION_COMBAT_MOVES,
     VR_IMMERSION_COMBAT_LIGHTS,
+    VR_IMMERSION_COMBAT_COMBO,
     VR_IMMERSION_COMBAT_REACH,
     VR_IMMERSION_COMBAT_HIT_ASSIST,
     VR_IMMERSION_COMBAT_LUNGE,
@@ -793,6 +799,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	/* (Test70: gathered from WEAPONS and FIST COMBAT) */
 	/* FIST OPTIONS */
 	VR_IMMERSION_COMBAT_LIGHTS,
+	VR_IMMERSION_COMBAT_COMBO,
 	VR_IMMERSION_PROJECTILE_PARRY,
 	VR_IMMERSION_FIST_REQUIRED,
 	VR_IMMERSION_AIM_STEADY,
@@ -908,7 +915,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
-	{ "WEAPONS", 6 }, { "PICKUPS", 4 }, { "FIST COMBAT", 8 }, { "FIST OPTIONS", 4 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
+	{ "WEAPONS", 6 }, { "PICKUPS", 4 }, { "FIST COMBAT", 8 }, { "FIST OPTIONS", 5 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
 	{ "MOVEMENT", 8 }, { "BODY", 7 }, { "GRAB + NPCS", 8 },
 	{ "VEHICLES", 8 }, { "VEHICLE OPTIONS", 6 }, { "WARTHOG + GHOST", 8 }, { "TANK + BANSHEE", 8 },
 	{ "RAGDOLLS", 7 }, { "ADVANCED", 8 },
@@ -1005,7 +1012,8 @@ static char const *vr_menu_requirement_value(char const *requires, boolean on)
 	if (!strcmp(requires, "vr.melee_speed")) return on ? "2.0" : "0";
 	/* Test70: 15 cm (the owner raised it by hand: Halo's body bubble keeps
 	the hand off the skin), 10 cm when no feature needs it */
-	if (!strcmp(requires, "vr.npc_grab_assist")) return on ? "0.15" : "0.10";
+	/* Test72: 30 cm (the owner had GRAB ASSIST at the old 25 cm maximum) */
+	if (!strcmp(requires, "vr.npc_grab_assist")) return on ? "0.30" : "0.10";
 	if (!strcmp(requires, "vr.object_throw")) return on ? "2" : "0";
 	if (!strcmp(requires, "vr.vehicle_view"))
 		return on ? "first_person" : "chase";
@@ -1026,7 +1034,7 @@ static boolean vr_menu_requirement_met(struct vr_menu_dependency const *dependen
 	}
 	if (!strcmp(dependency->requires, "vr.npc_grab_assist")) {
 		real assist = config_real("vr.npc_grab_assist");
-		return isfinite(assist) && assist >= 0.145f;
+		return isfinite(assist) && assist >= 0.295f;
 	}
 	if (!strcmp(dependency->feature, "vr.slide") && !strcmp(dependency->requires, "vr.button_sprint"))
 		return config_boolean("vr.button_sprint") || config_boolean("vr.arm_run");

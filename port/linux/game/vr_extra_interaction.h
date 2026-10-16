@@ -33,6 +33,8 @@ real vr_combat_defend(long victim,long attacker);
 void vr_combat_note_melee(long attacker);
 void vr_combat_note_damage(long object);
 boolean unit_vr_combat_strike(long unit,long target,real_vector3d const *direction,real scale);
+/* Test72: the blow on a body a hand holds, where the fist meets it */
+boolean unit_vr_combat_strike_point(long unit,long target,real_point3d const *point,real_vector3d const *direction,real scale);
 void vr_combat_velocity(long unit,real_point3d const *position,real_vector3d *velocity);
 void vr_combat_controls(long unit);
 boolean unit_vr_throw_grenade(long unit,short type,real_point3d const *point,real_vector3d const *velocity);

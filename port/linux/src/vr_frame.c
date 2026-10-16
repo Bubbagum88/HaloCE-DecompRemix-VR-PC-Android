@@ -1120,6 +1120,30 @@ void vr_initialize(void)
 		}
 		config_write_boolean("vr.test70_defaults_applied", 1);
 	}
+	/* Test72: the owner had to raise FIST COMBAT's settings to their maximums
+	before it felt right: their new defaults, for a value still at its old
+	default (never touched); any other value was the player's and stays */
+	if (!config_boolean("vr.test72_combat_defaults_applied"))
+	{
+		static struct { char const *key; double old_value, new_value; } const moves[] =
+		{
+			{ "vr.combat_lunge_reach", 8.0, 12.0 },
+			{ "vr.combat_hit_assist", 0.30, 0.50 },
+			{ "vr.combat_lunge_hop", 0.15, 0.30 },
+			{ "vr.npc_grab_assist", 0.15, 0.30 },
+		};
+		int index;
+		for (index = 0; index < (int)(sizeof(moves) / sizeof(moves[0])); index++)
+		{
+			if (fabs(config_real(moves[index].key) - moves[index].old_value) < 0.001)
+			{
+				config_write_real(moves[index].key, moves[index].new_value);
+				platform_log("vr: %s at its old default %.2f goes to the new %.2f, once; a value of your own is never changed",
+					moves[index].key, moves[index].old_value, moves[index].new_value);
+			}
+		}
+		config_write_boolean("vr.test72_combat_defaults_applied", 1);
+	}
 	vr_reload_settings();
 	vr.zoom_level = -1;
 	vr.flashlight_armed = 1;

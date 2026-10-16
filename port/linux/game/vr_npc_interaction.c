@@ -365,6 +365,8 @@ static int interaction_profile(short type,struct unit_datum *unit,long index,int
  * (25 cm from its skin at most) was then mapped to the nearest joint only
  * within 22 cm of the HAND, so far from the skin it found none and the grab
  * was thrown away after it had been found. The mapping allows the assist. */
+/* Test72: how many of the bodies nearest the palm a squeeze tries */
+#define NPC_GRAB_CANDIDATES 32
 static real npc_contact_slack;
 static int npc_contact_node(struct vr_articulated_native const *rig,short hit_node,
     real_point3d const *contact,real units,int other_node,int *mapped)
@@ -1007,21 +1009,41 @@ static void tick_player(int use_remote,long player)
              * its skin), and the shot geometry took a 4 cm palm alone. Now
              * the shot geometry is touched by a palm grown by the assist, and
              * the capsules allow for the body round the bones (15 cm). */
-            real assist=npc_setting("vr.npc_grab_assist",0.15f,0.0f,0.25f)*units;
+            /* Test72: up to 50 cm, 30 by default (the owner had the old 25 cm
+             * maximum and still had to all but touch) */
+            real assist=npc_setting("vr.npc_grab_assist",0.30f,0.0f,0.50f)*units;
             real surface_reach=contact_radius+assist;
             real body_reach=contact_radius+assist+.07f*units+.15f*units;
             int graph_rejects=0,node_rejects=0,capacity_rejects=0,acquired=0;
             real nearest_gap=1e9f;
+            /* Test72: the bodies nearest the palm first (the 32 nearest, by
+             * the gap to their bounds): with a wider assist the first body
+             * Halo's object list gave that passed was taken, even with a
+             * nearer one in the hand's reach */
+            long order[NPC_GRAB_CANDIDATES];real order_gap[NPC_GRAB_CANDIDATES];int order_count=0;
             object_iterator_new(&it,_object_mask_biped,0);
             while((candidate=object_iterator_next(&it))!=NULL) {
+                real gap;int at;
+                vector_from_points3d(&point,&candidate->object.bounding_sphere_center,&delta);
+                gap=magnitude3d(&delta)-candidate->object.bounding_sphere_radius;
+                if(!isfinite(gap)||(order_count==NPC_GRAB_CANDIDATES&&gap>=order_gap[order_count-1]))continue;
+                at=order_count<NPC_GRAB_CANDIDATES?order_count++:NPC_GRAB_CANDIDATES-1;
+                while(at>0&&order_gap[at-1]>gap){order[at]=order[at-1];order_gap[at]=order_gap[at-1];--at;}
+                order[at]=it.index;order_gap[at]=gap;
+            }
+            for(int ordered=0;ordered<order_count;ordered++) {
+                long candidate_index=order[ordered];
                 int node,mapped=FALSE;
-                struct npc_state *existing=state_for_object(it.index),*destination;
+                struct npc_state *existing,*destination;
+                candidate=unit_try_and_get(candidate_index);
+                if(!candidate)continue;
+                existing=state_for_object(candidate_index);
                 ++scanned;
-                if((npc.active&&npc.minimum_hands>1&&npc.index!=it.index) ||
+                if((npc.active&&npc.minimum_hands>1&&npc.index!=candidate_index) ||
                    (existing&&existing!=npc_current&&(existing->held[0]||existing->held[1])&&
                     !(existing->is_remote==use_remote&&existing->player==player)) ||
-                   (use_remote&&remote.candidate[h]!=it.index)) continue;
-                if(!eligible(it.index)) continue;
+                   (use_remote&&remote.candidate[h]!=candidate_index)) continue;
+                if(!eligible(candidate_index)) continue;
                 ++eligible_count;
                 destination=existing?existing:(!npc.active?npc_current:free_state());
                 if(!destination){++capacity_rejects;continue;}
@@ -1032,7 +1054,7 @@ static void tick_player(int use_remote,long player)
                 real_point3d contact,probe=point;
                 /* Test67: a combat pose is drawn only: the hand on the drawn
                  * body is looked for on Halo's own pose (vr_combat_drawn_to_native) */
-                if(!use_remote)vr_combat_drawn_to_native(it.index,&point,&probe);
+                if(!use_remote)vr_combat_drawn_to_native(candidate_index,&point,&probe);
                 {
                     /* Test54: the authored collision model (the shot-hit
                      * geometry) first; otherwise the live pose's bone capsules,
@@ -1041,10 +1063,10 @@ static void tick_player(int use_remote,long player)
                      * the capsules; the default adds a modest 5 cm. */
                     int captured=FALSE;
                     contact=probe;
-                    if(!collision_model_instance_new(&model,it.index) ||
+                    if(!collision_model_instance_new(&model,candidate_index) ||
                        !collision_model_touch_sphere(&model,&probe,surface_reach,&model_node)) {
                         struct vr_articulated_native const *probe_rig;
-                        if(!existing && !vr_articulated_native_capture(it.index,&destination->rig)) {++graph_rejects;continue;}
+                        if(!existing && !vr_articulated_native_capture(candidate_index,&destination->rig)) {++graph_rejects;continue;}
                         captured=!existing;
                         probe_rig=existing?&existing->rig:&destination->rig;
                         model_node=(short)npc_body_touch(probe_rig,&probe,body_reach,units,
@@ -1057,8 +1079,8 @@ static void tick_player(int use_remote,long player)
 
                     vector_from_points3d(&camera,&contact,&delta);
                     if(collision_test_vector(_collision_test_for_line_of_sight_flags,&camera,&delta,unit,&hit) &&
-                       !(hit.type==_collision_result_object && hit.object_index==it.index)) continue;
-                    if(!existing && !captured && !vr_articulated_native_capture(it.index,&destination->rig)) {++graph_rejects;continue;}
+                       !(hit.type==_collision_result_object && hit.object_index==candidate_index)) continue;
+                    if(!existing && !captured && !vr_articulated_native_capture(candidate_index,&destination->rig)) {++graph_rejects;continue;}
                 }
                 npc_contact_slack=assist;
                 node=npc_contact_node(&destination->rig,(short)node,&contact,units,
@@ -1077,13 +1099,13 @@ static void tick_player(int use_remote,long player)
                     if(!existing)
                         npc.was_garbage=TEST_FLAG(candidate->object.flags,_object_garbage_bit);
                 }
-                npc.species_type=unit_species(candidate,it.index);
+                npc.species_type=unit_species(candidate,candidate_index);
                 if(!npc.held[0]&&!npc.held[1]) npc.grab_tick=tick;
                 npc.grab_point[h]=point;
-                npc.active=1;npc.index=it.index;npc.node[h]=node;npc.held[h]=1;npc.root=candidate->object.position;
+                npc.active=1;npc.index=candidate_index;npc.node[h]=node;npc.held[h]=1;npc.root=candidate->object.position;
                 platform_log("VR NPC: latched body segment actor=%08lx hand=%d node=%d contact=(%.3f,%.3f,%.3f); held until release",
-                    it.index,h,node,(float)contact.x,(float)contact.y,(float)contact.z);
-                object_activate(it.index);object_set_garbage(it.index,FALSE);
+                    candidate_index,h,node,(float)contact.x,(float)contact.y,(float)contact.z);
+                object_activate(candidate_index);object_set_garbage(candidate_index,FALSE);
                 if(!existing) {
                     npc.restraint_root=candidate->object.position;
                     real_matrix4x3 inverse;
@@ -1092,16 +1114,16 @@ static void tick_player(int use_remote,long player)
                     matrix4x3_inverse(&npc.rig.captured[npc.torso_node],&inverse);
                     matrix4x3_transform_vector(&inverse,&candidate->object.forward,&npc.body_forward_local);
                 }
-                if(!interaction_profile((short)npc.species_type,candidate,it.index,
+                if(!interaction_profile((short)npc.species_type,candidate,candidate_index,
                     &npc.minimum_hands,&npc.mobility)) {cancel_one_reason("unsupported-interaction-profile");break;}
                 npc.settling=0;npc.settle_stuck_logged=0;
                 if(!npc.started && npc.held[0]+npc.held[1]>=npc.minimum_hands && npc_lift_required())
                     platform_log("VR NPC: held without lifting actor=%08lx species=%d hands=%d; lift %0.f cm or yank to ragdoll",
-                        it.index,npc.species_type,npc.held[0]+npc.held[1],NPC_LIFT_METRES*100.0f);
+                        candidate_index,npc.species_type,npc.held[0]+npc.held[1],NPC_LIFT_METRES*100.0f);
                 if(!npc.started && npc.held[0]+npc.held[1]>=npc.minimum_hands && !npc_lift_required()) {
 					npc.started=1;
 					platform_log("VR NPC: hold constraint started actor=%08lx species=%d hands=%d remote=%d",
-						it.index,npc.species_type,npc.held[0]+npc.held[1],use_remote);
+						candidate_index,npc.species_type,npc.held[0]+npc.held[1],use_remote);
 					/* Test56: a heavy body taken up by the second hand: both
 					 * hands feel it come off the ground */
 					if(!use_remote && npc.minimum_hands>1) {vr_haptic(0,.5f,.05f);vr_haptic(1,.5f,.05f);}
@@ -1120,12 +1142,12 @@ static void tick_player(int use_remote,long player)
 					int friendly=grabbed_actor && grabbed_actor->meta.team_index>=0 &&
 						!game_team_is_enemy(_game_team_player,grabbed_actor->meta.team_index);
 					if(!existing) platform_log("VR NPC: temporary garbage hold actor=%08lx was_queued=%d; restore native cleanup after release/settle",
-						it.index,npc.was_garbage);
+						candidate_index,npc.was_garbage);
 				platform_log("VR NPC: grabbed actor=%08lx species=%d team=%d friendly=%d hand=%d node=%d requires=%d acquisition=authored-contact-plus-fresh-grip",
-						it.index,npc.species_type,grabbed_actor?grabbed_actor->meta.team_index:NONE,
+						candidate_index,npc.species_type,grabbed_actor?grabbed_actor->meta.team_index:NONE,
 						friendly,h,node,npc.minimum_hands);
 				}
-                if(mapped)platform_log("VR NPC: contact fallback actor=%08lx mapped_node=%d",it.index,node);
+                if(mapped)platform_log("VR NPC: contact fallback actor=%08lx mapped_node=%d",candidate_index,node);
                 /* Test55: the grab's weight in the hand: a short strong pulse
                  * for a heavy body, a light tap for a Grunt or Jackal */
                 if(!use_remote) vr_haptic(h,npc.minimum_hands>1?.60f:.25f,npc.minimum_hands>1?.06f:.035f);

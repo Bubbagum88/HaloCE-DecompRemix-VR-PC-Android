@@ -75,11 +75,13 @@ assert render_objects.index("vr_manual_reload_debris_render();") < render_object
 punch = body(extra, "int vr_combat_punch(long unit,int hand,real_point3d const *point,real_vector3d const *sweep)")
 # Test65 (Arkham Shadow): within LUNGE or FIST REACH, looked at (45 deg) or punched at (37 deg)
 assert 'extra_bound("vr.combat_reach",3.0f,.75f,3)' in extra and "reach=combat_reach()*units" in punch
-assert "facing>=.70f||(thrown>=.80f&&facing>=.35f)" in punch
+# Test72: the cone became combat_intent (the gaze, the fist's own 3D way,
+# forgiving within 1.6 m): tools/test_test72_combat.py
+assert "combat_intent(&gaze,&stroke,&level,level_punch,point,&chest,&delta,distance,&facing,&thrown)" in punch
 engage = body(extra, "static void combat_engage(long unit,long target,int hand,boolean counter,real_point3d const *fist)")
 assert "punch acquired" in engage and "punch took no target" in punch
 velocity = body(extra, "void vr_combat_velocity(long unit,real_point3d const *position,real_vector3d *velocity)")
-assert "velocity->i*=.35f;velocity->j*=.35f;" in velocity and "MIN(10.0f*units/TICKS_PER_SECOND" in velocity
+assert "velocity->i*=.35f;velocity->j*=.35f;" in velocity and "(extra.combo>=5?15.5f:14.0f)*units/TICKS_PER_SECOND" in velocity  # Test72: 14 m/s, 15.5 in a flow
 assert "vr_interaction_owner(0)==VR_INTERACTION_NPC||vr_interaction_owner(1)==VR_INTERACTION_NPC" in velocity
 assert "hand %d grabbed; the assist lets go" in tick
 assert '{ "vr.combat_reach", _config_real, "3.0",' in config

@@ -690,6 +690,7 @@ symbols in this file:
 #include "physics/breakable_surfaces.h"
 #include "physics/collision_bsp.h"
 #include "physics/collision_models.h"
+#include "physics/collision_model_definitions.h" /* port: Test72, a held body's material */
 #include "physics/collision_usage.h"
 #include "physics/collisions.h"
 #include "physics/physics_definitions.h"
@@ -9532,6 +9533,12 @@ static boolean unit_vr_impact_melee_target(
 	real_vector3d const *sweep,
 	real scale, boolean weapon_hand, real radius,
 	long expected_target);
+static boolean unit_vr_impact_melee_apply(
+	long unit_index,
+	struct collision_result const *struck,
+	real_vector3d const *sweep,
+	real scale, boolean weapon_hand,
+	long expected_target);
 
 /* Test65: the blow a fist combat lunge or counter carries, landed on
 arrival: the fist's own blow (unit_vr_impact_melee: the same damage, effects
@@ -9565,6 +9572,59 @@ boolean unit_vr_combat_strike(
 	return unit_vr_impact_melee_target(unit_index, &from, &sweep, scale, FALSE, 0.05f * units, target_index);
 }
 
+/* port: Test72: the material an object's body is struck on (its collision
+model's indirect damage material), or NONE */
+static short unit_vr_object_material_type(long object_index)
+{
+	struct object_datum *object = object_try_and_get(object_index);
+	struct object_definition *definition = object ? object_definition_get(object->definition_index) : NULL;
+
+	if (definition && definition->object.collision_model.index != NONE)
+	{
+		struct collision_model *model = collision_model_definition_get(definition->object.collision_model.index);
+		short index = model->resistance.indirect_damage_material_index;
+
+		if (VALID_INDEX(index, model->resistance.materials.count))
+			return TAG_BLOCK_GET_ELEMENT(&model->resistance.materials, index, struct damage_resistance_material)->material_type;
+	}
+	return NONE;
+}
+
+/* port: Test72: the blow on a body a hand holds, at `point` (the held
+body's own, from its rig): the owner's held Elite was a ragdoll in his hand
+while its unit stayed where it was grabbed, so a sweep at the unit met
+nothing and every punch at it was lost. The same blow (damage, combo,
+effects), dealt where the fist meets the body. */
+boolean unit_vr_combat_strike_point(
+	long unit_index,
+	long target_index,
+	real_point3d const *point,
+	real_vector3d const *direction,
+	real scale)
+{
+	struct collision_result collision;
+	real_vector3d along;
+
+	if (!object_try_and_get(target_index) || !point || !direction || !valid_real_point3d(point))
+		return FALSE;
+	along = *direction;
+	if (!(normalize3d(&along) > 0.0001f))
+		return FALSE;
+	csmemset(&collision, 0, sizeof(collision));
+	collision.type = _collision_result_object;
+	collision.point = *point;
+	collision.plane.n.i = -along.i;
+	collision.plane.n.j = -along.j;
+	collision.plane.n.k = -along.k;
+	collision.plane.d = point->x * collision.plane.n.i + point->y * collision.plane.n.j + point->z * collision.plane.n.k;
+	collision.material_type = unit_vr_object_material_type(target_index);
+	collision.object_index = target_index;
+	collision.region_index = collision.node_index = collision.material_index = NONE;
+	collision.bsp_index = NONE;
+	collision.surface_index = NONE;
+	return unit_vr_impact_melee_apply(unit_index, &collision, &along, scale, FALSE, target_index);
+}
+
 /* port: a melee struck by the headset's hand (port/linux/game/vr_render.c,
 vr.melee "impact"): what the hand swept through this tick, from `from`
 along `sweep`, takes the blow unit_cause_player_melee_damage gives what is
@@ -9589,16 +9649,7 @@ static boolean unit_vr_impact_melee_target(
 	real scale, boolean weapon_hand, real radius,
 	long expected_target)
 {
-	struct unit_datum *unit = unit_get(unit_index);
-	struct unit_definition *unit_definition = unit_definition_get(unit->definition_index);
 	struct collision_result collision;
-	long hit_object_index = NONE;
-	short hit_material_type;
-	short breakable_surface_index = NONE;
-	long breakable_surface_seed_surface_index = NONE;
-	long melee_damage_effect_index = NONE;
-	long melee_response_effect_index = NONE;
-	real_vector3d direction = *sweep;
 	boolean hit = FALSE;
 	int probe;
 	real nearest = 1.0f;
@@ -9624,8 +9675,11 @@ static boolean unit_vr_impact_melee_target(
 			collision keeps the player from reaching further): the object
 			between the eye and the hand is what it struck. A wall there
 			still stops the blow. */
+			/* port: Test72: only while the hand still moves on into it,
+			away from the eyes: a hand drawn back out of a hull (the owner's
+			Shade) struck it on the way out, its blow pointing at the player */
 			if (obstruction.type == _collision_result_object && obstruction.t >= 0.0f && obstruction.t <= 1.0f &&
-				!hit)
+				!hit && dot_product3d(sweep, &sight) > 0.0f)
 			{
 				collision = obstruction;
 				nearest = 0.0f;
@@ -9644,6 +9698,28 @@ static boolean unit_vr_impact_melee_target(
 	--global_current_collision_user_depth;
 	if (!hit)
 		return FALSE;
+	return unit_vr_impact_melee_apply(unit_index, &collision, sweep, scale, weapon_hand, expected_target);
+}
+
+/* the blow on what the probes met (unit_vr_impact_melee_target), or on a body
+a hand holds (unit_vr_combat_strike_point) */
+static boolean unit_vr_impact_melee_apply(
+	long unit_index,
+	struct collision_result const *struck,
+	real_vector3d const *sweep,
+	real scale, boolean weapon_hand,
+	long expected_target)
+{
+	struct unit_datum *unit = unit_get(unit_index);
+	struct unit_definition *unit_definition = unit_definition_get(unit->definition_index);
+	struct collision_result collision = *struck;
+	long hit_object_index = NONE;
+	short hit_material_type;
+	short breakable_surface_index = NONE;
+	long breakable_surface_seed_surface_index = NONE;
+	long melee_damage_effect_index = NONE;
+	long melee_response_effect_index = NONE;
+	real_vector3d direction = *sweep;
 
 	hit_material_type = collision.material_type;
 	if (collision.type == _collision_result_structure)
@@ -9660,7 +9736,10 @@ static boolean unit_vr_impact_melee_target(
 
 		hit_object_index = collision.object_index;
 		hit_object = object_get(hit_object_index);
+		/* port: Test72: a rider (a Shade's gunner, a Warthog's passenger)
+		takes its own blow; an attached part still passes it to its parent */
 		if (hit_object->object.type != _object_type_weapon &&
+			hit_object->object.type != _object_type_biped &&
 			hit_object->object.parent_object_index != NONE)
 		{
 			hit_object_index = hit_object->object.parent_object_index;
@@ -9668,10 +9747,35 @@ static boolean unit_vr_impact_melee_target(
 	}
 	/* A carried assisted blow belongs to the acquired enemy. The ordinary
 	physical sweep can hit its first obstruction; a synthetic lunge must never
-	transfer its damage, combo or reaction to a bystander or another object. */
+	transfer its damage, combo or reaction to a bystander or another object.
+	port: Test72: a rider struck over its own seat (the hull in the way) is
+	still the one aimed at */
 	if (expected_target != NONE && hit_object_index != expected_target)
-		return FALSE;
+	{
+		struct object_datum *expected = object_try_and_get(expected_target);
+
+		if (!expected || expected->object.parent_object_index == NONE ||
+			expected->object.parent_object_index != hit_object_index)
+		{
+			return FALSE;
+		}
+		hit_object_index = expected_target;
+		collision.object_index = expected_target;
+		collision.node_index = collision.region_index = collision.material_index = NONE;
+	}
 	normalize3d(&direction);
+	/* port: Test72: a blow goes on away from the one who struck it, never
+	back at him (a hand pulled back carried its blow, and the shove below,
+	toward the player) */
+	{
+		real_point3d eye;
+		real_vector3d away;
+
+		unit_get_camera_position(unit_index, &eye);
+		vector_from_points3d(&eye, &collision.point, &away);
+		if (normalize3d(&away) > 0.0001f && dot_product3d(&direction, &away) < 0.25f)
+			direction = away;
+	}
 
 	/* Prefer the biped's authored unarmed effect for a fist. Some player
 	tags have none; retain the carried weapon's authored damage as fallback. */
@@ -9706,17 +9810,25 @@ static boolean unit_vr_impact_melee_target(
 	if (melee_damage_effect_index != NONE && hit_object_index != NONE)
 		scale *= vr_combat_hit(unit_index, hit_object_index, &collision.point, &direction, scale, weapon_hand);
 
+	/* port: Test72: a vehicle struck is shoved as the game's own melee shoves
+	it (unit_cause_player_melee_damage): at that strength at most, level and
+	away from the striker. Along the hand's sweep and up to half as hard
+	again, the owner's punches set a Shade turning into him, and its
+	collision killed him (his log: dead a tenth of a second after each) */
 	if (hit_object_index != NONE && object_get(hit_object_index)->object.type == _object_type_vehicle)
 	{
-		struct object_definition *vehicle_definition =
-			object_definition_get(object_get(hit_object_index)->definition_index);
-		real acceleration_scale = vehicle_definition->object.acceleration_scale * 0.035f * scale;
+		struct object_datum *vehicle = object_get(hit_object_index);
+		struct object_definition *vehicle_definition = object_definition_get(vehicle->definition_index);
+		real acceleration_scale = vehicle_definition->object.acceleration_scale * 0.035f * (scale < 1.0f ? scale : 1.0f);
 		real_vector3d acceleration;
 
-		acceleration.i = acceleration_scale * direction.i;
-		acceleration.j = acceleration_scale * direction.j;
-		acceleration.k = acceleration_scale * direction.k;
-		vehicle_accelerate(hit_object_index, &acceleration);
+		vector_from_points3d(&unit->object.position, &vehicle->object.bounding_sphere_center, &acceleration);
+		acceleration.k = 0.0f;
+		if (normalize3d(&acceleration) > 0.0001f)
+		{
+			scale_vector3d(&acceleration, acceleration_scale, &acceleration);
+			vehicle_accelerate(hit_object_index, &acceleration);
+		}
 	}
 
 	if (melee_damage_effect_index != NONE)

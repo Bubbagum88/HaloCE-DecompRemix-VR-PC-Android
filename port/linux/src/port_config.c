@@ -954,6 +954,10 @@ static const struct config_setting config_settings[] =
         "DEFLECT SHOTS: physically deflect moving projectiles or airborne grenades with a closed empty fist (Grip + Trigger), or deliberately swing the hand carrying your gun. Aiming/firing alone does not parry. Native fuse and damage remain intact. Enabled with FIST COMBAT; may be switched off separately. Local solo or compatible enabled co-op host only; no hitscan, attached or settled grenades." },
     { "vr.combat_highlights", _config_boolean, "true", "HALO_VR_COMBAT_HIGHLIGHTS", _environment_value, _platform_vr,
         "Highlight a locked enemy head/chest and show stun/impact feedback with assisted combat." },
+    { "vr.combat_combo_display", _config_boolean, "true", "HALO_VR_COMBAT_COMBO_DISPLAY", _environment_value, _platform_vr,
+        "Test72: COMBO DISPLAY (FIST COMBAT): the combo (blows, switches to another enemy, parries, blocks, grabs,\n"
+        "knockdowns in a row) as a small holographic counter in the HUD's blue, low and left of the view, gold\n"
+        "when a takedown is ready. Off: only the lights over the enemy (HIT HIGHLIGHTS)." },
     { "vr.weapon_pull", _config_boolean, "true", "HALO_VR_WEAPON_PULL", _environment_value, _platform_vr,
         "WEAPON PULL (Half-Life 2 VR's and Alyx's gravity gloves): point a free hand at a weapon lying within PULL REACH, squeeze to lock on, flick the hand back (or keep squeezing, PULL STYLE GRIP) and it flies to the hand; a hand closed as it arrives catches it. Local play or the co-op host." },
     { "vr.weapon_pull_reach", _config_real, "3.0", "HALO_VR_WEAPON_PULL_REACH", _environment_value, _platform_vr,
@@ -962,19 +966,21 @@ static const struct config_setting config_settings[] =
         "PULL STYLE: \"flick\" (squeeze on the weapon, then snap the hand back, as Alyx's gloves) or \"grip\" (squeeze on it for about half a second)." },
     { "vr.weapon_pull_glow", _config_boolean, "true", "HALO_VR_WEAPON_PULL_GLOW", _environment_value, _platform_vr,
         "PULL GLOW: the weapon a hand can pull is outlined (pulsing; brighter while it flies to the hand)." },
-    { "vr.combat_lunge_reach", _config_real, "8.0", "HALO_VR_COMBAT_LUNGE_REACH", _environment_value, _platform_vr,
-        "LUNGE (FIST COMBAT): how far a punch carries you to the enemy you look at or throw it at, in metres (Arkham Shadow's punch across the room: a dash up to 10 m/s, the blow landing on arrival); 0 keeps FIST REACH's short step only." },
+    { "vr.combat_lunge_reach", _config_real, "12.0", "HALO_VR_COMBAT_LUNGE_REACH", _environment_value, _platform_vr,
+        "LUNGE (FIST COMBAT): how far a punch carries you to the enemy you look at or throw it at, in metres, 0 to 15 (12 since Test72; Arkham Shadow's punch across the room: a leaping dash up to 14 m/s, the blow landing on arrival); 0 keeps FIST REACH's short step only." },
     { "vr.combat_enemy_health", _config_real, "3.0", "HALO_VR_COMBAT_ENEMY_HEALTH", _environment_value, _platform_vr,
         "ENEMY HEALTH (FIST COMBAT): enemies take this many times more punches, so fights flow as combos (each hit in a row adds 8%, up to +80%); takedowns, guns and grenades are unchanged." },
     { "vr.combat_counters", _config_boolean, "true", "HALO_VR_COMBAT_COUNTERS", _environment_value, _platform_vr,
         "COUNTERS (FIST COMBAT): an enemy swinging at you shows a blue warning over its head and taps both hands; a punch toward it counters (its blow undone, it is knocked down, the combo goes on)." },
-    { "vr.combat_hit_assist", _config_real, "0.30", "HALO_VR_COMBAT_HIT_ASSIST", _environment_value, _platform_vr,
+    { "vr.combat_hit_assist", _config_real, "0.50", "HALO_VR_COMBAT_HIT_ASSIST", _environment_value, _platform_vr,
         "Test70: HIT ASSIST (FIST COMBAT): a punch thrown at an enemy already in striking range lands when\n"
-        "the fist comes within this many metres of its body (0 to 0.5; 0.30), Halo's body bubble keeping\n"
-        "the hand off the skin. 0: the fist's own sweep must meet the body, as before." },
-    { "vr.combat_lunge_hop", _config_real, "0.15", "HALO_VR_COMBAT_LUNGE_HOP", _environment_value, _platform_vr,
-        "Test70: LUNGE HOP (FIST COMBAT): a lunge on the ground begins with a small leap of about this\n"
-        "height in metres (0 to 0.4; 0.15), a combat leap rather than a slide; 0 slides as before." },
+        "the fist's stroke passes within this many metres of its skeleton (head, chest, arms, legs; 0 to 0.7;\n"
+        "0.50 since Test72), Halo's body bubble keeping the hand off the skin. 0: the fist's own sweep must\n"
+        "meet the body, as before." },
+    { "vr.combat_lunge_hop", _config_real, "0.30", "HALO_VR_COMBAT_LUNGE_HOP", _environment_value, _platform_vr,
+        "Test70: LUNGE HOP (FIST COMBAT): a lunge on the ground begins with a leap of about this height in\n"
+        "metres (0 to 0.45; 0.30 since Test72; lower for a short lunge, higher to an enemy standing above),\n"
+        "a Spartan's combat leap rather than a slide; 0 slides as before." },
     { "vr.combat_reach", _config_real, "3.0", "HALO_VR_COMBAT_REACH", _environment_value, _platform_vr,
         "How far from the eyes a punch picks an enemy (metres, 0.75..3); short of striking range a short step closes the gap." },
     { "vr.physical_grenades", _config_boolean, "false", "HALO_VR_PHYSICAL_GRENADES", _environment_value, _platform_vr,
@@ -1334,10 +1340,14 @@ static const struct config_setting config_settings[] =
         "Reach of each magazine pouch in metres (0.08 to 0.30)." },
 	{ "vr.manual_reload", _config_boolean, "false", "HALO_VR_MANUAL_RELOAD", _environment_value, _platform_vr,
 		"Optional solo VR physical reload for supported weapons. The USE/RELOAD action drops the magazine (it never reloads automatically while this is on); take a fresh one from a hip or shoulder pouch, push it into the well, and charge the gun only if the chamber was empty. Unsupported weapons keep the stock reload." },
-	{ "vr.npc_grab_assist", _config_real, "0.15", "HALO_VR_NPC_GRAB_ASSIST", _environment_value, _platform_vr,
-		"GRAB ASSIST: how far from an NPC's body (its visible surface) a squeeze still takes it, in metres (0 to 0.25; 15 cm by default since Test70, and NPC GRAB and FIST COMBAT bring at least 15 cm with them). 0 is touch only. A hand that touches no object (a prop, a turret, a vehicle) takes the nearest within this reach and 3 cm more." },
+	{ "vr.npc_grab_assist", _config_real, "0.30", "HALO_VR_NPC_GRAB_ASSIST", _environment_value, _platform_vr,
+		"GRAB ASSIST: how far from an NPC's body (its visible surface) a squeeze still takes it, in metres (0 to 0.5; 30 cm by default since Test72, and NPC GRAB and FIST COMBAT bring at least 30 cm with them). 0 is touch only. A hand that touches no object (a prop, a turret, a vehicle) takes the nearest within this reach and 3 cm more." },
 	{ "vr.object_throw", _config_real, "2.0", "HALO_VR_OBJECT_THROW", _environment_value, _platform_vr,
 		"OBJECT THROW: how hard a prop or a vehicle let go of while moving flies: the hand's speed times this (0 to 3; 2 by default; a vehicle at most 12 m/s, a prop 24). 0 lets it drop. WORLD GRAB and LIFT VEHICLES bring it." },
+	{ "vr.test72_combat_defaults_applied", _config_boolean, "false", "HALO_VR_TEST72_COMBAT_DEFAULTS_APPLIED", _environment_value, _platform_vr,
+		"Internal one-time move (Test72): FIST COMBAT's LUNGE, HIT ASSIST and LUNGE HOP and GRAB ASSIST still\n"
+		"at their old defaults (8 m, 30 cm, 15 cm, 15 cm) go to the new ones (12 m, 50 cm, 30 cm, 30 cm),\n"
+		"once; any other value is the player's and stays." },
 	{ "vr.test70_defaults_applied", _config_boolean, "false", "HALO_VR_TEST70_DEFAULTS_APPLIED", _environment_value, _platform_vr,
 		"Internal one-time move (Test70): GRAB ASSIST at the old automatic 10 cm, with NPC GRAB or FIST COMBAT\n"
 		"on, goes to their new 15 cm, once; any other value is the player's and stays." },

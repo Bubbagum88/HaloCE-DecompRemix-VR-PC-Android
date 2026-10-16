@@ -27,9 +27,10 @@ config = read("port/linux/src/port_config.c")
 assert "model_node=(short)npc_body_touch(probe_rig,&probe,body_reach,units," in npc
 # Test67: a combat pose is drawn only: the hand on the drawn body is looked
 # for on Halo's own pose, local hands only; the hold follows the hand
-assert "if(!use_remote)vr_combat_drawn_to_native(it.index,&point,&probe);" in npc
+# (Test72: the candidates nearest first, by index)
+assert "if(!use_remote)vr_combat_drawn_to_native(candidate_index,&point,&probe);" in npc
 assert "npc.target[h]=npc.previous[h]=point;" in npc
-assert 'npc_setting("vr.npc_grab_assist",0.15f,0.0f,0.25f)' in npc  # Test70: 15 cm default  # Test66: from the body's surface, to 25 cm
+assert 'npc_setting("vr.npc_grab_assist",0.30f,0.0f,0.50f)' in npc  # Test72: 30 cm default, to 50 cm  # Test70: 15 cm default  # Test66: from the body's surface, to 25 cm
 assert "body_capsule_hits=%d" in npc
 # Hold strength and throws.
 assert 'npc_setting("vr.npc_hold_strength",1.5f,0.75f,2.5f)' in npc

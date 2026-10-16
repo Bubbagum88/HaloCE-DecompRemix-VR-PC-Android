@@ -49,13 +49,15 @@ assert '{ "vr.bullet_time", _config_boolean, "false"' in config
 assert "vr.turn_stick_up = !vr.seated" in frame and '"right_stick_up"' in frame
 assert "saved >= (1L << VR_BUTTON_ACTIONS)" in menu  # every action's bit (push-to-talk's was dropped)
 # fist combat and grabbing
-assert '{ "vr.combat_hit_assist", _config_real, "0.30"' in config and "combat_hit_assist()*units" in extra
-assert "extra.lunge_hop=extra.lunge_metres>=1.5f" in extra
-assert '{ "vr.npc_grab_assist", _config_real, "0.15"' in config
-assert 'return on ? "0.15" : "0.10";' in menu
+# (Test72: HIT ASSIST 50 cm, a leap from a metre's lunge, GRAB ASSIST 30 cm:
+# tools/test_test72_combat.py)
+assert '{ "vr.combat_hit_assist", _config_real, "0.50"' in config and "combat_hit_assist()*units" in extra
+assert "extra.lunge_hop=extra.lunge_metres>=1.0f" in extra
+assert '{ "vr.npc_grab_assist", _config_real, "0.30"' in config
+assert 'return on ? "0.30" : "0.10";' in menu
 assert "npc_contact_slack=assist;" in npc and "maximum_distance+=npc_contact_slack" in npc
 assert 'fabs(assist - 0.10) < 0.001' in frame and '"vr.test70_defaults_applied"' in frame
-assert '{ "FIST COMBAT", 8 }, { "FIST OPTIONS", 4 }' in menu
+assert '{ "FIST COMBAT", 8 }, { "FIST OPTIONS", 5 }' in menu  # Test72: COMBO DISPLAY
 # climbing and the wall jump
 assert "real r=radius*(attempt==0?1.0f:attempt==1?0.5f:0.25f);" in parkour
 assert "parkour_grab_rays(unit,&point,&palm,&look,&up,parkour_grab_radius(units),waist_z,&hit)" in parkour
