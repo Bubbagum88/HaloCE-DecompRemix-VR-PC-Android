@@ -88,7 +88,9 @@ assert "Tim Kientzle" in notices and "Julian R Seward" in notices and "Jean-loup
 guide_credits = read("port/android/app/src/main/assets/guide/credits.txt")
 assert "===== Test71: Mbed TLS" in guide_credits
 notes = read("port/android/app/src/main/assets/whats_new.txt")
-assert notes.startswith("NEW IN THIS UPDATE (TEST71)")
+# (Test72: its notes follow Test72's, under EARLIER (TEST71))
+assert notes.startswith("NEW IN THIS UPDATE (TEST71)") or (
+    notes.startswith("NEW IN THIS UPDATE (TEST72)") and "EARLIER (TEST71), ALSO IN THIS UPDATE" in notes)
 for feature in ("Download and install", "halomaps.org", "moddb.com", "launcher's own browser", "SHA-256", ".rar",
                 "5 GB free", "resumes", "experimental", "SPV1 included", "EARLIER (TEST70)"):
     assert feature in notes, feature

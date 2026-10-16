@@ -11,13 +11,24 @@ Android. Verification levels used throughout:
 
 Nothing below is hardware-tested yet unless it says so.
 
+**Where it stands (2026-10-16, Test72, 1.0.39-test72 / code84):** every
+phase below is implemented in source. Built: Windows flat (`halo.exe`,
+reaches the main menu here), Windows PC VR (`halo-vr.exe` links), Android
+flat and VR native code (before the latest VR changes). Runtime-validated
+here: the XISO import (24 maps, SHA-256 identical) and flat stereo 3D
+(disparity measured on frames). The launcher, the remap UX, device-aware
+labels and the latest VR changes compile in the single build pass the owner
+asked for. PC VR runtime validation waits on the owner's OK for SteamVR's
+null driver. Nothing is hardware-tested yet. Per item:
+`docs/TEST72-CHECKLIST.md`; per platform: `docs/TEST72-DELIVERY-STATUS.md`.
+
 ## 1. Baseline (authoritative)
 
 | Item | State |
 |---|---|
 | Branch | `test39-interaction-completion` (local; `origin/main` is behind it) |
 | Newest commits | `a4b6811c` Test71 (one-tap mods, reload for mods' guns), `b192a87f` its launcher-check fix |
-| Newest candidate | Test71, **1.0.38-test71 / code83**, building now from `b192a87f` |
+| Newest candidate | Test72, **1.0.39-test72 / code84** (Test71, 1.0.38 / code83, travels with it) |
 | Newest packaged APKs | Test70, 1.0.37-test70 / code82 (`D:\HaloQuest\builds\test70-20261015-v1.0.37-test70`), also published as v1.0.37 |
 | Handoff docs | `docs/CURRENT-STATE.md`, `CLAUDE.md`, `docs/TEST71-*.md`, `docs/TEST70-*.md` |
 | Public release | v1.0.37 (= Test70). History only; never the base |

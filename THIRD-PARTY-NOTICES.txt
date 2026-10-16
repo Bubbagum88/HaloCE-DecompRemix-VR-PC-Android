@@ -2819,3 +2819,11 @@ under.
 
 This app takes Mbed TLS under the Apache License, Version 2.0, whose full text appears earlier in this file.
 https://github.com/Mbed-TLS/mbedtls
+
+===== Test72: the Windows builds (halo.exe, halo-vr.exe and their launcher) =====
+They ship SDL3.dll (SDL 3.4.16, zlib license: docs/licenses/SDL3-LICENSE.txt
+above) and, beside halo-vr.exe, the Khronos OpenXR loader for Windows
+(openxr_loader.dll, Win32, 1.1.63, Apache License 2.0:
+docs/licenses/OpenXR-LICENSE above). The launcher draws its text with stb
+(stb_truetype, above) and the Overpass fonts (SIL OFL, above). No other
+third-party code is added.

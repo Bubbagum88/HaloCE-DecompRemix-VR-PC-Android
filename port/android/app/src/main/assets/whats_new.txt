@@ -1,4 +1,34 @@
-NEW IN THIS UPDATE (TEST71): EVERY CAMPAIGN MOD IN ONE TAP
+NEW IN THIS UPDATE (TEST72): EVERY HEADSET, THE PC AND THE FIGHT
+Your settings and saves are kept. New defaults (below) replace only values still at the old defaults; your own stay.
+
+HEADSETS
+• One VR APK for Quest, Pico (Pico 4, Neo 3, 4 Ultra) and the Steam Frame: each one's controllers are recognised, the buttons keep their places, and the BUTTONS page names them as your controllers do. Pico and Steam Frame are not yet confirmed on the headsets themselves: tell us how they work.
+• Windows: a flat build (keyboard, mouse, gamepad) and a PC VR build (OpenXR: SteamVR, Quest Link, Virtual Desktop, Pico Connect) in one folder with one launcher: PLAY, PLAY IN VR, GAME DATA (import your Xbox disc image, VERIFY, REPAIR), CUSTOM CAMPAIGNS, SETTINGS, WHAT'S NEW and UPDATES (checked only when you press CHECK). Nothing of the game comes with the download. Flat PC only: STEREO 3D (side by side, over and under, red-cyan) with HUD and reticle depth; Controls Setup warns when a key moves from another action, Delete sets NONE, Backspace gives a key its default.
+• Flat (Android and PC): SPRINT, SLIDE, WALL RUN and WALL JUMP (Player profile > MOVEMENT), each off until you turn it on. No wall grab on a flat screen.
+
+FIST COMBAT (Quest)
+• Lunges reach much further by default (12 m, up to 15) as a Spartan leap (about 30 cm up, higher to an enemy above you); airborne lunges still dive or rise to the enemy.
+• A punch is judged by where you look and where your fist goes: uppercuts, hooks and punches off to the side pick the enemy you meant; close in (1.6 m) it is forgiving.
+• HIT ASSIST (now 50 cm by default, up to 70) measures your fist's whole stroke against the enemy's skeleton, not one point.
+• Punch the enemy you hold in your other hand: the blow lands where you hold it. A seated enemy (a Shade's gunner, a Ghost's driver) is a target.
+• FIX: punching a Shade could kill you (the blow shoved the turret into you). A vehicle you punch is now pushed as the game's own melee pushes it, away from you.
+• Freeflow: the combo counts blows, switching enemies, parries, blocks, grabs and knockdowns (three seconds to keep it going); a parry pulses twice. NEW: COMBO DISPLAY (FIST OPTIONS), a small Halo-blue counter. The combo's damage bonus is now modest; melee toughness follows the difficulty more.
+• GRAB ASSIST: now 30 cm by default (up to 50), the nearest body first.
+
+VEHICLES, MENUS AND CONTROLS (Quest)
+• Passengers (the Warthog's, the Scorpion's riders) aim the gun in their hand, 6DoF, as on foot; the head looks freely.
+• NEW: MENU POSITION (HUD + RETICLE): HEAD LOCKED, WORLD (fixed in front of you: lean in to read) or FOLLOW, with MENU DISTANCE, SIZE and HEIGHT. A stick click brings a fixed menu back in front.
+• BULLET TIME's settings moved to LOCOMOTION (and IMMERSION); its button stays on BUTTONS. FIX: with R UP it now works in vehicles and turrets too (it could stick on there).
+• IMMERSION gains LOCOMOTION (sprint, slide, bullet time), PARKOUR, TWO HANDS, SCOPE and the vehicles' VIEW. SCOPES: one topic a weapon, each screen titled.
+• LEFT-HAND MODE: BUTTONS rows show the button you actually press (an Index's left controller as L-A and L-B); the menus' Back stays the right controller's B.
+• A replacement magazine in your hand follows your hand's wrist.
+
+DISPLAY (Quest)
+• FIX (to confirm): models could look stretched and garbled in the left eye alone, in SPV1 and busy matches. The left eye now starts each frame from the same drawing state as the right. NEW: EYE ORDER (DISPLAY): RIGHT FIRST draws the right eye first, a test if it still happens: tell us whether the garbling moves to the right eye, and send the log (it now compares what each eye draws).
+• SPV1: each eye's view is written to the log once a level; its repeated "incompatible bitmap" errors are written once a bitmap (fewer log writes while it plays).
+
+EARLIER (TEST71), ALSO IN THIS UPDATE
+EVERY CAMPAIGN MOD IN ONE TAP
 • CUSTOM CAMPAIGNS: every mod now installs the way SPV1 does: choose it, tap "Download and install". The launcher downloads it from where its authors published it and checks every file (exact size and SHA-256) before installing. Nothing of theirs comes with the app.
 • Project Lumoria: "Download and install" fetches its four levels from halomaps.org (about 460 MB). Like SPV1 it still needs Custom Edition's bitmaps.map, sounds.map and loc.map.
 • The Altheros Experience: still marked "Experimental — currently not working" (not yet confirmed to run). "Download and install" opens its moddb.com download in the launcher's own browser (if the page asks, tap its download button). The 1.4 GB archive downloads (it resumes if stopped), is checked, unpacked on the headset (about 5 GB free needed while it does) and deleted, and the mod installs.

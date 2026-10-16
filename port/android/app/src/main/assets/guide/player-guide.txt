@@ -1,3 +1,94 @@
+# Test72: every headset, the PC and the fight
+
+Private 1.0.39-test72 / code84. Install the matching Quest VR or Android APK over
+Test70 (1.0.37) or Test69; the package IDs and signing certificate are unchanged.
+Keep your saved settings. No uninstall is needed. Test71 was never delivered on
+its own: everything from it is here too (its notes follow this section).
+
+**One VR APK for Quest, Pico and Steam Frame**
+- The same VR APK carries the Pico 4, Pico Neo 3 and Pico 4 Ultra controller
+  profiles and the Steam Frame's, beside the Touch controllers. The buttons
+  keep their places; the BUTTONS page names them as your controllers do.
+
+**Windows: a flat build, a PC VR build and one launcher**
+- halo.exe (keyboard, mouse and gamepad) and halo-vr.exe (PC VR through
+  OpenXR: SteamVR, Quest Link, Virtual Desktop, Pico Connect) share one
+  folder, one maps folder, the saves and the custom campaigns.
+- The launcher comes first: PLAY, PLAY IN VR, GAME DATA (import your Xbox
+  disc image, VERIFY, REPAIR), CUSTOM CAMPAIGNS (the same recipes and checks
+  as here), SETTINGS, PC VR, WHAT'S NEW, UPDATES (asked only when you press
+  CHECK). Nothing of the game comes with the download.
+- Flat only: STEREO 3D (side by side, over and under, full or half, and
+  red-cyan anaglyph) with eye separation, convergence, eye swap, HUD depth and
+  reticle depth: Video Setup > STEREO 3D.
+- Controls Setup says when a key moves from another action; Delete sets NONE;
+  Backspace gives a binding its default; DEFAULTS resets them all.
+
+**Flat (Android and PC): sprint, slide and parkour**
+- Player profile > MOVEMENT: SPRINT (hold, toggle or auto), SLIDE, WALL RUN,
+  WALL JUMP and their tuning, each off until you turn it on. No wall grab or
+  hand climbing on a flat screen.
+
+**Fist combat (VR)**
+- Lunges carry much further by default (12 m, up to 15), as a leap: about
+  30 cm off the ground, higher to an enemy standing above you; airborne
+  lunges still dive or rise to the enemy.
+- A punch is judged by where you look and where your fist goes: uppercuts,
+  hooks and punches thrown off to the side now pick the enemy you meant, and
+  close in (1.6 m) it is forgiving.
+- HIT ASSIST (50 cm by default) measures your fist's whole stroke against the
+  enemy's skeleton (head, chest, arms, legs), not one point.
+- Punch the enemy you hold in your other hand: the blow lands where you hold
+  it (it used to lunge to where you grabbed it).
+- A Shade's gunner, a Ghost's driver: a seated enemy is a target.
+- **FIX:** punching a Shade could kill you: the blow shoved the turret into
+  you. A vehicle you punch is now pushed as the game's own melee pushes it,
+  away from you, and a hand pulled back out of an object no longer strikes.
+- Freeflow: the combo counts blows, switching to another enemy, parries,
+  blocks, grabs and knockdowns (three seconds to keep it going); a parry
+  pulses twice; COMBO DISPLAY (FIST OPTIONS) shows it as a small Halo-blue
+  counter. Its damage bonus is now modest; melee durability follows the
+  difficulty more.
+- GRAB ASSIST: 30 cm by default (up to 50), the nearest body first.
+- New defaults replace only values still at the old defaults; your own stay.
+
+**Vehicles, menus and controls (VR)**
+- Passengers (Warthog, the Scorpion's riders) aim the gun in hand, 6DoF, as on
+  foot; the head looks freely.
+- MENU POSITION (HUD + RETICLE): HEAD LOCKED, WORLD (fixed in front of you:
+  lean in to read) or FOLLOW; MENU DISTANCE, SIZE and HEIGHT. A stick click
+  brings a fixed menu back in front.
+- BULLET TIME's settings moved to LOCOMOTION (and IMMERSION > LOCOMOTION);
+  its button stays on BUTTONS. With R UP it now also works in vehicles and
+  turrets (it could stick on there).
+- IMMERSION gains LOCOMOTION (sprint, slide, bullet time), PARKOUR, TWO HANDS,
+  SCOPE and the vehicles' VIEW.
+- SCOPES: one topic a weapon, named in full; each screen titled.
+- LEFT-HAND MODE: BUTTONS rows show the button you actually press; the menus'
+  back stays the right controller's B.
+- A replacement magazine held in your hand follows your hand's drawn wrist.
+- The left eye now starts each frame from the same drawing state as the
+  right (models could show stretched and garbled in the left eye alone).
+  DISPLAY > EYE ORDER draws the right eye first instead, a test if it
+  still happens (see below).
+
+## What to test
+
+- Fist combat on Normal and Legendary: punch toward an enemy while looking
+  slightly away; uppercuts; grab an Elite and punch it with the other hand;
+  punch a Shade (you must not die) and its gunner. Send the log: refused
+  punches now say why.
+- Riding the Scorpion and the Warthog's passenger seat: aim and shoot by hand.
+- MENU POSITION WORLD: open the pause menu, lean toward it, click a stick.
+- **The left eye garbled** (models stretched or torn in the left eye only,
+  in SPV1 or a busy match): play a while as usual, then set DISPLAY >
+  EYE ORDER to RIGHT FIRST and play the same way. Tell us whether the
+  garbling stays in the left eye or moves to the right, and send both logs:
+  they now compare what each eye draws.
+- Pico and Steam Frame: confirm the buttons and the BUTTONS page's names.
+
+---
+
 # Test71: every campaign mod in one tap
 
 Private 1.0.38-test71 / code83. Install the matching Quest VR or Android APK over

@@ -17,6 +17,28 @@ assets so they accurately cover the platforms actually supported then. Do not
 rename the current v1.0.37 release or claim a platform is supported before its
 build and validation are ready.
 
+## Private candidate: Test72 (1.0.39-test72 / code84), in progress
+
+Multi-platform delivery: one VR APK for Quest, Pico and Steam Frame (button
+names by device); Windows flat `halo.exe` and PC VR `halo-vr.exe` with one
+launcher and one library (XISO import, verify, repair, custom campaigns,
+updates on request); flat stereo 3D and remap UX; flat sprint, slide and
+parkour. The owner's separate VR pass: fist combat (leaping 12 m lunges,
+intent from the fist's path, skeleton hit assist, held and seated enemies,
+the Shade death, freeflow combo display, durability by difficulty),
+world-anchored menus, Bullet Time on LOCOMOTION, IMMERSION toggles,
+per-weapon SCOPES, left-hand buttons by their letters with Back on B,
+passengers aiming by hand, SPV1 diagnostics, and the left eye's garbling
+(first eye begins from state set anew; DISPLAY > EYE ORDER; `[vr-eyes]`).
+Test71 (below) was never delivered on its own and travels with it.
+Read docs/TEST72-CHECKLIST.md (each item's verification level),
+TEST72-DELIVERY-STATUS.md, TEST72-FIELD-GUIDE.md, TEST72-DEVICE-CHECKLIST.md
+and PLATFORMS-PLAN.md. Not built as a whole yet: the owner's rule is one
+build pass once everything is done. PC VR runtime validation waits on the
+owner's OK for SteamVR's null driver; Pico and Steam Frame are untested on
+hardware; HALOFREAK95's Halo 2 animations and dual wielding: no public source
+found, link asked of the owner.
+
 ## Private candidate after it: Test71 (1.0.38-test71 / code83)
 
 Every campaign mod installs from the launcher in one tap, as SPV1 does (the
@@ -31,8 +53,9 @@ model nodes and magazine (vr_reload_generic_profile.h; SPV1's names are all
 "<protected>" at run time, so none of its guns had a profile); a second
 magazine reloads itself (weapons.c holds back only magazine 0's triggers).
 Altheros stays "Experimental — currently not working" (the owner).
-Read docs/TEST71-CHECKLIST.md, TEST71-DEVICE-CHECKLIST.md and
-TEST71-DELIVERY-STATUS.md. Not published; whether moddb accepts the WebView
+Read docs/TEST71-CHECKLIST.md, TEST71-FIELD-GUIDE.md and
+TEST71-DEVICE-CHECKLIST.md (no delivery status of its own: it ships with
+Test72). Not published; whether moddb accepts the WebView
 hand-off needs a headset.
 
 Release-preparation polish on Test69, 1.0.37-test70 / code82. Read
