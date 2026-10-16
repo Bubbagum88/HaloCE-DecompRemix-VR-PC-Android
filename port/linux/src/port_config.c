@@ -1084,6 +1084,13 @@ static const struct config_setting config_settings[] =
 		"First-person seat forward offset in metres (-0.50 to 0.50), scorpion. Global and matching vehicle offsets add; final axis is bounded to 0.50 m." },
 	{ "vr.vehicle_scorpion_right", _config_real, "0.0", "HALO_VR_VEHICLE_SCORPION_RIGHT", _environment_value, _platform_vr,
 		"First-person seat right offset in metres (-0.50 to 0.50), scorpion. Global and matching vehicle offsets add; final axis is bounded to 0.50 m." },
+	{ "vr.vehicle_turret_up", _config_real, "0.25", "HALO_VR_VEHICLE_TURRET_UP", _environment_value, _platform_vr,
+		"Test72: a turret's view (the Shade's and any of its kind), metres up from its seat: 0.25 by\n"
+		"default, to see over its shield (a tester: too low). -0.5 to 0.5, with vr.vehicle_all_up." },
+	{ "vr.vehicle_turret_forward", _config_real, "0.0", "HALO_VR_VEHICLE_TURRET_FORWARD", _environment_value, _platform_vr,
+		"Test72: a turret's view, metres forward from its seat (-0.5 to 0.5)." },
+	{ "vr.vehicle_turret_right", _config_real, "0.0", "HALO_VR_VEHICLE_TURRET_RIGHT", _environment_value, _platform_vr,
+		"Test72: a turret's view, metres right of its seat (-0.5 to 0.5)." },
 	{ "vr.vehicle_pelican_up", _config_real, "0.0", "HALO_VR_VEHICLE_PELICAN_UP", _environment_value, _platform_vr,
 		"First-person seat up offset in metres (-0.50 to 0.50), pelican. Global and matching vehicle offsets add; final axis is bounded to 0.50 m." },
 	{ "vr.vehicle_pelican_forward", _config_real, "0.0", "HALO_VR_VEHICLE_PELICAN_FORWARD", _environment_value, _platform_vr,

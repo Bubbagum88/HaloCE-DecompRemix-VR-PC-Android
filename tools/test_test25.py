@@ -154,7 +154,7 @@ struct vr_menu_setting { char const *label, *key; short type; };
 static struct { char key[64]; double value; } cfg[40]; static int count, writes, reloads;
 static double *find(const char *k){ for(int i=0;i<count;i++) if(!strcmp(cfg[i].key,k)) return &cfg[i].value;
  snprintf(cfg[count].key,64,"%s",k); cfg[count].value=0; return &cfg[count++].value; }
-static double config_default_real(const char *k){ (void)k; return 0.0; }
+static double config_default_real(const char *k){ return !strcmp(k,"vr.vehicle_turret_up")?0.25:0.0; } /* (Test72: a turret's view 25 cm up) */
 static boolean config_write_real(const char *k, double v){ *find(k)=v; writes++; return TRUE; }
 static void vr_reload_settings(void){ reloads++; }
 static void platform_log(const char *f, ...){ (void)f; }
@@ -162,16 +162,16 @@ static boolean change(struct vr_menu_setting const *setting){ boolean written=FA
 ''' + reset + r'''
  return FALSE; }
 int main(void){
- const char *vehicles[]={"all","warthog","ghost","banshee","scorpion","pelican"}, *axes[]={"up","forward","right"};
+ const char *vehicles[]={"all","warthog","ghost","banshee","scorpion","pelican","turret"}, *axes[]={"up","forward","right"};
  char key[64];
- for(int v=0;v<6;v++) for(int a=0;a<3;a++){ snprintf(key,64,"vr.vehicle_%s_%s",vehicles[v],axes[a]); *find(key)=0.07*(v+1)*(a+1); }
+ for(int v=0;v<7;v++) for(int a=0;a<3;a++){ snprintf(key,64,"vr.vehicle_%s_%s",vehicles[v],axes[a]); *find(key)=0.07*(v+1)*(a+1); }
  *find("vr.vehicle_tilt")=1.0; *find("vr.vehicle_view")=2.0;
  struct vr_menu_setting row={"RESET OFFSETS","vehicle offsets",_vr_setting_reset_vehicle_offsets};
- assert(change(&row) && writes==18 && reloads==1);
- for(int v=0;v<6;v++) for(int a=0;a<3;a++){ snprintf(key,64,"vr.vehicle_%s_%s",vehicles[v],axes[a]); assert(*find(key)==0.0); }
+ assert(change(&row) && writes==21 && reloads==1);
+ for(int v=0;v<7;v++) for(int a=0;a<3;a++){ snprintf(key,64,"vr.vehicle_%s_%s",vehicles[v],axes[a]); assert(*find(key)==config_default_real(key)); }
  assert(*find("vr.vehicle_tilt")==1.0 && *find("vr.vehicle_view")==2.0);
  struct vr_menu_setting other={"X","x",_vr_setting_real}; assert(!change(&other));
- puts("PASS: Reset Offsets puts all 18 vehicle seat offsets back to 0 and leaves view, horizon and steering alone");
+ puts("PASS: Reset Offsets puts all 21 vehicle seat offsets back to their defaults (a turret's view 25 cm up) and leaves view, horizon and steering alone");
 }
 ''')
 

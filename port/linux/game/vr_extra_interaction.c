@@ -737,7 +737,16 @@ void vr_extra_tick(long unit)
                 for(int s=0;s<extra.hand[h].samples;s++){
                     total+=weights[s];for(int k=0;k<3;k++)velocity.n[k]+=extra.hand[h].velocity[s].n[k]*weights[s];
                 }
-                if(total>0)scale_vector3d(&velocity,extra_bound("vr.grenade_throw_scale",1,.5f,2)/total,&velocity);
+                if(total>0)scale_vector3d(&velocity,1.0f/total,&velocity);
+                /* Test72: the throw's speed is the hand's peak over the last
+                 * tenth of a second (sampled every frame), along the ticks'
+                 * direction: the ticks saw the hand slowing as it opened (a
+                 * tester's throws left at 6-7 m/s) */
+                {
+                    real tick_speed=magnitude3d(&velocity),peak=vr_hand_speed(h)*units/TICKS_PER_SECOND;
+                    if(tick_speed>.0001f&&isfinite(peak)&&peak>tick_speed)scale_vector3d(&velocity,peak/tick_speed,&velocity);
+                }
+                scale_vector3d(&velocity,extra_bound("vr.grenade_throw_scale",1,.5f,2),&velocity);
                 real speed=magnitude3d(&velocity),cap=15.0f*units/TICKS_PER_SECOND;
                 if(speed>cap)scale_vector3d(&velocity,cap/speed,&velocity);
                 if(unit_vr_throw_grenade(unit,(short)extra.hand[h].type,&point,&velocity)){
@@ -762,17 +771,18 @@ void vr_extra_tick(long unit)
                 if(unit_get_grenade_count(unit,(short)type)>reserved&&distance<nearest){nearest=distance;best=type;}
             }
             {
-                int hover=best>=0&&nearest<=.12f*units;
+                int hover=best>=0&&nearest<=.15f*units;
                 if(hover&&!extra.hand[h].hover&&!held)vr_haptic(h,.18f,.02f); /* a hint, not an event */
                 extra.hand[h].hover=hover;
             }
-            if(press&&best>=0&&nearest<=.12f*units&&vr_interaction_claim(h,VR_INTERACTION_GRENADE)){
+            /* (Test72: 15 cm round the slot, 12 before: a tester missed twice) */
+            if(press&&best>=0&&nearest<=.15f*units&&vr_interaction_claim(h,VR_INTERACTION_GRENADE)){
                 extra.hand[h].held=1;extra.hand[h].type=best;extra.hand[h].samples=0;extra.hand[h].hover=0;
                 extra.hand[h].last=extra.hand[h].point=point;extra_pulse(h,.45f,.04f);
                 platform_log("VR physical grenade: grabbed chest slot type=%d hand=%d %.1f cm from it (unarmed until released)",
                     best,h,(float)(nearest/units*100.0f));
             }else if(press&&best>=0&&nearest<=.35f*units)
-                platform_log("VR physical grenade: not taken by hand %d: %.1f cm from the %s slot (reach 12 cm)%s",
+                platform_log("VR physical grenade: not taken by hand %d: %.1f cm from the %s slot (reach 15 cm)%s",
                     h,(float)(nearest/units*100.0f),best?"plasma":"frag",
                     owner!=VR_INTERACTION_NONE&&owner!=VR_INTERACTION_GRENADE?" (hand busy)":"");
         }

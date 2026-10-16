@@ -57,6 +57,10 @@ boolean vehicle_moving_near_any_player(
 boolean vehicle_stuck(
 	long vehicle_index,
 	real_vector3d *direction);
+/* port: Test72: whether a vehicle is a turret (the Shade): its seat works
+the gun, not a vehicle (port/linux/game/vr_render.c) */
+boolean vehicle_is_turret(
+	long vehicle_index);
 void vehicle_export_function_values(
 	long object_index);
 void vehicle_delete(

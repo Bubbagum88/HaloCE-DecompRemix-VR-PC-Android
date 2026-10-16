@@ -21,6 +21,7 @@ built from the game's camera and the headset's pose (port/linux/src/vr.h).
 #include "camera/director.h"
 #include "main/main.h"
 #include "units/units.h"
+#include "units/vehicles.h" /* Test72: vehicle_is_turret */
 #include "models/model_animation_definitions.h"
 #include "units/unit_definitions.h"
 #include "tag_files/tag_groups.h"
@@ -158,6 +159,8 @@ static struct
 	struct
 	{
 		boolean seated, driver, gunner;
+		/* Test72: a turret (the Shade): its occupant its gunner */
+		boolean turret;
 		long unit_index, vehicle_index;
 		short seat_index;
 		real offset, heading;
@@ -390,7 +393,7 @@ static void vr_update_seat(
 	definition = vehicle ? unit_definition_get(vehicle->definition_index) : NULL;
 	if (!definition || seat_index < 0 || seat_index >= definition->unit.seats.count)
 	{
-		vr_render.seat.seated = vr_render.seat.driver = vr_render.seat.gunner = FALSE;
+		vr_render.seat.seated = vr_render.seat.driver = vr_render.seat.gunner = vr_render.seat.turret = FALSE;
 		vr_render.seat.unit_index = unit ? unit_index : NONE;
 		vr_render.seat.vehicle_index = NONE;
 		vr_render.seat.seat_index = NONE;
@@ -404,16 +407,36 @@ static void vr_update_seat(
 		unsigned long flags = seat->flags;
 		vr_render.seat.driver = TEST_FLAG(flags, _unit_seat_driver_bit);
 		vr_render.seat.gunner = TEST_FLAG(flags, _unit_seat_gunner_bit);
+		/* Test72: a turret's seat (the Shade's, a "driver's") works its gun:
+		TURRET AIM, never VEHICLE STEERING (a tester's "stick" gave the Shade
+		to the right stick) */
+		vr_render.seat.turret = vehicle_is_turret(vehicle_index);
+		if (vr_render.seat.turret)
+		{
+			vr_render.seat.gunner = TRUE;
+			vr_render.seat.driver = FALSE;
+		}
 		/* A passenger may face sideways relative to the vehicle. Keep the
 		seat's authored entry orientation; headset motion never rewrites it. */
 		vr_render.seat.offset = vr_render.seat.driver || vr_render.seat.gunner ? 0.0f :
 			vr_yaw(&unit->object.forward) - vr_yaw(&vehicle->object.forward);
+		/* Test72: a turret faces its gun on entry (a tester's Shade, turned
+		round by its last gunner, put them facing backwards) */
+		if (vr_render.seat.turret)
+		{
+			real_vector3d aim = vehicle->unit.aiming_vector;
+
+			aim.k = 0.0f;
+			if (valid_real_vector3d(&aim) && normalize3d(&aim) > 0.1f)
+				vr_render.seat.offset = vr_yaw(&aim) - vr_yaw(&vehicle->object.forward);
+		}
 		vr_render.seat.vehicle_index = vehicle_index;
 		vr_render.seat.seat_index = seat_index;
 		vr_render.seat.unit_index = unit_index;
 		platform_log("vr: seat: %s seat %d as %s, vehicle yaw %.1f, seat offset %.1f, view %s",
 			tag_get_name(vehicle->definition_index), seat_index,
-			vr_render.seat.driver ? "driver" : vr_render.seat.gunner ? "gunner" : "passenger",
+			vr_render.seat.driver ? "driver" : vr_render.seat.turret ? "turret gunner" :
+			vr_render.seat.gunner ? "gunner" : "passenger",
 			vr_yaw(&vehicle->object.forward) * 57.29578f, vr_render.seat.offset * 57.29578f,
 			vr_first_person_vehicles() ? "first person" : "third person");
 	}
@@ -907,7 +930,8 @@ static void vr_vehicle_adjust_anchor(real_point3d *anchor)
 	real_vector3d offset;
 	struct collision_result collision;
 	if (!vehicle) return;
-	profile = vr_vehicle_profile(tag_get_name(vehicle->definition_index));
+	/* (Test72: a turret by its type: TURRET UP, FWD, RIGHT) */
+	profile = vr_render.seat.turret ? "turret" : vr_vehicle_profile(tag_get_name(vehicle->definition_index));
 	up = vr_vehicle_offset(profile, "up");
 	forward = vr_vehicle_offset(profile, "forward");
 	right = vr_vehicle_offset(profile, "right");

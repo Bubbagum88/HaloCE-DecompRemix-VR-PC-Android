@@ -552,7 +552,7 @@ int main(void){
  setup();enabled=combat=0;projectile_parry=1;tick();assert(extra.unit==0&&parry_ticks>0);
  assert(vr_extra_action_owner()==0);network=_game_connection_network_client;assert(vr_extra_action_owner()==NONE);
  network=_game_connection_local;
- vr_extra_projectile_feedback(1,&hands[1]);assert(extra.defence_parry&&extra.defence_until>now&&vr_extra_feedback_active(1));
+ vr_extra_projectile_feedback(1,&hands[1],0,0);assert(extra.defence_parry&&extra.defence_until>now&&vr_extra_feedback_active(1)&&extra.deflect_echo_tick==now+2); /* (Test72: a crack, then its ring) */
  projectile_parry=0;
  /* Opening authority composes without selection; render pose works without a hit flash. */
  setup();combat=1;enabled=0;tick();move_stun=1;assert(vr_combat_stunned(1));restrained_npc=1;assert(!vr_combat_stunned(1)&&vr_combat_control_opening(1));restrained_npc=NONE;move_stun=0;

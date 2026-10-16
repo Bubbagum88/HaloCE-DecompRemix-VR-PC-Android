@@ -63,8 +63,8 @@ assert update.index("input.eject_pressed = reload_pressed;") < update.index("inp
 chest = body(extra, "static boolean chest_points(long unit,real_point3d const *camera,real_point3d points[2])")
 assert "vr_torso_place(offset,camera->n,points[type].n)" in chest and "vr_head_view" not in chest
 tick = body(extra, "void vr_extra_tick(long unit)")
-assert "vr_render_palm_point(h,unit,palm.n)" in tick and "nearest<=.12f*units" in tick
-assert 'not taken by hand %d: %.1f cm from the %s slot (reach 12 cm)%s' in tick
+assert "vr_render_palm_point(h,unit,palm.n)" in tick and "nearest<=.15f*units" in tick  # (Test72: 15 cm)
+assert 'not taken by hand %d: %.1f cm from the %s slot (reach 15 cm)%s' in tick
 models = body(extra, "void vr_extra_models_render(void)")
 assert "extra_draw_grenade(unit,type,&slots[type]" in models and "extra_draw_grenade(unit,extra.hand[h].type,&point,&hf,&hu" in models
 assert "return object_definition_get(grenade->projectile.index)->object.model.index;" in extra

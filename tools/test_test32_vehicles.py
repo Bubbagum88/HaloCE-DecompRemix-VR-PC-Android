@@ -52,15 +52,18 @@ static struct {
  struct {struct halo_xr_pose head,eye[2],aim[2];float fov[2][4],thumb[4];unsigned flags,buttons,hand_valid[2];long long predicted_display_period;}frame;
  int cockpit_valid,heading_from_seat;float cockpit[3][3]; /* Test65: COCKPIT LOCK */
 }vr;
-static struct {struct {int seated,driver,gunner;long unit_index,vehicle_index;short seat_index;float offset,heading;}seat;}vr_render;
+static struct {struct {int seated,driver,gunner,turret;long unit_index,vehicle_index;short seat_index;float offset,heading;}seat;}vr_render;
 static struct {int valid;}pool={1},*object_header_data=&pool;
-struct unit_datum {long definition_index;struct {long parent_object_index;real_vector3d forward;}object;struct {short parent_seat_index;}unit;};
+struct unit_datum {long definition_index;struct {long parent_object_index;real_vector3d forward;}object;struct {short parent_seat_index;real_vector3d aiming_vector;}unit;};
+static int turret_vehicle;static int vehicle_is_turret(long id){(void)id;return turret_vehicle;} /* Test72: the Shade */
+static int valid_real_vector3d(real_vector3d const *v){return isfinite(v->i)&&isfinite(v->j)&&isfinite(v->k);}
+static float normalize3d(real_vector3d *v){float n=sqrtf(v->i*v->i+v->j*v->j+v->k*v->k);if(n>0){v->i/=n;v->j/=n;v->k/=n;}return n;}
 struct player_datum {long unit_index;};static struct player_datum local_player={100};
 struct unit_seat {unsigned long flags;};
 static struct unit_seat seats[3]={{1},{0},{2}};
 struct unit_definition {struct {struct {int count;struct unit_seat *address;}seats;}unit;};
 static struct unit_definition definition={{{3,seats}}};
-static struct unit_datum unit={1,{200,{1,0,0}},{1}},vehicle={2,{-1,{1,0,0}},{-1}};
+static struct unit_datum unit={1,{200,{1,0,0}},{1,{0,0,0}}},vehicle={2,{-1,{1,0,0}},{-1,{1,0,0}}};
 static long unit_id=100,vehicle_id=200;
 static long current_player_id=100;
 static int lookups,requests,logs,generation;
@@ -110,7 +113,7 @@ static void reset(void){
  vr.frame.hand_valid[0]=vr.frame.hand_valid[1]=2;
  pool.valid=1;object_header_data=&pool;unit_id=100;vehicle_id=200;unit.object.parent_object_index=200;unit.unit.parent_seat_index=1;
  definition.unit.seats.count=3;unit.object.forward=(real_vector3d){1,0,0};vehicle.object.forward=(real_vector3d){1,0,0};
- requests=logs=lookups=0;turret=steering="right";generation++;
+ requests=logs=lookups=0;turret=steering="right";generation++;turret_vehicle=0;vehicle.unit.aiming_vector=(real_vector3d){1,0,0};
 }
 static void runtime_recenter(void){
  memset(vr.frame.head.position,0,sizeof(vr.frame.head.position));
@@ -178,6 +181,17 @@ int main(void){
  log_before=logs;assert(vr_vehicle_aim_source()==2);assert(logs==log_before); /* selection logs are transition-only */
  turret="left";generation++;assert(vr_vehicle_aim_source()==3);assert(logs==log_before+1);
  assert(handle_clears>=3);
+ /* Test72: the Shade: a turret's only seat is a "driver's", yet it works the
+  * gun: its occupant is its gunner (TURRET AIM, never VEHICLE STEERING: a
+  * tester's "stick" gave the Shade to the right stick), facing its gun */
+ reset();turret_vehicle=1;steering="stick";unit.unit.parent_seat_index=0;vehicle.unit.aiming_vector=(real_vector3d){-1,0,0};
+ vr_update_seat(100);assert(vr_render.seat.turret&&vr_render.seat.gunner&&!vr_render.seat.driver);
+ assert(vr_vehicle_aim_source()==2); /* the right controller, as TURRET AIM says */
+ near(fabsf(vr_render.seat.offset),3.14159265f); /* the gun turned round: facing it */
+ turret="stick";generation++;assert(vr_vehicle_aim_source()==-1);turret="right";generation++;
+ reset();turret_vehicle=1;unit.unit.parent_seat_index=0;vehicle.unit.aiming_vector=(real_vector3d){0,0,1}; /* straight up: no heading */
+ vr_update_seat(100);near(vr_render.seat.offset,0);
+ reset();turret_vehicle=0;unit.unit.parent_seat_index=0;vr_update_seat(100);assert(vr_render.seat.driver&&!vr_render.seat.turret);
  puts("PASS: production seat identity + stereo lean/recenter, driver and gunner direct-fire gates, passenger/remote fallback, invalid handles, turret source and tracking loss");
 }
 '''

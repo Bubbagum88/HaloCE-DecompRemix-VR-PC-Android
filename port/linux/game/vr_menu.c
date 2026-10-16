@@ -649,6 +649,10 @@ static struct vr_menu_setting const vr_menu_vehicles[] =
 	{ "PELICAN UP", "vr.vehicle_pelican_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
 	{ "PELICAN FWD", "vr.vehicle_pelican_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
 	{ "PELICAN RIGHT", "vr.vehicle_pelican_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	/* Test72: turrets (the Shade): their own, 25 cm up by default */
+	{ "TURRET UP", "vr.vehicle_turret_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "TURRET FWD", "vr.vehicle_turret_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "TURRET RIGHT", "vr.vehicle_turret_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
 };
 
 static struct vr_menu_setting const vr_menu_graphics[] =
@@ -2824,7 +2828,7 @@ boolean vr_menu_setting_change(
         return TRUE;
     }
     if(setting->type == _vr_setting_reset_vehicle_offsets) {
-        static const char *const vehicles[]={"all","warthog","ghost","banshee","scorpion","pelican"};
+        static const char *const vehicles[]={"all","warthog","ghost","banshee","scorpion","pelican","turret"};
         static const char *const axes[]={"up","forward","right"};
         char key[64]; int vehicle, axis;
         written=TRUE;

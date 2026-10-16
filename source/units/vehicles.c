@@ -500,6 +500,17 @@ void vehicle_render_debug(
 	return;
 }
 
+/* port: Test72 */
+boolean vehicle_is_turret(
+	long vehicle_index)
+{
+	struct object_datum *object = vehicle_index != NONE ? object_try_and_get(vehicle_index) : NULL;
+
+	if (!object || object->object.type != _object_type_vehicle || object->definition_index == NONE)
+		return FALSE;
+	return vehicle_specific_definition_get(object->definition_index)->vehicle_type == _vehicle_type_turret;
+}
+
 boolean vehicle_stuck(
 	long vehicle_index,
 	real_vector3d *direction)
