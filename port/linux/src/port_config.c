@@ -304,6 +304,10 @@ static const struct config_setting config_settings[] =
 	{ "movement.walljump_scale", _config_real, "1.5", "HALO_MOVEMENT_WALLJUMP_SCALE", _environment_value, _platform_flat,
 		"WALL JUMP POWER, 0.5x to 1.5x." },
 
+	{ "launcher.show", _config_boolean, "true", "HALO_LAUNCHER", _environment_value, _platform_desktop,
+		"Test72: the launcher first (play, the game data, the custom campaigns, settings, PC VR, What's New,\n"
+		"updates): false starts the game at once, as before." },
+
 	{ "debug.menu_open", _config_string, "\"\"", "HALO_MENU_OPEN", _environment_value, _platform_all,
 		"Start on this screen of the menus (port/assets/menus) instead of the main\n"
 		"menu, a player profile being edited; empty for the main menu." },

@@ -118,7 +118,8 @@
 	</widget>
 	<strings name="main_menu/settings_select/player_setup/player_profile_edit/controls_setup/help_strings">
 		<string text="Choose what to show, with left and right."/>
-		<string text="Enter sets the key chosen; left and right choose\nwhich of two. Then press the new key or button."/>
-		<string text="Press a key, a mouse button or turn the wheel...\nEscape cancels, Delete clears it."/>
+		<string text="Enter sets the key chosen; left and right choose\nwhich of two. DEFAULTS resets them all."/>
+		<string text="Press a key, mouse button or wheel. Escape cancels,\nDelete: NONE, Backspace: its default."/>
+		<string text="That key was another action's: it is this one's\nnow. One left with no key shows NONE."/>
 	</strings>
 </menus>

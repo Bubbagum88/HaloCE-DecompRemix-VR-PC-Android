@@ -16,6 +16,7 @@ and the debug keyboard that the game's console reads.
 #include "port_config.h"
 #include "p2p.h"
 #include "xiso.h"
+#include "desktop_launcher.h" /* Test72 */
 #ifdef HALO_ANDROID
 #include "guest_host.h"
 #endif
@@ -108,6 +109,10 @@ BOOL platform_sdl_initialize(void)
 	}
 	platform_sdl_started = TRUE;
 #ifndef HALO_ANDROID
+	/* Test72: the desktop launcher first (desktop_launcher.c): it returns
+	when the game is to be played here */
+	if (desktop_launcher_wanted())
+		desktop_launcher_run();
 	/* found (or offered to the player, platform_offer_game_data) before the
 	game's window opens */
 	platform_data_root();
@@ -369,8 +374,10 @@ BOOL platform_offer_game_data(const char *destination)
 	};
 	char message[1400];
 
-	/* not for runs nobody is watching */
-	if (config_boolean("debug.hidden_window") || config_real("debug.exit_after") > 0.0 ||
+	/* not for runs nobody is watching; Test72: nor while the launcher is
+	up, whose GAME DATA page imports it */
+	if (desktop_launcher_active() ||
+		config_boolean("debug.hidden_window") || config_real("debug.exit_after") > 0.0 ||
 		!SDL_Init(SDL_INIT_VIDEO))
 	{
 		return FALSE;
@@ -919,8 +926,10 @@ static BOOL binding_capture_event(const SDL_Event *event)
 			if (binding_capture == _binding_capture_waiting && event->key.down && !event->key.repeat &&
 				event->key.scancode != SDL_SCANCODE_F11 && event->key.scancode != SDL_SCANCODE_F12)
 			{
+				/* 3 cancels, 2 clears (NONE), Test72: 4 the default back */
 				binding_take(event->key.scancode == SDL_SCANCODE_ESCAPE ? 3 :
-					event->key.scancode == SDL_SCANCODE_DELETE ? 2 : 1, event->key.scancode);
+					event->key.scancode == SDL_SCANCODE_DELETE ? 2 :
+					event->key.scancode == SDL_SCANCODE_BACKSPACE ? 4 : 1, event->key.scancode);
 			}
 		}
 		return active;

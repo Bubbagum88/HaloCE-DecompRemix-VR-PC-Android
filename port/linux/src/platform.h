@@ -98,6 +98,9 @@ host path below the data root. Components are matched case-insensitively
 against what exists on disk, as the Xbox file system is case-insensitive. */
 void platform_translate_path(const char *xbox_path, char *host_path, unsigned long host_path_size);
 const char *platform_data_root(void);
+/* Test72: the data root found again on the next platform_data_root (the
+desktop launcher imported the maps folder) */
+void platform_data_root_refresh(void);
 /* on the desktop, when the data root has no maps folder: offers to copy it
 out of an Xbox disc image into destination (sdl_platform.c), and quits if
 the player declines; nonzero once destination has one */

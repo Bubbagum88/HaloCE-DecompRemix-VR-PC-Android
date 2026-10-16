@@ -49,10 +49,24 @@ static void trim_separators(char *path)
 		path[strlen(path) - 1] = '\0';
 }
 
+/* Test72: found again on the next call (the desktop launcher imported or
+repaired the maps folder) */
+static int data_root_stale;
+
+void platform_data_root_refresh(void)
+{
+	data_root_stale = 1;
+}
+
 const char *platform_data_root(void)
 {
 	static char root[MAX_PATH];
 
+	if (data_root_stale)
+	{
+		data_root_stale = 0;
+		root[0] = '\0';
+	}
 	if (!root[0])
 	{
 		const char *environment = config_string("paths.data");

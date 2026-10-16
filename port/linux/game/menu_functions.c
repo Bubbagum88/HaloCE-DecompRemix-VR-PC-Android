@@ -2246,7 +2246,9 @@ static struct
 	short slot;
 	short capturing_control;
 	short capturing_slot;
-} controls_screen = { { { { 0 } } }, 0, NONE, 0 };
+	/* Test72: until when the help says a key moved from another action */
+	unsigned long moved_until;
+} controls_screen = { { { { 0 } } }, 0, NONE, 0, 0 };
 
 /* a setting's bindings ("Left Ctrl, C") into the control's */
 static void control_bindings_read(short control, char const *text)
@@ -2388,7 +2390,17 @@ static void control_capture_poll(void)
 			for (other_slot = 0; other_slot < CONTROL_BINDINGS; other_slot++)
 			{
 				if (!_stricmp(controls_screen.bindings[other][other_slot], name))
+				{
 					controls_screen.bindings[other][other_slot][0] = 0;
+					/* Test72: said, not silent: the help line tells it (and the
+					action left with no key shows NONE) */
+					if (other != control)
+					{
+						controls_screen.moved_until = system_milliseconds() + 5000;
+						platform_log("menus: %s moved from %s to %s", name, controls[other].setting,
+							controls[control].setting);
+					}
+				}
 			}
 		}
 		snprintf(controls_screen.bindings[control][slot], CONTROL_NAME_LENGTH, "%s", name);
@@ -2396,6 +2408,18 @@ static void control_capture_poll(void)
 	else if (result == 2)
 	{
 		controls_screen.bindings[control][slot][0] = 0;
+	}
+	else if (result == 4)
+	{
+		/* Test72: Backspace: this binding back to its default (DEFAULTS
+		puts all of them back) */
+		char text[128];
+		char saved[CONTROL_BINDINGS][CONTROL_NAME_LENGTH];
+		memcpy(saved, controls_screen.bindings[control], sizeof(saved));
+		config_default(controls[control].setting, text, sizeof(text));
+		control_bindings_read(control, text);
+		snprintf(saved[slot], CONTROL_NAME_LENGTH, "%s", controls_screen.bindings[control][slot]);
+		memcpy(controls_screen.bindings[control], saved, sizeof(saved));
 	}
 }
 
@@ -2433,9 +2457,12 @@ static void controls_update(struct widget_instance *list)
 			if (controls_screen.capturing_control == control && controls_screen.capturing_slot == slot)
 				snprintf(shown, sizeof(shown), "%s", "PRESS A KEY");
 			else if (row == focused_row && controls_screen.slot == slot)
-				snprintf(shown, sizeof(shown), "> %s <", *binding ? binding : "-");
+				snprintf(shown, sizeof(shown), "> %s <", *binding ? binding :
+					!*controls_screen.bindings[control][1 - slot] && !slot ? "NONE" : "-");
 			else
-				snprintf(shown, sizeof(shown), "%s", *binding ? binding : "-");
+				/* Test72: an action with no key at all says so */
+				snprintf(shown, sizeof(shown), "%s", *binding ? binding :
+					!*controls_screen.bindings[control][1 - slot] && !slot ? "NONE" : "-");
 			for (index = 0; shown[index] && index < ROW_TEXT_LENGTH - 1; index++)
 				text[index] = (wchar_t)(unsigned char)shown[index];
 			text[index] = 0;
@@ -2445,7 +2472,8 @@ static void controls_update(struct widget_instance *list)
 	if (list->parameters.list.extended_description)
 	{
 		list->parameters.list.extended_description->parameters.text_box.string_list_index =
-			controls_screen.capturing_control != NONE ? 2 : focused_row ? 1 : 0;
+			controls_screen.capturing_control != NONE ? 2 :
+			system_milliseconds() < controls_screen.moved_until ? 3 : focused_row ? 1 : 0;
 	}
 }
 
