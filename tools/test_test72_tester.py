@@ -48,9 +48,32 @@ assert 'profile = vr_render.seat.turret ? "turret" : vr_vehicle_profile(tag_get_
 assert re.search(r'\{ "vr\.vehicle_turret_up", _config_real, "0\.25",', config)
 assert re.search(r'\{ "vr\.vehicle_turret_forward", _config_real, "0\.0",', config)
 assert re.search(r'\{ "vr\.vehicle_turret_right", _config_real, "0\.0",', config)
-for row in ('{ "TURRET UP", "vr.vehicle_turret_up"', '{ "TURRET FWD", "vr.vehicle_turret_forward"', '{ "TURRET RIGHT", "vr.vehicle_turret_right"'):
+for row in ('{ "VIEW UP", "vr.vehicle_turret_up"', '{ "VIEW FWD", "vr.vehicle_turret_forward"', '{ "VIEW RIGHT", "vr.vehicle_turret_right"'):
     assert row in menu, row
+# a second tester: "I couldn't find an option to specifically adjust shade turret or any turret positioning ...
+# not sure I want to lower every vehicle": VEHICLES in topics, one a vehicle, TURRETS + SHADE among them
+page = menu[menu.index("static struct vr_menu_setting const vr_menu_vehicles[] ="):]
+page = page[:page.index("\n};\n")]
+rows = [line.strip() for line in page.split("\n")[2:] if line.strip().startswith(('{ "', 'VR_IMMERSION_'))]
+sections = menu[menu.index("static struct vr_menu_section const vr_menu_vehicles_sections[] ="):]
+sections = re.findall(r'\{ "([^"]+)", (\d+) \}', sections[:sections.index("};")])
+assert [name for name, _ in sections] == ["DRIVING", "VEHICLE OPTIONS", "ALL VEHICLES", "WARTHOG", "GHOST", "BANSHEE",
+                                          "SCORPION", "PELICAN", "TURRETS + SHADE"]
+assert sum(int(count) for _, count in sections) == len(rows) == 57 and all(0 < int(c) <= 8 for _, c in sections)
+topic, at = {}, 0
+for name, count in sections:
+    topic[name] = rows[at:at + int(count)]
+    at += int(count)
+assert topic["TURRETS + SHADE"][0].startswith('{ "TURRET AIM", "vr.turret_aim"')
+assert [r.split('"')[3] for r in topic["TURRETS + SHADE"][1:]] == ["vr.vehicle_turret_up", "vr.vehicle_turret_forward", "vr.vehicle_turret_right"]
+for name, key in (("ALL VEHICLES", "all"), ("WARTHOG", "warthog"), ("GHOST", "ghost"), ("BANSHEE", "banshee"),
+                  ("SCORPION", "scorpion"), ("PELICAN", "pelican")):
+    keys = [r.split('"')[3] for r in topic[name] if r.startswith('{ "VIEW ')]
+    assert keys == ["vr.vehicle_%s_%s" % (key, axis) for axis in ("up", "forward", "right")], (name, keys)
+assert "VR_IMMERSION_HOG_REACH," in topic["WARTHOG"] and "VR_IMMERSION_TANK_SIZE," in topic["SCORPION"]
+assert '{ "VEHICLES", vr_menu_vehicles, NUMBEROF(vr_menu_vehicles),\n\t\tvr_menu_vehicles_sections, NUMBEROF(vr_menu_vehicles_sections) },' in menu
+assert "7 + 6 + 8 + 8 + 7 + 7 + 7 + 3 + 4 == NUMBEROF(vr_menu_vehicles) ? 1 : -1];" in menu
 assert 'static const char *const vehicles[]={"all","warthog","ghost","banshee","scorpion","pelican","turret"};' in menu
 
-print("PASS: Test72 tester's reports: grenade throws at the hand's peak speed, 15 cm grabs; the Shade a turret gunner "
+print("PASS: Test72 tester's reports: VEHICLES in topics (TURRETS + SHADE its own); grenade throws at the hand's peak speed, 15 cm grabs; the Shade a turret gunner "
       "(TURRET AIM), facing its gun, its view 25 cm up")

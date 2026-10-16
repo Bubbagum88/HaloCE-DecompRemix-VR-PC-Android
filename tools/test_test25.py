@@ -109,8 +109,8 @@ for label, key, kind, count, values in rows:
         if width(label + ': ' + t) > 14.5:
             over.append(label + ': ' + t)
 assert not over, over
-for name in ['ALL FWD', 'HOG FWD', 'USE / RELOAD', 'NEXT WEAPON', 'NEXT GRENADE', 'VIGNETTE ON', 'OPACITY',
-             'FORWARD', 'RESET OFFSETS', 'HORIZON']:  # (Test72: SCOPES a topic a weapon, its rows FORWARD, UP, RIGHT, SIZE)
+for name in ['VIEW FWD', 'VIEW RIGHT', 'USE / RELOAD', 'NEXT WEAPON', 'NEXT GRENADE', 'VIGNETTE ON', 'OPACITY',
+             'FORWARD', 'RESET OFFSETS', 'HORIZON']:  # (Test72: SCOPES a topic a weapon, its rows FORWARD, UP, RIGHT, SIZE; VEHICLES a topic a vehicle, VIEW UP, FWD, RIGHT)
     assert '{ "%s", ' % name in menu, name
 for key in ['vr.vehicle_all_forward', 'vr.button_action', 'vr.button_switch_grenade', 'vr.vignette_when',
             'vr.crosshair_opacity', 'vr.scope_pistol_forward']:

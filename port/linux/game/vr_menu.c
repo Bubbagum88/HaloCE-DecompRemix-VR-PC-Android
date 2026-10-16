@@ -582,19 +582,20 @@ static struct vr_menu_setting const vr_menu_gestures[] =
 	{ "HUD TAP", "vr.hud_tap_distance", _vr_setting_real, 6, { { "OFF", "0" }, { "6 CM", "0.06" }, { "8 CM", "0.08" }, { "10 CM", "0.1" }, { "12 CM", "0.12" }, { "15 CM", "0.15" } } },
 };
 
+/* Test72: in topics (vr_menu_vehicles_sections), each screen titled
+"VEHICLES: <TOPIC>", the index listing them: a vehicle's own view offsets and
+control handles together, ALL VEHICLES' moving every one (a tester could not
+find the Shade's: "not sure I want to lower every vehicle"). The rows' saved
+keys are as they were. */
 static struct vr_menu_setting const vr_menu_vehicles[] =
 {
+	/* DRIVING */
 	VR_IMMERSION_VEHICLE_VIEW,
 	/* test25: first person, a driver's view: the horizon level (the
 	cockpit tilts against the view), or tilting with the vehicle, half or
 	whole (the cockpit stays put) */
 	{ "HORIZON", "vr.vehicle_tilt", _vr_setting_real, 3, { { "LEVEL", "0" }, { "HALF", "0.5" }, { "VEHICLE", "1" } } },
 	{ "STEERING", "vr.vehicle_steering", _vr_setting_string, 4, { { "RIGHT HAND", "right" }, { "LEFT HAND", "left" }, { "HEAD", "head" }, { "STICK", "stick" } } },
-	{ "TURRET AIM", "vr.turret_aim", _vr_setting_string, 4, { { "RIGHT HAND", "right" }, { "LEFT HAND", "left" }, { "HEAD", "head" }, { "STICK", "stick" } } },
-	{ "ALL UP", "vr.vehicle_all_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "ALL FWD", "vr.vehicle_all_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "ALL RIGHT", "vr.vehicle_all_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "RESET OFFSETS", "vehicle offsets", _vr_setting_reset_vehicle_offsets, 0, { { NULL, NULL } } },
     VR_IMMERSION_PHYSICAL_HANDLES,
     VR_IMMERSION_VIRTUAL_WHEEL,
     /* Test65: the eyes, hands and controls held to the vehicle as one
@@ -602,6 +603,7 @@ static struct vr_menu_setting const vr_menu_vehicles[] =
      * an optional mark where the hands take the Warthog's rim */
     VR_IMMERSION_COCKPIT_LOCK,
     VR_IMMERSION_GRIP_GUIDE,
+	/* VEHICLE OPTIONS */
     /* Test57: the immersive controls' highlight within reach, their steering
      * haptics, and the Banshee's bar turning when slid across */
     VR_IMMERSION_CONTROL_GLOW,
@@ -613,47 +615,67 @@ static struct vr_menu_setting const vr_menu_vehicles[] =
     VR_IMMERSION_TANK_DRIVE,
     /* Test57b: a tank's first-person eyes over its hull, as from an open hatch */
     VR_IMMERSION_TANK_HATCH,
-    VR_IMMERSION_CTRL_REACH,
+	/* ALL VEHICLES: every vehicle's view and controls moved, before each one's own */
+	{ "VIEW UP", "vr.vehicle_all_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "VIEW FWD", "vr.vehicle_all_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "VIEW RIGHT", "vr.vehicle_all_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	VR_IMMERSION_CTRL_REACH,
     VR_IMMERSION_CTRL_LEFT,
     VR_IMMERSION_CTRL_HEIGHT,
+	{ "RESET OFFSETS", "vehicle offsets", _vr_setting_reset_vehicle_offsets, 0, { { NULL, NULL } } },
     VR_IMMERSION_RESET_CONTROLS,
+	/* WARTHOG */
+	{ "HOG GLASS", "vr.vehicle_warthog_hide_glass", _vr_setting_boolean, 2, { { "VISIBLE", "false" }, { "HIDDEN", "true" } } },
+	{ "VIEW UP", "vr.vehicle_warthog_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "VIEW FWD", "vr.vehicle_warthog_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "VIEW RIGHT", "vr.vehicle_warthog_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
     VR_IMMERSION_HOG_REACH,
     VR_IMMERSION_HOG_LEFT,
     VR_IMMERSION_HOG_HEIGHT,
     VR_IMMERSION_HOG_SIZE,
+	/* GHOST */
+	{ "VIEW UP", "vr.vehicle_ghost_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "VIEW FWD", "vr.vehicle_ghost_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "VIEW RIGHT", "vr.vehicle_ghost_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
     VR_IMMERSION_GHOST_REACH,
     VR_IMMERSION_GHOST_LEFT,
     VR_IMMERSION_GHOST_HEIGHT,
     VR_IMMERSION_GHOST_SIZE,
-    VR_IMMERSION_TANK_REACH,
-    VR_IMMERSION_TANK_LEFT,
-    VR_IMMERSION_TANK_HEIGHT,
-    VR_IMMERSION_TANK_SIZE,
+	/* BANSHEE */
+	{ "VIEW UP", "vr.vehicle_banshee_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "VIEW FWD", "vr.vehicle_banshee_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "VIEW RIGHT", "vr.vehicle_banshee_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
     VR_IMMERSION_BANSH_REACH,
     VR_IMMERSION_BANSH_LEFT,
     VR_IMMERSION_BANSH_UP,
     VR_IMMERSION_BANSHEE_SIZE,
-	{ "HOG GLASS", "vr.vehicle_warthog_hide_glass", _vr_setting_boolean, 2, { { "VISIBLE", "false" }, { "HIDDEN", "true" } } },
-	{ "HOG UP", "vr.vehicle_warthog_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "HOG FWD", "vr.vehicle_warthog_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "HOG RIGHT", "vr.vehicle_warthog_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "GHOST UP", "vr.vehicle_ghost_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "GHOST FWD", "vr.vehicle_ghost_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "GHOST RIGHT", "vr.vehicle_ghost_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "BANSHEE UP", "vr.vehicle_banshee_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "BANSHEE FWD", "vr.vehicle_banshee_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "BANSHEE RIGHT", "vr.vehicle_banshee_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "TANK UP", "vr.vehicle_scorpion_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "TANK FWD", "vr.vehicle_scorpion_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "TANK RIGHT", "vr.vehicle_scorpion_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "PELICAN UP", "vr.vehicle_pelican_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "PELICAN FWD", "vr.vehicle_pelican_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "PELICAN RIGHT", "vr.vehicle_pelican_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	/* Test72: turrets (the Shade): their own, 25 cm up by default */
-	{ "TURRET UP", "vr.vehicle_turret_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "TURRET FWD", "vr.vehicle_turret_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
-	{ "TURRET RIGHT", "vr.vehicle_turret_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	/* SCORPION */
+	{ "VIEW UP", "vr.vehicle_scorpion_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "VIEW FWD", "vr.vehicle_scorpion_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "VIEW RIGHT", "vr.vehicle_scorpion_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+    VR_IMMERSION_TANK_REACH,
+    VR_IMMERSION_TANK_LEFT,
+    VR_IMMERSION_TANK_HEIGHT,
+    VR_IMMERSION_TANK_SIZE,
+	/* PELICAN */
+	{ "VIEW UP", "vr.vehicle_pelican_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "VIEW FWD", "vr.vehicle_pelican_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "VIEW RIGHT", "vr.vehicle_pelican_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	/* TURRETS + SHADE (Test72): a turret's gunner, the Shade's, and any gun
+	seat's aim; the view 25 cm up by default */
+	{ "TURRET AIM", "vr.turret_aim", _vr_setting_string, 4, { { "RIGHT HAND", "right" }, { "LEFT HAND", "left" }, { "HEAD", "head" }, { "STICK", "stick" } } },
+	{ "VIEW UP", "vr.vehicle_turret_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "VIEW FWD", "vr.vehicle_turret_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
+	{ "VIEW RIGHT", "vr.vehicle_turret_right", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
 };
+static struct vr_menu_section const vr_menu_vehicles_sections[] =
+{
+	{ "DRIVING", 7 }, { "VEHICLE OPTIONS", 6 }, { "ALL VEHICLES", 8 }, { "WARTHOG", 8 }, { "GHOST", 7 },
+	{ "BANSHEE", 7 }, { "SCORPION", 7 }, { "PELICAN", 3 }, { "TURRETS + SHADE", 4 },
+};
+/* (a page whose topics do not cover its rows is not built: vr_menu_paged) */
+typedef char vr_menu_vehicles_sections_cover_the_rows[
+	7 + 6 + 8 + 8 + 7 + 7 + 7 + 3 + 4 == NUMBEROF(vr_menu_vehicles) ? 1 : -1];
 
 static struct vr_menu_setting const vr_menu_graphics[] =
 {
@@ -1299,7 +1321,8 @@ static struct vr_menu_page
 	{ "GAMEPLAY", vr_menu_vr, NUMBEROF(vr_menu_vr) },
 	{ "HUD + RETICLE", vr_menu_hud, NUMBEROF(vr_menu_hud) },
 	{ "HEAD GESTURES", vr_menu_gestures, NUMBEROF(vr_menu_gestures) },
-	{ "VEHICLES", vr_menu_vehicles, NUMBEROF(vr_menu_vehicles) },
+	{ "VEHICLES", vr_menu_vehicles, NUMBEROF(vr_menu_vehicles),
+		vr_menu_vehicles_sections, NUMBEROF(vr_menu_vehicles_sections) },
 	{ "GRAPHICS", vr_menu_graphics, NUMBEROF(vr_menu_graphics) },
 	{ "DISPLAY", vr_menu_effects, NUMBEROF(vr_menu_effects) },
 	/* advanced: tracking corrections that move hand and gun together */
