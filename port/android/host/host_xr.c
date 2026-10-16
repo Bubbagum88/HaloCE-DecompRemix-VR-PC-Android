@@ -130,6 +130,8 @@ static struct
 	long long frames_not_rendered, frames_without_layers;
 	uint32_t last_layer_flags;
 	int first_frame_logged;
+	/* Test72: the controllers bound (HALO_XR_PROFILE_*), for the game */
+	uint32_t controller_profile;
 } xr;
 static int haptic_output_logged;
 
@@ -1039,17 +1041,49 @@ static const char *path_name(XrPath path)
 
 /* the interaction profile each hand's controller is bound as (the Touch
 controllers', usually), when it changes */
+/* Test72: a profile's kind, for the game's names of its buttons */
+static uint32_t profile_kind(const char *name)
+{
+	if (!name || name[0] != '/')
+		return HALO_XR_PROFILE_UNKNOWN;
+	if (strstr(name, "/oculus/touch_controller") || strstr(name, "/meta/touch"))
+		return HALO_XR_PROFILE_TOUCH;
+	if (strstr(name, "/valve/index_controller"))
+		return HALO_XR_PROFILE_INDEX;
+	if (strstr(name, "/valve/frame_controller"))
+		return HALO_XR_PROFILE_FRAME;
+	if (strstr(name, "/htc/vive_controller"))
+		return HALO_XR_PROFILE_VIVE;
+	if (strstr(name, "/bytedance/"))
+		return HALO_XR_PROFILE_PICO;
+	if (strstr(name, "/hp/mixed_reality_controller"))
+		return HALO_XR_PROFILE_HP;
+	return HALO_XR_PROFILE_OTHER;
+}
+
 static void log_interaction_profiles(void)
 {
 	int hand;
+	uint32_t kind = HALO_XR_PROFILE_UNKNOWN;
 
 	for (hand = 0; hand < 2; hand++)
 	{
 		XrInteractionProfileState state = { XR_TYPE_INTERACTION_PROFILE_STATE };
 
 		if (XR_SUCCEEDED(xrGetCurrentInteractionProfile(xr.session, xr.hands[hand], &state)))
-			host_logf(HOST_LOG_INFO, "[openxr] %s hand: %s", hand ? "right" : "left", path_name(state.interactionProfile));
+		{
+			const char *name = path_name(state.interactionProfile);
+			host_logf(HOST_LOG_INFO, "[openxr] %s hand: %s", hand ? "right" : "left", name);
+			/* the right controller's, else the left's */
+			if (kind == HALO_XR_PROFILE_UNKNOWN || hand == 1)
+			{
+				uint32_t this_kind = profile_kind(name);
+				if (this_kind != HALO_XR_PROFILE_UNKNOWN)
+					kind = this_kind;
+			}
+		}
 	}
+	xr.controller_profile = kind;
 }
 
 static void session_state_changed(XrSessionState state)
@@ -1190,6 +1224,7 @@ int host_xr_begin_frame(struct halo_xr_frame *frame)
 		return 0;
 	poll_events();
 	frame->session_state = (uint32_t)xr.state;
+	frame->controller_profile = xr.controller_profile; /* Test72 */
 	if (xr.exiting)
 		frame->flags |= HALO_XR_FRAME_EXIT;
 	if (!xr.running || xr.frame_begun)

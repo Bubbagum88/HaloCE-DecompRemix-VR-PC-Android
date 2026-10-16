@@ -3013,6 +3013,11 @@ int vr_buttons_mirrored(void)
 	return vr.buttons_mirrored;
 }
 
+int vr_controller_profile(void)
+{
+	return (int)vr.frame.controller_profile;
+}
+
 int vr_weapon_hand(void)
 {
 	return vr.weapon_hand;

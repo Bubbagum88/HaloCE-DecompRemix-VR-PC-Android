@@ -28,9 +28,18 @@ assert "int vr_buttons_mirrored(void);" in vr_h
 assert "int vr_buttons_mirrored(void)\n{\n\treturn vr.buttons_mirrored;\n}" in frame
 label = menu[menu.index("static char const *vr_menu_value_label("):]
 label = label[:label.index("\n}\n")]
-assert "setting->type != _vr_setting_button || !vr_buttons_mirrored()" in label
-for logical, physical in (("a", "X"), ("b", "Y"), ("x", "A"), ("y", "B")):
-    assert 'if (!strcmp(value, "%s")) return "%s";' % (logical, physical) in label
+assert "hand = gun_side ? (vr_buttons_mirrored() ? 0 : 1) : (vr_buttons_mirrored() ? 1 : 0);" in label
+assert 'return hand ? (lower ? "A" : "B") : (lower ? "X" : "Y");' in label
+# Test72: device-aware: an Index's left controller is A and B (L-A, L-B)
+assert 'if (vr_controller_profile() == 2 /* HALO_XR_PROFILE_INDEX */)' in label
+assert 'return hand ? (lower ? "A" : "B") : (lower ? "L-A" : "L-B");' in label
+abi = read("port/android/include/halo_android_abi.h")
+host = read("port/android/host/host_xr.c")
+assert "uint32_t controller_profile;" in abi and "#define HALO_XR_PROFILE_INDEX 2u" in abi
+assert 'HALO_XR_ASSERT(sizeof(struct halo_xr_frame) == 312, "halo_xr_frame layout");' in abi
+assert 'HALO_XR_ASSERT(__builtin_offsetof(struct halo_xr_frame, buttons) == 260, "halo_xr_frame.buttons");' in abi  # unmoved
+assert "frame->controller_profile = xr.controller_profile;" in host and 'strstr(name, "/valve/index_controller")' in host
+assert "return (int)vr.frame.controller_profile;" in frame
 # every place a button row names its choice goes through it
 for use in ("vr_menu_value_label(setting, vr_remap.value)", "vr_menu_value_label(setting, vr_menu_button_value(setting, source))"):
     assert use in menu, use

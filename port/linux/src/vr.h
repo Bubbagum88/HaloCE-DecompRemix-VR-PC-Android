@@ -231,6 +231,8 @@ int vr_weapon_hand(void);
 /* Test72: the face buttons mirrored (left-handed): the gun hand's A/B are
 the left controller's X/Y */
 int vr_buttons_mirrored(void);
+/* Test72: the controllers bound (halo_android_abi.h's HALO_XR_PROFILE_*) */
+int vr_controller_profile(void);
 /* 1 while the gun is held in both hands */
 int vr_two_handed(void);
 /* physical weapons: the weapon the game has in the player's hands (its

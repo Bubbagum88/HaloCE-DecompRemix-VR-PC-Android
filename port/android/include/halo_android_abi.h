@@ -142,7 +142,21 @@ struct halo_xr_frame
 	float thumb[4];              /* left x, y, right x, y: -1..1 */
 	float squeeze[2];
 	uint32_t hand_buttons[2];    /* HALO_XR_HAND_*, each hand's own (0 left, 1 right) */
+	/* Test72: the controllers the runtime bound (HALO_XR_PROFILE_*), for
+	the buttons' names; and room, keeping the size a multiple of 8 */
+	uint32_t controller_profile;
+	uint32_t reserved;
 };
+
+/* controller_profile: the interaction profile the runtime chose */
+#define HALO_XR_PROFILE_UNKNOWN 0u
+#define HALO_XR_PROFILE_TOUCH 1u       /* Meta Touch (and Touch Pro, Plus) */
+#define HALO_XR_PROFILE_INDEX 2u       /* Valve Index: A and B on both controllers */
+#define HALO_XR_PROFILE_VIVE 3u
+#define HALO_XR_PROFILE_PICO 4u
+#define HALO_XR_PROFILE_FRAME 5u       /* Steam Frame */
+#define HALO_XR_PROFILE_HP 6u          /* HP Reverb G2 */
+#define HALO_XR_PROFILE_OTHER 7u
 
 /* hand_buttons: each controller's buttons as they are, for layouts that do
 not follow the Xbox pad (vr.controls). Face buttons by place: south the
@@ -200,7 +214,8 @@ struct halo_xr_layers
 #endif
 HALO_XR_ASSERT(sizeof(struct halo_xr_pose) == 28, "halo_xr_pose layout");
 HALO_XR_ASSERT(sizeof(struct halo_xr_info) == 344, "halo_xr_info layout");
-HALO_XR_ASSERT(sizeof(struct halo_xr_frame) == 304, "halo_xr_frame layout");
+HALO_XR_ASSERT(sizeof(struct halo_xr_frame) == 312, "halo_xr_frame layout");
+HALO_XR_ASSERT(__builtin_offsetof(struct halo_xr_frame, controller_profile) == 304, "halo_xr_frame.controller_profile");
 HALO_XR_ASSERT(__builtin_offsetof(struct halo_xr_frame, head) == 24, "halo_xr_frame.head");
 HALO_XR_ASSERT(__builtin_offsetof(struct halo_xr_frame, buttons) == 260, "halo_xr_frame.buttons");
 HALO_XR_ASSERT(sizeof(struct halo_xr_layers) == 180, "halo_xr_layers layout");

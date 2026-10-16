@@ -1659,13 +1659,24 @@ static char const *vr_menu_value_label(struct vr_menu_setting const *setting, in
 		return "";
 	value = setting->values[index].value;
 	label = setting->values[index].label;
-	if (setting->type != _vr_setting_button || !vr_buttons_mirrored() || !value)
+	if (setting->type != _vr_setting_button || !value)
 		return label;
-	if (!strcmp(value, "a")) return "X";
-	if (!strcmp(value, "b")) return "Y";
-	if (!strcmp(value, "x")) return "A";
-	if (!strcmp(value, "y")) return "B";
-	return label;
+	{
+		/* the controller (0 left, 1 right) and the button (0 lower, 1
+		upper) the logical choice is: A and B the gun hand's, X and Y the
+		other's, the gun hand the left one with the face buttons mirrored */
+		int lower = !strcmp(value, "a") || !strcmp(value, "x");
+		int gun_side = !strcmp(value, "a") || !strcmp(value, "b");
+		int hand;
+		if (!lower && strcmp(value, "b") && strcmp(value, "y"))
+			return label;
+		hand = gun_side ? (vr_buttons_mirrored() ? 0 : 1) : (vr_buttons_mirrored() ? 1 : 0);
+		/* Test72: the controllers' own names: an Index's left controller has
+		A and B too; the Touch, Pico, Frame and HP controllers X and Y */
+		if (vr_controller_profile() == 2 /* HALO_XR_PROFILE_INDEX */)
+			return hand ? (lower ? "A" : "B") : (lower ? "L-A" : "L-B");
+		return hand ? (lower ? "A" : "B") : (lower ? "X" : "Y");
+	}
 }
 
 /* A button row's text, kept to the row's width: its button and mark; while
