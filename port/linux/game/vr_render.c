@@ -225,9 +225,23 @@ static int vr_vehicle_aim_source(void)
 	role = vr_render.seat.driver ? 1 : vr_render.seat.gunner ? 2 : 3;
 	if (role == 3)
 	{
+		/* Test72: a passenger (a Warthog's, the Scorpion's riders, any seat
+		that keeps its own gun) aims it as on foot: the weapon hand's tracked
+		aim, the head free to look, the shot and the reticle along the hand
+		(the report: "arms lock to head view and the crosshair isn't
+		accurate": the head's aim made a 3DoF gun). In the third-person seat
+		view, where no hands are drawn, the head aims as before. */
 		mode = _vr_steering_head;
-		setting = "native passenger head aim";
-		source = 0;
+		if (vr_first_person_vehicles())
+		{
+			setting = "passenger: the gun in hand (as on foot)";
+			source = 1;
+		}
+		else
+		{
+			setting = "passenger in the third-person view: head aim";
+			source = 0;
+		}
 	}
 	else
 	{
@@ -236,7 +250,7 @@ static int vr_vehicle_aim_source(void)
 		source = mode == _vr_steering_stick ? -1 : mode == _vr_steering_right ? 2 :
 			mode == _vr_steering_left ? 3 : 0;
 	}
-	effective = source == -1 ? "native stick" : source == 2 ? "right controller" :
+	effective = source == -1 ? "native stick" : source == 1 ? "the weapon hand" : source == 2 ? "right controller" :
 		source == 3 ? "left controller" : "head";
 	if (role != previous_role || vr_render.seat.seat_index != previous_seat ||
 		vr_render.seat.vehicle_index != previous_vehicle || source != previous_source || generation != previous_generation)
@@ -1807,8 +1821,8 @@ void vr_player_control_facing(
 	/* a driver steered by the stick (vr.vehicle_steering "stick"): the game
 	takes the right stick as it would, and the head only looks */
 	{
-		/* Drivers and mounted gunners select independently; passengers keep
-		their existing head-aim behavior. */
+		/* Drivers and mounted gunners select independently; passengers aim
+		the gun in hand as on foot (Test72; the head before). */
 		/* Test56: with IMMERSIVE VEHICLE controls the hands are on them, so
 		the guns (the Ghost's and Banshee's, the Scorpion's turret) aim where
 		the head looks, and the controls steer through the driver's facing
