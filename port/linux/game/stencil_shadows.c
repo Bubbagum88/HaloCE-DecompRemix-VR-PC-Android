@@ -539,8 +539,26 @@ static void stencil_shadow_object_volume(
 	}
 }
 
+/* Test72 (HaloFreak95's game.shadow_objects_stop, on by default): a shadow
+ends at a machine or a piece of scenery behind its caster too (a cryotube's
+wall, a crate, a door), as it does at the level, instead of running on
+through it onto what is beyond */
+static boolean stencil_shadow_objects_stop(void)
+{
+	static unsigned long changes = (unsigned long)-1;
+	static boolean stop = TRUE;
+
+	if (changes != config_changes())
+	{
+		changes = config_changes();
+		stop = config_boolean("game.shadow_objects_stop") != 0;
+	}
+	return stop;
+}
+
 /* how far a light's shadow of an object should run: to the first surface of
-the level behind it along the light, and a little past */
+the level (and, game.shadow_objects_stop, of a machine or scenery) behind it
+along the light, and a little past */
 static real stencil_shadow_reach(
 	struct object_datum *object,
 	long object_index,
@@ -551,11 +569,17 @@ static real stencil_shadow_reach(
 	real_vector3d vector;
 	real length = light->reach + object->object.bounding_sphere_radius;
 
+	unsigned long flags = FLAG(_collision_test_structure_bit) | FLAG(_collision_test_front_facing_surfaces_bit);
+
+	if (stencil_shadow_objects_stop())
+	{
+		flags |= FLAG(_collision_test_objects_bit) | FLAG(_collision_test_objects_scenery_bit) |
+			FLAG(_collision_test_objects_machines_bit);
+	}
 	vector.i = light->direction.i * length;
 	vector.j = light->direction.j * length;
 	vector.k = light->direction.k * length;
-	if (collision_test_vector(FLAG(_collision_test_structure_bit) | FLAG(_collision_test_front_facing_surfaces_bit),
-		center, &vector, object_index, &collision))
+	if (collision_test_vector(flags, center, &vector, object_index, &collision))
 	{
 		real reach = collision.t * length + object->object.bounding_sphere_radius + STENCIL_SHADOW_PAST_SURFACE;
 

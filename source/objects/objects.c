@@ -79,6 +79,7 @@ void projectile_lights_reset(void); /* port: port/linux/game/projectile_lights.c
 #include "object_mesh.h" /* port: port/linux/game/object_mesh.c */
 void stencil_shadows_reset(void); /* port: port/linux/game/stencil_shadows.c */
 void visor_color_reset(void); /* port: port/linux/game/visor_color.c */
+void ammo_counter_color_reset(void); /* port: port/linux/game/ammo_counter_color.c */
 void spartan_colors_reset(void); /* port: port/linux/game/spartan_colors.c */
 
 /* ---------- constants */
@@ -1116,6 +1117,7 @@ void objects_initialize_for_new_map(
 	/* port: the last map's shadow volumes forgotten (port/linux/game/stencil_shadows.c) */
 	stencil_shadows_reset();
 	visor_color_reset(); /* port: the visor shaders looked up again (port/linux/game/visor_color.c) */
+	ammo_counter_color_reset(); /* port: (Test72) (port/linux/game/ammo_counter_color.c) */
 	spartan_colors_reset(); /* port: (port/linux/game/spartan_colors.c) */
 	
 	data_make_valid(object_header_data);

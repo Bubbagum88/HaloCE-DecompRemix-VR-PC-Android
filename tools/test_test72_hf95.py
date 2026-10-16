@@ -18,6 +18,17 @@ Android and the Quest. BLOOD LAYERS in VR DISPLAY.
 
 Touch aim assist (their input.touch_aim_assist): already here, as AIM ASSIST
 (input.mouse_aim_assist), which covers swipe and gyro aim on Android.
+
+Shadows end at machines and scenery (game.shadow_objects_stop, on): a stencil
+shadow's reach stops at the first machine or scenery behind its caster too.
+
+The assault rifle's display (display.ammo_counter_color): its first-person
+chicago shaders (numbers, compass, icons, ar data) recolored per transparent
+group, as the visor is; RIFLE DISPLAY on the Spartan Armor screen.
+
+Others' shield and visor colours (their display.others_shield_colors and
+others_visor_colors): already here, under one switch,
+display.others_custom_armor (SHOW PLAYERS CUSTOM ARMOR).
 """
 from pathlib import Path
 import re
@@ -118,6 +129,71 @@ assert "swipe and gyro aim (HaloFreak95's input.touch_aim_assist)." in config
 xinput = read("port/linux/src/xinput_sdl.c")
 assert "if (touch.yaw != 0.f || touch.pitch != 0.f) mouse_aimed_ms = SDL_GetTicks();" in xinput
 
+# ---- shadows end at machines and scenery
+shadows = read("port/linux/game/stencil_shadows.c")
+stop = shadows[shadows.index("static boolean stencil_shadow_objects_stop(void)"):]
+stop = stop[:stop.index("\n}\n")]
+assert 'stop = config_boolean("game.shadow_objects_stop") != 0;' in stop
+reach = shadows[shadows.index("static real stencil_shadow_reach("):]
+reach = reach[:reach.index("\n}\n")]
+assert "unsigned long flags = FLAG(_collision_test_structure_bit) | FLAG(_collision_test_front_facing_surfaces_bit);" in reach
+assert ("flags |= FLAG(_collision_test_objects_bit) | FLAG(_collision_test_objects_scenery_bit) |\n"
+        "\t\t\tFLAG(_collision_test_objects_machines_bit);") in reach
+assert "if (collision_test_vector(flags, center, &vector, object_index, &collision))" in reach  # the caster ignored
+assert "_collision_test_objects_bipeds_bit" not in reach and "_collision_test_objects_vehicles_bit" not in reach
+assert re.search(r'\{ "game\.shadow_objects_stop", _config_boolean, "true",', config)
+
+# ---- the assault rifle's display in an armor color
+ammo = read("port/linux/game/ammo_counter_color.c")
+for name in ("numbers", "compass", "icons", "ar data"):
+    assert '"weapons\\\\assault rifle\\\\fp\\\\shaders\\\\%s",' % name in ammo, name
+assert "#define AMMO_COUNTER_SHADER_CHICAGO_TAG 0x73636869 /* 'schi' */" in ammo
+assert 'value = config_string("display.ammo_counter_color");' in ammo
+begin = ammo[ammo.index("boolean ammo_counter_color_group_begin("):]
+begin = begin[:begin.index("\n}\n")]
+assert "on = ammo_counter_color_index != NONE && ammo_counter_color_is_display(shader);" in begin
+assert "if (on || previous)\n\t\tammo_counter_color_set(on);" in begin  # untouched while nothing is recolored
+end = ammo[ammo.index("void ammo_counter_color_group_end("):]
+end = end[:end.index("\n}\n")]
+assert "if (ammo_counter_color_on != previous)\n\t\tammo_counter_color_set(previous);" in end
+assert "d3d8_gl_set_recolor(0.0f, 0.0f, 0.0f, 0.0f);" in ammo  # curve 0: not recolored
+# the nesting, worked through: a display group's chain drawn first as it was, the group itself recolored
+state = {"on": False, "log": []}
+def group_begin(display, chosen=True):
+    previous, on = state["on"], chosen and display
+    if on or previous:
+        state["on"] = on
+        state["log"].append(on)
+    return previous
+def group_end(previous):
+    if state["on"] != previous:
+        state["on"] = previous
+        state["log"].append(previous)
+def draw(display, chain=()):
+    previous = group_begin(display)
+    drawn = []
+    for child in chain:
+        drawn += draw(*child)
+    drawn.append((display, state["on"]))
+    group_end(previous)
+    return drawn
+assert draw(True, [(False,), (True, [(False,)])]) == [(False, False), (False, False), (True, True), (True, True)]
+assert state["on"] is False
+state["log"].clear()
+assert draw(False, [(False,)]) == [(False, False), (False, False)] and state["log"] == []  # no recolor calls at all
+transparent = read("source/rasterizer/xbox/rasterizer_xbox_transparent_geometry.c")
+wrapper = transparent[transparent.index("void rasterizer_transparent_geometry_group_draw(\n\tstruct transparent_geometry_group *group,\n\tboolean dirty)\n{\n\tboolean counter"):]
+wrapper = wrapper[:wrapper.index("\n}\n")]
+assert "boolean counter = ammo_counter_color_group_begin(group ? (void const *)group->shader : NULL);" in wrapper
+assert wrapper.index("rasterizer_transparent_geometry_group_draw_scoped(group, dirty);") < wrapper.index("ammo_counter_color_group_end(counter);")
+objects = read("source/objects/objects.c")
+assert "ammo_counter_color_reset(); /* port: (Test72)" in objects
+assert re.search(r'\{ "display\.ammo_counter_color", _config_string, "\\"default\\"",', config)
+armor = read("port/assets/menus/ce/main_menu.settings_select.player_setup.player_profile_edit.video_settings.fov_viewmodels.spartan_armor.xml")
+assert 'spartan_armor/op_ammo_counter_color" x="54" y="283"' in armor and 'spartan_armor/button_reset" x="198" y="313"' in armor
+assert 'setting="display.ammo_counter_color" values="default|white|black|red|blue|gray|yellow|green|pink|purple|cyan|cobalt|orange|teal|sage|brown|tan|maroon|salmon"' in armor
+assert '<string text="RIFLE DISPLAY:"/>' in armor
+
 print("PASS: Test72 HaloFreak95: fast decals (kept quad indices; decals drawn from their stream; "
       "FAST DECALS on for desktop, off on Android/Quest until measured); blood layers (6 on Android/Quest); "
-      "touch aim assist as AIM ASSIST")
+      "touch aim assist as AIM ASSIST; shadows stop at machines/scenery; the rifle display's color")

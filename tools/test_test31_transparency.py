@@ -73,8 +73,14 @@ struct transparent_geometry_group {
  unsigned long geometry_flags;
  int early, panel, calls;
  struct transparent_geometry_group *child;
+ void *shader;
 };
 static void rasterizer_transparent_geometry_group_draw_scoped(struct transparent_geometry_group *, boolean);
+/* (Test72: the assault rifle's display recolor, ammo_counter_color.c: begun and
+ended once a group, nested with its chain) */
+static int ammo_depth, ammo_calls;
+static boolean ammo_counter_color_group_begin(void const *shader){(void)shader;ammo_calls++;return (boolean)ammo_depth++;}
+static void ammo_counter_color_group_end(boolean previous){assert(previous==ammo_depth-1);ammo_depth--;}
 ''' + ''.join(fn(gl, name) for name in (
     'halo_vr_mirror_winding', 'halo_vr_model_mirrored', 'halo_vr_winding_state',
     'halo_vr_restore_winding_state', 'halo_vr_skinning_mirrored')) + \
@@ -124,17 +130,19 @@ int main(void){
   rasterizer_transparent_geometry_group_draw(&world,0);assert(halo_vr_winding_state()==state);
  }
  assert(root.calls==4 && right.calls==4 && world.calls==4 && panel.calls==12 && early.calls==12);
+ assert(ammo_depth==0 && ammo_calls==4+12+4+4+12);
  puts("PASS: production queued mirror capture, display-part parity, right/world groups, nested draws and early-return state restoration");
 }
 '''
 (OUT / 'winding.c').write_text(source)
-subprocess.run(['clang', '-std=gnu11', '-O1', '-fsanitize=address,undefined',
+subprocess.run(['clang', '-std=gnu11', '-O1', '-fsanitize=address,undefined', '-DHALO_VR',
                 str(OUT / 'winding.c'), '-o', str(OUT / 'winding')], check=True)
 subprocess.run([str(OUT / 'winding')], check=True)
 
-# Preprocess the entire changed draw body in both editions: flat builds retain
-# the original public body, with no scope helper or mirrored-state calls.
-start = transparent.index('#ifdef HALO_VR\nstatic void rasterizer_transparent_geometry_group_draw_scoped(')
+# Preprocess the entire changed draw body in both editions: flat builds draw
+# through the same public wrapper (Test72: the rifle display's recolor), with no
+# mirrored-state calls.
+start = transparent.index('static void rasterizer_transparent_geometry_group_draw_scoped(')
 draw = transparent[start:]
 (OUT / 'draw.c').write_text(draw)
 for vr in (False, True):
@@ -144,6 +152,9 @@ for vr in (False, True):
         assert 'static void rasterizer_transparent_geometry_group_draw_scoped(' in output
         assert 'halo_vr_restore_winding_state(previous);' in output
     else:
-        assert output.startswith('void rasterizer_transparent_geometry_group_draw(')
-        assert 'halo_vr_' not in output and 'group_draw_scoped' not in output
-print('PASS: VR-only scope; flat preprocessing retains original draw body and transparent group layout')
+        assert output.startswith('static void rasterizer_transparent_geometry_group_draw_scoped(')
+        assert 'halo_vr_' not in output
+        wrapper = output[output.index('void rasterizer_transparent_geometry_group_draw(\n'):]
+        assert 'ammo_counter_color_group_begin(' in wrapper and 'ammo_counter_color_group_end(counter);' in wrapper
+        assert 'rasterizer_transparent_geometry_group_draw_scoped(group, dirty);' in wrapper
+print('PASS: VR-only scope; flat draws through the same wrapper (the rifle display recolor) without VR calls; transparent group layout')

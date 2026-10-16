@@ -171,6 +171,9 @@ symbols in this file:
 /* port/linux/game/vr_render.c */
 boolean vr_render_seat_transparent(long object_index, short shader_type, short glass_type);
 #endif
+/* port: port/linux/game/ammo_counter_color.c (Test72) */
+boolean ammo_counter_color_group_begin(void const *shader);
+void ammo_counter_color_group_end(boolean previous);
 #include "rasterizer/xbox/rasterizer_xbox_plasma_energy.h"
 #include "rasterizer/xbox/rasterizer_xbox_water.h"
 #include "rasterizer/xbox/shader_transparent_chicago_preprocessor.h"
@@ -1068,11 +1071,10 @@ real_vector4d *offset_vector4d(
 	return result;
 }
 
-#ifdef HALO_VR
+/* port: (Test72) every build draws a group through
+rasterizer_transparent_geometry_group_draw, below: the assault rifle's display
+recolored (ammo_counter_color.c), and in VR its mirrored winding */
 static void rasterizer_transparent_geometry_group_draw_scoped(
-#else
-void rasterizer_transparent_geometry_group_draw(
-#endif
 	struct transparent_geometry_group *group,
 	boolean dirty)
 {
@@ -3612,22 +3614,28 @@ void rasterizer_transparent_geometry_group_draw(
 	return;
 }
 
-#ifdef HALO_VR
 /* A queued first-person part outlives the submitting model's mirror scope.
 Use its captured flag for every shader path, including recursive extra layers
 and active camouflage. The body can return early (e.g. a skipped camouflage pass);
-restoration still happens here, without changing the flat rendering path. */
+restoration still happens here, without changing the flat rendering path.
+port: (Test72) the assault rifle's display recolored the same way, the group's
+own: a group of its chain, drawn first, as it was (ammo_counter_color.c). */
 void rasterizer_transparent_geometry_group_draw(
 	struct transparent_geometry_group *group,
 	boolean dirty)
 {
+	boolean counter = ammo_counter_color_group_begin(group ? (void const *)group->shader : NULL);
+#ifdef HALO_VR
 	int previous = halo_vr_winding_state();
 	halo_vr_mirror_winding(group &&
 		(group->geometry_flags & RASTERIZER_VR_MIRRORED_GEOMETRY_FLAG));
-	rasterizer_transparent_geometry_group_draw_scoped(group, dirty);
-	halo_vr_restore_winding_state(previous);
-}
 #endif
+	rasterizer_transparent_geometry_group_draw_scoped(group, dirty);
+#ifdef HALO_VR
+	halo_vr_restore_winding_state(previous);
+#endif
+	ammo_counter_color_group_end(counter);
+}
 /* port: use only a static BSP glass surface with a usable supplied plane. */
 static boolean transparent_planar_glass(struct transparent_geometry_group const *surface)
 {

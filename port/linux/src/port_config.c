@@ -389,6 +389,9 @@ static const struct config_setting config_settings[] =
 		"own, as F.E.A.R. and Doom 3 cast them: on the level, on other objects\n"
 		"and on themselves, your own body's and weapon's in first person too\n"
 		"(not in VR, where your body follows the headset). Costly on a Quest." },
+	{ "game.shadow_objects_stop", _config_boolean, "true", "HALO_SHADOW_OBJECTS_STOP", _environment_value, _platform_all,
+		"(Test72, HaloFreak95's) Stencil shadows end at a machine or scenery behind what casts them\n"
+		"(a cryotube's wall, a crate), as at the level, not through it; false: the level's alone." },
 	{ "display.first_person_legs", _config_boolean, "false", "HALO_FIRST_PERSON_LEGS", _environment_value, _platform_all,
 		"Your own legs in first person, seen looking down: your body as others\n"
 		"see it, drawn from the waist down, moving as it moves." },
@@ -467,6 +470,11 @@ static const struct config_setting config_settings[] =
 		"Your Spartan's visor in a multiplayer armor color (\"white\", \"black\",\n"
 		"\"red\"... as the profile's colors; black a deep, glossy black), or\n"
 		"\"default\", its gold." },
+	{ "display.ammo_counter_color", _config_string, "\"default\"", "HALO_AMMO_COUNTER_COLOR", _environment_value,
+		_platform_all,
+		"(Test72, HaloFreak95's) The assault rifle's display in your hands - its ammo counter,\n"
+		"compass and icons: \"default\" (its own blue) or a multiplayer armor color (\"white\",\n"
+		"\"red\", \"green\"...). Only how it is drawn changes." },
 	{ "display.flashlight_color", _config_string, "\"default\"", "HALO_FLASHLIGHT_COLOR", _environment_value,
 		_platform_all,
 		"Your Spartan's flashlight in a multiplayer armor color; \"default\": the\n"
