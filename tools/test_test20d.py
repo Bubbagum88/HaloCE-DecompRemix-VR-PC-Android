@@ -240,8 +240,10 @@ menu = re.sub(r'\b(VR_(?:MENU|IMMERSION)_\w+)\b', lambda m: row_macros.get(m.gro
 menu_rows = menu
 rows = re.findall(r'\{ "([A-Z +\-]+)", "[\w.]+", _vr_setting_multi, (\d+), \{ (.*?) \} \},', menu_rows)
 assert {r[0] for r in rows} >= {'TURNING', 'WEAPONS', 'HOLSTERS', 'HANDS', 'MELEE', 'NPC RIG SLOTS'}, rows
-locomotion = menu[menu.index('vr_menu_locomotion[]'):menu.index('static struct vr_menu_page')]
-# (Test72: the rows are shared macros, used on LOCOMOTION and IMMERSION)
+# (Test72: the rows are shared macros, used on LOCOMOTION and IMMERSION: read in
+# the file as written, before the macros above are expanded)
+source_menu = (ROOT / 'port/linux/game/vr_menu.c').read_text(encoding='utf-8')
+locomotion = source_menu[source_menu.index('vr_menu_locomotion[]'):source_menu.index('static struct vr_menu_page')]
 for macro in ('VR_IMMERSION_BUTTON_SPRINT,', 'VR_IMMERSION_SPRINT_TOGGLE,', 'VR_IMMERSION_ARM_RUN,', 'VR_IMMERSION_ARM_EFFORT,', 'VR_IMMERSION_SPRINT_SPEED,'):
     assert macro in locomotion, macro
 locomotion = menu

@@ -1879,16 +1879,24 @@ void desktop_launcher_run(void)
 		SDL_RenderClear(ui.renderer);
 		fill(0.0f, 0.0f, (float)LAUNCHER_WIDTH, 6.0f, COLOR_BLUE);
 		ui.buttons = 0;
-		switch (ui.page)
 		{
-		case PAGE_DATA: page_data(); break;
-		case PAGE_MODS: page_mods(); break;
-		case PAGE_MOD: page_mod(); break;
-		case PAGE_SETTINGS: page_settings(); break;
-		case PAGE_VR: page_vr(); break;
-		case PAGE_NEWS: page_news(); break;
-		case PAGE_UPDATES: page_updates(); break;
-		default: page_home(); break;
+			int drawn = ui.page;
+
+			switch (drawn)
+			{
+			case PAGE_DATA: page_data(); break;
+			case PAGE_MODS: page_mods(); break;
+			case PAGE_MOD: page_mod(); break;
+			case PAGE_SETTINGS: page_settings(); break;
+			case PAGE_VR: page_vr(); break;
+			case PAGE_NEWS: page_news(); break;
+			case PAGE_UPDATES: page_updates(); break;
+			default: page_home(); break;
+			}
+			/* a page's result line is that page's: another page starts
+			without it (it sat over WHAT'S NEW's button) */
+			if (ui.page != drawn)
+				ui.status[0] = '\0';
 		}
 		ui.focus_count = ui.buttons;
 		if (job.running)

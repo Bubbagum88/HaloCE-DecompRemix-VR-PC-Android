@@ -32,7 +32,7 @@ enum{_actor_elite=10,_actor_jackal,_actor_grunt,_actor_hunter};
 typedef struct{float i,j;}real_vector2d;
 enum{_game_connection_local,_game_connection_network_client,_game_connection_network_server};
 enum{_object_dead_bit,_unit_suspended_bit,_biped_airborne_bit,_biped_no_collision_bit,_unit_control_weapon_primary_trigger_bit,_unit_control_throw_grenade_bit,_unit_control_use_equipment_bit,_unit_control_jump_bit};
-enum{_object_type_biped=1,_object_mask_biped=2,_collision_result_object=3,_collision_test_for_projectiles_flags=4};
+enum{_object_type_biped=1,_object_mask_biped=2,_collision_result_object=3,_collision_test_for_projectiles_flags=4,_object_type_vehicle=5};
 enum{VR_INTERACTION_NONE,VR_INTERACTION_RELOAD,VR_INTERACTION_VEHICLE,VR_INTERACTION_WORLD,VR_INTERACTION_PARKOUR,VR_INTERACTION_NPC,VR_INTERACTION_GRENADE};
 struct object_fields{long parent_object_index;unsigned damage_flags;int type,owner_team_index;real_point3d position,bounding_sphere_center;real_vector3d forward;real bounding_sphere_radius,shield_vitality;struct{long size;}node_matrices;};
 struct unit_fields{long actor_index,player_index;unsigned flags,control_flags;real_vector3d throttle;real primary_trigger;char melee_attack_state;};
@@ -94,6 +94,15 @@ static int shoves;static void biped_accelerate(long u,real_vector3d const*v){(vo
 static real_vector3d up_axis={.n={0,0,1}},*global_up3d=&up_axis;
 static int strikes,strike_ok=1;static long struck=NONE;
 static boolean unit_vr_combat_strike(long u,long t,real_vector3d const*d,real s){(void)u;(void)d;(void)s;strikes++;struck=t;return strike_ok;}
+/* Test72: a strike landed where a hand holds the enemy; world origin and
+ * facing (no parents here); the hands' NPC contacts (none unless set) */
+static boolean unit_vr_combat_strike_point(long u,long t,real_point3d const*p,real_vector3d const*d,real s){(void)u;(void)p;(void)d;(void)s;strikes++;struck=t;return strike_ok;}
+struct object_datum{long definition_index;struct object_fields object;};
+static struct object_datum*object_try_and_get(long i){return i>=0&&i<4?(struct object_datum*)&bodies[i]:NULL;}
+static real_point3d*object_get_origin(long i,real_point3d*o){assert(i>=0&&i<4);*o=bodies[i].object.position;return o;}
+static void object_get_orientation(long i,real_vector3d*f,real_vector3d*u){assert(i>=0&&i<4);if(f)*f=bodies[i].object.forward;if(u){u->i=u->j=0;u->k=1;}}
+static long contact_object[2]={NONE,NONE};
+static int vr_npc_interaction_contact(int h,long*o,short*n,float p[3]){if(h<0||h>1||contact_object[h]==NONE)return 0;*o=contact_object[h];*n=0;memcpy(p,bodies[contact_object[h]].object.position.n,12);return 1;}
 static int knocks;static long knocked=NONE;static float knock_speed;
 static int vr_npc_interaction_knock(long t,real_point3d const*p,real_vector3d const*d,real speed){(void)p;(void)d;knocks++;knocked=t;knock_speed=speed;return 1;}
 static int vr_hand_pose(int h,float const*c,float*p,float*f,float*u){(void)c;memcpy(p,hands[h].n,12);f[0]=1;f[1]=f[2]=0;u[0]=u[1]=0;u[2]=1;return tracking[h];}

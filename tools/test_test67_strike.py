@@ -42,7 +42,7 @@ typedef union {real n[3];struct {real x,y,z;};struct {real i,j,k;};} real_point3
 enum {_collision_test_for_projectiles_flags=1,_collision_result_structure=2,_collision_result_object=3};
 enum {_object_type_biped=1,_object_type_weapon=2,_object_type_vehicle=3,_object_type_machine=4};
 enum {_collision_result_breakable_surface_bit=0,_damage_from_weapon_bit=1};
-struct object_fields {real bounding_sphere_radius;real_point3d bounding_sphere_center;int type;long parent_object_index;int location,owner_team_index;};
+struct object_fields {real bounding_sphere_radius;real_point3d bounding_sphere_center,position;int type;long parent_object_index;int location,owner_team_index;};
 struct object_datum {long definition_index;struct object_fields object;};
 struct unit_datum {long definition_index;struct object_fields object;struct {int current_weapon_index;long weapon_object_indices[2],player_index;} unit;};
 struct unit_definition {struct {struct {long index;} melee_damage;} unit;};
@@ -73,6 +73,7 @@ static void unit_get_camera_position(long id,real_point3d *out){assert(id==0);*o
 static void vector_from_points3d(real_point3d const *a,real_point3d const *b,real_vector3d *out){for(int k=0;k<3;k++)out->n[k]=b->n[k]-a->n[k];}
 static void point_from_line3d(real_point3d const *p,real_vector3d const *v,real s,real_point3d *out){for(int k=0;k<3;k++)out->n[k]=p->n[k]+s*v->n[k];}
 static void scale_vector3d(real_vector3d const *v,real s,real_vector3d *out){for(int k=0;k<3;k++)out->n[k]=s*v->n[k];}
+static real dot_product3d(real_vector3d const *a,real_vector3d const *b){return a->i*b->i+a->j*b->j+a->k*b->k;}
 static real normalize3d(real_vector3d *v){real n=sqrtf(v->i*v->i+v->j*v->j+v->k*v->k);if(n>0)for(int k=0;k<3;k++)v->n[k]/=n;return n;}
 static int collision_test_vector(unsigned flags,real_point3d const *from,real_vector3d const *v,long owner,struct collision_result *out){
  (void)flags;(void)v;assert(owner==0);int sight=!memcmp(from,&eye,sizeof eye);
@@ -140,7 +141,8 @@ int main(void){
 }
 '''
 
-source = fixture + function('unit_vr_impact_melee_target') + '\n'
+# (Test72: the strike split into its probes and where it is applied)
+source = fixture + function('unit_vr_impact_melee_apply') + '\n' + function('unit_vr_impact_melee_target') + '\n'
 source += function('unit_vr_impact_melee') + '\n'
 source += function('unit_vr_combat_strike') + '\n' + checks
 with tempfile.TemporaryDirectory(prefix='test67-strike-') as directory:

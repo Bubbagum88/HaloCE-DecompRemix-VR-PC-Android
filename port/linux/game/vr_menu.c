@@ -1097,8 +1097,11 @@ static boolean vr_menu_requirement_met(struct vr_menu_dependency const *dependen
 		return isfinite(strength) && strength > 0.0f;
 	}
 	if (!strcmp(dependency->requires, "vr.npc_grab_assist")) {
+		/* (Test72: 15 cm or more is a choice of the player's, kept; less is
+		raised to the 30 cm above. Counting only 30 cm as enough raised a
+		player's 20 cm, then dropped it to 10 cm when the feature went off) */
 		real assist = config_real("vr.npc_grab_assist");
-		return isfinite(assist) && assist >= 0.295f;
+		return isfinite(assist) && assist >= 0.145f;
 	}
 	if (!strcmp(dependency->feature, "vr.slide") && !strcmp(dependency->requires, "vr.button_sprint"))
 		return config_boolean("vr.button_sprint") || config_boolean("vr.arm_run");

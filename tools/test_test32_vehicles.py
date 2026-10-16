@@ -85,7 +85,7 @@ static int handle_clears;
 static void vr_vehicle_handles_clear(void){handle_clears++;}
 static void vr_head_look_reset(void){}
 static void reset_hud_tap(void){}
-static int vr_first_person_vehicles(void){return 1;}
+static int first_person_view=1;static int vr_first_person_vehicles(void){return first_person_view;}
 static float render_interpolation_fraction(void){return .5f;}
 static int frame_begin(void){return 1;}
 static void synthesize_views(void){}
@@ -155,8 +155,12 @@ int main(void){
  unit.unit.parent_seat_index=1;vr_update_seat(unit_id);assert(requests==7);vehicle_id+=65536;vr_update_seat(unit_id);assert(requests==8&&!vr.seated);
  unit.object.parent_object_index=vehicle_id;vr_update_seat(unit_id);assert(requests==9);vr_render_reset_vehicle_view();vr_render_reset_vehicle_view();assert(requests==10);
  pool.valid=0;lookups=0;vr_update_seat(unit_id);assert(lookups==0&&requests==10);object_header_data=NULL;vr_update_seat(unit_id);assert(lookups==0);
- /* Preserve passenger seat orientation, independently from selected gun controls. */
- reset();unit.object.forward=(real_vector3d){0,1,0};vr_update_seat(100);near(vr_render.seat.offset,1.57079632679f);assert(vr_vehicle_aim_source()==0);
+ /* Preserve passenger seat orientation, independently from selected gun controls.
+  * Test72 (the owner: passengers "lock to head view"): in the first-person
+  * seat view a passenger aims the gun in hand (1, as on foot); in the
+  * third-person view, with no hands drawn, the head (0) as before. */
+ reset();unit.object.forward=(real_vector3d){0,1,0};vr_update_seat(100);near(vr_render.seat.offset,1.57079632679f);assert(vr_vehicle_aim_source()==1);
+ first_person_view=0;assert(vr_vehicle_aim_source()==0);first_person_view=1;assert(vr_vehicle_aim_source()==1);
  assert(!vr_render_mounted_direct_fire(100)); /* passenger retains native assist */
  unit.object.parent_object_index=NONE;vr_update_seat(100);assert(vr_vehicle_aim_source()==1);
  unit.object.parent_object_index=200;unit.unit.parent_seat_index=2;vr_update_seat(100);

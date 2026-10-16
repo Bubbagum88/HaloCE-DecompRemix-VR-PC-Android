@@ -242,7 +242,7 @@ int main(void)
     /* Test66: NPC GRAB and FIST COMBAT bring GRAB ASSIST of at least 10 cm,
      * back to 5 cm when the last of them goes; more chosen by hand stays */
     /* Test70: NPC GRAB and FIST COMBAT bring 15 cm; released, 10 cm */
-    assist_store=0.05f;choose("vr.npc_interaction",1);assert(assist_store>0.149f&&assist_store<0.151f);
+    assist_store=0.05f;choose("vr.npc_interaction",1);assert(assist_store>0.299f&&assist_store<0.301f); /* Test72: raised to 30 cm */
     choose("vr.assisted_combat",1);choose("vr.npc_interaction",0);assert(assist_store>0.149f);
     choose("vr.assisted_combat",0);assert(assist_store>0.099f&&assist_store<0.101f);
     assist_store=0.20f;choose("vr.npc_interaction",1);choose("vr.npc_interaction",0);assert(assist_store>0.199f);

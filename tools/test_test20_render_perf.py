@@ -40,6 +40,8 @@ common=r'''
 #include <string.h>
 #include <stdarg.h>
 #define HALO_ANDROID 1
+/* Test72: the per-eye counts ([vr-eyes]) are the VR build's; nothing here */
+#define vr_pass_count(draws, bytes) ((void)0)
 #define BOOL int
 #define TRUE 1
 #define FALSE 0

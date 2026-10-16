@@ -231,6 +231,8 @@ static void pause_lifecycle(void){
    assert(paused==expected&&widget_globals.pause_game_time_count==expected);
   }
   for(long i=0;i<vr_menu.navigation_count;i++){
+   /* (Test72: a screen's title, jump 4, is text, not a button) */
+   if(vr_menu.navigation[i].jump==4){assert(!vr_menu_widget_get(vr_menu.navigation[i].tag)->event_handlers.address);continue;}
    struct vr_menu_event_handler *handler=vr_menu_widget_get(vr_menu.navigation[i].tag)->event_handlers.address;
    assert(vr_menu_is_screen(handler->widget_tag.index));replace_root(&active,handler->widget_tag.index);
    assert(paused==expected&&widget_globals.pause_game_time_count==expected);
@@ -320,6 +322,12 @@ static void verify(void){
  for(long i=0;i<vr_menu.navigation_count;i++){
   struct vr_menu_widget *w=vr_menu_widget_get(vr_menu.navigation[i].tag);
   struct vr_menu_event_handler *e=w->event_handlers.address;
+  /* Test72: a screen's title (jump 4) is text: "PAGE: TOPIC", no handler */
+  if(vr_menu.navigation[i].jump==4){
+   assert(!e&&!w->event_handlers.count);
+   assert(vr_menu_setting_text(vr_menu.navigation[i].tag,text,128)&&wcsstr(text,L": "));
+   continue;
+  }
   assert(e->flags==VR_MENU_OPEN_WIDGET&&e->widget_tag.index!=NONE);bounds(e->widget_tag.index,0,0);
   assert(vr_menu_setting_text(vr_menu.navigation[i].tag,text,128));
   /* Test55: a sectioned page names the next topic; others say NEXT PAGE.

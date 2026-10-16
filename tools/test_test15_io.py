@@ -115,6 +115,8 @@ run('upload',r'''
 #include <stdlib.h>
 #include <string.h>
 #define HALO_ANDROID 1
+/* Test72: the per-eye counts ([vr-eyes]) are the VR build's; nothing here */
+#define vr_pass_count(draws, bytes) ((void)0)
 #define GL_ARRAY_BUFFER 1
 #define GL_ELEMENT_ARRAY_BUFFER 2
 #define INDEX_BUFFER_SIZE 4096

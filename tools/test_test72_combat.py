@@ -148,7 +148,7 @@ for key, old, new in (("vr.combat_lunge_reach", "8.0", "12.0"), ("vr.combat_hit_
                       ("vr.combat_lunge_hop", "0.15", "0.30"), ("vr.npc_grab_assist", "0.15", "0.30")):
     assert '{ "%s", %s, %s },' % (key, old, new) in migration, key
 assert "fabs(config_real(moves[index].key) - moves[index].old_value) < 0.001" in migration
-assert 'return on ? "0.30" : "0.10";' in menu and "assist >= 0.295f" in menu
+assert 'return on ? "0.30" : "0.10";' in menu and "assist >= 0.145f" in menu  # (a player's 15 cm or more kept)
 # the menus offer the new defaults and ranges
 assert '{ "12 M", "12" }, { "15 M", "15" }' in menu
 assert '{ "50 CM", "0.50" }, { "60 CM", "0.60" }, { "70 CM", "0.70" }' in menu
