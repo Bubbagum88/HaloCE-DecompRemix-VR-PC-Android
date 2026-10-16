@@ -692,6 +692,8 @@ static struct vr_menu_setting const vr_menu_effects[] =
 	/* Test72: the eye drawn first (vr.eye_order): a test for a picture
 	spoilt in one eye only */
 	{ "EYE ORDER", "vr.eye_order", _vr_setting_string, 2, { { "LEFT FIRST", "left" }, { "RIGHT FIRST", "right" } } },
+	/* Test72: HaloFreak95's fast decals (off on the Quest until measured) */
+	{ "FAST DECALS", "display.decals_on_gpu", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 };
 
 /* test20c/d: the visible hands (never the gun: one row turns both, the

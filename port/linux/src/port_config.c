@@ -419,6 +419,18 @@ static const struct config_setting config_settings[] =
 		"bolts lighting the level and what they pass in their own color, needles\n"
 		"more dimly (projectile_lights.c). This machine's alone: nothing is\n"
 		"sent. false: the game's own." },
+#ifdef HALO_ANDROID
+	{ "display.decals_on_gpu", _config_boolean, "false", "HALO_GPU_DECALS", _environment_value, _platform_all,
+		"FAST DECALS (Test72, HaloFreak95's): decals (bullet holes, scorch marks, blood) drawn from the\n"
+		"vertices they were made with, a draw each, as the Xbox drew them, instead of their vertices\n"
+		"written again every frame. The picture is the same. Off by default on Android and the Quest,\n"
+		"whose frames are bound by their draws, until measured there ([render-perf] shows the draws)." },
+#else
+	{ "display.decals_on_gpu", _config_boolean, "true", "HALO_GPU_DECALS", _environment_value, _platform_all,
+		"FAST DECALS (Test72, HaloFreak95's): decals (bullet holes, scorch marks, blood) drawn from the\n"
+		"vertices they were made with, a draw each, as the Xbox drew them, instead of their vertices\n"
+		"written again every frame. The picture is the same; many decals cost a fraction. Off: as before." },
+#endif
 	{ "display.shield_glow", _config_boolean, "false", "HALO_SHIELD_GLOW", _environment_value, _platform_all,
 		"Energy shields light what is around them as they flare, as plasma\n"
 		"does, in the shield's own color." },
