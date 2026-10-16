@@ -68,7 +68,8 @@ assert "scope_path_log(5, zoom_level, shape)" in scope_window
 assert "state == previous_state" in scope_path_log
 assert "hold the off-hand index trigger" in scope_path_log
 package_gate = read("tools/package-quest.py")
-assert ('current_upstream_markers = ([b"OpenCE Build206 merged / network29"' in package_gate or
+assert ('current_upstream_markers = ([b"OpenCE Build208 merged / network29"' in package_gate or
+        'current_upstream_markers = ([b"OpenCE Build206 merged / network29"' in package_gate or
         'current_upstream_markers = ([b"OpenCE Build201 merged / network28"' in package_gate or
         'current_upstream_markers = ([b"OpenCE Build157 base / network28"' in package_gate or
         'current_upstream_markers = ([b"OpenCE Build157 base / network26"' in package_gate or

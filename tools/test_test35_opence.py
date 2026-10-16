@@ -76,7 +76,7 @@ assert ("HaloCE Quest test72 candidate 1.0.39-test72 code84" in frame or
         "HaloCE Quest test51 candidate 1.0.32-test51 code62" in frame or
         "HaloCE Quest test50 candidate 1.0.31-test50 code61" in frame or
         "HaloCE Quest test49 candidate 1.0.30-test49 code60" in frame)
-assert ("OpenCE Build206 merged / network29" in frame or
+assert ("OpenCE Build208 merged / network29" in frame or "OpenCE Build206 merged / network29" in frame or
         "OpenCE Build201 merged / network28" in frame or
         "OpenCE Build157 base / network28; selected fixes through Build201" in frame or
         "OpenCE Build157 base / network26; selected fixes through Build184" in frame or

@@ -94,6 +94,8 @@ for path, digest in (UPSTREAM_144 if network < 23 else []):
 expected_upstream = ('OpenCE build 144 (network 21)' if network == 21 else
                      'OpenCE build 145 (network 22)' if network == 22 else
                      'OpenCE build 148 (network 23)' if network == 23 else
+                     "Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 208 are included, with OpenCE's network 25 (units' integrated lights), 26 (internet signalling), 27 (map sharing: this app's hosts answer that they share no maps), 28 (its gameplay rules) and 29 (Custom Edition maps keep their names; the map's version is its hash's), so current OpenCE servers can be joined and can join this app's hosts; OpenCE's browser players cannot join this app's hosts. This is not a full Build208 rebase."
+                      if 'Build208' in updater else
                      ("Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 206 are included, with OpenCE's network 25 (units' integrated lights), 26 (internet signalling), 27 (map sharing: this app's hosts answer that they share no maps), 28 (its gameplay rules) and 29 (Custom Edition maps keep their names; the map's version is its hash's), so current OpenCE servers can be joined and can join this app's hosts; OpenCE's browser players cannot join this app's hosts. This is not a full Build206 rebase."
                       if 'Build206' in updater else
                       'Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177 are included; Build175\'s old-kernel mapping guard is retained. This is not a full Build177 rebase, and network24 is unchanged.'

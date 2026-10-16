@@ -434,6 +434,10 @@ int voice_audio_play(int speaker, unsigned short sequence, const unsigned char *
 
 	if (length <= 0 || length > VOICE_MAXIMUM_PACKET)
 		return 0;
+	/* (OpenCE build 208: every build sends a frame of 20 ms: anything else,
+	damaged, is dropped before the decoder sees it, and made up for as lost) */
+	if (opus_packet_get_nb_samples(packet, length, VOICE_RATE) != VOICE_FRAME_SAMPLES)
+		return 0;
 	pthread_mutex_lock(&voice_lock);
 	slot = voice_slot_for(speaker, TRUE);
 	if (!slot)
