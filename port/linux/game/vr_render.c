@@ -82,6 +82,29 @@ static void vr_vehicle_handles_clear(void);
 static int vr_vehicle_handles_head_aims(void);
 
 int vr_render_pass = _vr_render_pass_none;
+int vr_render_first_eye = _vr_render_pass_left_eye;
+
+/* Test72 (the owner: the left eye alone shows models stretched and garbled
+at times, the right never, SPV1 and multiplayer alike, worse as the frame
+rate falls): which eye is drawn first each frame, vr.eye_order. The first is
+the pass that advances the frame's state (VR_RENDER_REPEAT) and the one the
+renderer begins after everything between frames; "right" draws the right
+eye first. Garbling that moves to the right eye with it belongs to the first
+pass, garbling that stays is the left eye's own. */
+static int vr_render_eye_order(void)
+{
+	static int logged = -1;
+	int first = strcmp(config_string("vr.eye_order"), "right") == 0 ?
+		_vr_render_pass_right_eye : _vr_render_pass_left_eye;
+
+	if (first != logged)
+	{
+		platform_log("vr: the %s eye is drawn first each frame (vr.eye_order)",
+			first == _vr_render_pass_right_eye ? "right" : "left");
+		logged = first;
+	}
+	return first;
+}
 
 /* Script print text still reaches the run log, without a floating green
 terminal overlay in VR. vr.script_messages restores the overlay for diagnosis. */
@@ -1026,13 +1049,15 @@ static void vr_eye_diagnostics(struct render_window const *windows)
 	boolean changed = !map || strncmp(map, logged_map, sizeof(logged_map) - 1) != 0;
 	int eye;
 
+	/* (each eye's window: vr.eye_order may draw the right eye first) */
 	for (eye = 0; eye < 2 && !changed; eye++)
 	{
 		int k;
 		for (k = 0; k < 4; k++)
 			if (!(fabsf(vr_render.eye_bounds[eye].n[k] - logged[eye].n[k]) <= 0.01f))
 				changed = TRUE;
-		if (memcmp(&windows[eye].rasterizer_camera.viewport_bounds, &logged_viewport[eye], sizeof(logged_viewport[eye])))
+		if (memcmp(&windows[eye ^ vr_render_first_eye].rasterizer_camera.viewport_bounds, &logged_viewport[eye],
+			sizeof(logged_viewport[eye])))
 			changed = TRUE;
 	}
 	if (!changed)
@@ -1040,7 +1065,7 @@ static void vr_eye_diagnostics(struct render_window const *windows)
 	snprintf(logged_map, sizeof(logged_map), "%s", map ? map : "");
 	for (eye = 0; eye < 2; eye++)
 	{
-		struct render_camera const *camera = &windows[eye].rasterizer_camera;
+		struct render_camera const *camera = &windows[eye ^ vr_render_first_eye].rasterizer_camera;
 		rectangle2d const *v = &camera->viewport_bounds;
 		real_rectangle2d const *b = &vr_render.eye_bounds[eye];
 		logged[eye] = *b;
@@ -1371,11 +1396,15 @@ short vr_render_windows(
 	vr_cockpit_update();
 	player = windows[0];
 	console = windows[1];
+	vr_render_first_eye = vr_render_eye_order();
 	for (eye = 0; eye < 2; eye++)
 	{
-		windows[eye] = player;
-		eye_camera(eye, &windows[eye].rasterizer_camera, &vr_render.eye_bounds[eye]);
-		windows[eye].render_camera = windows[eye].rasterizer_camera;
+		/* each eye's window: the first eye's is window 0 */
+		short window = (short)(eye ^ vr_render_first_eye);
+
+		windows[window] = player;
+		eye_camera(eye, &windows[window].rasterizer_camera, &vr_render.eye_bounds[eye]);
+		windows[window].render_camera = windows[window].rasterizer_camera;
 	}
 	vr_eye_diagnostics(windows);
 	view_anchor(&player.render_camera, &vr_render.game_camera_position);
@@ -1561,11 +1590,13 @@ short vr_render_windows(
             !TEST_FLAG(object_get(u)->object.damage_flags, _object_dead_bit))
             vr_render_body_matrices(u);
     }
-	vr_render.pass_of_window[0] = _vr_render_pass_left_eye;
-	vr_render.pass_of_window[1] = _vr_render_pass_right_eye;
+	for (eye = 0; eye < 2; eye++)
+	{
+		vr_render.pass_of_window[eye ^ vr_render_first_eye] =
+			eye ? _vr_render_pass_right_eye : _vr_render_pass_left_eye;
+		vr_render.eye_of_window[eye ^ vr_render_first_eye] = (short)eye;
+	}
 	vr_render.pass_of_window[2] = _vr_render_pass_hud;
-	vr_render.eye_of_window[0] = 0;
-	vr_render.eye_of_window[1] = 1;
 	/* zoomed: the scope's view before the HUD (window 2, within
 	MAXIMUM_WINDOWS for the rasterizer's per-window state) */
 	{
@@ -1589,6 +1620,11 @@ void vr_render_window_begin(
 {
 	vr_render_pass = (vr_render.stereo || vr_render.cinema) && window_index >= 0 && window_index < 5 ?
 		vr_render.pass_of_window[window_index] : _vr_render_pass_none;
+	/* Test72: the first eye begins as the second does, from GL state set
+	anew (the second follows its resolve, which sets it anew): not from
+	what the runtime's frame and the work between frames left bound */
+	if (VR_RENDER_EYE() && vr_render_pass == vr_render_first_eye)
+		halo_vr_first_eye_begin();
 	vr_pass_mark(vr_render_pass, 0);
 }
 

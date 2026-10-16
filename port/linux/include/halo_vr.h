@@ -70,8 +70,14 @@ int vr_hud_hidden(void);
 /* a view of the world for the headset alone: no HUD drawn over it, and no
 fog screen (which assumes the game's own camera and frustum) */
 #define VR_RENDER_VIEW() (VR_RENDER_EYE() || VR_RENDER_SCOPE())
+/* Test72: the eye drawn first each frame (_vr_render_pass_left_eye unless
+vr.eye_order is "right", port/linux/game/vr_render.c): the other is the
+repeat */
+extern int vr_render_first_eye;
+/* port/linux/src/d3d8_gl.c: GL state set anew before the first eye */
+void halo_vr_first_eye_begin(void);
 /* the passes after the first, which must not advance per-frame state */
-#define VR_RENDER_REPEAT() (vr_render_pass == _vr_render_pass_right_eye || \
+#define VR_RENDER_REPEAT() ((VR_RENDER_EYE() && vr_render_pass != vr_render_first_eye) || \
 	vr_render_pass == _vr_render_pass_hud || vr_render_pass == _vr_render_pass_cinema_right_eye || \
 	vr_render_pass == _vr_render_pass_scope)
 

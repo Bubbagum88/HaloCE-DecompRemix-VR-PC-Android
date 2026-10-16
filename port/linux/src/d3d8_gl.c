@@ -652,6 +652,27 @@ static void upload_perf_add_timed(unsigned long long start_ns)
 		upload_perf.timed_upload_max_ns = spent;
 }
 
+#ifdef HALO_VR
+/* Test72 (the left eye alone garbled at times): each VR pass's draws and
+streamed bytes, logged with [render-perf] as [vr-eyes]. The eyes see nearly
+the same scene; one drawing far more or less than the other is a lead */
+extern int vr_render_pass;
+extern int vr_render_first_eye;
+static unsigned long vr_pass_draws[6];
+static unsigned long long vr_pass_bytes[6];
+
+static void vr_pass_count(unsigned long draws, unsigned long bytes)
+{
+	if (vr_render_pass >= 0 && vr_render_pass < 6)
+	{
+		vr_pass_draws[vr_render_pass] += draws;
+		vr_pass_bytes[vr_render_pass] += bytes;
+	}
+}
+#else
+#define vr_pass_count(draws, bytes) ((void)0)
+#endif
+
 static void upload_perf_frame(BOOL safe)
 {
 	unsigned long long now = perf_now_ns();
@@ -677,6 +698,24 @@ static void upload_perf_frame(BOOL safe)
 		(double)upload_perf.uploads / frames, (double)upload_perf.upload_bytes / frames / 1024.0, upload_ms,
 		UPLOAD_TIMING_SAMPLE, (double)upload_perf.timed_upload_max_ns * 1e-6, upload_perf.orphans,
 		(double)upload_perf.ring_wait_ns * 1e-6 / frames, (double)upload_perf.ring_wait_max_ns * 1e-6);
+#ifdef HALO_VR
+	if (vr_pass_draws[0] || vr_pass_draws[1])
+	{
+		double left = (double)vr_pass_draws[0] / frames, right = (double)vr_pass_draws[1] / frames;
+		double larger = left > right ? left : right;
+
+		platform_log("[vr-eyes] per frame: left eye %.0f draws (%.0f KB), right eye %.0f draws (%.0f KB), "
+			"scope %.0f, HUD %.0f; the %s eye drawn first",
+			left, (double)vr_pass_bytes[0] / frames / 1024.0, right, (double)vr_pass_bytes[1] / frames / 1024.0,
+			(double)vr_pass_draws[5] / frames, (double)vr_pass_draws[2] / frames,
+			vr_render_first_eye ? "right" : "left");
+		if (fabs(left - right) > 20.0 && fabs(left - right) > 0.25 * larger)
+			platform_log("[vr-eyes] the eyes drew different amounts (%.0f and %.0f draws a frame): "
+				"what one eye draws the other does not", left, right);
+	}
+	memset(vr_pass_draws, 0, sizeof(vr_pass_draws));
+	memset(vr_pass_bytes, 0, sizeof(vr_pass_bytes));
+#endif
 	memset(&upload_perf, 0, sizeof(upload_perf));
 	upload_perf.start_ns = now;
 }
@@ -3416,6 +3455,7 @@ static struct program_entry *prepare_draw(BOOL immediate)
 	else
 		stats.draws++;
 	upload_perf.draws++;
+	vr_pass_count(1, 0);
 	state_program(entry->program);
 	if (key.glow && entry->glow >= 0 && memcmp(entry->glow_value, glow_value, sizeof(glow_value)))
 	{
@@ -4012,6 +4052,7 @@ static unsigned long stream_upload(const void *data, unsigned long size)
 	if (++upload_perf.uploads % UPLOAD_TIMING_SAMPLE == 0)
 		timed = perf_now_ns();
 	upload_perf.upload_bytes += size;
+	vr_pass_count(0, size);
 	stream_reserve(reserved);
 	offset = device.stream_offset;
 	state_array_buffer(device.stream_buffer);
@@ -4088,6 +4129,7 @@ static unsigned long index_upload(const void *data, unsigned long size)
 	if (++upload_perf.uploads % UPLOAD_TIMING_SAMPLE == 0)
 		timed = perf_now_ns();
 	upload_perf.upload_bytes += size;
+	vr_pass_count(0, size);
 	state_element_array_buffer(device.index_buffer);
 	if (device.index_offset + reserved > INDEX_BUFFER_SIZE)
 	{
@@ -4912,6 +4954,20 @@ void halo_vr_skinning_mirrored(int mirrored)
 }
 
 /* ---------- the headset's stereo frames (port/linux/include/halo_vr.h) */
+
+/* Test72: before the frame's first eye, the bindings the renderer keeps
+(its vertex array, its cached state) made again, and buffers it never binds
+for pixels unbound: the second eye begins after halo_vr_resolve_eye, which
+does the same, and the two eyes then start alike */
+void halo_vr_first_eye_begin(void)
+{
+	if (!device.gl_ready)
+		return;
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+	glBindVertexArray(device.vertex_array);
+	xgpu_gl_state_invalidate();
+}
 
 void halo_vr_resolve_eye(int eye)
 {

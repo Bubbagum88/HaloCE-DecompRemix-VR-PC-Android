@@ -920,6 +920,12 @@ static const struct config_setting config_settings[] =
 		"runtime offers at or below it; 0 leaves the runtime's choice. The Quest 3\n"
 		"offers 72, 80, 90 and 120; SteamVR on the Steam Frame offers only the\n"
 		"rate its own display setting is on." },
+	{ "vr.eye_order", _config_string, "\"left\"", "HALO_VR_EYE_ORDER", _environment_value, _platform_vr,
+		"Which eye is drawn first each frame: \"left\" (as always) or \"right\".\n"
+		"The first eye's pass also moves the frame's effects on (the gun posed,\n"
+		"rain, glows), so both eyes still show the same moment. A test for a\n"
+		"picture spoilt in one eye only: if it moves to the other eye with this,\n"
+		"it belongs to the first pass, not to that eye." },
 	{ "vr.cutscenes", _config_string, "\"immersive\"", "HALO_VR_CUTSCENES", _environment_value, _platform_vr,
 		"\"immersive\": cutscenes around you, seen from their camera as you look\n"
 		"about (a moment of black at each cut); \"screen\": on a large screen\n"

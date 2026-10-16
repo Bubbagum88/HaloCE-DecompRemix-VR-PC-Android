@@ -46,7 +46,8 @@ for field in ("bounds x %.3f..%.3f y %.3f..%.3f", "viewport %d,%d-%d,%d", "custo
 assert "the eyes' views do not mirror each other" in diagnostics
 assert "vr_eye_diagnostics(windows);" in render
 # the indices agree: eye_camera fills eye_bounds[eye], the frustum reads eye_bounds[pass]
-assert "eye_camera(eye, &windows[eye].rasterizer_camera, &vr_render.eye_bounds[eye]);" in render
+assert "eye_camera(eye, &windows[window].rasterizer_camera, &vr_render.eye_bounds[eye]);" in render
+assert "short window = (short)(eye ^ vr_render_first_eye);" in render
 assert "*bounds = vr_render.eye_bounds[vr_render_pass];" in render
 enum = halo_vr[halo_vr.index("_vr_render_pass_none = -1,"):]
 assert re.match(r"_vr_render_pass_none = -1,\s*_vr_render_pass_left_eye,\s*_vr_render_pass_right_eye,", enum)

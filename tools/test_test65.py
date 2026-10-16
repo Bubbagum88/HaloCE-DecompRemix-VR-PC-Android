@@ -79,7 +79,7 @@ assert '"GRIP GUIDE", "vr.vehicle_grip_guide"' in menu
 default("vr.vehicle_cockpit_lock", "_config_boolean", "true")
 assert '"COCKPIT LOCK", "vr.vehicle_cockpit_lock"' in menu
 stereo = render[render.index("vr_cockpit_update();"):]
-assert stereo.index("vr_cockpit_update();") < stereo.index("eye_camera(eye, &windows[eye].rasterizer_camera")
+assert stereo.index("vr_cockpit_update();") < stereo.index("eye_camera(eye, &windows[window].rasterizer_camera")  # (Test72: each eye's window, vr.eye_order)
 update = fn(render, "static void vr_cockpit_update(")
 assert "vr_vehicle_handles_steady()" in update and "vr_render.seat.driver" in update and 'config_boolean("vr.vehicle_cockpit_lock")' in update
 assert "vr_set_cockpit_frame((float)NAN, NULL, NULL, NULL);" in update
@@ -96,7 +96,9 @@ assert "vr.hand_swap_distance > 0.0f && hands_apart < vr.hand_swap_distance && !
 assert "hands_apart < 0.2f && !vr.grip_held[w]" not in frame
 controls = menu[menu.index("static struct vr_menu_setting const vr_menu_controls[] ="):]
 controls = controls[:controls.index("};")]
-assert controls.index('"TWO HANDS"') < controls.index('"HAND SWAP", "vr.hand_swap_distance"')
+# (Test72: the TWO HANDS row is VR_IMMERSION_TWO_HANDS, shared with IMMERSION)
+assert '#define VR_IMMERSION_TWO_HANDS { "TWO HANDS", "vr.two_handed",' in menu
+assert controls.index('VR_IMMERSION_TWO_HANDS') < controls.index('"HAND SWAP", "vr.hand_swap_distance"')
 assert '{ "OFF", "0" }, { "6 CM", "0.06" }, { "8 CM", "0.08" }, { "10 CM", "0.1" }' in controls
 
 # 4. the turret: the engine's vehicle-on-biped crush spares the holder

@@ -680,6 +680,9 @@ static struct vr_menu_setting const vr_menu_effects[] =
 	{ "SHIELD GLOW", "display.shield_glow", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	{ "GLOW REACH", "display.shield_glow_intensity", _vr_setting_string, 2, { { "DEFAULT", "default" }, { "LIGHT SHOW", "light_show" } } },
 	{ "ARM SHIELD", "display.viewmodel_shield", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
+	/* Test72: the eye drawn first (vr.eye_order): a test for a picture
+	spoilt in one eye only */
+	{ "EYE ORDER", "vr.eye_order", _vr_setting_string, 2, { { "LEFT FIRST", "left" }, { "RIGHT FIRST", "right" } } },
 };
 
 /* test20c/d: the visible hands (never the gun: one row turns both, the
