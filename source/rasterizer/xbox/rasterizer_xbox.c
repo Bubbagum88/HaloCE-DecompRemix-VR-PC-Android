@@ -1398,6 +1398,43 @@ void rasterizer_vr_part_winding(struct vertex_buffer const *vertices, struct tri
 }
 #endif
 
+/* port: Test72: an incompatible bitmap is reported once for each bitmap and
+the kind its shader wanted, then counted (a summary each 2000 more). SPV1's
+maps give a cube map's place a 2D bitmap at every draw: 9669 lines in the
+owner's 70-second log, about 120 writes to the log a second on the Quest,
+the same fallback (the kind's default) drawn each time. */
+void platform_log(char const *format, ...);
+char *tag_get_name(long tag_index); /* tag_files/tag_files.h */
+static boolean bitmap_type_error_first(long definition_index, short actual, short type)
+{
+	static long seen[128];
+	static short seen_type[128];
+	static int seen_count;
+	static unsigned long repeats;
+	int index;
+
+	for (index = 0; index < seen_count; index++)
+	{
+		if (seen[index] == definition_index && seen_type[index] == type)
+		{
+			if (++repeats % 2000 == 0)
+				platform_log("rasterizer: %lu more draws with an incompatible bitmap (each drawn with its kind's default)",
+					repeats);
+			return FALSE;
+		}
+	}
+	if (seen_count < (int)(sizeof(seen) / sizeof(seen[0])))
+	{
+		seen[seen_count] = definition_index;
+		seen_type[seen_count] = type;
+		seen_count++;
+	}
+	platform_log("rasterizer: bitmap %s is a %s where its shader wants a %s: drawn with the default %s (once a bitmap)",
+		definition_index != NONE ? tag_get_name(definition_index) : "(none)",
+		bitmap_type_get_string(actual), bitmap_type_get_string(type), bitmap_type_get_string(type));
+	return TRUE;
+}
+
 boolean rasterizer_set_texture_non_blocking(
 	short stage,
 	short type,
@@ -1434,6 +1471,8 @@ boolean rasterizer_set_texture_non_blocking(
 			{
 				if (bitmap->type != type)
 				{
+					/* port: Test72: once a bitmap and kind (bitmap_type_error_first) */
+					if (bitmap_type_error_first(bitmap_definition_index, bitmap->type, type))
 					error(
 						_error_silent,
 						"### ERROR incompatible bitmap type in shader got %s expected %s",
@@ -2164,6 +2203,8 @@ union point2d *rasterizer_set_texture(
 			}
 			else
 			{
+				/* port: Test72: once a bitmap and kind (bitmap_type_error_first) */
+				if (bitmap_type_error_first(bitmap_definition_index, bitmap->type, type))
 				error(
 					_error_silent,
 					"### ERROR incompatible bitmap type in shader got %s expected %s",

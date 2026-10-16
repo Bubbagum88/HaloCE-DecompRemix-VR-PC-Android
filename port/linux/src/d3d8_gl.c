@@ -3964,6 +3964,21 @@ static void stream_reserve(unsigned long size)
 {
 	if (device.stream_offset + size > STREAM_BUFFER_SIZE)
 	{
+#ifdef HALO_VR
+		/* Test72: which pass filled the buffer (SPV1: 26 MB of geometry a
+		frame against its 16, the GPU waited mid-frame), once a minute */
+		{
+			extern int vr_render_pass;
+			static unsigned long long logged_ns;
+			unsigned long long now = perf_now_ns();
+			if (!logged_ns || now - logged_ns > 60000000000ULL)
+			{
+				platform_log("stream buffer full during VR pass %d (0 the left eye, 1 the right eye): "
+					"%lu bytes this frame before it", vr_render_pass, device.stream_offset);
+				logged_ns = now;
+			}
+		}
+#endif
 #ifdef HALO_ANDROID
 		if (device.stream_persistent)
 		{

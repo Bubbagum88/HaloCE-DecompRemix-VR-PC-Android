@@ -1012,6 +1012,54 @@ static void view_anchor(
 	}
 }
 
+/* Test72 (the owner: SPV1's left eye stretches at times): each eye's view
+as it is drawn, logged once a map and again when it changes (a bound by more
+than a hundredth, a viewport): its frustum bounds (tangents), viewport,
+aspect and field, the map and whether Custom Edition maps load. The two eyes
+should mirror each other; a difference says which. */
+static void vr_eye_diagnostics(struct render_window const *windows)
+{
+	static char logged_map[64];
+	static real_rectangle2d logged[2];
+	static rectangle2d logged_viewport[2];
+	char const *map = main_get_map_name();
+	boolean changed = !map || strncmp(map, logged_map, sizeof(logged_map) - 1) != 0;
+	int eye;
+
+	for (eye = 0; eye < 2 && !changed; eye++)
+	{
+		int k;
+		for (k = 0; k < 4; k++)
+			if (!(fabsf(vr_render.eye_bounds[eye].n[k] - logged[eye].n[k]) <= 0.01f))
+				changed = TRUE;
+		if (memcmp(&windows[eye].rasterizer_camera.viewport_bounds, &logged_viewport[eye], sizeof(logged_viewport[eye])))
+			changed = TRUE;
+	}
+	if (!changed)
+		return;
+	snprintf(logged_map, sizeof(logged_map), "%s", map ? map : "");
+	for (eye = 0; eye < 2; eye++)
+	{
+		struct render_camera const *camera = &windows[eye].rasterizer_camera;
+		rectangle2d const *v = &camera->viewport_bounds;
+		real_rectangle2d const *b = &vr_render.eye_bounds[eye];
+		logged[eye] = *b;
+		logged_viewport[eye] = *v;
+		platform_log("vr: %s eye on %s (custom edition %s): bounds x %.3f..%.3f y %.3f..%.3f, viewport %d,%d-%d,%d "
+			"(aspect %.3f), field %.3f rad",
+			eye ? "right" : "left", map && *map ? map : "?", config_boolean("game.custom_edition") ? "on" : "off",
+			b->x0, b->x1, b->y0, b->y1, v->x0, v->y0, v->x1, v->y1,
+			v->y1 > v->y0 ? (real)(v->x1 - v->x0) / (real)(v->y1 - v->y0) : 0.0f, camera->vertical_field_of_view);
+	}
+	{
+		real_rectangle2d const *l = &vr_render.eye_bounds[0], *r = &vr_render.eye_bounds[1];
+		/* mirrored: the left's left edge the right's right, the heights alike */
+		real asymmetry = fabsf(l->x0 + r->x1) + fabsf(l->x1 + r->x0) + fabsf(l->y0 - r->y0) + fabsf(l->y1 - r->y1);
+		if (asymmetry > 0.05f)
+			platform_log("vr: the eyes' views do not mirror each other (difference %.3f)", asymmetry);
+	}
+}
+
 static void eye_camera(
 	int eye,
 	struct render_camera *camera,
@@ -1329,6 +1377,7 @@ short vr_render_windows(
 		eye_camera(eye, &windows[eye].rasterizer_camera, &vr_render.eye_bounds[eye]);
 		windows[eye].render_camera = windows[eye].rasterizer_camera;
 	}
+	vr_eye_diagnostics(windows);
 	view_anchor(&player.render_camera, &vr_render.game_camera_position);
 	vr_render.game_camera_time = vr_pose_time();
 	vr_render.head_camera = player.render_camera;
