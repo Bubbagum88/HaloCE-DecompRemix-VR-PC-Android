@@ -545,13 +545,14 @@ static void combat_tick(long unit)
     if(extra.parry_echo_tick>0&&now>=extra.parry_echo_tick){
         extra.parry_echo_tick=0;extra_pulse(0,.85f,.05f);extra_pulse(1,.85f,.05f);
     }
-    for(int h=0;h<2;h++){
-        int owner=vr_interaction_owner(h);
-        if(owner==VR_INTERACTION_NPC&&extra.grab_owner[h]!=VR_INTERACTION_NPC&&extra.combo>0&&now<=extra.combo_until){
+    /* (gnu89: a for loop's variable is the block's: not h again) */
+    for(int grab_hand=0;grab_hand<2;grab_hand++){
+        int owner=vr_interaction_owner(grab_hand);
+        if(owner==VR_INTERACTION_NPC&&extra.grab_owner[grab_hand]!=VR_INTERACTION_NPC&&extra.combo>0&&now<=extra.combo_until){
             long held=NONE;short node=NONE;float point[3];
-            if(vr_npc_interaction_contact(h,&held,&node,point)&&extra_enemy(unit,held))combat_combo_add(1,"a grab");
+            if(vr_npc_interaction_contact(grab_hand,&held,&node,point)&&extra_enemy(unit,held))combat_combo_add(1,"a grab");
         }
-        extra.grab_owner[h]=owner;
+        extra.grab_owner[grab_hand]=owner;
     }
     if(extra.strike_pending&&extra.strike_held){
         real_point3d at,chest;real_vector3d along,to_chest;real_point3d camera_point;

@@ -87,7 +87,7 @@ assert '{ "vr.menu_anchor", _config_string, "\\"head\\""' in config
 for key, default in (("vr.menu_distance", "1.6"), ("vr.menu_scale", "1.0"), ("vr.menu_height", "0.0")):
     assert '{ "%s", _config_real, "%s"' % (key, default) in config, key
 assert '{ "MENU POSITION", "vr.menu_anchor", _vr_setting_string, 3, { { "HEAD LOCKED", "head" }, { "WORLD", "world" }, { "FOLLOW", "follow" } } },' in hud
-pose = frame[frame.index("static int menu_world_pose(void)"):]
+pose = frame[frame.index("static int menu_world_pose(void)\n{"):]  # (the definition, not its prototype)
 pose = pose[:pose.index("\n}\n")]
 assert "(vr.frame.flags & HALO_XR_FRAME_RECENTRED)" in pose and "HALO_XR_HAND_STICK" in pose
 assert "if (!vr.menus_active || vr.mode != VR_MODE_STEREO || !anchor)" in pose

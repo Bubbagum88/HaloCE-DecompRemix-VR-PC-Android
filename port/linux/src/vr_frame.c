@@ -3214,6 +3214,8 @@ static void frame_end(const struct halo_xr_layers *layers)
 }
 
 static void dump_image(unsigned int which, int index, const char *name);
+/* Test72: MENU POSITION (defined with the menus' placement, below) */
+static int menu_world_pose(void);
 
 /* this frame's images are to be written (vr.dump_frame of stereo play,
 vr.dump_cinema_frame of cutscenes) */
