@@ -37,8 +37,8 @@ android {
         applicationId "com.halo.decomp"
         minSdk 28
         targetSdk 35
-        versionCode Math.max(83, buildNumber)
-        versionName requestedVersionName ?: (buildNumber > 0 ? "build " + buildNumber : "1.0.38-test71")
+        versionCode Math.max(84, buildNumber)
+        versionName requestedVersionName ?: (buildNumber > 0 ? "build " + buildNumber : "1.0.39-test72")
         buildConfigField "int", "HALO_BUILD_NUMBER", "${buildNumber}"
         buildConfigField "int", "HALO_NETWORK_VERSION", networkValue("HALO_PORT_NETWORK_VERSION")
         buildConfigField "int", "HALO_NETWORK_MINIMUM", networkValue("HALO_PORT_NETWORK_VERSION_MINIMUM")
