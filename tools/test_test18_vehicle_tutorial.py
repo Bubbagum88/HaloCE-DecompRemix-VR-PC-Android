@@ -146,7 +146,7 @@ typedef union {struct{float x,y,z;};float n[3];} real_point3d;
 typedef union {struct{float i,j,k;};float n[3];} real_vector3d;
 struct unit_datum {long definition_index;};
 struct collision_result {float t;};
-static struct {int stereo,cinematic_view;struct {long vehicle_index,unit_index;float heading;int seated;}seat;real_point3d reticle_origin;real_vector3d reticle_direction;double reticle_time;} vr_render;
+static struct {int stereo,cinematic_view;struct {long vehicle_index,unit_index;float heading;int seated;int turret;}seat;real_point3d reticle_origin;real_vector3d reticle_direction;double reticle_time;} vr_render;
 static struct unit_datum vehicle={1};
 static const char *tag="vehicles\\warthog\\mp_warthog";
 static float all_up,local_up,all_forward,all_right;static int collided;

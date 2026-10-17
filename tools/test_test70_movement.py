@@ -57,7 +57,7 @@ assert '{ "vr.npc_grab_assist", _config_real, "0.30"' in config
 assert 'return on ? "0.30" : "0.10";' in menu
 assert "npc_contact_slack=assist;" in npc and "maximum_distance+=npc_contact_slack" in npc
 assert 'fabs(assist - 0.10) < 0.001' in frame and '"vr.test70_defaults_applied"' in frame
-assert '{ "FIST COMBAT", 8 }, { "FIST OPTIONS", 5 }' in menu  # Test72: COMBO DISPLAY
+assert '{ "FIST COMBAT", 8 }, { "FIST OPTIONS", 7 }' in menu  # Test72: COMBO DISPLAY, DEFLECT AID, DEFLECT FORCE
 # climbing and the wall jump
 assert "real r=radius*(attempt==0?1.0f:attempt==1?0.5f:0.25f);" in parkour
 assert "parkour_grab_rays(unit,&point,&palm,&look,&up,parkour_grab_radius(units),waist_z,&hit)" in parkour

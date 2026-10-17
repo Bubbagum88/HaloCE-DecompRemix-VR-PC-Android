@@ -83,13 +83,15 @@ assert ("OpenCE Build208 merged / network29" in frame or "OpenCE Build206 merged
         "OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176" in frame or
         "OpenCE Build 157 base / network 24; selected Build167 compatibility fixes" in frame)
 updater = read('port/android/app/src/main/java/com/halo/decomp/Updater.java')
-assert ('Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 206' in updater or
+assert ('Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 208' in updater or
+        'Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 206' in updater or
         'Engine base: OpenCE Build 157 / network 28. Selected fixes through Build 201' in updater or
         'Engine base: OpenCE Build 157 / network 26. Selected fixes through Build 184' in updater or
         'Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177' in updater or
         'Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167' in updater)
 package_script = read("tools/package-quest.py")
-assert ('b"Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 206' in package_script or
+assert ('b"Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 208' in package_script or
+        'b"Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 206' in package_script or
         'b"Engine base: OpenCE Build 157 / network 28. Selected fixes through Build 201' in package_script or
         'b"Engine base: OpenCE Build 157 / network 26. Selected fixes through Build 184' in package_script or
         'b"Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177' in package_script or
