@@ -182,6 +182,39 @@ public class HaloActivity extends SDLActivity implements TouchControls.LayoutTra
         super.onPause();
     }
 
+    /**
+     * Test72 (a player: "only the face and trigger buttons work. Dpad and
+     * sticks dont"): a controller's sticks and hat (its D-pad on most) reach
+     * SDL here, at the activity, as its buttons do (SDLActivity's
+     * dispatchKeyEvent). SDL's own path takes them only through its
+     * surface's listener - not while another view has the focus - and only
+     * when the event's source is exactly SOURCE_JOYSTICK, where some
+     * Bluetooth controllers say joystick and gamepad at once, so their
+     * motion was taken for a mouse's and dropped.
+     */
+    private final java.util.HashSet<Integer> motionDevicesLogged = new java.util.HashSet<>();
+
+    @Override
+    public boolean dispatchGenericMotionEvent(MotionEvent event) {
+        if ((event.getSource() & android.view.InputDevice.SOURCE_CLASS_JOYSTICK) != 0
+                && org.libsdl.app.SDLControllerManager.isDeviceSDLJoystick(event.getDeviceId())) {
+            if (motionDevicesLogged.add(event.getDeviceId())) {
+                android.view.InputDevice device = event.getDevice();
+                RunLog.line(String.format(java.util.Locale.ROOT,
+                        "Controller motion: %s (sources 0x%x, this event's 0x%x) to the game directly",
+                        device != null ? device.getName() : "?", device != null ? device.getSources() : 0,
+                        event.getSource()));
+            }
+            try {
+                org.libsdl.app.SDLControllerManager.handleJoystickMotionEvent(event);
+                return true;
+            } catch (RuntimeException notReady) {
+                /* (SDL not set up yet: its own path, as before) */
+            }
+        }
+        return super.dispatchGenericMotionEvent(event);
+    }
+
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         if (gamepads != null) gamepads.focus(hasFocus);
