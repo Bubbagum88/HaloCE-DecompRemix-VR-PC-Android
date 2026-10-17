@@ -1222,7 +1222,8 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if((requestCode==GameDataManager.PICK_ISO||requestCode==GameDataManager.PICK_FOLDER)&&dataManager().result(requestCode,resultCode,data))return;
+        if((requestCode==GameDataManager.PICK_ISO||requestCode==GameDataManager.PICK_FOLDER||requestCode==GameDataManager.PICK_SAVES_ZIP||
+            requestCode==GameDataManager.PICK_SAVES_FOLDER||requestCode==GameDataManager.EXPORT_SAVES)&&dataManager().result(requestCode,resultCode,data))return;
         if (requestCode == MOD_WEB_DOWNLOAD && selectedMod != null) {
             ModInstaller.Mod mod = selectedMod;
             if (resultCode != RESULT_OK) {

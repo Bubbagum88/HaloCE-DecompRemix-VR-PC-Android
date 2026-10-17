@@ -15,6 +15,8 @@ import java.util.*;
 /** Launcher UI and scoped-storage import; core identity/selection is testable Java. */
 final class GameDataManager {
     static final int PICK_ISO=71, PICK_FOLDER=72;
+    /* Test72: the active set's saves in from a .zip or a folder, out as a .zip (SaveTransfer) */
+    static final int PICK_SAVES_ZIP=73, PICK_SAVES_FOLDER=74, EXPORT_SAVES=75;
     final LauncherActivity activity;final File base;final Runnable changed;
     volatile Thread worker;
     GameDataManager(LauncherActivity a,File base,Runnable changed){activity=a;this.base=base;this.changed=changed;}
@@ -57,6 +59,10 @@ final class GameDataManager {
             }
             add(rows,"Import ISO / XISO",()->{visible[0].dismiss();pick(PICK_ISO);});add(rows,"Import / scan a folder",()->{visible[0].dismiss();pick(PICK_FOLDER);});
             add(rows,"Scan inbox",()->{visible[0].dismiss();run("Scanning inbox",()->scanInbox(library));});
+            TextView savesTitle=new TextView(activity);savesTitle.setText("Saves of the selected set (profiles, campaign checkpoint): bring them in from another device's save folder, a .zip of it, or an Xbox UDATA folder. Your current saves are backed up first ("+new File(active,"save-backups")+"); files of the same name are replaced, others kept.");rows.addView(savesTitle);
+            add(rows,"Import saves from a .zip",()->{visible[0].dismiss();pickSaves(PICK_SAVES_ZIP);});
+            add(rows,"Import saves from a folder",()->{visible[0].dismiss();pickSaves(PICK_SAVES_FOLDER);});
+            add(rows,"Export saves as a .zip",()->{visible[0].dismiss();pickSaves(EXPORT_SAVES);});
             ScrollView scroll=new ScrollView(activity);scroll.addView(rows);
             visible[0]=new GamepadNavigation.Builder(activity).setTitle("Game files & versions").setView(scroll).setPositiveButton("Close",null).show();
         }catch(Exception e){error(e);}
@@ -65,7 +71,47 @@ final class GameDataManager {
     private void pick(int request){Intent i=new Intent(request==PICK_ISO?Intent.ACTION_OPEN_DOCUMENT:Intent.ACTION_OPEN_DOCUMENT_TREE);
         i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         if(request==PICK_ISO){i.setType("*/*");i.addCategory(Intent.CATEGORY_OPENABLE);i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);}activity.startActivityForResult(i,request);}
+    private void pickSaves(int request){Intent i;
+        if(request==PICK_SAVES_FOLDER){i=new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);}
+        else if(request==EXPORT_SAVES){i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/zip");
+            i.putExtra(Intent.EXTRA_TITLE,"halo-saves-"+new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(new Date())+".zip");}
+        else {i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");}
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);activity.startActivityForResult(i,request);}
+    /** the active set's save folder, and where its backups go */
+    private File saveRoot(){return new File(GameDataLibrary.activeRoot(base),"save");}
+    private File saveBackups(){return new File(GameDataLibrary.activeRoot(base),"save-backups");}
+    boolean savesResult(int request,int result,Intent data){
+        if(request!=PICK_SAVES_ZIP&&request!=PICK_SAVES_FOLDER&&request!=EXPORT_SAVES)return false;
+        if(result!=Activity.RESULT_OK||data==null||data.getData()==null)return true;
+        Uri uri=data.getData();
+        if(request==EXPORT_SAVES){runSaves("Exporting saves",()->{int files;
+            try(OutputStream out=activity.getContentResolver().openOutputStream(uri,"w")){if(out==null)throw new IOException("Cannot write there");files=SaveTransfer.exportSaves(saveRoot(),out);}
+            if(files==0)throw new IOException("This set has no saves yet");RunLog.line("Saves exported: "+files+" files");return files+" save files exported.";});return true;}
+        runSaves("Importing saves",()->{SaveTransfer.Result r;
+            if(request==PICK_SAVES_ZIP){try(InputStream in=activity.getContentResolver().openInputStream(uri)){if(in==null)throw new IOException("Cannot read the .zip");
+                r=SaveTransfer.importSaves(SaveTransfer.zip(in),saveRoot(),saveBackups());}}
+            else r=SaveTransfer.importSaves(folder(uri),saveRoot(),saveBackups());
+            RunLog.line("Saves imported: "+r.describe());return r.describe()+".";});
+        return true;
+    }
+    /** a picked folder's files, with their paths in it */
+    private SaveTransfer.Source folder(Uri tree){return visitor->{int[] seen={0};walkTree(tree,DocumentsContract.getTreeDocumentId(tree),"",visitor,seen,0);};}
+    private void walkTree(Uri tree,String id,String prefix,SaveTransfer.Visitor visitor,int[] seen,int depth)throws IOException{
+        if(depth>16)return;
+        for(Doc d:children(tree,id)){if(++seen[0]>SaveTransfer.MAX_FILES*2)throw new IOException("The folder has too many files");
+            String path=prefix.isEmpty()?d.name:prefix+"/"+d.name;
+            if(d.dir())walkTree(tree,d.id,path,visitor,seen,depth+1);
+            else if(SaveTransfer.destination(path)!=null){try(InputStream in=activity.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree,d.id))){if(in==null)throw new IOException("Cannot read "+d.name);visitor.file(path,in);}}
+        }
+    }
+    interface SavesJob{String run()throws Exception;}
+    private void runSaves(String title,SavesJob job){
+        if(busy())return;ProgressDialog progress=new ProgressDialog(activity);progress.setTitle(title);progress.setMessage("Your current saves are backed up before anything is replaced.");progress.setIndeterminate(true);progress.setCancelable(false);progress.show();
+        worker=new Thread(()->{String message,heading;try{message=job.run();heading=title.startsWith("Export")?"Saves exported":"Saves imported";}catch(Exception e){message=e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();heading="Saves not changed";RunLog.line("Saves: "+e.getClass().getSimpleName()+": "+message);}
+            final String text=message,head=heading;activity.runOnUiThread(()->{worker=null;if(activity.isFinishing()||activity.isDestroyed())return;progress.dismiss();LauncherHelp.page(activity,head,text);});},"halo-saves");worker.start();
+    }
     boolean result(int request,int result,Intent data){
+        if(savesResult(request,result,data))return true;
         if(request!=PICK_ISO&&request!=PICK_FOLDER)return false;
         if(result!=Activity.RESULT_OK||data==null)return true;
         run("Importing game files",()->{
