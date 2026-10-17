@@ -387,6 +387,9 @@ void render_objects(
 /* port: port/linux/game/first_person_legs.c */
 boolean first_person_legs_wanted(long object_index);
 real_matrix4x3 const *first_person_legs_node_matrices(long object_index, real_matrix4x3 const *nodes);
+/* port: port/linux/game/holstered_weapons.c (Test72) */
+void holstered_weapons_render(long unit_index, real_matrix4x3 const *nodes, struct render_lighting const *lighting,
+	struct render_model_effect const *effect);
 /* port: port/linux/game/item_draw_scale.c */
 real_matrix4x3 const *item_draw_scale_node_matrices(long object_index, real_matrix4x3 const *nodes);
 /* (an item lying about in multiplayer drawn at its own size with
@@ -685,6 +688,25 @@ static void render_object_list(
 						object_index,
 						object->object.forced_shader_permutation_index,
 						data->no_planar_fog ? FLAG(_render_model_no_planar_fog_bit) : 0);
+
+					/* port: (Test72, HaloFreak95's) a biped's carried weapons
+					worn on its back and thigh (display.holstered_weapons,
+					port/linux/game/holstered_weapons.c), with the effect its
+					children take; not for a body drawn in part */
+					if (!legs && !vr_body && TEST_FLAG(_object_mask_biped, object->object.type))
+					{
+						struct render_model_effect worn = model_effect;
+
+						if (worn.type == _render_model_effect_type_modifier)
+						{
+							worn.type = _render_model_effect_type_none;
+							worn.modifier_shader = NULL;
+							worn.modifier_animation.values = NULL;
+							worn.modifier_animation.colors = NULL;
+						}
+						holstered_weapons_render(object_index, object_get_node_matrices(object_index),
+							data->lighting, &worn);
+					}
 
 					if (debug_objects)
 					{

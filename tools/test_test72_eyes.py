@@ -102,7 +102,7 @@ assert re.search(r'\{ "vr\.eye_order", _config_string, "\\"left\\"", "HALO_VR_EY
 assert '{ "EYE ORDER", "vr.eye_order", _vr_setting_string, 2, { { "LEFT FIRST", "left" }, { "RIGHT FIRST", "right" } } },' in menu
 effects = menu[menu.index("static struct vr_menu_setting const vr_menu_effects[] ="):]
 effects = effects[:effects.index("};")]
-assert '"EYE ORDER"' in effects and effects.count("\n\t{ ") + effects.count("\n\tVR_MENU_EFFECT(") == 14  # two screens, as before (+ FAST DECALS, BLOOD LAYERS)
+assert '"EYE ORDER"' in effects and effects.count("\n\t{ ") + effects.count("\n\tVR_MENU_EFFECT(") == 15  # two screens, as before (+ FAST DECALS, BLOOD LAYERS, HOLSTERED GUNS)
 
 print("PASS: Test72 eyes: the first eye begins from GL state set anew; EYE ORDER draws the right eye first "
       "(the frame's state advancing with it); [vr-eyes] compares the eyes' draws")

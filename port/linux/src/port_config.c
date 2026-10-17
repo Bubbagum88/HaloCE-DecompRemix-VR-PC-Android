@@ -392,6 +392,10 @@ static const struct config_setting config_settings[] =
 	{ "game.shadow_objects_stop", _config_boolean, "true", "HALO_SHADOW_OBJECTS_STOP", _environment_value, _platform_all,
 		"(Test72, HaloFreak95's) Stencil shadows end at a machine or scenery behind what casts them\n"
 		"(a cryotube's wall, a crate), as at the level, not through it; false: the level's alone." },
+	{ "display.holstered_weapons", _config_boolean, "false", "HALO_HOLSTERED_WEAPONS", _environment_value, _platform_all,
+		"(Test72, HaloFreak95's) Every character wears the weapons it carries but does not hold: a\n"
+		"long gun slung across its back, a pistol or needler on its right thigh. false: they are\n"
+		"unseen, as stock. Only the drawing changes." },
 	{ "display.first_person_legs", _config_boolean, "false", "HALO_FIRST_PERSON_LEGS", _environment_value, _platform_all,
 		"Your own legs in first person, seen looking down: your body as others\n"
 		"see it, drawn from the waist down, moving as it moves." },

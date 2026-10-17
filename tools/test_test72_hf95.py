@@ -194,6 +194,29 @@ assert 'spartan_armor/op_ammo_counter_color" x="54" y="283"' in armor and 'spart
 assert 'setting="display.ammo_counter_color" values="default|white|black|red|blue|gray|yellow|green|pink|purple|cyan|cobalt|orange|teal|sage|brown|tan|maroon|salmon"' in armor
 assert '<string text="RIFLE DISPLAY:"/>' in armor
 
+# ---- holstered weapons (display.holstered_weapons, off by default)
+holster = read("port/linux/game/holstered_weapons.c")
+assert re.search(r'\{ "display\.holstered_weapons", _config_boolean, "false",', config)
+assert 'model_find_node(model_index, "bip01 spine1")' in holster and 'model_find_node(model_index, "bip01 r thigh")' in holster
+assert "if (weapon_index == NONE || slot == unit->unit.current_weapon_index)" in holster
+assert "if (!weapon || weapon->object.parent_object_index != NONE)" in holster  # one being drawn or put away: the hand's
+assert '!TEST_FLAG(_object_mask_biped, object->object.type) || object->object.parent_object_index != NONE' in holster  # seated: none
+assert 'strstr(name, "flag") || strstr(name, "ball")' in holster
+assert 'strstr(name, "pistol") || strstr(name, "needler") ? 2 : 1' in holster
+assert "model_get_node_matrices(model, matrices, &origin, forward, up);" in holster
+assert "getenv" not in holster and "platform_log" not in holster  # (the inspection run's aids gone)
+objects_render = read("source/render/render_objects.c")
+hook = objects_render[objects_render.index("if (!legs && !vr_body && TEST_FLAG(_object_mask_biped, object->object.type))"):]
+hook = hook[:hook.index("if (debug_objects)")]
+assert "worn.type = _render_model_effect_type_none;" in hook
+assert "holstered_weapons_render(object_index, object_get_node_matrices(object_index),\n\t\t\t\t\t\t\tdata->lighting, &worn);" in hook
+# not in the shadow pass: the hook is in the branch that draws the unit with its effect, not the shadow's
+assert objects_render.index("holstered_weapons_render(object_index") < objects_render.index("level_of_detail_pixels * 0.3f")
+fov = read("port/assets/menus/ce/main_menu.settings_select.player_setup.player_profile_edit.video_settings.fov_viewmodels.xml")
+assert 'fov_viewmodels/op_holstered_weapons" x="54" y="283"' in fov and 'setting="display.holstered_weapons" values="true|false"' in fov
+assert '<string text="HOLSTERED GUNS:"/>' in fov
+assert '{ "HOLSTERED GUNS", "display.holstered_weapons", _vr_setting_boolean, 2,' in menu
+
 print("PASS: Test72 HaloFreak95: fast decals (kept quad indices; decals drawn from their stream; "
       "FAST DECALS on for desktop, off on Android/Quest until measured); blood layers (6 on Android/Quest); "
       "touch aim assist as AIM ASSIST; shadows stop at machines/scenery; the rifle display's color")

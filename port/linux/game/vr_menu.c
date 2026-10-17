@@ -718,6 +718,8 @@ static struct vr_menu_setting const vr_menu_effects[] =
 	{ "FAST DECALS", "display.decals_on_gpu", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	/* Test72: HaloFreak95's blood layers */
 	{ "BLOOD LAYERS", "game.blood_layers", _vr_setting_multi, 3, { { "ALL", "game.blood_layers=0" }, { "6", "game.blood_layers=6" }, { "3", "game.blood_layers=3" } } },
+	/* Test72: HaloFreak95's holstered weapons (others' carried guns worn) */
+	{ "HOLSTERED GUNS", "display.holstered_weapons", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 };
 
 /* test20c/d: the visible hands (never the gun: one row turns both, the
