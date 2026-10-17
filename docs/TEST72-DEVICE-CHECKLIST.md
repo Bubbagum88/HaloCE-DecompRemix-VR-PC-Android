@@ -39,6 +39,53 @@ section first.
   B in every menu.
 - SCOPES: each weapon's page is titled and readable.
 
+## Shot deflection (Quest)
+
+- FIST COMBAT off, DEFLECT SHOTS on (the default): hold the gun still in a
+  plasma pistol Grunt's line of fire. Bolts glance off; the hand buzzes, a
+  moment later again, with a sound.
+- Swing the gun at bolts: they fly back faster. Punch a needle: it turns.
+- A fuel rod Grunt: a still gun does nothing, a hard swing turns the bolt.
+- Bullets (a Marine's rifle near you): the gun turns them, the bare fist
+  does not. Rockets and sniper rounds never turn.
+- DEFLECT AID WIDE and DEFLECT FORCE 125%: easier to hit, faster back.
+- Send the log: each deflection and near miss is written.
+
+## Testers' reports (Quest)
+
+- Grenades: grab one from the chest at 10-15 cm, throw at a walk and at a
+  full swing: they go as far as your arm says.
+- The Shade: get in. You face its gun, see over it, aim with the right hand
+  (TURRET AIM). VEHICLES > TURRETS + SHADE > VIEW UP moves only the Shade.
+- VEHICLES: each vehicle's section holds its view and its controls.
+
+## Third person in VR (Quest, PC VR)
+
+- GAMEPLAY > THIRD PERSON on, in a campaign: the view from behind; turn with
+  the stick; look at an enemy and fire: the shots go where you look.
+- Reload, grenade and melee by their buttons; no gun in your hand.
+- Get in a Warthog: its own view and controls; get out: third person again.
+- Turn THIRD PERSON off: hand aiming, holsters, manual reload and the rest
+  exactly as before. Change a setting while it is on: it stays changed.
+- Multiplayer: THIRD PERSON does nothing there.
+
+## From HaloFreak95's build
+
+- HOLSTERED GUNS on: Marines and Elites carrying two guns, your co-op
+  partner: a rifle on the back, a pistol on the thigh.
+- FAST DECALS (Quest, test): on, in a long firefight; compare the frame rate
+  and the [render-perf] draws with it off.
+- RIFLE DISPLAY red (Spartan Armor): the assault rifle's counter is red.
+
+## Android
+
+- A wireless controller whose sticks or D-pad did nothing before: they move
+  and turn in game. The log names the controller once.
+- Game files & versions > EXPORT SAVES, then IMPORT SAVES that .zip on
+  another phone (or the same): profiles and the campaign checkpoint appear.
+- Internet play on mobile data or a VPN: join a busy host; if it fails, send
+  the log (it now says if pieces went unanswered).
+
 ## Other headsets
 
 - Pico 4 / Neo 3 / 4 Ultra and Steam Frame: the game starts, the buttons do

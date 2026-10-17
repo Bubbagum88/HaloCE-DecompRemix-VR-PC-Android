@@ -22,12 +22,18 @@ for source,target in [('PLAYER-GUIDE.md','player-guide.txt'),('CONTROLS-AND-OPTI
     (OUT/target).write_text(text,encoding='utf-8',newline='\n')
 s=(ROOT/'port/linux/src/port_config.c').read_text(encoding='utf-8')
 s=s[s.index('static const struct config_setting config_settings[]'):s.index('/* ----------',s.index('static const struct config_setting config_settings[]')+1)]
-rows=[]
+rows=[];seen={}
 for match in re.finditer(r'\{\s*"([a-z][a-z0-9_.]+)"\s*,\s*_config_(\w+)\s*,\s*("(?:\\.|[^"\\])*")(.*?)\},',s,re.S):
     name,kind,default,tail=match.groups()
     if name=='renderer.safe_geometry': default='"true in Quest VR and flat Android; false on desktop"'
     strings=re.findall(r'"(?:\\.|[^"\\])*"',tail)
     comment=''.join(ast.literal_eval(x) for x in strings[1:])
+    # Test72: a setting written twice (#ifdef HALO_ANDROID, then #else): one entry, both defaults
+    if name in seen:
+        index,first=seen[name]
+        rows[index]=rows[index].replace('Default: '+first+'\n','Default: '+first+' on Android and the Quest; '+ast.literal_eval(default)+' on desktop\n',1)
+        continue
+    seen[name]=(len(rows),ast.literal_eval(default))
     rows.append(name+' ['+kind+']\nDefault: '+ast.literal_eval(default)+'\n'+comment+'\n')
 if len(rows)<100:raise SystemExit('Config reference extraction incomplete')
 (OUT/'settings.txt').write_text('NATIVE SETTINGS REFERENCE\n\nDefaults apply to new settings. Both APKs default to Safe geometry, including a one-time migration of older settings (VR: vr_geometry_revision=1; flat Android: android_geometry_revision=1). Subsequent explicit Safe/Normal choices are preserved; the Android migration does not reset existing VR choices. Desktop geometry defaults stay unchanged. Test18 also applies third-person/right-controller vehicle defaults once; later vehicle selections persist. VR settings apply to Quest only; desktop-only options do not affect Android. Restart for renderer, networking and other startup options. Use the in-game VR pages for live supported adjustments. The integrated project updater checks automatically in the launcher; Versions & updates controls checks and installation; inherited update.auto does not replace the mod with upstream.\n\n'+'\n'.join(rows),encoding='utf-8',newline='\n')

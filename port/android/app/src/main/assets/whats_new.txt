@@ -27,6 +27,36 @@ DISPLAY (Quest)
 • FIX (to confirm): models could look stretched and garbled in the left eye alone, in SPV1 and busy matches. The left eye now starts each frame from the same drawing state as the right. NEW: EYE ORDER (DISPLAY): RIGHT FIRST draws the right eye first, a test if it still happens: tell us whether the garbling moves to the right eye, and send the log (it now compares what each eye draws).
 • SPV1: each eye's view is written to the log once a level; its repeated "incompatible bitmap" errors are written once a bitmap (fewer log writes while it plays).
 
+SHOT DEFLECTION (Quest)
+• DEFLECT SHOTS is now on by default, with or without FIST COMBAT. Just hold your gun in a shot's path and it glances off: no swing needed. Swing the gun or punch to send a shot back hard.
+• What turns away: plasma (pistol, rifle, Ghost and Banshee bolts, needles) by the gun or the fist; bullets by the gun only; grenades by either; a fuel rod's bolt only by a strong swing or punch, never a block. Rockets and sniper rounds never. Your own shots are left alone.
+• A deflection buzzes the hand (both hands when holding the gun two-handed), echoes a moment later, sounds and flashes. DEFLECT AID (OFF, NORMAL, WIDE) and DEFLECT FORCE (75% to 125%): CONTROLS and IMMERSION > FIST OPTIONS.
+
+TESTERS' REPORTS (Quest)
+• Physical grenades are thrown at your hand's real speed (its peak over the throw, not the last instant), and the chest slots take a grenade from 15 cm.
+• The Shade: you are its gunner (TURRET AIM, not steering), you face its gun when you get in, and the view sits 25 cm higher so you can see over it.
+• VEHICLES is now in sections, one per vehicle: DRIVING, VEHICLE OPTIONS, ALL VEHICLES, WARTHOG, GHOST, BANSHEE, SCORPION, PELICAN, TURRETS + SHADE. Each vehicle's VIEW UP / FWD / RIGHT sits with its controls, so the Shade can be raised without moving every vehicle.
+
+NEW: THIRD PERSON IN VR (Quest and PC VR)
+• GAMEPLAY > THIRD PERSON: on foot in a campaign or co-op (not multiplayer), the view from behind you over your shoulder, turning with the stick. You aim with your head at what you look at; the buttons fire, reload, throw and melee.
+• While it is on, the hands' physical features (holding and holstering guns, manual reload, chest grenades, punches and fist combat, deflection, grabbing, climbing, arm run, walking the room, ducking to crouch) rest, and they come back exactly as they were when you turn it off or get in a vehicle. Nothing is saved over your settings.
+
+FROM HALOFREAK95'S BUILD
+• HOLSTERED GUNS (off; FOV and Viewmodels, VR DISPLAY): characters wear the guns they carry, a rifle across the back, a pistol or needler on the thigh.
+• FAST DECALS (Extra Effects, VR DISPLAY): bullet holes and blood drawn as the Xbox drew them, far less work with many in view. On for PC; off on Android and Quest until measured there.
+• BLOOD LAYERS (VR DISPLAY): at most 6 splats of blood on one spot on Android and Quest (more add nothing but drawing work); ALL on PC.
+• RIFLE DISPLAY (Spartan Armor): the assault rifle's ammo counter and display in an armor colour.
+• Stencil shadows now stop at machines and scenery behind what casts them.
+• AIM ASSIST (Mouse Settings) also covers swipe and gyro aim on Android (as it did; now said).
+
+ANDROID
+• FIX: some wireless controllers had only their face buttons and triggers working in game, not the sticks or D-pad. Sticks and D-pad now reach the game whatever the controller reports (the launcher's controller check always saw them).
+• NEW: Game files & versions: IMPORT SAVES from a .zip or a folder (another phone's save folder, a backup, or an Xbox UDATA folder), EXPORT SAVES as a .zip. Your current saves are backed up first.
+• Internet play over a VPN or mobile data: the game's connection now uses smaller pieces and lets large packets be split, where some VPNs dropped them and a join timed out. If a join still fails, the log now says why.
+
+OPENCE BUILD 208 (network unchanged)
+• Voice chat ignores a damaged voice packet instead of playing it. Leaving the connected map list with nothing behind it returns to the main menu.
+
 EARLIER (TEST71), ALSO IN THIS UPDATE
 EVERY CAMPAIGN MOD IN ONE TAP
 • CUSTOM CAMPAIGNS: every mod now installs the way SPV1 does: choose it, tap "Download and install". The launcher downloads it from where its authors published it and checks every file (exact size and SHA-256) before installing. Nothing of theirs comes with the app.
