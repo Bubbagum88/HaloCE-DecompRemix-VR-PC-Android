@@ -31,9 +31,14 @@ Legend:
   (two fixes found by running it: blood before game time, one common block
   too small in the COFF link).
 - [x] Windows PC VR `halo-vr.exe`: builds and links (ninja windows_vr),
-  OpenXR loader 1.1.63 for Windows. [?] Runtime validation needs the owner's
-  OK to use SteamVR's null driver (this PC has no headset and no OpenXR
-  runtime registered). [~] On a headset.
+  OpenXR loader 1.1.63 for Windows. [x] Runtime-validated through SteamVR's
+  null driver (the owner's OK; `steamvr.vrsettings` backed up and restored
+  byte for byte, SteamVR stopped after): the OpenXR session reaches
+  FOCUSED, b30 plays at 40-60 frames a second in both eyes, its intro seats
+  the player in the Pelican and on foot VR THIRD PERSON engages (the eyes'
+  dump shows the Spartan from behind). Needs, for this test only: SteamVR's
+  desktop UI not started with the app (it launched room setup, which quits
+  the app) and standby not pausing the compositor. [~] On a headset.
 - [x] One library: the XISO import (`xiso.c`) extracted the owner's USA disc
   image here: 24 maps, 1774 MB, every SHA-256 identical to the reference.
 - [s] Desktop launcher (`desktop_launcher.c`): PLAY, PLAY IN VR, GAME DATA
@@ -143,7 +148,51 @@ right fine; in SPV1 and a multiplayer match, worse as the frame rate falls.
   jcompto95-tech/OpenCE's branches equal ours (`refs/jc/*`); its only open
   PR is fast decals (held back since Test70, unmeasured on a headset);
   upstream OpenCE build-208 has 5 new commits, none about animation.
-- [?] The owner is asked for the link to these updates.
+- [x] Their build itself (`halo.exe`, `OpenCEMods.zip`, from the owner):
+  reviewed (no source inside: settings, texts and modules read from the
+  exe). Ported here: FAST DECALS, BLOOD LAYERS, RIFLE DISPLAY colour,
+  shadows stopping at machines and scenery, HOLSTERED GUNS. Already here:
+  touch aim assist, others' shield/visor colours, plasma lights, stencil
+  shadows. Not integrated, with reasons: TEST72-HALOFREAK95.md.
+  `tools/test_test72_hf95.py`; holstered guns checked by eye on b30 (Windows,
+  third person); fast decals compared on and off in Blood Gulch.
+
+## This round (after the build pass began)
+
+- [x] Shot deflection end to end: on by default, with or without FIST
+  COMBAT; a gun held still blocks (no swing); categories by the projectile
+  tag (plasma any way, bullets by the gun, grenades, fuel rod only by a
+  strong strike, never rockets or sniper rounds); own shots ignored; haptics
+  on the hand (both two-handed) with an echo, sound and highlight; DEFLECT
+  AID and DEFLECT FORCE. The 24 stock projectiles' classes computed from
+  their tag values (`tools/test_test72_deflection.py`,
+  `tools/test_test67_projectile_parry.py`). [~] Feel on the headset.
+- [x] OpenCE Build 208: its five commits reviewed; the voice length guard and
+  the map-select menu fix ported; network 29 unchanged
+  (`tools/test_test72_opence208.py`).
+- [x] Testers: grenades thrown at the hand's peak speed, 15 cm reach; the
+  Shade as a turret (gunner, faces its gun, 25 cm up, TURRET offsets); VR
+  VEHICLES in sections per vehicle, TURRETS + SHADE its own
+  (`tools/test_test72_tester.py`, `tools/test_test32_vehicles.py`).
+- [x] VR THIRD PERSON (GAMEPLAY): camera behind along the heading; the
+  gaze's mark aimed at from the eyes; 18 hand features held off by in-memory
+  overrides, all restored, a menu change kept
+  (`tools/test_test72_third_person.py`, the overrides compiled from
+  port_config.c); runtime-validated on PC VR (above). [~] Comfort on Quest.
+- [x] Android controller sticks/D-pad: joystick-class motion to SDL at the
+  activity, whatever the combined source or focus
+  (`tools/test_test72_controller.py`). [~] The reporter's controller.
+- [x] Android IMPORT/EXPORT SAVES (zip or folder; backup first; caches and
+  unsafe names refused): `SaveTransfer` compiled and run
+  (`tools/test_test72_saves.py`). [~] On a phone.
+- [x] Internet play over VPNs: KCP pieces 1000 bytes, datagrams may
+  fragment, stalls and refused sends logged; network 29 unchanged
+  (`tools/test_test72_network_mtu.py`). The cause (a VPN path's MTU) is
+  likely, not proven. [~] The reporter's phone.
+- [x] Windows host networking: a Blood Gulch host took three system-link
+  bot machines (`tools/system_link_bots.py`) through pregame into the game.
+  Two copies of the game on one machine cannot share a game (the host tells
+  machines apart by address): not a regression.
 
 ## Not changed
 
