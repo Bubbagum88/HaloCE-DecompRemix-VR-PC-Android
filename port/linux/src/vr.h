@@ -110,6 +110,10 @@ int vr_script_head_view(const float position[3], float out_position[3], float ou
 int vr_aiming(void);
 /* the heading the eyes are turned by (Halo's x, y) */
 int vr_heading_forward(float out_forward[3]);
+/* Test72: the aim the game was given in place of vr_aim's (VR third
+person's, toward what the gaze meets): taken as its own, so that it is
+not mistaken for the game turning the player */
+void vr_aim_adjusted(const float forward[3]);
 /* Test65: the gun to `hand` (WEAPON PULL) */
 void vr_set_weapon_hand(int hand);
 /* Test65: COCKPIT LOCK: the seat's heading and frame as the vehicle is drawn

@@ -992,6 +992,11 @@ static const struct config_setting config_settings[] =
 	{ "vr.move_relative", _config_string, "\"head\"", "HALO_VR_MOVE_RELATIVE", _environment_value, _platform_vr,
 		"What the move stick moves you relative to: \"head\", or where the\n"
 		"\"left\" or \"right\" controller points." },
+	{ "vr.third_person", _config_boolean, "false", "HALO_VR_THIRD_PERSON", _environment_value, _platform_vr,
+		"Test72: THIRD PERSON: on foot in a campaign or co-op (not multiplayer), the view from behind you\n"
+		"over your shoulder, turning with the stick; the head aims at what it looks at, the buttons do the\n"
+		"hands' physical work (those features are held off meanwhile and come back as they were). Not\n"
+		"in vehicles, which have VIEW." },
 	{ "vr.aim", _config_string, "\"hand\"", "HALO_VR_AIM", _environment_value, _platform_vr,
 		"What aims on foot: \"head\" (where you look, with a reticle ahead) or\n"
 		"\"hand\" (the right controller, holding the weapon). In vehicles the\n"
@@ -1859,6 +1864,12 @@ struct config_value
 };
 
 static struct config_value config_values[NUMBER_OF_CONFIG_SETTINGS];
+/* Test72: values held over settings' own while a mode needs them (VR third
+person, vr_third_person.c): read in their place, never written to the
+file, given up all at once (config_override_clear) or each as the player
+writes that setting (their choice wins) */
+static unsigned char config_overridden[NUMBER_OF_CONFIG_SETTINGS];
+static struct config_value config_override_values[NUMBER_OF_CONFIG_SETTINGS];
 static int config_loaded = 0;
 static pthread_mutex_t config_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t active_network_version_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -2679,6 +2690,8 @@ static const struct config_value *config_value(const char *name, enum config_typ
 		platform_log("settings: no %s setting %s", type == _config_string ? "string" : "such", name ? name : "(null)");
 		return &none;
 	}
+	if (config_overridden[index])
+		return &config_override_values[index];
 	return &config_values[index];
 }
 
@@ -2796,6 +2809,8 @@ static int config_write_typed(const char *name, enum config_type type, const cha
 		/* Publish the value and its generation together only after persistence
 		succeeds. Failed menu saves must leave all live consumers on the old value. */
 		config_set_from_text(&config_values[index], type, value);
+		/* Test72: the player's own choice ends a mode's override of it */
+		config_overridden[index] = 0;
 		config_change_count++;
 	}
 	pthread_mutex_unlock(&config_lock);
@@ -2835,6 +2850,57 @@ int config_write_string(const char *name, const char *value)
 unsigned long config_changes(void)
 {
 	return config_change_count;
+}
+
+/* Test72: a value held over a setting's own (as the setting's type, from
+text) until config_override_clear; 1 on success */
+int config_override(const char *name, const char *text)
+{
+	long index;
+
+	index = name ? config_setting_index(name) : -1;
+	if (index < 0 || !text)
+		return 0;
+	pthread_mutex_lock(&config_lock);
+	/* (the file read first, as a setting's first reading does) */
+	if (!config_loaded)
+	{
+		config_load();
+		config_loaded = 1;
+	}
+	config_set_from_text(&config_override_values[index], config_settings[index].type, text);
+	config_overridden[index] = 1;
+	config_change_count++;
+	pthread_mutex_unlock(&config_lock);
+	return 1;
+}
+
+/* whether a setting's value is a mode's, not its own */
+int config_is_overridden(const char *name)
+{
+	long index = config_setting_index(name);
+
+	return index >= 0 && config_overridden[index];
+}
+
+/* every override given up: each setting its own value again */
+void config_override_clear(void)
+{
+	long index;
+	int any = 0;
+
+	pthread_mutex_lock(&config_lock);
+	for (index = 0; index < NUMBER_OF_CONFIG_SETTINGS; index++)
+	{
+		if (config_overridden[index])
+		{
+			config_overridden[index] = 0;
+			any = 1;
+		}
+	}
+	if (any)
+		config_change_count++;
+	pthread_mutex_unlock(&config_lock);
 }
 
 int config_boolean(const char *name)

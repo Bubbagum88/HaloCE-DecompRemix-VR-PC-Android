@@ -126,7 +126,7 @@
 		<string text="Draw first-person weapons, hands and attached\nvisuals. Gameplay and sound continue when off."/>
 		<string text="The energy shield's flare on your first-person\narms too, as on your body."/>
 		<string text="Your legs in first person, seen looking down,\nmoving as you run. Your body as others see it."/>
-		<string text="On foot in a campaign or co-op, the camera over\nyour shoulder (keyboard: Keypad Enter). Not in VR."/>
+		<string text="On foot in a campaign or co-op, the camera over\nyour shoulder (Keypad Enter). VR: VR Gameplay."/>
 		<string text="Your Spartan's armor, lights, visor, flashlight\nand shield colors (also Pause > Armor)."/>
 		<string text="Carried guns worn: a rifle across the back,\na pistol on the thigh. Off: unseen, as stock."/>
 	</strings>

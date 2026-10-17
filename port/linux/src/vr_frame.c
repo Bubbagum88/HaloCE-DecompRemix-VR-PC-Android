@@ -4383,6 +4383,12 @@ void vr_set_weapon_hand(int hand)
 	platform_log("vr: the weapon changes to the %s hand (pulled into it)", vr.weapon_hand ? "right" : "left");
 }
 
+void vr_aim_adjusted(const float forward[3])
+{
+	if (forward && isfinite(forward[0]) && isfinite(forward[1]) && (forward[0] != 0.0f || forward[1] != 0.0f))
+		vr.last_aim_yaw = atan2f(forward[1], forward[0]);
+}
+
 int vr_heading_forward(float out_forward[3])
 {
 	if (!vr.heading_valid)

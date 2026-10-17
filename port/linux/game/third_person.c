@@ -44,6 +44,9 @@ int config_boolean(char const *name);
 unsigned long config_changes(void);
 #ifdef HALO_VR
 int vr_active(void);
+/* Test72: VR THIRD PERSON (port/linux/game/vr_third_person.c) */
+boolean vr_third_person_engaged(void);
+boolean vr_third_person_forward(real_vector3d *forward);
 #endif
 
 /* ---------- constants */
@@ -104,13 +107,24 @@ boolean third_person_camera_wanted(
 	if (local_player_index != 0)
 		return FALSE;
 #ifdef HALO_VR
-	/* HaloCE-Quest-VR: in the headset the camera is the player's head */
+	/* HaloCE-Quest-VR: in the headset the camera is the player's head;
+	Test72: VR THIRD PERSON's camera behind it (vr_third_person.c), its
+	controls the headset's: no key, no wheel, no free look */
 	if (vr_active())
 	{
 		platform_third_person_active(FALSE);
 		third_person_free_look = FALSE;
 		third_person_frozen = FALSE;
-		return FALSE;
+		wanted = vr_third_person_engaged() && !cinematic_in_progress() && third_person_unit() != NONE;
+		if (wanted)
+		{
+			struct unit_datum *unit = unit_try_and_get(third_person_unit());
+
+			/* (zoomed: first person, the scope's view the player's own) */
+			if (unit && unit->unit.current_zoom_level != NONE)
+				wanted = FALSE;
+		}
+		return wanted;
 	}
 #endif
 	/* HaloCE-Quest-VR: display.third_person (the Video Setup row a
@@ -162,6 +176,12 @@ void third_person_camera_update(
 	third_person_distance = PIN(third_person_distance, THIRD_PERSON_NEAREST, THIRD_PERSON_FURTHEST);
 
 	player_control_get_facing_direction(local_player_index, &forward);
+#ifdef HALO_VR
+	/* Test72: in the headset, behind along its heading (the stick's turn),
+	not the aim: the head looks about from it */
+	if (vr_active() && !vr_third_person_forward(&forward))
+		return;
+#endif
 	if (normalize3d(&forward) <= 0.f)
 		return;
 	csmemset(command, 0, sizeof(*command));

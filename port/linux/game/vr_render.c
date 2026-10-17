@@ -1895,6 +1895,47 @@ boolean vr_script_can_see_point(long unit_index, const real_point3d *point, real
 	return TRUE;
 }
 
+/* port/linux/game/vr_third_person.c (Test72) */
+void vr_third_person_update(long unit_index);
+boolean vr_third_person_engaged(void);
+
+/* Test72: VR THIRD PERSON: the aim from the player's eyes to where the
+head's gaze (from the camera behind) meets the world, so what the crosshair
+marks is what is hit; FALSE: the gaze's own way stands */
+static boolean vr_third_person_aim(long unit_index, real_vector3d *forward)
+{
+	real_point3d eye, camera = vr_render.head_camera.position, target;
+	real_vector3d gaze = *forward, vector, aim;
+	struct collision_result collision;
+	const real reach = 100.0f;
+
+	if (unit_index == NONE || !valid_real_point3d(&camera) || normalize3d(&gaze) <= 0.0f)
+		return FALSE;
+	unit_get_camera_position(unit_index, &eye);
+	vector.i = gaze.i * reach;
+	vector.j = gaze.j * reach;
+	vector.k = gaze.k * reach;
+	if (collision_test_vector(FLAG(_collision_test_structure_bit) | FLAG(_collision_test_front_facing_surfaces_bit) |
+		FLAG(_collision_test_objects_bit) | FLAG(_collision_test_objects_bipeds_bit) |
+		FLAG(_collision_test_objects_vehicles_bit) | FLAG(_collision_test_objects_scenery_bit) |
+		FLAG(_collision_test_objects_machines_bit), &camera, &vector, unit_index, &collision))
+	{
+		target = collision.point;
+	}
+	else
+	{
+		target.x = camera.x + vector.i;
+		target.y = camera.y + vector.j;
+		target.z = camera.z + vector.k;
+	}
+	vector_from_points3d(&eye, &target, &aim);
+	/* (a mark nearer than the body, or behind it: the gaze's way) */
+	if (dot_product3d(&aim, &gaze) <= 0.1f || normalize3d(&aim) <= 0.0f)
+		return FALSE;
+	*forward = aim;
+	return TRUE;
+}
+
 void vr_player_control_facing(
 	short local_player_index)
 {
@@ -1921,6 +1962,8 @@ void vr_player_control_facing(
 		body = unit_index;
 	}
 	vr_update_seat(unit_index);
+	/* Test72: VR THIRD PERSON's controls in force or given up */
+	vr_third_person_update(unit_index);
 	/* seated, the head leans from where the player stood (vr.roomscale) */
 	if (vr_render.seat.seated)
 		vr_room_hold();
@@ -1956,6 +1999,9 @@ void vr_player_control_facing(
 			vr_render.hand_origin_valid = FALSE;
 			return;
 		}
+		/* Test72: VR THIRD PERSON: aimed at what the gaze meets */
+		if (!seated && vr_third_person_engaged() && vr_third_person_aim(unit_index, &forward))
+			vr_aim_adjusted(forward.n);
 	}
 	player_control_set_facing(local_player_index, &forward);
 
@@ -3754,6 +3800,9 @@ boolean vr_render_full_body(
 	short local_player_index = local_player_get_next(NONE);
 	long player_index = local_player_index != NONE ? local_player_get_player_index(local_player_index) : NONE;
 
+	/* (Test72: VR THIRD PERSON draws the body as the game animates it) */
+	if (vr_third_person_engaged())
+		return FALSE;
 	return vr_render.stereo && !vr_render.cinematic_view && (vr_body_setting() || (vr_wheel.valid && vr_vehicle_handles_enabled(object_index))) && player_index != NONE &&
 		player_get(player_index)->unit_index == object_index &&
 		!TEST_FLAG(object_get(object_index)->object.damage_flags, _object_dead_bit) &&

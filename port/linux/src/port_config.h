@@ -20,6 +20,10 @@ int config_default(const char *name, char *text, size_t size);
 void config_folder(char *path, size_t size);
 char *config_file_read(const char *path, size_t *size);
 unsigned long config_changes(void);
+/* Test72: values held over settings' own, never written (port_config.c) */
+int config_override(const char *name, const char *text);
+int config_is_overridden(const char *name);
+void config_override_clear(void);
 
 int config_boolean(const char *name);
 long config_integer(const char *name);

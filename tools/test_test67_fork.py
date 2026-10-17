@@ -77,13 +77,18 @@ print('PASS: every visual extra stock by default; rows in Extra Effects, Graphic
 # 3. the headset
 third = read('port/linux/game/third_person.c')
 assert '#ifdef HALO_VR' in third and 'if (vr_active())' in third
+# (Test72: in the headset the flat setting and key do nothing: VR THIRD PERSON, vr_third_person.c, its own)
+vr_branch = third[third.index('\tif (vr_active())\n\t{\n\t\tplatform_third_person_active(FALSE);'):]
+vr_branch = vr_branch[:vr_branch.index('\t\treturn wanted;\n\t}')]
+assert 'wanted = vr_third_person_engaged() && !cinematic_in_progress() && third_person_unit() != NONE;' in vr_branch
+assert 'display.third_person' not in vr_branch and 'platform_third_person_key' not in vr_branch
 shadows = read('port/linux/game/stencil_shadows.c')
 assert '#define STENCIL_SHADOWS_ONE_FACE 1' in shadows and '#ifdef HALO_GLES' not in shadows
 assert '&& !vr_active()' in shadows[shadows.index('static short stencil_shadow_casters('):]
 items = read('port/linux/game/item_physics.c')
 assert 'item_physics_held(item_index)' in items and 'vr_world_interaction_remote_owned(item_index)' in items
 assert 'network_game_distributed_client()' in items
-print('PASS: no third person in VR; no own-body stencil shadow in VR; a held item is the hand\'s; clients take the host\'s items')
+print('PASS: the flat third person not in VR (VR THIRD PERSON its own); no own-body stencil shadow in VR; a held item is the hand\'s; clients take the host\'s items')
 
 # 4. kept pieces
 blood = read('port/linux/game/blood.c')

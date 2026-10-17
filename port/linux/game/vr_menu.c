@@ -537,6 +537,8 @@ static struct vr_menu_setting const vr_menu_locomotion[] =
 /* the feel of play, with the crosshair (formerly its own page) */
 static struct vr_menu_setting const vr_menu_vr[] =
 {
+	/* Test72: VR THIRD PERSON (vr_third_person.c) */
+	{ "THIRD PERSON", "vr.third_person", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	VR_IMMERSION_HAPTICS,
 	/* (Test72: BULLET TIME went to LOCOMOTION) */
 	VR_IMMERSION_SCOPE,
