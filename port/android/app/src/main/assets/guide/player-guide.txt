@@ -72,6 +72,54 @@ its own: everything from it is here too (its notes follow this section).
   DISPLAY > EYE ORDER draws the right eye first instead, a test if it
   still happens (see below).
 
+**Shot deflection (VR)**
+- DEFLECT SHOTS is on by default, with FIST COMBAT on or off. Hold your gun
+  in a shot's path and it glances off, no swing needed; swing the gun or
+  punch to send it back hard.
+- Plasma (pistol, rifle, Ghost and Banshee bolts, needles): gun or fist.
+  Bullets: the gun only. Grenades: either. A fuel rod's bolt: only a strong
+  swing or punch, never a block. Rockets and sniper rounds: never. Your own
+  shots are left alone.
+- A deflection buzzes the hand (both when the gun is held two-handed), with
+  an echo, a sound and a flash. DEFLECT AID (OFF, NORMAL, WIDE) and DEFLECT
+  FORCE (75% to 125%): CONTROLS and IMMERSION > FIST OPTIONS.
+
+**Testers' reports (VR)**
+- Physical grenades leave at your hand's real speed (its peak over the
+  throw); the chest slots take a grenade from 15 cm.
+- The Shade: you are its gunner (TURRET AIM, not steering), you face its gun
+  on getting in, and the view is 25 cm higher, to see over it.
+- VEHICLES is in sections, one per vehicle (DRIVING, VEHICLE OPTIONS, ALL
+  VEHICLES, WARTHOG, GHOST, BANSHEE, SCORPION, PELICAN, TURRETS + SHADE):
+  each vehicle's VIEW UP / FWD / RIGHT beside its controls.
+
+**Third person in VR**
+- GAMEPLAY > THIRD PERSON: on foot in a campaign or co-op (not multiplayer),
+  the view from behind you over the shoulder, turning with the stick. Your
+  head aims at what it looks at; the buttons fire, reload, throw and melee.
+- Meanwhile the hands' physical features rest (holding and holstering guns,
+  manual reload, chest grenades, punches, deflection, grabbing, climbing, arm
+  run, walking the room, ducking to crouch). They come back exactly as they
+  were when third person ends; nothing is written over your settings.
+
+**From HaloFreak95's build**
+- HOLSTERED GUNS (off): characters wear the guns they carry, a rifle across
+  the back, a pistol or needler on the thigh (FOV and Viewmodels, VR DISPLAY).
+- FAST DECALS: decals drawn as the Xbox drew them (on for PC; off on Android
+  and Quest until measured). BLOOD LAYERS: 6 on Android and Quest.
+- RIFLE DISPLAY (Spartan Armor): the assault rifle's display in an armor
+  colour. Stencil shadows stop at machines and scenery.
+
+**Android**
+- Wireless controllers whose sticks and D-pad did nothing in game now work.
+- Game files & versions: IMPORT SAVES from a .zip or a folder, EXPORT SAVES
+  as a .zip; your current saves are backed up first.
+- Internet play over a VPN: smaller pieces, large packets allowed to split;
+  a join that still fails says why in the log.
+
+**OpenCE Build 208** (network 29 unchanged): a damaged voice packet is ignored;
+leaving the connected map list with nothing behind it goes to the main menu.
+
 ## What to test
 
 - Fist combat on Normal and Legendary: punch toward an enemy while looking
@@ -86,6 +134,17 @@ its own: everything from it is here too (its notes follow this section).
   garbling stays in the left eye or moves to the right, and send both logs:
   they now compare what each eye draws.
 - Pico and Steam Frame: confirm the buttons and the BUTTONS page's names.
+- Deflection: stand in front of a Grunt or Elite with a plasma pistol and
+  hold your gun still in the bolts' path; then swing at them. Try a fuel
+  rod Grunt (strong swing only). Send the log: each deflection is logged.
+- The Shade: get in, check you face its gun and see over it; TURRET UP in
+  VEHICLES > TURRETS + SHADE moves only the Shade's view.
+- Grenades: throw a few by hand at a walk and at full swing.
+- THIRD PERSON: turn it on in a campaign, walk, shoot what you look at, get in
+  and out of a Warthog, turn it off: your weapons and holsters must be as
+  before.
+- Android: a wireless controller's sticks and D-pad in game; IMPORT SAVES
+  from another phone's .zip.
 
 ---
 

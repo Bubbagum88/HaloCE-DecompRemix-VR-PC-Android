@@ -214,6 +214,100 @@ controls.text_chat [string]
 Default: "T"
 Text chat: open a line to type (game.text_chat).
 
+controls.sprint [string]
+Default: "Left Shift"
+Test72: SPRINT, held or pressed to toggle (movement.sprint). A gamepad or a touch
+stick sprints with movement.sprint "auto" instead (a full push forward).
+
+display.stereo [string]
+Default: "off"
+STEREO 3D: "off"; "sbs_half" (side by side, each eye squeezed: 3D televisions);
+"sbs_full" (side by side, each eye its own shape); "tab_half", "tab_full" (over and
+under, the left eye on top); "anaglyph" (red and cyan glasses). Each eye is drawn from its
+own place, converging at stereo_convergence.
+
+display.stereo_separation [real]
+Default: 64
+EYE SEPARATION in millimetres, 0 to 200 (64: an average adult's).
+
+display.stereo_convergence [real]
+Default: 2.5
+CONVERGENCE in metres, 0.25 to 100: the distance that appears at the screen; nearer comes out
+of it, further goes in.
+
+display.stereo_swap [boolean]
+Default: false
+EYE SWAP: the eyes exchanged (a display or glasses that expect the other order).
+
+display.stereo_hud_depth [real]
+Default: 0
+HUD DEPTH in metres, 0 to 100: how far away the HUD appears; 0 puts it at the screen
+(the convergence distance).
+
+display.stereo_reticle_depth [real]
+Default: 0
+RETICLE DEPTH in metres, 0 to 100: how far away the crosshair appears; 0 puts it at the
+screen (the convergence distance).
+
+movement.sprint [string]
+Default: "off"
+SPRINT, offline: "off"; "hold" (controls.sprint held); "toggle" (pressed to start,
+again to stop; entering a vehicle stops it); "auto" (the stick held fully forward a
+moment, for gamepads and touch). Movement and acceleration times movement.sprint_speed.
+
+movement.sprint_speed [real]
+Default: 1.5
+SPRINT SPEED, 1.0x to 3.0x; default 1.5x (the VR build's).
+
+movement.slide [boolean]
+Default: false
+SLIDE, offline: sprinting on the ground, a crouch begun slides on with the run's momentum,
+giving it up to friction and slope, steered a little by the stick; standing, jumping, a wall
+or a walk's pace ends it. Needs SPRINT.
+
+movement.slide_momentum [real]
+Default: 1
+SLIDE DISTANCE, 0.5x to 2x: the lift a slide starts with and how long it may last.
+
+movement.slide_friction [real]
+Default: 1
+SLIDE FRICTION, 0.25x to 3x: how quickly a slide gives up its speed.
+
+movement.slide_damage [real]
+Default: 1
+SLIDE IMPACT, 0 to 3: sliding into an enemy staggers it or knocks it down (Grunts,
+Jackals; not Elites or Hunters) with up to half a melee at 1; 0: no impact.
+
+movement.slide_jump_cancel [boolean]
+Default: true
+JUMP CANCELS: Jump ends a slide at once, its momentum carried into the jump.
+
+movement.parkour_wallrun [boolean]
+Default: false
+WALL RUN, offline or a co-op host: jump at a wall while moving along it to run on it
+briefly; native collision stays in charge.
+
+movement.parkour_walljump [boolean]
+Default: false
+WALL JUMP: Jump again in the air beside a wall to leap off it, the way you look.
+
+movement.wallrun_speed [real]
+Default: 1.5
+WALL SPEED, 1x to 2x.
+
+movement.wallrun_duration [real]
+Default: 2.0
+WALL TIME, 0.5 to 3 seconds.
+
+movement.walljump_scale [real]
+Default: 1.5
+WALL JUMP POWER, 0.5x to 1.5x.
+
+launcher.show [boolean]
+Default: true
+Test72: the launcher first (play, the game data, the custom campaigns, settings, PC VR, What's New,
+updates): false starts the game at once, as before.
+
 debug.menu_open [string]
 Default: ""
 Start on this screen of the menus (port/assets/menus) instead of the main
@@ -319,6 +413,17 @@ own, as F.E.A.R. and Doom 3 cast them: on the level, on other objects
 and on themselves, your own body's and weapon's in first person too
 (not in VR, where your body follows the headset). Costly on a Quest.
 
+game.shadow_objects_stop [boolean]
+Default: true
+(Test72, HaloFreak95's) Stencil shadows end at a machine or scenery behind what casts them
+(a cryotube's wall, a crate), as at the level, not through it; false: the level's alone.
+
+display.holstered_weapons [boolean]
+Default: false
+(Test72, HaloFreak95's) Every character wears the weapons it carries but does not hold: a
+long gun slung across its back, a pistol or needler on its right thigh. false: they are
+unseen, as stock. Only the drawing changes.
+
 display.first_person_legs [boolean]
 Default: false
 Your own legs in first person, seen looking down: your body as others
@@ -337,6 +442,12 @@ it charges (2 seconds, 3 from a shield that was down) and staying lit,
 its energy slower, in its own color (the powerup's), on the first-person
 arms too with viewmodel_shield; a hit on it plays what the projectile
 plays on an Elite's shield. Only what is drawn and heard changes.
+
+game.blood_layers [integer]
+Default: 6 on Android and the Quest; 0 on desktop
+BLOOD LAYERS (Test72, HaloFreak95's): how many splats of blood one place carries at once
+(0: as many as land there, the game's own). Blood on blood is solid after a few layers and
+no redder for the rest, and each layer is its pixels drawn again: 6 on Android and the Quest.
 
 game.dynamic_blood [boolean]
 Default: false
@@ -360,6 +471,13 @@ struck a vehicle or bare armor (blood.c, plasma_embers.c); plasma
 bolts lighting the level and what they pass in their own color, needles
 more dimly (projectile_lights.c). This machine's alone: nothing is
 sent. false: the game's own.
+
+display.decals_on_gpu [boolean]
+Default: false on Android and the Quest; true on desktop
+FAST DECALS (Test72, HaloFreak95's): decals (bullet holes, scorch marks, blood) drawn from the
+vertices they were made with, a draw each, as the Xbox drew them, instead of their vertices
+written again every frame. The picture is the same. Off by default on Android and the Quest,
+whose frames are bound by their draws, until measured there ([render-perf] shows the draws).
 
 display.shield_glow [boolean]
 Default: false
@@ -395,6 +513,12 @@ Default: "default"
 Your Spartan's visor in a multiplayer armor color ("white", "black",
 "red"... as the profile's colors; black a deep, glossy black), or
 "default", its gold.
+
+display.ammo_counter_color [string]
+Default: "default"
+(Test72, HaloFreak95's) The assault rifle's display in your hands - its ammo counter,
+compass and icons: "default" (its own blue) or a multiplayer armor color ("white",
+"red", "green"...). Only how it is drawn changes.
 
 display.flashlight_color [string]
 Default: "default"
@@ -472,7 +596,8 @@ Default: false
 Magnetism while aiming with the mouse, as with a controller: the view
 slowed and dragged along by a target. The last of the mouse and the
 right stick to move decides. The bullets' autoaim (bent toward the
-target) stays either way.
+target) stays either way. On Android it is the touch controls' too:
+swipe and gyro aim (HaloFreak95's input.touch_aim_assist).
 
 game.console_log [string]
 Default: "important"
@@ -1038,6 +1163,25 @@ Default: 15.0
 How far ahead of the eyes the HUD floats, in metres: far, so the eyes
 need not refocus between it and the world.
 
+vr.menu_anchor [string]
+Default: "head"
+Test72: MENU POSITION: "head" (the menus ride ahead of the head, as before); "world" (placed in
+front of you as a menu opens and fixed there: lean in to read small text, look around it);
+"follow" (fixed, brought back in front when you have looked well away for a moment). A stick
+click, or holding VIEW to recentre, brings it back in front.
+
+vr.menu_distance [real]
+Default: 1.6
+Test72: MENU DISTANCE: how far ahead a fixed menu is placed, in metres (0.5 to 5).
+
+vr.menu_scale [real]
+Default: 1.0
+Test72: MENU SIZE: a fixed menu's size, 0.5 to 2 (1: as large in view as the head-locked menu).
+
+vr.menu_height [real]
+Default: 0.0
+Test72: MENU HEIGHT: a fixed menu's height above (or below, negative) the eyes, in metres (-1 to 1).
+
 vr.hud_width [real]
 Default: 10.0
 The HUD's width, in metres (its height is three quarters); with
@@ -1049,6 +1193,14 @@ The headset's display rate to ask for, in hertz: the highest the
 runtime offers at or below it; 0 leaves the runtime's choice. The Quest 3
 offers 72, 80, 90 and 120; SteamVR on the Steam Frame offers only the
 rate its own display setting is on.
+
+vr.eye_order [string]
+Default: "left"
+Which eye is drawn first each frame: "left" (as always) or "right".
+The first eye's pass also moves the frame's effects on (the gun posed,
+rain, glows), so both eyes still show the same moment. A test for a
+picture spoilt in one eye only: if it moves to the other eye with this,
+it belongs to the first pass, not to that eye.
 
 vr.cutscenes [string]
 Default: "immersive"
@@ -1098,6 +1250,13 @@ Default: "head"
 What the move stick moves you relative to: "head", or where the
 "left" or "right" controller points.
 
+vr.third_person [boolean]
+Default: false
+Test72: THIRD PERSON: on foot in a campaign or co-op (not multiplayer), the view from behind you
+over your shoulder, turning with the stick; the head aims at what it looks at, the buttons do the
+hands' physical work (those features are held off meanwhile and come back as they were). Not
+in vehicles, which have VIEW.
+
 vr.aim [string]
 Default: "hand"
 What aims on foot: "head" (where you look, with a reticle ahead) or
@@ -1126,12 +1285,33 @@ Default: true
 COMBAT MOVES: optional enemy-specific attack poses, physical duck/sidestep dodges, arm-control and jump-pummel openings within FIST COMBAT. Enemy-only; real contacts and native collision remain required.
 
 vr.projectile_parry [boolean]
-Default: false
-DEFLECT SHOTS: physically deflect moving projectiles or airborne grenades with a closed empty fist (Grip + Trigger), or deliberately swing the hand carrying your gun. Aiming/firing alone does not parry. Native fuse and damage remain intact. Enabled with FIST COMBAT; may be switched off separately. Local solo or compatible enabled co-op host only; no hitscan, attached or settled grenades.
+Default: true
+DEFLECT SHOTS: projectiles met by your gun or your fist turn away. A gun held in a shot's path blocks it
+(it glances off, no swing needed); a gun or a closed hand (the grip) swung at 1.2 m/s bats it along
+the swing. By kind: plasma, needles and vehicles' bolts by any of them; bullets only off a gun;
+grenades batted or bounced; rockets and fuel rods only by a hard swing (2.5 m/s); tank shells,
+mortars and flame never. A deflected shot is yours (its damage and kills). Local solo or an enabled
+co-op host only; nothing on a client. Test72: on by default.
+
+vr.deflect_assist [real]
+Default: 0.03
+DEFLECT AID: metres added round the gun and the fist where a shot is met: 0 (as they are),
+0.03 (default) or 0.06.
+
+vr.deflect_strength [real]
+Default: 1.0
+DEFLECT FORCE: the deflected shot's speed against what it had (a block keeps a little less):
+0.75, 1.0 (default) or 1.25.
 
 vr.combat_highlights [boolean]
 Default: true
 Highlight a locked enemy head/chest and show stun/impact feedback with assisted combat.
+
+vr.combat_combo_display [boolean]
+Default: true
+Test72: COMBO DISPLAY (FIST COMBAT): the combo (blows, switches to another enemy, parries, blocks, grabs,
+knockdowns in a row) as a small holographic counter in the HUD's blue, low and left of the view, gold
+when a takedown is ready. Off: only the lights over the enemy (HIT HIGHLIGHTS).
 
 vr.weapon_pull [boolean]
 Default: true
@@ -1150,8 +1330,8 @@ Default: true
 PULL GLOW: the weapon a hand can pull is outlined (pulsing; brighter while it flies to the hand).
 
 vr.combat_lunge_reach [real]
-Default: 8.0
-LUNGE (FIST COMBAT): how far a punch carries you to the enemy you look at or throw it at, in metres (Arkham Shadow's punch across the room: a dash up to 10 m/s, the blow landing on arrival); 0 keeps FIST REACH's short step only.
+Default: 12.0
+LUNGE (FIST COMBAT): how far a punch carries you to the enemy you look at or throw it at, in metres, 0 to 15 (12 since Test72; Arkham Shadow's punch across the room: a leaping dash up to 14 m/s, the blow landing on arrival); 0 keeps FIST REACH's short step only.
 
 vr.combat_enemy_health [real]
 Default: 3.0
@@ -1162,15 +1342,17 @@ Default: true
 COUNTERS (FIST COMBAT): an enemy swinging at you shows a blue warning over its head and taps both hands; a punch toward it counters (its blow undone, it is knocked down, the combo goes on).
 
 vr.combat_hit_assist [real]
-Default: 0.30
+Default: 0.50
 Test70: HIT ASSIST (FIST COMBAT): a punch thrown at an enemy already in striking range lands when
-the fist comes within this many metres of its body (0 to 0.5; 0.30), Halo's body bubble keeping
-the hand off the skin. 0: the fist's own sweep must meet the body, as before.
+the fist's stroke passes within this many metres of its skeleton (head, chest, arms, legs; 0 to 0.7;
+0.50 since Test72), Halo's body bubble keeping the hand off the skin. 0: the fist's own sweep must
+meet the body, as before.
 
 vr.combat_lunge_hop [real]
-Default: 0.15
-Test70: LUNGE HOP (FIST COMBAT): a lunge on the ground begins with a small leap of about this
-height in metres (0 to 0.4; 0.15), a combat leap rather than a slide; 0 slides as before.
+Default: 0.30
+Test70: LUNGE HOP (FIST COMBAT): a lunge on the ground begins with a leap of about this height in
+metres (0 to 0.45; 0.30 since Test72; lower for a short lunge, higher to an enemy standing above),
+a Spartan's combat leap rather than a slide; 0 slides as before.
 
 vr.combat_reach [real]
 Default: 3.0
@@ -1293,6 +1475,19 @@ First-person seat forward offset in metres (-0.50 to 0.50), scorpion. Global and
 vr.vehicle_scorpion_right [real]
 Default: 0.0
 First-person seat right offset in metres (-0.50 to 0.50), scorpion. Global and matching vehicle offsets add; final axis is bounded to 0.50 m.
+
+vr.vehicle_turret_up [real]
+Default: 0.25
+Test72: a turret's view (the Shade's and any of its kind), metres up from its seat: 0.25 by
+default, to see over its shield (a tester: too low). -0.5 to 0.5, with vr.vehicle_all_up.
+
+vr.vehicle_turret_forward [real]
+Default: 0.0
+Test72: a turret's view, metres forward from its seat (-0.5 to 0.5).
+
+vr.vehicle_turret_right [real]
+Default: 0.0
+Test72: a turret's view, metres right of its seat (-0.5 to 0.5).
 
 vr.vehicle_pelican_up [real]
 Default: 0.0
@@ -1797,12 +1992,18 @@ Default: false
 Optional solo VR physical reload for supported weapons. The USE/RELOAD action drops the magazine (it never reloads automatically while this is on); take a fresh one from a hip or shoulder pouch, push it into the well, and charge the gun only if the chamber was empty. Unsupported weapons keep the stock reload.
 
 vr.npc_grab_assist [real]
-Default: 0.15
-GRAB ASSIST: how far from an NPC's body (its visible surface) a squeeze still takes it, in metres (0 to 0.25; 15 cm by default since Test70, and NPC GRAB and FIST COMBAT bring at least 15 cm with them). 0 is touch only. A hand that touches no object (a prop, a turret, a vehicle) takes the nearest within this reach and 3 cm more.
+Default: 0.30
+GRAB ASSIST: how far from an NPC's body (its visible surface) a squeeze still takes it, in metres (0 to 0.5; 30 cm by default since Test72, and NPC GRAB and FIST COMBAT bring at least 30 cm with them). 0 is touch only. A hand that touches no object (a prop, a turret, a vehicle) takes the nearest within this reach and 3 cm more.
 
 vr.object_throw [real]
 Default: 2.0
 OBJECT THROW: how hard a prop or a vehicle let go of while moving flies: the hand's speed times this (0 to 3; 2 by default; a vehicle at most 12 m/s, a prop 24). 0 lets it drop. WORLD GRAB and LIFT VEHICLES bring it.
+
+vr.test72_combat_defaults_applied [boolean]
+Default: false
+Internal one-time move (Test72): FIST COMBAT's LUNGE, HIT ASSIST and LUNGE HOP and GRAB ASSIST still
+at their old defaults (8 m, 30 cm, 15 cm, 15 cm) go to the new ones (12 m, 50 cm, 30 cm, 30 cm),
+once; any other value is the player's and stays.
 
 vr.test70_defaults_applied [boolean]
 Default: false
