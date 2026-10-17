@@ -280,6 +280,17 @@ static int translate_option(int level, int name, int *host_level, int *host_name
 	}
 }
 
+void posix_socket_allow_fragments(int socket)
+{
+#if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
+	int value = IP_PMTUDISC_DONT;
+
+	setsockopt(socket, IPPROTO_IP, IP_MTU_DISCOVER, &value, (socklen_t)sizeof(value));
+#else
+	(void)socket;
+#endif
+}
+
 int posix_socket_setsockopt(int socket, int level, int name, const void *value, int length)
 {
 	int host_level, host_name;

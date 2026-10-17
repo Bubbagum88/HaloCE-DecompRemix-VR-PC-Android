@@ -107,6 +107,9 @@ the other end's delayed acknowledgement */
 int posix_socket_set_nodelay(int socket);
 /* Winsock option levels and names are translated for SOL_SOCKET options */
 int posix_socket_setsockopt(int socket, int level, int name, const void *value, int length);
+/* Test72: a datagram socket's packets sent without "don't fragment", so a
+path narrower than a packet (a VPN's) fragments it instead of dropping it */
+void posix_socket_allow_fragments(int socket);
 int posix_socket_getsockopt(int socket, int level, int name, void *value, int *length);
 int posix_socket_getsockname(int socket, void *address, int *address_length);
 int posix_socket_getpeername(int socket, void *address, int *address_length);

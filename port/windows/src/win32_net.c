@@ -194,6 +194,14 @@ static int known_option(int level, int name)
 	}
 }
 
+void posix_socket_allow_fragments(int socket)
+{
+	/* (Winsock sends datagrams without it unless asked: said again) */
+	DWORD value = FALSE;
+
+	setsockopt((SOCKET)socket, IPPROTO_IP, IP_DONTFRAGMENT, (const char *)&value, sizeof(value));
+}
+
 int posix_socket_setsockopt(int socket, int level, int name, const void *value, int length)
 {
 	if (!known_option(level, name))

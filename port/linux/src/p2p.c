@@ -108,7 +108,14 @@ enum
 	STREAM_CHUNK_SIZE = 1024,
 	/* the most unacknowledged messages a stream sends ahead */
 	STREAM_WINDOW = 128,
-	KCP_MTU = 1200,
+	/* Test72: a stream piece's size: with the tunnel's header and seal and
+	UDP over IPv6 about 1080 bytes on the wire, well under a VPN's 1280 (1200
+	came to 1280, the very limit, with no room for the VPN's own wrapping).
+	Only this side's pieces: a KCP receiver takes any size. */
+	KCP_MTU = 1000,
+	/* how long a stream's pieces go unanswered, while its peer answers
+	pings, before it is said (once) */
+	STREAM_STALL_TIME = 3000,
 
 	/* milliseconds */
 	LOOP_INTERVAL = 10,
@@ -273,6 +280,10 @@ struct stream
 	int remote_closed;
 	unsigned long created_time;
 	unsigned long closed_time;
+	/* Test72: the oldest piece unanswered, and since when; said once */
+	IUINT32 stall_una;
+	unsigned long stall_time;
+	int stall_said;
 	unsigned char pending[STREAM_BUFFER_SIZE];
 	int pending_size;
 };
@@ -829,7 +840,19 @@ static void peer_send_to(struct peer *peer, const struct p2p_candidate *to, cons
 	sealed = p2p_aead_seal(peer->send_key, nonce, packet, TUNNEL_HEADER_SIZE, inner, size,
 		packet + TUNNEL_HEADER_SIZE);
 	make_address(&address, to->address, to->port);
-	posix_socket_sendto(p2p.tunnel_socket, packet, TUNNEL_HEADER_SIZE + sealed, 0, &address, sizeof(address));
+	if (posix_socket_sendto(p2p.tunnel_socket, packet, TUNNEL_HEADER_SIZE + sealed, 0, &address, sizeof(address)) < 0)
+	{
+		/* Test72: said once a run (a VPN's narrower path, a network gone) */
+		static int said;
+		int error = posix_socket_last_error();
+
+		if (!said && error != WSAEWOULDBLOCK)
+		{
+			said = 1;
+			platform_log("Internet play: a %d-byte packet to %s could not be sent (error %d)",
+				TUNNEL_HEADER_SIZE + sealed, peer->name, error);
+		}
+	}
 }
 
 /* to a peer the tunnel has reached; dropped otherwise */
@@ -2280,6 +2303,30 @@ static void stream_update(struct stream *stream)
 		}
 	}
 	stream_flush_pending(stream);
+	/* Test72: pieces unanswered while the peer answers pings: large packets
+	lost on the way (a VPN's narrower path, most likely), said once */
+	if (ikcp_waitsnd(stream->kcp) > 0)
+	{
+		struct peer *peer = &p2p.peers[stream->peer];
+
+		if (!stream->stall_time || stream->stall_una != stream->kcp->snd_una)
+		{
+			stream->stall_una = stream->kcp->snd_una;
+			stream->stall_time = p2p_now();
+		}
+		else if (!stream->stall_said && elapsed(stream->stall_time, STREAM_STALL_TIME) &&
+			!elapsed(peer->heard_time, STREAM_STALL_TIME))
+		{
+			stream->stall_said = 1;
+			platform_log("Internet play: a connection to %s has had %d pieces unanswered for %d s while it "
+				"still answers (%lu ms a round trip): large packets may be lost on this network (a VPN?)",
+				peer->name, (int)ikcp_waitsnd(stream->kcp), STREAM_STALL_TIME / 1000, peer->round_trip);
+		}
+	}
+	else
+	{
+		stream->stall_time = 0;
+	}
 	if (stream->remote_closed && !stream->pending_size && stream->socket >= 0)
 		stream_local_closed(stream);
 	/* finished: both ends closed and everything delivered, or the tunnel
@@ -3320,6 +3367,8 @@ void p2p_initialize(unsigned long local_address)
 		posix_socket_setsockopt(p2p.tunnel_socket, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
 		posix_socket_setsockopt(p2p.tunnel_socket, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
 	}
+	/* Test72: fragmented on a narrower path (a VPN's), not dropped */
+	posix_socket_allow_fragments(p2p.tunnel_socket);
 #ifndef HALO_ANDROID
 	/* the first copy of the game takes the invites later ones are opened
 	with */
