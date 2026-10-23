@@ -26,7 +26,7 @@ pre=r'''
 #define HALO_XR_BUTTON_RIGHT_THUMB 2
 static struct {
  int active,stereo_enabled,force_render,aiming,hand_aiming,recentre_held,hand_aim,heading_valid,aiming_last_frame,seated;
- float diag_yaw,diag_walk_speed,head_yaw,aim_yaw,heading,last_aim_yaw;
+ float diag_yaw,diag_walk_speed,diag_pitch,diag_turn_speed,head_yaw,aim_yaw,heading,last_aim_yaw;
  float run_push,comfort_move,comfort_turn;
  int recentre_source;
  int cockpit_valid,heading_from_seat;float cockpit[3][3]; /* Test65: COCKPIT LOCK */
@@ -37,7 +37,7 @@ static void synthesize_views(void){}
 static void host_xr_recenter(void){}
 static void update_aim_pose(void){}
 static int hand_forward(float f[3]){f[0]=0;f[1]=0;f[2]=1;return 1;}
-static void turn(void){}
+static void turn(int seated){(void)seated;}
 /* test24b: the comfort vignette's motion (test_test24b) */
 static float comfort_stick(float x,float y){(void)x;(void)y;return 0.0f;}
 static void comfort_update(double seconds){(void)seconds;}

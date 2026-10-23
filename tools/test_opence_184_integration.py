@@ -24,6 +24,7 @@ server code this port does not share); profiling build.
 from pathlib import Path
 import re
 
+import network_expected as netv  # noqa: E402 (tools/: the versions this build hosts and joins)
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -32,8 +33,10 @@ def read(path):
 
 
 distributed = read("port/linux/game/network_distributed.c")
-assert "static boolean distributed_riding_moving_elevator(" in distributed
-assert "if (distributed_riding_moving_elevator(unit_index))\n\t\tposition.z = object->object.position.z;" in distributed
+# (OpenCE 242: riding a moving elevator, or standing on one at rest; its cases are
+# tools/harness/tests/elevator_prediction.c's)
+assert "static boolean distributed_riding_elevator(" in distributed
+assert "if (distributed_riding_elevator(unit_index))\n\t\tposition.z = object->object.position.z;" in distributed
 
 connection = read("source/networking/network_connection.c")
 assert "SET_FLAG(connection->flags, _connection_closed_bit, FALSE);" in connection
@@ -77,6 +80,7 @@ functions = functions[:functions.index("};")]
 assert '"new campaign decision",' in functions, "dispatched by name: it must be one of the port's functions"
 
 limits = read("port/linux/include/halo_port_limits.h")
-assert "#define HALO_PORT_NETWORK_VERSION 29" in limits and "OpenCE\nBuild206" in limits  # Test68: network 29
+assert "#define HALO_PORT_NETWORK_VERSION %d" % netv.CURRENT in limits and \
+    "OpenCE Build %d" % netv.UPSTREAM_BUILD in limits  # (Test73: tools/network_expected.py)
 print("PASS: selected OpenCE Build184 fixes integrated (co-op stale handles and elevators, joining, vehicles, "
       "HUD digits, CE map listing, profile-less Settings); network 28 hosting (Test59)")

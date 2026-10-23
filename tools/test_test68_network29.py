@@ -2,7 +2,8 @@
 
 1. This build hosts and advertises network 29 and joins 11..29 (All compatible
    by default); the launcher lists 29; the community extras keep their own
-   kinds 87-92, which Build 206 still drops as unknown.
+   kinds (Test73: 90-93, after OpenCE 232's chat, 87-89), which Build 206
+   still drops as unknown (and OpenCE 232 drops 90-93).
 2. Network 29's Custom Edition map identity: a host's level name is the map's
    own and its game record's map version the map's hash's first 32 bits
    (map_share_level_name_choose, cache_files_map_version). A host before 29
@@ -20,6 +21,7 @@ import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
+import network_expected as netv  # noqa: E402 (tools/: the versions this build hosts and joins)
 read = lambda path: (ROOT / path).read_text(encoding='utf-8', errors='replace')
 
 
@@ -36,17 +38,22 @@ def function(text, name):
 
 # 1. the versions
 limits = read('port/linux/include/halo_port_limits.h')
-for name, value in (('HALO_PORT_NETWORK_VERSION', 29), ('HALO_PORT_NETWORK_VERSION_MINIMUM', 11),
-                    ('HALO_PORT_NETWORK_VERSION_MAXIMUM', 29), ('HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM', 23),
+# (the hosting and join range: tools/network_expected.py; 29 stays the network of the maps' hash identity)
+for name, value in (('HALO_PORT_NETWORK_VERSION', netv.CURRENT), ('HALO_PORT_NETWORK_VERSION_MINIMUM', netv.MINIMUM),
+                    ('HALO_PORT_NETWORK_VERSION_MAXIMUM', netv.MAXIMUM), ('HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM', 23),
                     ('HALO_PORT_MAP_HASH_VERSION_NETWORK_VERSION', 29)):
     assert re.search(r'^#define %s %d$' % (name, value), limits, re.M), name
-assert 'version 29\n' in read('port/linux/network_format.txt')
+assert 'version %d\n' % netv.CURRENT in read('port/linux/network_format.txt')
 profile = read('port/android/app/src/main/java/com/halo/decomp/NetworkProfile.java')
-assert 'static final int CURRENT = 29;' in profile and 'SUPPORTED = {29, 28, 27,' in profile
+assert 'static final int CURRENT = %d;' % netv.CURRENT in profile and \
+    'SUPPORTED = {%s}' % ', '.join(map(str, netv.SUPPORTED)) in profile
 header = read('port/linux/game/network_distributed.h')
 kinds = dict((name, int(value)) for name, value in re.findall(r'_distributed_message_(\w+) = (\d+),', header))
-assert kinds['map_share_progress'] == 86 and max(kinds.values()) == 92
-print('PASS: hosts network 29 (OpenCE Build206), joins 11..29, launcher lists 29; extras still on kinds 87-92')
+assert kinds['map_share_progress'] == 86 and kinds['chat_up'] == 87 and kinds['aim_assist_policy'] == 90 and \
+    max(kinds.values()) == 94
+print('PASS: hosts network %d (OpenCE Build %d), joins %d..%d, launcher lists them; network 29\'s map identity; '
+      'OpenCE 232\'s chat on 87-89, 244\'s aim assist policy 90, the extras on 91-94'
+      % (netv.CURRENT, netv.UPSTREAM_BUILD, netv.MINIMUM, netv.MAXIMUM))
 
 # 2. the map identity
 server = read('source/networking/network_server_manager.c')

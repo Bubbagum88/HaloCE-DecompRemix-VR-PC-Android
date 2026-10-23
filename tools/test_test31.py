@@ -3,6 +3,7 @@ Device play is still required; these checks establish protocol/source and logic 
 """
 from pathlib import Path
 import hashlib, re, subprocess
+import network_expected as netv  # noqa: E402 (tools/: the versions this build hosts and joins)
 ROOT = Path(__file__).resolve().parents[1]
 def read(p): return (ROOT/p).read_text()
 def run(name, source):
@@ -18,19 +19,24 @@ def fn(text, name):
         depth += (text[b] == '{') - (text[b] == '}'); b += 1
     return text[m.start():b] + '\n'
 limits=read('port/linux/include/halo_port_limits.h')
-assert re.search(r'#define HALO_PORT_NETWORK_VERSION 29\b', limits)
-assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MINIMUM 11\b', limits)
-assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MAXIMUM 29\b', limits)
-UPSTREAM_201 = [('port/linux/game/coop_enemies.c', '56e2d758a8c65894a94e89912a7e93082d4a0ac373335306b3280a606760fb42'), ('port/linux/game/coop_enemies.h', '8984e3e416e5f6fa1c743313e57fc5de87fc9a2a47be488be667865808a05a68'), ('port/linux/game/coop_scripts.c', '0bac85a65524490d106052773e780a32fe5db6c33e783ce5dba91514dfe759bd'), ('port/linux/game/coop_scripts.h', '5999faeb081156e38ec5e90288803076e541a79e626aa907575cabc07a5bc911'), ('port/linux/game/coop_spectate.c', '8ed6ccee0a4881e61b533a93b4621f236ae78b88703fd08203de36fa1bdb5afe'), ('port/linux/game/coop_spectate.h', '6c73fce2dfd2bbb300f784f4ed393053db1978e5b5a984d7dd8c1fa75eb58035'), ('port/linux/game/network_actors.c', 'beaa436a7da1d9e3c9efb83e796a6d7ccbe80d61ac19814b219031577dfdc4f4'), ('port/linux/game/network_coop.h', 'ff29c9fae0f03a3686342766ead3557f0aa7c4b4eaa9932dbf4c3a8724acf1d0'), ('port/linux/game/network_damage.c', '979f0c2c95bffec5ba490e78e6a057cd2871284e96a093362b1c44703630e426'), ('source/networking/network_client_manager.h', 'a0b2b1d2ef0245b3cc5f9dfb6b735f1b30ec0ae7dc0fc8df06060e6ee28912f1'), ('source/networking/network_client_message_handler.c', '89cd5d3c8963cfaa0cf5b410e3de66b4d4366bade65059a6b46af6432b03f0a6'), ('source/networking/network_client_message_handler.h', '4e65c098f5319897418237324e40f66a41cafe49df86d968ffdc6c781108691f'), ('source/networking/network_connection.c', '2f4240924238d04e4c2480caafa02205b0014c1bb3614f0f0794fb5010492642'), ('source/networking/network_connection.h', '9a11ece195c463d5ab7a79395e843a3c0c83d4d26909d6625ce810613723b077'), ('source/networking/network_game_globals.h', 'a28d5c2f842015da03414f031b10bd8f5c34af24190722b1b494f88a4418f95f'), ('source/networking/network_game_manager.c', '413990d25e2677a1d9833bcb57e35431e3cd274d1ddeec5f0860a1f4df61f6f9'), ('source/networking/network_game_manager.h', '204beda14791cc65d729247711af3b61f20e5dbbfd04386cf7bac58e4a61ad1e'), ('source/networking/network_game_preferences.c', '109ea168784432e85e70eee3e86e74107d2c6ec36220982ecde96a0a3a59e68a'), ('source/networking/network_game_protocol.h', 'c7a4ab43c54b02cb96921b04ac670f90d185ab2c60ae58309a616c70d21a8b2e'), ('source/networking/network_game_ui.c', 'd3ed3ab54f1e0ca70e9a64f856f617320a23f3ae26fa75d6dbe6e7e4fb5ef901'), ('source/networking/network_game_ui.h', 'd1bcda47270cd85ff303f0ec1503b38c4900bcd8f01d48410a2997efdb4e4d21'), ('source/networking/network_messages.c', '82846ccd5f3686652e94dee3661b8d5e214d8866da8c1c12e5b62d3b5a8ab1a3'), ('source/networking/network_messages.h', 'daea3a6af2f0a925e27a98f6899c741bf95ed366c9144a689801ba90cdc6aa27'), ('source/networking/network_server_manager_internal.h', '59520fef12c538c7546d9367bc64b8da18d9fff2c07fc65911df249be133b664'), ('source/networking/network_server_message_handler.c', 'e47eee81bfe2a85c7f263ab01065a518753c847166c26c33896d374901bf5899'), ('source/networking/network_server_message_handler.h', '1641cb2ad5ecd9af74ba8e8090eda13aa9fbe3389c83c1c98a1c20ea61c1a6a0'), ('source/networking/telnet_console.c', 'b73b4c974ccc93decb2ebb8e3ace150fe73be9026ea4ec552c38d22b054e436c'), ('source/networking/telnet_console.h', '45d366a413de2c53a2781afc79484c90d12ca67847d5ba05dd6d1afa193dedf3')]
+assert re.search(r'#define HALO_PORT_NETWORK_VERSION %d\b' % netv.CURRENT, limits)
+assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MINIMUM %d\b' % netv.MINIMUM, limits)
+assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MAXIMUM %d\b' % netv.MAXIMUM, limits)
+UPSTREAM_244 = [('port/linux/game/coop_enemies.c', '56e2d758a8c65894a94e89912a7e93082d4a0ac373335306b3280a606760fb42'), ('port/linux/game/coop_enemies.h', '8984e3e416e5f6fa1c743313e57fc5de87fc9a2a47be488be667865808a05a68'), ('port/linux/game/coop_scripts.c', 'd57c435cdf6ea063c0711576cff1bfe4d124002a059e89eb1958ef0f0598f968'), ('port/linux/game/coop_scripts.h', 'b23c52a1ad58261e62b8e8e0fab6cb8651fc6920724e16986343eb0adb9bf1fc'), ('port/linux/game/coop_spectate.c', '8ed6ccee0a4881e61b533a93b4621f236ae78b88703fd08203de36fa1bdb5afe'), ('port/linux/game/coop_spectate.h', '6c73fce2dfd2bbb300f784f4ed393053db1978e5b5a984d7dd8c1fa75eb58035'), ('port/linux/game/network_actors.c', 'beaa436a7da1d9e3c9efb83e796a6d7ccbe80d61ac19814b219031577dfdc4f4'), ('port/linux/game/network_coop.h', 'ff78cc56fe535785497ec71c9fce5a421abbe49ee07f181b700c1799821fbbd0'), ('port/linux/game/network_damage.c', 'c9d8cd7d980656cb0a25ab741f35c9edb75352243212046366c57a348ebe75b2'), ('source/networking/network_client_manager.h', 'dab4f53333bfe19d25606aec0d9bc77513660582da171d7a378bd3b80155a3f4'), ('source/networking/network_client_message_handler.c', '1d5451c341714d88fd87141c6a4abe440c42186ed683f62ab3958cf3a0dc1b58'), ('source/networking/network_client_message_handler.h', '4e65c098f5319897418237324e40f66a41cafe49df86d968ffdc6c781108691f'), ('source/networking/network_connection.c', '884861a8d51039da09ac7fd58f94088c5a609d872060370d827051122bc64a7a'), ('source/networking/network_connection.h', '9a11ece195c463d5ab7a79395e843a3c0c83d4d26909d6625ce810613723b077'), ('source/networking/network_game_globals.h', 'a28d5c2f842015da03414f031b10bd8f5c34af24190722b1b494f88a4418f95f'), ('source/networking/network_game_manager.c', '413990d25e2677a1d9833bcb57e35431e3cd274d1ddeec5f0860a1f4df61f6f9'), ('source/networking/network_game_manager.h', '93a4703b4cd0f071290d7e5d369f62720241abef74bf66536131362277d9946d'), ('source/networking/network_game_preferences.c', '109ea168784432e85e70eee3e86e74107d2c6ec36220982ecde96a0a3a59e68a'), ('source/networking/network_game_protocol.h', 'c7a4ab43c54b02cb96921b04ac670f90d185ab2c60ae58309a616c70d21a8b2e'), ('source/networking/network_game_ui.c', 'd3ed3ab54f1e0ca70e9a64f856f617320a23f3ae26fa75d6dbe6e7e4fb5ef901'), ('source/networking/network_game_ui.h', 'd1bcda47270cd85ff303f0ec1503b38c4900bcd8f01d48410a2997efdb4e4d21'), ('source/networking/network_messages.c', 'd691e269ee1b42de56df80eab314b924aad4bc493cbba40d005846486733458b'), ('source/networking/network_messages.h', 'daea3a6af2f0a925e27a98f6899c741bf95ed366c9144a689801ba90cdc6aa27'), ('source/networking/network_server_manager_internal.h', 'bace9184eba249334b04e9774ac35c641ce385ee24436f9cc071ad3de253480e'), ('source/networking/network_server_message_handler.c', '9b076304ddf5380702797e5c40521dbeea69d2844173c35e0a1fb788b1f0e893'), ('source/networking/network_server_message_handler.h', '1641cb2ad5ecd9af74ba8e8090eda13aa9fbe3389c83c1c98a1c20ea61c1a6a0'), ('source/networking/telnet_console.c', 'b73b4c974ccc93decb2ebb8e3ace150fe73be9026ea4ec552c38d22b054e436c'), ('source/networking/telnet_console.h', '45d366a413de2c53a2781afc79484c90d12ca67847d5ba05dd6d1afa193dedf3')]
 # Test53 (OpenCE Build184): network_connection.c and telnet_console.c are
 # now Build177-184's byte for byte ("a connection made is open", the telnet
 # console's HTTP drop), and network_game_manager.c carries Build184's
 # co-op stale-player-handle fix (#250): pinned to those.
+# Test73: OpenCE Builds 232-256 merged: each is Build 244's (the list's hashes; Builds 246 to 256 left them as
+# they were), but coop_scripts.c and coop_scripts.h, Build 256's (246's gravity lift followers, 9d7436bd6 +
+# 9044950d7, and 256's Pillar of Autumn softlock, cdce33647), and network_coop.h and network_game_manager.h,
+# OpenCE testing's (ALLY FRIENDLY FIRE, 1d38b3f93, network 33), and network_damage.c, OpenCE's
+# fix-scenery-shields-network's (5744d2d17 to 4ab042e14, network 34).
 # Test66 (OpenCE Build 201 merged): every one of these units is Build 201's
 # byte for byte (b1ef7f7e), less the Android guest ABI's declarations below
 # (and Test38's query); the co-op enemy cap, the grenade attribution and the
 # voice dispatch are Build 201's own now, so none is skipped.
-for path,digest in UPSTREAM_201:
+for path,digest in UPSTREAM_244:
     # Build 147 intentionally changes the co-op enemy growth cap. This
     # candidate also carries a focused Build167 grenade attribution fix in
     # network_damage.c; its production behavior is checked by
@@ -56,29 +62,52 @@ for path,digest in UPSTREAM_201:
         data=data.replace(test52_additions[path],b'')
     if path == 'source/networking/network_server_message_handler.c':
         # Test67: the OpenCE fork jcompto95-tech's community extras hook the
-        # server's lobby handler (the Armor choices, text chat: their own
-        # message kinds, 91-92 and 89-90): exactly these declarations and
-        # blocks, once each, the rest Build 201's byte for byte
+        # server's lobby handler: the Armor choices (their own message kinds,
+        # Test73: 92-93): exactly these declarations and this block, the rest
+        # Build 201's byte for byte (Build 232's is the same file). Test73:
+        # OpenCE 232's text chat replaced the fork's, with no lobby hook here,
+        # so the fork's chat declarations and block are gone.
         declarations = (b"/* port/linux/game/armor_sync.c's: the Armor choices, in the lobby too */\n"
             b"boolean armor_sync_handles_message(word const *message, word size);\n"
-            b"void armor_sync_handle_message(long machine_index, word const *message, word size, boolean from_stream);\n"
-            b"/* port/linux/game/network_chat.c's: text chat, in the lobby too */\n"
-            b"boolean network_chat_handles_message(word const *message, word size);\n"
-            b"void network_chat_handle_message(long machine_index, word const *message, word size, boolean from_stream);\n")
+            b"void armor_sync_handle_message(long machine_index, word const *message, word size, boolean from_stream);\n")
         assert data.count(declarations) == 1, path
+        assert b"network_chat_handle" not in data, path
         data = data.replace(declarations, b'')
-        for start, call in ((b"\t\t\t\t/* (port: the Armor choices from any machine that joined, in\n", b"armor_sync_handle_message("),
-                            (b"\t\t\t\t/* (port: text chat's from any machine that joined, in the\n", b"network_chat_handle_message(")):
+        for start, call in ((b"\t\t\t\t/* (port: the Armor choices from any machine that joined, in\n", b"armor_sync_handle_message("),):
             assert data.count(start) == 1, path
             begin = data.index(start)
             end = data.index(b"\t\t\t\t\tbreak;\n\t\t\t\t}\n", begin) + len(b"\t\t\t\t\tbreak;\n\t\t\t\t}\n")
             assert call in data[begin:end] and data[begin:end].count(b"break;") == 1, path
             data = data[:begin] + data[end:]
+    if path == 'source/networking/network_game_manager.c':
+        # Test73 (GulchCE b10333f9, item 2b): an MCC map's refused network load
+        # unwinds through the session's lifecycle: its include and its block
+        mcc_include=b'#include "mcc_main.h" /* port: port/linux/game/mcc_main.c */\n'
+        mcc_block=(b'\t\t/* port: MCC refusals unwind through the network session lifecycle. */\n'
+                   b'\t\tif (mcc_main_network_load_failed(options.map_name))\n\t\t{\n'
+                   b'\t\t\tgame->local_data.game_objects_loaded = FALSE;\n\t\t\treturn FALSE;\n\t\t}\n')
+        assert data.count(mcc_include)==1 and data.count(mcc_block)==1, path
+        data=data.replace(mcc_include,b'').replace(mcc_block,b'')
     if path == 'source/networking/network_client_manager.h':
         # Test38 adds only this query declaration; preserve the upstream header guard.
         addition=b'unsigned int network_game_client_joined_version(void);\n'
         assert data.count(addition)==1
         data=data.replace(addition,b'')
+    if path == 'port/linux/game/network_damage.c':
+        # Test73: OpenCE's fix-scenery-shields-network (network 34), byte for
+        # byte, less this port's gate for a client of a host before 34
+        # (static_target_shields): its function and its two uses
+        start=data.index(b"/* HaloCE-Quest-VR: whether this game's host plays network 34's static\n")
+        end=data.index(b"}\n\n",start)+len(b"}\n\n")
+        assert data[start:end].count(b'static boolean static_target_shields(')==1, path
+        data=data[:start]+data[end:]
+        for ours,upstream in ((b'\t\t\t(static_target_shields() && object_get_maximum_shield_vitality(object_index, TRUE) > 0.0f));\n',
+                               b'\t\t\tobject_get_maximum_shield_vitality(object_index, TRUE) > 0.0f);\n'),
+                              (b"\t/* (HaloCE-Quest-VR: a host before 34 took it from the player's machine) */\n"
+                               b'\treturn static_target_shields() && damage->owner_object_index != NONE',
+                               b'\treturn damage->owner_object_index != NONE')):
+            assert data.count(ours)==1, path
+            data=data.replace(ours,upstream)
     assert hashlib.sha256(data).hexdigest()==digest,path
 voice_dispatch=read('source/networking/network_server_message_handler.c')
 assert voice_dispatch.count('network_voice_handles_message(message,') == 2
@@ -96,7 +125,7 @@ assert 'display_error_text_when_main_menu_loaded(error_text)' in fn(cache,'cache
 assert 'cache_files_precache_map_loaded(map_name)' in fn(cache,'cache_files_map_present')
 assert 'return custom_edition_cache_playable(map_name);' in fn(read('source/cache/cache_files_windows.c'),'cache_files_precache_map_loaded')
 assert 'ui_widget_port_text_wrap' in read('source/interface/ui_widget.c')
-print('PASS: host network 29; PvP host range 11..29; %d networking files match OpenCE Build 201 (less the guest ABI declarations); map namespace/preflight, PAL and legacy loader retained' % len(UPSTREAM_201))
+print('PASS: host network %d; PvP host range %d..%d;' % (netv.CURRENT, netv.MINIMUM, netv.MAXIMUM) + ' %d networking files match OpenCE (Build 244, coop_scripts Build 256, network_coop.h and network_game_manager.h from testing: ally friendly fire) (less the guest ABI declarations, the Armor hook and the MCC recovery); map namespace/preflight, PAL and legacy loader retained' % len(UPSTREAM_244))
 
 # Exercise the production range helpers against both allocation layouts.
 run('cache_bounds', r'''
@@ -221,7 +250,9 @@ run('seated_fire', r'''
 #include <assert.h>
 #include <stdio.h>
 #define HAND_EMPTY 0
-static struct { int seated, hand_state, weapon_hand; float pad_trigger[2]; struct {float trigger[2];} frame; } vr;
+static struct { int seated, hand_state, weapon_hand; float pad_trigger[2]; struct {float trigger[2];} frame;
+ /* the PC VR fixes' pulsed trigger (vr.diag_fire_frame with vr.force_render): off (0) here */
+ int force_render; long diag_fire_frame; long stereo_frames; } vr;
 static int physical; static int physical_weapons(void){return physical;}
 /* (Test70: the empty hand, locked holstering off here) */
 static int vr_hand_empty(void){return physical_weapons()&&vr.hand_state==HAND_EMPTY;}
@@ -377,7 +408,7 @@ run('nat_punch', r'''
 #define PUNCH_INTERVAL 200
 #define ENDPOINT_SWITCH_TIME 3000
 struct p2p_candidate {unsigned long address; unsigned short port;};
-struct peer {int used,connected,is_host,rejected,candidate_count; unsigned int predicted_attempts;
+struct peer {int used,connected,is_host,rejected,candidate_count,probe; unsigned int predicted_attempts;
  unsigned long offered_time,heard_time,sent_time,endpoint_heard_time;
  unsigned char identifier[16]; char name[33];
  struct p2p_candidate candidates[4],endpoint;};
@@ -430,6 +461,13 @@ int main(void){
  scenario(-1,0,7,0,0,0); /* no spray before local mapping is measured */
  scenario(0,0,4,1,1,1); /* two egress IPs, actual route among advertised candidates */
  scenario(0,0,4,1,0,0); /* unadvertised egress cannot be guessed */
+ /* the server browser's probe of a host (OpenCE 2759fc6db): its tunnel opens as a join's does, but it is no join */
+ memset(&p2p,0,sizeof(p2p)); sends=extra=delivered=0; full_cone=1; now=0;
+ {struct peer *p=&p2p.peers[0]; p->used=1; p->is_host=1; p->probe=1; p->candidate_count=1; p2p.joining=1;
+  p->candidates[0]=(struct p2p_candidate){network_long(0x08080808),network_short(40000)};
+  actual_ip=network_long(0x08080808); actual_port=network_short(40000);
+  for(now=0;now<=30000 && p->used && !p->connected;now+=10) update_peers();
+  assert(p->connected && p2p.joining==1 && p2p.join_stage!=P2P_JOIN_CONNECTED);}
  assert(!prediction_public_address(network_long(0x7f000001)));
  assert(!prediction_public_address(network_long(0x0a000001)));
  assert(!prediction_public_address(network_long(0xc0a80001)));

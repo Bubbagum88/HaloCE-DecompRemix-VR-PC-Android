@@ -26,6 +26,8 @@
 #include "objects/objects.h"
 #include "items/items.h"
 #include "items/weapons.h"
+#include "items/weapon_definitions.h"
+#include "tag_files/tag_groups.h"
 #include "units/units.h"
 #include "physics/collisions.h"
 #include "render/render_debug.h"
@@ -163,9 +165,34 @@ static void pickup_launch(int h,long unit,real_point3d const *hand,real units)
         tag_get_name(object->definition_index),(float)distance,(float)pickup.hand[h].duration/(real)TICKS_PER_SECOND);
 }
 
+/* Test73, for testing: vr.diag_weapon, a weapon tag's name: once a life, two
+ * seconds into the map, that weapon is made at the player and taken as the
+ * action button takes one, for eye dumps of each zoom weapon's scope on the
+ * PC VR null driver (SCOPES' per-weapon places). Local play only. */
+static void vr_weapon_diag_give(short local_player_index)
+{
+    static long given_unit=NONE;
+    char const *name=config_string("vr.diag_weapon");
+    long player,unit,tag,weapon;
+    struct object_placement_data data;
+    if(!name||!*name||game_connection()!=_game_connection_local||game_time_get()<2*TICKS_PER_SECOND)return;
+    player=local_player_get_player_index(local_player_index);
+    unit=player!=NONE?player_get(player)->unit_index:NONE;
+    if(unit==NONE||unit==given_unit)return;
+    given_unit=unit;
+    tag=tag_loaded(WEAPON_DEFINITION_TAG,name);
+    if(tag==NONE){platform_log("vr: diag weapon %s: not in this map",name);return;}
+    object_placement_data_new(&data,tag,NONE);
+    object_get_origin(unit,&data.position);
+    weapon=object_new(&data);
+    platform_log("vr: diag weapon %s: %s",name,
+        weapon!=NONE&&player_vr_take_weapon(player,weapon)?"in hand":"not taken");
+}
+
 void vr_weapon_pickup_tick(short local_player_index)
 {
     long player=local_player_get_player_index(local_player_index);
+    vr_weapon_diag_give(local_player_index);
     long unit=player!=NONE?player_get(player)->unit_index:NONE,now=game_time_get();
     struct unit_datum *u=unit!=NONE?unit_try_and_get(unit):NULL;
     real units=vr_units_per_metre();

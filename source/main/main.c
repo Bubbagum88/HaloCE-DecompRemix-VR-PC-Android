@@ -381,6 +381,9 @@ symbols in this file:
 #include "networking/network_server_manager.h" /* port: a co-op game's level won */
 #include "network_coop.h" /* port: port/linux/game/network_coop.c */
 #include "network_voice.h" /* port: port/linux/game/network_voice.c */
+#include "network_chat.h" /* port: port/linux/game/network_chat.c */
+#include "network_extras.h" /* port: port/linux/game/network_extras.c (Test73) */
+#include "network_aim_assist.h" /* port: port/linux/game/network_aim_assist.c */
 #include "map_share.h" /* port: port/linux/game/map_share.c */
 #include "profile_sections.h" /* port: port/linux/include/profile_sections.h */
 #ifdef HALO_PROFILE
@@ -736,6 +739,8 @@ static struct _main_globals main_globals = { 0 };
 /* Keep the original globals layout; these clocks belong to pending requests. */
 static long main_loss_last_tick;
 static long main_respawn_last_tick;
+/* port: the game tick a checkpoint last counted (main_save_map_private) */
+static long main_save_last_tick;
 boolean debug_force_frame_rate_update = FALSE;
 boolean debug_no_drawing = FALSE;
 boolean debug_game_save = FALSE;
@@ -1627,6 +1632,8 @@ void main_save_map_safe(
 		main_globals.ticks_until_next_save_check = 0;
 		main_globals.ticks_unable_to_save = 0;
 		main_globals.safe_intervals = 0;
+		/* port: the tick before: the first check is at once */
+		main_save_last_tick = game_time_get()-1;
 	}
 	return;
 }
@@ -1641,6 +1648,8 @@ void main_save_map_no_timeout(
 		main_globals.ticks_until_next_save_check = 0;
 		main_globals.ticks_unable_to_save = 0;
 		main_globals.safe_intervals = 0;
+		/* port: the tick before: the first check is at once */
+		main_save_last_tick = game_time_get()-1;
 	}
 	main_globals.save_map_timeout = FALSE;
 	return;
@@ -2060,7 +2069,9 @@ static void main_skip_private(
 {
 	if (main_globals.skip_ticks && cinematic_in_progress())
 	{
-		real saved_speed = game_time_get_speed();
+		/* port (Test73): the game's own speed put back, never BULLET TIME's
+		slowing (game_time_get_own_speed) */
+		real saved_speed = game_time_get_own_speed();
 
 		game_time_set_speed(1.0f);
 		while (main_globals.skip_ticks-- > 0)
@@ -2099,26 +2110,40 @@ static void main_save_map_private(
 
 		if (save_map_safely)
 		{
-			if (main_globals.ticks_unable_to_save++ >= 240 &&
-				main_globals.save_map_timeout)
+			/* port: the counts below are of game ticks, as on the Xbox, whose
+			loop ran once a tick (30 a second). This loop runs once a frame, and
+			at 60 frames a second or more a checkpoint gave up in a few seconds,
+			before the fight it waited on was over: few checkpoints came */
+			long current_tick = game_time_get();
+			long ticks = current_tick-main_save_last_tick;
+
+			if (current_tick < main_save_last_tick)
+				ticks = 0;
+			main_save_last_tick = current_tick;
+
+			while (ticks-- > 0 && !save_map)
 			{
-				if (debug_game_save)
-					console_printf(FALSE, "gave up trying to save");
-				main_globals.saving_map = FALSE;
-				return;
-			}
-			else if (main_globals.ticks_until_next_save_check-- <= 0)
-			{
-				if (game_safe_to_save())
+				if (main_globals.ticks_unable_to_save++ >= 240 &&
+					main_globals.save_map_timeout)
 				{
-					if (main_globals.safe_intervals++ >= 3)
-						save_map = TRUE;
+					if (debug_game_save)
+						console_printf(FALSE, "gave up trying to save");
+					main_globals.saving_map = FALSE;
+					return;
 				}
-				else
+				else if (main_globals.ticks_until_next_save_check-- <= 0)
 				{
-					main_globals.safe_intervals = 0;
+					if (game_safe_to_save())
+					{
+						if (main_globals.safe_intervals++ >= 3)
+							save_map = TRUE;
+					}
+					else
+					{
+						main_globals.safe_intervals = 0;
+					}
+					main_globals.ticks_until_next_save_check = 10;
 				}
-				main_globals.ticks_until_next_save_check = 10;
 			}
 		}
 		else
@@ -2455,10 +2480,29 @@ static void main_update_time_unthrottled(
 			(double)frequency.QuadPart);
 	}
 	previous_counter = counter;
+#ifdef HALO_VR
+	{
+		double display_seconds;
+
+		/* port (Test73): in the headset, the step between the frames' display
+		times, whole periods (port/linux/src/vr_frame.c, vr_frame_seconds):
+		steady motion no longer judders between the ticks. A movie's and
+		debug.fixed_step's own steps below still stand */
+		if (vr_frame_seconds(&display_seconds))
+			seconds_elapsed = (real)display_seconds;
+	}
+#endif
 
 	if (main_globals.movie)
 	{
 		seconds_elapsed = main_globals.recording_dt;
+	}
+	else if (halo_fixed_step() && main_globals.connection == _game_connection_local)
+	{
+		/* port: debug.fixed_step, a frame a tick whatever time has passed, as
+		a movie's frames are its recording's: what runs once a frame (aiming)
+		sees the game's time, and the game plays the same every time */
+		seconds_elapsed = 1.0f / TICKS_PER_SECOND;
 	}
 	else
 	{
@@ -2701,6 +2745,11 @@ static void main_update_time(
 	if (main_globals.movie)
 	{
 		seconds_elapsed = main_globals.recording_dt;
+	}
+	else if (halo_fixed_step() && main_globals.connection == _game_connection_local)
+	{
+		/* port: debug.fixed_step, as main_update_time_unthrottled */
+		seconds_elapsed = 1.0f / TICKS_PER_SECOND;
 	}
 	else
 	{
@@ -3544,10 +3593,17 @@ static boolean main_loop_iteration(
 			network_test_update(main_globals.main_menu_scenario_loaded, main_globals.seconds_elapsed);
 			/* OpenCE voice chat, both in the lobby and during network games. */
 			network_voice_update();
+			/* port: apply and replicate the host's mouse aim-assist policy. */
+			network_aim_assist_update();
 			/* port: map sharing, in the lobby and in game (port/linux/game/map_share.c) */
 			map_share_update();
 			network_campaign_session_update(main_globals.main_menu_scenario_loaded, main_globals.seconds_elapsed);
 			network_pvp_session_update(main_globals.main_menu_scenario_loaded, main_globals.seconds_elapsed);
+			/* port: network games' text chat (port/linux/game/network_chat.c) */
+			network_chat_update();
+			/* port: Test67-72 builds known, forgotten as they leave; their notice
+			(port/linux/game/network_extras.c) */
+			network_extras_update();
 			profile_scope_enter(main_network_start_frame_section)
 			connection = main_globals.connection;
 			if (connection==_game_connection_network_client)
@@ -3608,7 +3664,9 @@ static boolean main_loop_iteration(
 
 				if (!console_update() || main_globals.connection!=_game_connection_local)
 				{
-					debug_keys_update();
+					/* port: not while a chat line is typed (its K plays an animation) */
+					if (!network_chat_typing())
+						debug_keys_update();
 					cheats_update();
 					player_control_update((real)main_globals.halt_time_scale*main_globals.seconds_elapsed);
 
@@ -3627,9 +3685,16 @@ static boolean main_loop_iteration(
 					render_frame = main_globals.main_menu_scenario_loaded ||
 						(main_globals.halt_time_scale &&
 							(game_time_get_paused() || game_time_get_elapsed()>0 || game_time_get_speed()<1.0f));
-					/* frames between ticks too (render_interpolation.c) */
+					/* frames between ticks too (render_interpolation.c), but
+					none of a map before its first tick: the frame after a load
+					runs none (the load stopped the clock), and drawn it showed
+					the map before the startup scripts' fade and cinematic. On
+					the Xbox every frame ran a tick (halo-ce-universal
+					544f8cd29; a network game already waits for its third tick,
+					below) */
 					if (halo_interpolation_enabled())
-						render_frame = main_globals.main_menu_scenario_loaded || main_globals.halt_time_scale;
+						render_frame = main_globals.main_menu_scenario_loaded ||
+							(main_globals.halt_time_scale && game_time_get()>0);
 					render_frame &= !game_engine_running() || game_time_get()>=3;
 
 					profile_scope_enter(main_non_deterministic_update_section)

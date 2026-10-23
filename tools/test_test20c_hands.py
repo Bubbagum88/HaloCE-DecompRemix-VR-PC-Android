@@ -46,7 +46,9 @@ assert 'config_default_real(key)' in menu and 'config_default_real(weapon_keys[a
 ik=fn(render,'vr_render_first_person_ik')
 assert 'tracking == 0 && vr_body_setting()' in ik, 'only body IK may use the body shoulders'
 assert ik.count('vr_hand_pose(controller, vr_render.game_camera_position.n, hand.n, f.n, u.n)')==1, 'free hand uses the calibrated hand pose'
-assert 'vr_hand_pose(side, vr_render.game_camera_position.n' in fn(render,'vr_publish_body')
+# Test73: the observer palette's arm solve is vr_body_arms_to_hands (also the character's own arms, drawn here)
+assert 'vr_hand_pose(side, vr_render.game_camera_position.n' in fn(render,'vr_body_arms_to_hands')
+assert 'vr_body_arms_to_hands(unit, graph, m, count, heading);' in fn(render,'vr_publish_body')
 assert 'vr_float_shoulder(matrices, chain, &target, &shoulder)' in ik and 'if (tracking == 1)' in ik
 aim=fn(frame,'compute_aim_pose')
 assert 'vr_alignment_multiply(vr.frame.aim[w].orientation, vr.weapon_rotation[w], vr.aim_pose.orientation)' in aim
@@ -155,6 +157,10 @@ static real vr_units_per_metre(void){return units;}
 static void scale_vector3d(real_vector3d const *v,real s,real_vector3d *o){for(int i=0;i<3;i++)o->n[i]=v->n[i]*s;}
 static int vr_render_hands_only(void){return hands_only;}
 static int vr_hand_tracking_mode(void){return tracking;}
+/* Test73: the character's own arms (vr.character_arms) */
+static int character_arms;
+static int vr_render_character_arms(void){return character_arms;}
+static void platform_log(const char *format,...){(void)format;}
 static short vr_find_node(struct animation_graph *g,const char*a,const char*b){(void)g;(void)a;(void)b;return 7;}
 static boolean vr_node_under(struct animation_graph *g,short node,short root){
  if(root<0)return FALSE; for(short n=node;n>=0;n=g->parent[n]){if(n==root)return TRUE;if(g->parent[n]==n)break;}return FALSE;}
@@ -177,8 +183,9 @@ int main(void){
  tracking=0;hands_only=0;vr_hide_forearms(m,&g,left,right);assert(!memcmp(m,orig,sizeof m));
  /* test21: floating hands and arms (2) draw the arms; floating hands (1) hide them as Hands Only does */
  tracking=2;hands_only=0;vr_hide_forearms(m,&g,left,right);assert(!memcmp(m,orig,sizeof m));
- for(int mode=0;mode<2;mode++){
-  memcpy(m,orig,sizeof m);hands_only=1;tracking=mode;vr_hide_forearms(m,&g,left,right);
+ /* Test73: with the character's own arms (third pass: body IK, not Hands Only) they gather as for Hands Only */
+ for(int mode=0;mode<3;mode++){
+  memcpy(m,orig,sizeof m);hands_only=mode<2;tracking=mode<2?mode:0;character_arms=mode==2;vr_hide_forearms(m,&g,left,right);
   for(int s=0;s<2;s++){short *c=s?right:left;
    for(int b=0;b<2;b++){assert(m[c[b]].scale==0);
     /* gathered 3.5 cm behind the wrist toward the elbow, not onto the elbow */
@@ -200,7 +207,7 @@ int main(void){
   vr_point_minus(&t0,&before,&d);real original=vr_length(&d);
   if(original<=reach*0.97f&&original>=(fabsf(0.28f-0.25f)*1.05f+0.01f)*units)assert(vr_length(&moved)==0);
  }
- puts("PASS: Hands Only (body IK or floating) gathers arms 3.5 cm behind each wrist, hands/fingers/gun untouched; IK and floating with arms unchanged");
+ puts("PASS: Hands Only (body IK or floating) and the character's own arms gather arms 3.5 cm behind each wrist, hands/fingers/gun untouched; IK and floating with arms unchanged");
  puts("PASS: 5000 floating-arm shoulders keep every controller target within reach without moving it");
 }
 ''')

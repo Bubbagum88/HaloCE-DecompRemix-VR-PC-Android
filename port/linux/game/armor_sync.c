@@ -240,8 +240,10 @@ static void armor_sync_send_table(
 	{
 		long machine_index = machines[index];
 
+		/* (Test73: not to a Test67-72 build, whose 93 is unknown anyway:
+		network_extras.c) */
 		if (machine_index == local_machine || machine_index < 0 || machine_index >= ARMOR_SYNC_MACHINES ||
-			armor_sync_sent_to[machine_index])
+			armor_sync_sent_to[machine_index] || network_extras_blocked(machine_index, _distributed_message_armors))
 		{
 			continue;
 		}
@@ -335,9 +337,11 @@ void armor_sync_network_update(
 		return;
 	}
 	/* (a client: its choices, while the host has others for it) */
+	/* (Test73: not to a Test67-72 host, which took our 92 for its table:
+	network_extras.c) */
 	if (local_machine < 0 || local_machine >= ARMOR_SYNC_MACHINES ||
 		(armor_sync_table_heard && !memcmp(armor_sync_table[local_machine], armor_sync_own, sizeof(armor_sync_own))) ||
-		now - armor_sync_said_at < ARMOR_SYNC_SAY_MS)
+		now - armor_sync_said_at < ARMOR_SYNC_SAY_MS || network_extras_blocked(NONE, _distributed_message_armor))
 	{
 		return;
 	}

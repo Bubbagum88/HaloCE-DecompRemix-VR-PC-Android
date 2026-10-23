@@ -95,8 +95,10 @@ assert '#include "flat_movement.h"' in bipeds and '#include "flat_movement.h"' i
 assert state.count("flat_movement_reset();") == 2
 
 # --- the SPRINT key and its row
-assert keyboard.index("HALO_KEYBOARD_TEXT_CHAT,") < keyboard.index("HALO_KEYBOARD_SPRINT,") < keyboard.index("NUMBER_OF_HALO_KEYBOARD_ACTIONS")
-assert '"controls.text_chat", "controls.sprint",' in xinput
+# (Test73: OpenCE 232's CHAT and TEAM CHAT keys in the fork's TEXT CHAT's place, the camera's after them)
+assert keyboard.index("HALO_KEYBOARD_TEAM_CHAT,") < keyboard.index("HALO_KEYBOARD_SPRINT,") < keyboard.index("NUMBER_OF_HALO_KEYBOARD_ACTIONS")
+assert "HALO_KEYBOARD_TEXT_CHAT" not in keyboard
+assert '"controls.chat", "controls.team_chat", "controls.third_person", "controls.free_look", "controls.sprint",' in xinput
 assert "int platform_sprint_held(void)" in xinput and "bindings[HALO_KEYBOARD_SPRINT][slot]" in xinput
 row = menus.index('{ "controls.sprint", L"SPRINT", 0 },')
 assert menus.rfind("#ifndef HALO_VR", 0, row) > menus.rfind("#endif", 0, row)
@@ -118,8 +120,9 @@ profile = read("port/assets/menus/ce/main_menu.settings_select.player_setup.play
 assert ('<child widget="main_menu/settings_select/player_setup/player_profile_edit/about_item"/>\n'
         '\t\t<child widget="main_menu/settings_select/player_setup/player_profile_edit/movement_profile_item" platform="flat"/>') in profile
 strings = read("port/assets/menus/ce/strings.xml")
-options = strings[strings.index('profile_edit/profile_edit_options">'):]
-options = options[:options.index("</strings>")]
+# (Test73: OpenCE 244's lists name their map list after the name)
+options = strings[strings.index('profile_edit/profile_edit_options"'):]
+options = options[options.index('>') + 1:options.index("</strings>")]
 assert options.count("<string ") == 11 and options.rstrip().endswith('<string text="MOVEMENT"/>')
 print("PASS: Test72 flat movement: sprint/slide/wall run/wall jump on flat builds only, movement.* settings off by "
       "default (VR's tuning), VR modules untouched, SPRINT key, MOVEMENT screen")

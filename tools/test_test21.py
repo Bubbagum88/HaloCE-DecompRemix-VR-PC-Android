@@ -51,7 +51,8 @@ ik = fn(render, 'vr_render_first_person_ik')
 assert 'int tracking = vr_hand_tracking_mode();' in ik and 'if (tracking == 2 && vr_render_hands_only())' in ik
 assert 'forward = vr_body_heading(unit);' in ik and 'vr_heading_forward(forward.n)' not in ik, \
     'the arms face the torso, not the stick-turn heading'
-assert 'if (!vr_render_hands_only() && vr_hand_tracking_mode() != 1) return;' in fn(render, 'vr_hide_forearms')
+# Test73: also with the character's own arms (vr.character_arms), whose arms reach these hands
+assert 'if (!vr_render_hands_only() && vr_hand_tracking_mode() != 1 && !character) return;' in fn(render, 'vr_hide_forearms')
 assert 'vr_set_network_game(game_connection() != _game_connection_local);' in fn(render, 'vr_render_actions')
 assert 'if (vr.seated ? vr_horn_held() : vr.crouching)' in fn(frame, 'vr_take_actions')
 body = fn(render, 'vr_render_body_matrices')
@@ -139,6 +140,9 @@ struct animation_graph { struct { short count; struct vr_animation_graph_node *e
 static int hands_only, tracking;
 static boolean vr_render_hands_only(void){return hands_only;}
 static int vr_hand_tracking_mode(void){return tracking;}
+/* Test73: the character's own arms (vr.character_arms), off here */
+static boolean vr_render_character_arms(void){return FALSE;}
+static void platform_log(const char *format,...){(void)format;}
 static short vr_find_node(struct animation_graph *g,const char*a,const char*b){for(short i=0;i<g->nodes.count;i++)if(strstr(g->nodes.elements[i].name,a)&&strstr(g->nodes.elements[i].name,b))return i;return NONE;}
 static boolean vr_node_under(struct animation_graph *g,short node,short root){
  if(root<0)return FALSE;for(short n=node,s=0;n>=0&&s<64;n=g->nodes.elements[n].parent_node_index,s++){if(n==root)return TRUE;if(g->nodes.elements[n].parent_node_index==n)break;}return FALSE;}
@@ -182,7 +186,7 @@ run('frame_bits', common + r'''
 #include <stdint.h>
 #include <stdarg.h>
 #include "port/android/include/halo_android_abi.h"
-static struct { int active, layout_vr, seated, network_game, melee_multiplayer; float melee_speed; int melee_impact, impact_allowed;
+static struct { int active, layout_vr, seated, network_game, melee_multiplayer, network_melee; float melee_speed; int melee_impact, impact_allowed;
  unsigned pad_buttons; struct { uint32_t flags, buttons; } frame; } vr;
 static int logs;
 static void platform_log(const char*f,...){(void)f;logs++;}
@@ -191,7 +195,7 @@ static const char *config_string(const char*k){(void)k;return mode;}
 static int config_boolean(const char*k){(void)k;return applied;}
 static int config_write_string(const char*k,const char*v){(void)k;if(fail)return 0;snprintf(mode,16,"%s",v);return 1;}
 static int config_write_boolean(const char*k,int v){(void)k;if(fail)return 0;applied=v;return 1;}
-''' + fn(frame, 'vr_set_network_game') + fn(frame, 'physical_melee_allowed') + fn(frame, 'vr_impact_melee') +
+''' + fn(frame, 'vr_set_network_game') + fn(frame, 'vr_set_network_melee') + fn(frame, 'physical_melee_allowed') + fn(frame, 'vr_impact_melee') +
     fn(frame, 'vr_horn_held') + fn(frame, 'migrate_two_hand_auto') + r'''
 int main(void){
  vr.active=1;vr.melee_speed=2;vr.melee_impact=1;vr.impact_allowed=1;
@@ -199,6 +203,9 @@ int main(void){
  assert(physical_melee_allowed()&&vr_impact_melee());
  vr_set_network_game(1);assert(!physical_melee_allowed()&&!vr_impact_melee());
  vr.melee_multiplayer=1;assert(physical_melee_allowed()&&vr_impact_melee());
+ /* Test73 (10d): or the co-op host's VR INTERACTIONS allows it (vr_set_network_melee) */
+ vr.melee_multiplayer=0;vr_set_network_melee(1);assert(physical_melee_allowed());
+ vr_set_network_melee(0);assert(!physical_melee_allowed());
  vr.melee_multiplayer=0;vr_set_network_game(0);assert(physical_melee_allowed());
  vr.melee_speed=0;assert(!physical_melee_allowed());vr.melee_speed=2;
  /* the horn: seated, either stick click; not both (recentre), not on foot, not unfocused, not the pad layout */

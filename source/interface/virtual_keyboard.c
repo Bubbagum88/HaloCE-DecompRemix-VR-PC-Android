@@ -84,6 +84,7 @@ symbols in this file:
 #include "cseries/cseries_windows.h"
 #include "cseries/errors.h"
 #include "bitmaps/bitmap_group.h"
+#include "game/players.h"
 #include "interface/event_manager.h"
 #include "interface/ui_widget.h"
 #include "interface/virtual_keyboard.h"
@@ -95,6 +96,7 @@ symbols in this file:
 #include "text/font_group.h"
 #include "text/text_group.h"
 #include "text/unicode.h"
+#include "text_filter.h" /* port: port/linux/game/text_filter.c */
 
 /* ---------- constants */
 
@@ -752,6 +754,9 @@ static void virtual_keyboard_render_internal(
 		rasterizer_draw_unicode_string(&bounds, &bounds, NULL, 0, caption);
 	}
 
+	/* port: the text being typed drawn as it is, not hidden by streamer mode
+	(port/linux/game/text_filter.c) */
+	text_filter_suspend();
 	draw_string_set_draw_mode(virtual_keyboard_globals.keyboard->font_tag.index, NONE, 2, 0, &text_color);
 	{
 		rectangle2d bounds;
@@ -782,6 +787,7 @@ static void virtual_keyboard_render_internal(
 		}
 		rasterizer_draw_unicode_string(&bounds, &bounds, NULL, 0, shown_text);
 	}
+	text_filter_resume(); /* port */
 
 	if (!virtual_keyboard_globals.first_key_replaces_buffer &&
 		virtual_keyboard_globals.caret_bitmap_index != NONE &&
@@ -1056,8 +1062,21 @@ static boolean virtual_keyboard_select(
 			/* Empty passwords clear protection; other field policies belong
 			   to the callback. Never query or modify profile files here. */
 			virtual_keyboard_globals.last_exit_saved_text = TRUE;
+			ui_play_audio_feedback_sound(_ui_audio_feedback_back);
+			virtual_keyboard_set_active(FALSE);
+			event_manager_flush();
+			break;
 		}
-		else if (ustrcmp(virtual_keyboard_globals.saved_text, virtual_keyboard_globals.text_buffer) != 0)
+		/* port: a name kept to one the host's ban command can name: its
+		spaces before and after dropped, and one without a character it can
+		type (player_name_clean) empty, which is refused below (OpenCE Build
+		201's, which Test73 restores: this file came from an older base) */
+		if (!player_name_clean(virtual_keyboard_globals.text_buffer,
+			virtual_keyboard_globals.buffer_size / (long)sizeof(wchar_t)))
+		{
+			virtual_keyboard_globals.text_buffer[0] = 0;
+		}
+		if (ustrcmp(virtual_keyboard_globals.saved_text, virtual_keyboard_globals.text_buffer) != 0)
 		{
 			if (virtual_keyboard_globals.text_buffer[0])
 			{
@@ -1260,6 +1279,52 @@ void virtual_keyboard_pointer(short x, short y, boolean select, boolean cancel)
 	}
 }
 
+/* port: the characters and backspaces typed on the computer's keyboard,
+as its keys would put them (the first replacing the text it began with).
+OpenCE Build 201's, which Test73 restores (this file came from an older
+base): a keyboard, a phone's or the Quest's Bluetooth one too, types names,
+invites and passwords as on the PC */
+static void virtual_keyboard_port_type(
+	void)
+{
+	struct key_stroke key;
+
+	while (input_get_key(&key))
+	{
+		boolean backspace = key.key_code == _key_backspace;
+
+		if (!backspace && ((unsigned char)key.ascii_code < ' ' || (unsigned char)key.ascii_code > '~'))
+			continue;
+		if (virtual_keyboard_globals.first_key_replaces_buffer == TRUE)
+		{
+			csmemset(virtual_keyboard_globals.text_buffer, 0, virtual_keyboard_globals.buffer_size);
+			virtual_keyboard_globals.cursor = virtual_keyboard_globals.text_buffer;
+			virtual_keyboard_globals.first_key_replaces_buffer = FALSE;
+			if (backspace)
+				continue;
+		}
+		if (backspace)
+		{
+			virtual_keyboard_backspace();
+		}
+		else if (virtual_keyboard_free_space_in_text_buffer() >= 2)
+		{
+			csmemmove(
+				virtual_keyboard_globals.cursor + 1,
+				virtual_keyboard_globals.cursor,
+				virtual_keyboard_globals.buffer_size -
+					((byte *)virtual_keyboard_globals.cursor - (byte *)virtual_keyboard_globals.text_buffer) -
+					sizeof(wchar_t));
+			*virtual_keyboard_globals.cursor++ = (wchar_t)(unsigned char)key.ascii_code;
+			ui_play_audio_feedback_sound(_ui_audio_feedback_forward);
+		}
+		else
+		{
+			ui_play_audio_feedback_sound(_ui_audio_feedback_flag_failure);
+		}
+	}
+	return;
+}
 
 static void virtual_keyboard_process_internal(
 	void)
@@ -1269,6 +1334,8 @@ static void virtual_keyboard_process_internal(
 	struct event_record event;
 	long action = NONE;
 	boolean handled = FALSE;
+
+	virtual_keyboard_port_type();
 
 	while (get_next_event(&event, NONE))
 	{

@@ -149,7 +149,7 @@ for part in ("extra_pulse(hand,strength,.05f);", "if(both)extra_pulse(1-hand,str
     assert part in feedback, part
 tick_extra = function(extra, "vr_extra_tick")
 assert tick_extra.index("vr_projectile_parry_tick(unit);") < tick_extra.index("if(extra.deflect_echo_tick>0&&now>=extra.deflect_echo_tick){") \
-    < tick_extra.index("if(unit==NONE||unit!=extra_player(TRUE)")  # (the ring without FIST COMBAT too)
+    < tick_extra.index("if(unit==NONE||(unit!=extra_player(TRUE)&&!grenades_only)")  # (the ring without FIST COMBAT too; Test73: a client's grenades alone)
 
 print("PASS: Test72 shot deflection: on by default (once for players at the old default), a held gun blocks, the grip a fist, "
       "every stock projectile sorted by its data, DEFLECT AID and FORCE, logged, a crack and a ring")

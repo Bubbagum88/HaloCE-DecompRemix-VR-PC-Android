@@ -68,6 +68,36 @@ static void vr_pk_wall_leap(float const look[3], float const normal[3], float co
     out[1] = h[1]*carried;
     out[2] = upward + (look[2] > 0.0f && isfinite(look[2]) ? look[2]*speed*0.5f : 0.0f);
 }
+/* the leap held against air control for a moment (VR_PK_LEAP_HOLD_TICKS
+ * after a wall jump, until landing, a new wall run or a climbing hold): the
+ * horizontal velocity across the leap's way (`direction`, level and of unit
+ * length) taken out, and along it no less than the leap's speed. The game's
+ * air control turned a leap back toward the stick held along the wall the run
+ * went (the owner: the leap did not always go where the head looked). The
+ * height is left to the jump and gravity. */
+#define VR_PK_LEAP_HOLD_TICKS 12
+static void vr_pk_leap_hold(float const direction[2], float speed, float velocity[3])
+{
+    float along;
+    if (!isfinite(direction[0]) || !isfinite(direction[1]) || !isfinite(speed) ||
+        !isfinite(velocity[0]) || !isfinite(velocity[1]))
+        return;
+    along = velocity[0]*direction[0] + velocity[1]*direction[1];
+    if (!(along >= speed)) along = speed;
+    velocity[0] = direction[0]*along;
+    velocity[1] = direction[1]*along;
+}
+/* the leap's level way and speed from its velocity (0: none, too slow to
+ * hold) */
+static int vr_pk_leap_start(float const velocity[3], float direction[2], float *speed)
+{
+    float h = sqrtf(velocity[0]*velocity[0] + velocity[1]*velocity[1]);
+    if (!(h > 0.001f) || !isfinite(h)) return 0;
+    direction[0] = velocity[0]/h;
+    direction[1] = velocity[1]/h;
+    *speed = h;
+    return 1;
+}
 static int vr_pk_vertical(float const normal[3])
 {
     float length=normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2];

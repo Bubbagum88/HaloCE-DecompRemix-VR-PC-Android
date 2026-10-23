@@ -22,15 +22,25 @@ asked for. PC VR runtime validation waits on the owner's OK for SteamVR's
 null driver. Nothing is hardware-tested yet. Per item:
 `docs/TEST72-CHECKLIST.md`; per platform: `docs/TEST72-DELIVERY-STATUS.md`.
 
+**Since then (2026-10-22, Test73, 1.0.40-test73 / code85, in progress):** PC VR
+is runtime-validated on SteamVR's null driver (eye dumps: the menus' world and
+follow modes, grenades in the hand, the played character's arms). The Steam
+Frame was checked against Lepton 3.0.8's own source and the other Halo CE
+Frame ports (§5), and gained a no-computer installer and a Steam library
+launcher (`tools/steam_frame`). OpenCE is merged to Build 256, its testing
+branch and its fix-scenery-shields-network branch: network 34 (§10). Not
+built as a whole yet: one build pass once everything is done. Per item:
+`docs/TEST73-CHECKLIST.md`.
+
 ## 1. Baseline (authoritative)
 
 | Item | State |
 |---|---|
 | Branch | `test39-interaction-completion` (local; `origin/main` is behind it) |
-| Newest commits | `a4b6811c` Test71 (one-tap mods, reload for mods' guns), `b192a87f` its launcher-check fix |
-| Newest candidate | Test72, **1.0.39-test72 / code84** (Test71, 1.0.38 / code83, travels with it) |
-| Newest packaged APKs | Test70, 1.0.37-test70 / code82 (`D:\HaloQuest\builds\test70-20261015-v1.0.37-test70`), also published as v1.0.37 |
-| Handoff docs | `docs/CURRENT-STATE.md`, `CLAUDE.md`, `docs/TEST71-*.md`, `docs/TEST70-*.md` |
+| Newest commits | `f77f6a11` Test72's delivery record; Test73's work is uncommitted on top of it (a local commit at its build pass, with the owner's OK) |
+| Newest candidate | Test73, **1.0.40-test73 / code85** (Test72, 1.0.39 / code84, and Test71, 1.0.38 / code83, travel with it) |
+| Newest packaged APKs | Test70, 1.0.37-test70 / code82 (`D:\HaloQuest\builds\test70-20261015-v1.0.37-test70`), also published as v1.0.37; Test72's private packages (`docs/TEST72-DELIVERY-STATUS.md`) |
+| Handoff docs | `docs/CURRENT-STATE.md`, `CLAUDE.md`, `docs/HANDOFF-2026-10-*.md`, `docs/TEST73-*.md`, `docs/TEST72-*.md` |
 | Public release | v1.0.37 (= Test70). History only; never the base |
 
 Every new target starts from this tree. No source is taken from a release.
@@ -124,7 +134,7 @@ Shared VR gameplay → OpenXR actions (logical) → per-profile binding tables.
   |---|---|---|---|
   | Quest Touch / Touch Plus / Pro | Quest native, Meta PC (Link), Virtual Desktop | `oculus/touch_controller` (ours) | implemented; Quest hardware-tested over many candidates |
   | Valve Index | SteamVR | `valve/index_controller` (ours) | implemented |
-  | Steam Frame | Frame (Lepton), SteamVR | `valve/frame_controller_valve` (ours, Valve's documented paths) | implemented |
+  | Steam Frame | Frame (Lepton), SteamVR | `valve/frame_controller_valve` (ours, Valve's documented paths, its touches too; Test73: checked again against Valve's Input page and Lepton 3.0.8, and against HaloCE-VR and Mjolnir VR, `docs/VR_ARCHITECTURE.md`) | implemented; no Frame here |
   | PICO 4 / Neo 3 / 4 Ultra | PICO native | `bytedance/pico4_controller`, `pico_neo3_controller`, `pico_ultra_controller_bd` (ours) | implemented |
   | Vive wands, Vive Cosmos, WMR, PSVR2 Sense, others | SteamVR 1.26+ | SteamVR converts the highest-priority layout the app binds (Valve's OpenVR driver documentation, remapping files), and its binding UI can change it | by design; unverified on hardware |
   | WMR / HP Reverb G2 | Windows Mixed Reality's own runtime (removed from Windows 11 24H2) | no remap there: tables for `microsoft/motion_controller` and `hp/mixed_reality_controller` belong in the shared PCVR layer | to do with the PCVR host |
@@ -218,6 +228,16 @@ single-camera path, untouched.
 No protocol change for any of this. Platform differences are local: VR and
 movement extras already act only offline or on a co-op host's own player,
 so every platform stays compatible with network 29.
+
+Test73: the network follows OpenCE to **34** (Build 256's 32, its testing
+branch's 33 for co-op's ALLY FRIENDLY FIRE, its fix-scenery-shields-network
+branch's 34 for the map's shields and tripmines). This port hosts 34 and joins
+any host from 11 to 34, each by that host's rules; OpenCE's own players join
+a host of their own version only. Co-op's VR INTERACTIONS (on by default) is
+this port's extension inside the game's messages (`network_interaction.c`,
+its own version 1, its kinds unknown to older peers, which drop them): every
+VR player's fists, grenades, reload, parkour and slides, each dealt or allowed
+by the host; a player without it plays with the buttons.
 
 ## 11. Phases
 

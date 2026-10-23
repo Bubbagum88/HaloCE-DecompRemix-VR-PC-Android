@@ -134,7 +134,7 @@ final class ServerBrowser {
         text(content, "Choose a network above, then join a server or return to Play. Network changes apply on the next game launch. Counts are directory reports and may lag.");
         button(content, "Network & joining help", () -> LauncherHelp.page(activity, "Network & joining help",
             "The selector ranks networks by reported player population. Select an available profile to change which host versions the native game discovers and can join on its next launch. "
-            + "All compatible networks searches every supported host version. Original Xbox-map PvP supports networks 11–29; campaign co-op supports 15–29; Custom Edition requires 23 or newer. Older hosts retain their original gameplay limitations. Hosting always uses current network 29.\n\n"
+            + "All compatible networks searches every supported host version. Original Xbox-map PvP supports networks 11–34; campaign co-op supports 15–34; Custom Edition requires 23 or newer. Older hosts retain their original gameplay limitations. Hosting always uses current network 34, so OpenCE players join this app's hosts once their build is on network 34 too.\n\n"
             + NetworkProfile.LEGACY_WARNING + "\n\n"
             + "A directory Join passes the host's invite to the game. Open Multiplayer > Join Game > LAN and choose that host once the connection appears. "
             + "Direct Link also accepts invites. Public in-game listings are under Multiplayer > Join Game > Server Browser.\n\n"
@@ -257,7 +257,7 @@ final class ServerBrowser {
 
     private void render() {
         legacyCoop.setText("Legacy co-op 12-14: " + (NetworkProfile.legacyCoop(gameRoot()) ? "ON (old-host limitations)" : "OFF"));
-        communityExtras.setText("Community extras (armor, chat, vote bans): "
+        communityExtras.setText("Community extras (armor, vote bans): "
             + (NetworkProfile.communityExtras(gameRoot()) ? "ON" : "OFF"));
         updateNetworkSelector();
         rows.removeAllViews();
@@ -353,7 +353,7 @@ final class ServerBrowser {
     private void selectNetwork() {
         List<NetworkPopulation> populations = networkPopulations();
         String[] choices = new String[populations.size() + 1];
-        choices[0] = "All compatible networks (11–29) · " + (directoryLoaded ? compatibleReportedPlayers() + " reported players" : "population unavailable");
+        choices[0] = "All compatible networks (11–34) · " + (directoryLoaded ? compatibleReportedPlayers() + " reported players" : "population unavailable");
         int checked = selectedNetworkVersion == 0 ? 0 : -1;
         for (int i = 0; i < populations.size(); i++) {
             NetworkPopulation population = populations.get(i);
@@ -375,7 +375,7 @@ final class ServerBrowser {
                         LauncherHelp.page(activity, "Network unavailable", e.getMessage());
                         return;
                     }
-                    status.setText(NetworkProfile.label(version) + " selected for the next launch. Return to Play or join a listed server. Hosting remains on network 29.");
+                    status.setText(NetworkProfile.label(version) + " selected for the next launch. Return to Play or join a listed server. Hosting remains on network 34.");
                 selectedNetworkVersion = version;
                 visibleListings = 50;
                 render();

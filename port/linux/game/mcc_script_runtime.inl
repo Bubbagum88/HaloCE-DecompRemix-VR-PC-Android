@@ -13,7 +13,9 @@ static void mcc_hs_speed_reconcile(word designator, boolean write)
     global=datum_get(hs_global_data,designator+hs_external_global_count);
     value.bits=global->value;
     if (write) mcc_game_speed_set(value.number);
-    value.number=game_time_get_speed();
+    /* port (Test73): the game's own speed, never BULLET TIME's slowing (the
+     * global is the game state's: a checkpoint would keep that) */
+    value.number=game_time_get_own_speed();
     global->value=value.bits;
 }
 long hs_cast(long thread_index, short actual_type, short desired_type, long value);

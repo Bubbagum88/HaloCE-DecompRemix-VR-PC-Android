@@ -277,6 +277,9 @@ PROFILE_SECTION(game_tick_players_after_section, "game_tick.players_after")
 PROFILE_SECTION(game_tick_hud_section, "game_tick.hud")
 PROFILE_SECTION(game_tick_player_effect_section, "game_tick.player_effect")
 
+/* port (Test73, 10d): port/linux/src/port_config.c */
+void config_vr_interactions_default(void);
+
 /* ---------- public code */
 
 void game_initialize(
@@ -320,6 +323,8 @@ void game_initialize(
 	cheats_initialize();
 	transport_initialize();
 	telnet_console_initialize();
+	/* port (Test73, 10d): VR INTERACTIONS on once in older configs */
+	config_vr_interactions_default();
 	initialize_network_game_packets();
 	cinematic_initialize();
 	saved_game_files_initialize();

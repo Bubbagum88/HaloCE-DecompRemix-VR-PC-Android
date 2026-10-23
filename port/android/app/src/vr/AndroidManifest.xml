@@ -62,5 +62,22 @@
                 <category android:name="com.picovr.intent.category.VR" />
             </intent-filter>
         </activity>
+
+        <!-- Test73: the same game in the app's main process, which the Steam Frame's Lepton watches (it ends
+             the container when that process ends): the launcher starts this one there (Lepton.java). Not
+             exported and no intent filter, so no headset lists it. -->
+        <activity
+            android:name=".HaloFrameActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="sensorLandscape"
+            android:resizeableActivity="false"
+            android:preferMinimalPostProcessing="true"
+            android:configChanges="layoutDirection|locale|grammaticalGender|fontScale|fontWeightAdjustment|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation">
+            <meta-data
+                android:name="android.app.category"
+                android:value="game" />
+        </activity>
     </application>
 </manifest>

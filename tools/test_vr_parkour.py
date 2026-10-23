@@ -57,6 +57,8 @@ static struct biped_definition *biped_definition_get(long x){(void)x;return &def
 static int vr_active(void){return 1;}
 static int vr_controller(unsigned*b,float*t,float*s){(void)b;(void)t;(void)s;return focused;}
 static int coop;static int network_coop_active(void){return coop;}
+/* (Test73, 10d: the co-op host's VR INTERACTIONS allowing a client's VR movement) */
+enum{NETWORK_VR_MOVEMENT=4};static int host_allows;static int network_interaction_vr_allowed(unsigned long f){return f==NETWORK_VR_MOVEMENT&&host_allows;}
 static int game_connection(void){return network;}static int game_time_get_paused(void){return paused;}
 static long game_time_get(void){return now;}static int cinematic_in_progress(void){return cinematic;}
 static int director_inhibited_input(short x){(void)x;return inhibited;}
@@ -172,6 +174,9 @@ int main(void){
  network=1;coop=1;v=tick(.1f,.2f,.3f);assert(v.k==.3f&&queries==0);
  network=2;coop=1;vr_parkour_reset();tick(0,0,0);grip[0]=1;tick(0,0,0);assert(parkour.hand[0].active);
  grip[0]=0;tick(0,0,0);vr_parkour_reset();network=0;coop=0;queries=0;
+ /* Test73 (10d): a co-op client whose host allows VR movement climbs; the allowance alone without co-op does not */
+ network=1;coop=1;host_allows=1;vr_parkour_reset();tick(0,0,0);grip[0]=1;tick(0,0,0);assert(parkour.hand[0].active);
+ grip[0]=0;tick(0,0,0);vr_parkour_reset();coop=0;v=tick(.1f,.2f,.3f);assert(v.k==.3f);host_allows=0;network=0;queries=0;
  tick(0,0,0);grip[0]=1;v=tick(0,0,0);
  assert(parkour.hand[0].active&&owner[0]==VR_INTERACTION_PARKOUR&&lookups==0);
  assert(v.i<0&&magnitude3d(&v)<=4.0f/30.0f+.0001f);

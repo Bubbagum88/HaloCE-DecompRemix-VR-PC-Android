@@ -95,6 +95,7 @@ symbols in this file:
 #include "flat_stereo.h" /* port: Test72, the flat builds' stereo 3D */
 #endif
 void stencil_shadows_render(void); /* port: port/linux/game/stencil_shadows.c */
+#include "structure_culling.h" /* port: port/linux/game/structure_culling.c */
 
 /* ---------- constants */
 
@@ -173,6 +174,8 @@ void render_initialize(
 	void)
 {
 	render_objects_initialize();
+	/* port: the structure culling tests display.structure_culling asks for */
+	structure_culling_initialize();
 }
 
 void render_initialize_for_new_map(
@@ -393,6 +396,10 @@ static void render_window(
 		structure_render_lightmaps();
 		rasterizer_lens_flares_submit_occlusion_tests();
 		render_object_shadows();
+		/* port: port/linux/game/stencil_shadows.c (display.stencil_shadows):
+		the level's light darkened in a shadow before the dynamic lights are
+		added (Test73: a flashlight's falls into a shadow at full strength) */
+		stencil_shadows_render();
 		lights_render_diffuse();
 
 #if BLOOD_EFFECTS
@@ -462,20 +469,25 @@ static void render_window(
 		structure_render_detail_objects();
 		rasterizer_transparent_geometry_draw(FALSE);
 		rasterizer_transparent_geometry_stop();
-		stencil_shadows_render(); /* port: port/linux/game/stencil_shadows.c (display.stencil_shadows) */
 		/* the fog's screen layers assume a symmetric frustum facing the
 		game's camera: not for the headset's eyes or scope */
 		if (!VR_RENDER_VIEW())
 			structure_render_fog_screen();
 		rasterizer_lens_flares_draw();
-		/* port: the 3D view antialiased (display.anti_aliasing), before the
-		HUD and menus are drawn over it; a Spartan's colored lights bloomed
-		first (port/linux/game/spartan_colors.c) */
+		/* port: the 3D view tone mapped (display.hdr) and antialiased
+		(display.anti_aliasing), before the HUD and menus are drawn over it; a
+		Spartan's colored lights bloomed first (port/linux/game/spartan_colors.c),
+		so that the tone mapping takes their light too */
 		if (rasterizer_target == _render_target_primary)
 		{
 			void halo_screen_light_bloom(short x0, short y0, short x1, short y1); /* port: port/linux/src/d3d8_gl.c */
 
 			halo_screen_light_bloom(
+				rasterizer_camera->viewport_bounds.x0,
+				rasterizer_camera->viewport_bounds.y0,
+				rasterizer_camera->viewport_bounds.x1,
+				rasterizer_camera->viewport_bounds.y1);
+			halo_screen_tone_map(
 				rasterizer_camera->viewport_bounds.x0,
 				rasterizer_camera->viewport_bounds.y0,
 				rasterizer_camera->viewport_bounds.x1,

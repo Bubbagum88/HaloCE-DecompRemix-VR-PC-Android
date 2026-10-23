@@ -14,6 +14,7 @@ Run with python3 tools/test_test27.py.
 """
 from pathlib import Path
 import hashlib, re, subprocess
+import network_expected as netv  # noqa: E402 (tools/: the versions this build hosts and joins)
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'build/test27'; OUT.mkdir(parents=True, exist_ok=True)
 
@@ -64,13 +65,13 @@ bipeds = read('source/units/bipeds.c', 'latin-1')
 # (test29 follows OpenCE build 144, network 21: test_test29 checks it and
 # its files; the build 138 checks below hold for a network 20 tree)
 network = int(re.search(r'#define HALO_PORT_NETWORK_VERSION (\d+)\b', limits).group(1))
-assert network == 29
-assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MINIMUM 11\b', limits)
-assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MAXIMUM 29\b', limits)
+assert network == netv.CURRENT
+assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MINIMUM %d\b' % netv.MINIMUM, limits)
+assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MAXIMUM %d\b' % netv.MAXIMUM, limits)
 assert re.search(r'#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15\b', limits)
 assert re.search(r'#define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23\b', limits)
 assert '#define HALO_PORT_ADVERTISED_IN_PROGRESS_FLAG 0x02' in limits, "OpenCE's in-progress advertisement"
-print('PASS: host protocol %d; compatible PvP client range 11..28; campaign15+ and CE maps23+; in-progress advertisement' % network)
+print('PASS: host protocol %d; compatible PvP client range %d..%d; campaign15+ and CE maps23+; in-progress advertisement' % (network, netv.MINIMUM, netv.MAXIMUM))
 
 # --- 2. upstream's co-op and lobby modules byte for byte
 UPSTREAM_138 = [
@@ -117,14 +118,18 @@ expected = {'player_prediction': 1, 'unit_states': 2, 'player_statistics': 3, 'i
             'coop_screen_effect': 76, 'coop_device_states': 77, 'voice_up': 80,
             'voice_down': 81, 'voice_config': 82, 'map_share_request': 83, 'map_share_offer': 84,
             'map_share_sources': 85, 'map_share_progress': 86,  # Test59: OpenCE network 27's map sharing
-            # Test67: the OpenCE fork jcompto95-tech's community extras after them (dropped as unknown kinds by
-            # network 28 builds without them): votes 87-88, text chat 89-90, the Armor choices 91-92
-            'vote_choice': 87, 'vote_details': 88, 'chat_up': 89, 'chat': 90, 'armor': 91, 'armors': 92,
-            'NUMBER': 93}
+            # Test73: OpenCE 232's text chat after them, as OpenCE numbers it (87-89), OpenCE 244's host aim
+            # assist policy (90), then the OpenCE fork jcompto95-tech's community extras (dropped as unknown
+            # kinds by OpenCE builds without them): votes 91-92, the Armor choices 93-94 (Test67-72 had votes
+            # 87-88, the fork's chat 89-90, Armor 91-92: tools/test_test73_mixed_builds.py)
+            'chat_up': 87, 'chat_down': 88, 'chat_config': 89, 'aim_assist_policy': 90,
+            'vote_choice': 91, 'vote_details': 92, 'armor': 93, 'armors': 94,
+            'NUMBER': 95}
 checks = ''.join('\tassert(_distributed_message_%s == %d);\n' % (k, v) for k, v in expected.items() if k != 'NUMBER')
 run('message_numbers', '#include <assert.h>\n#include <stdio.h>\n' + enum + '\nint main(void){\n' + checks +
-    '\tassert(NUMBER_OF_DISTRIBUTED_MESSAGES == 93);\n\tassert(_distributed_message_voice_up == 80 && _distributed_message_voice_down == 81 && _distributed_message_voice_config == 82);\n'
-    '\tputs("PASS: OpenCE message IDs retained, voice chat uses upstream 80-82, map sharing 83-86, the community extras 87-92, and the existing VR avatar IDs remain unchanged");\n}\n')
+    '\tassert(NUMBER_OF_DISTRIBUTED_MESSAGES == %d);\n\tassert(_distributed_message_voice_up == 80 && _distributed_message_voice_down == 81 && _distributed_message_voice_config == 82);\n'
+    % expected['NUMBER'] +
+    '\tputs("PASS: OpenCE message IDs retained, voice chat uses upstream 80-82, map sharing 83-86, OpenCE 232\'s text chat 87-89, OpenCE 244\'s aim assist policy 90, the community extras 91-94, and the existing VR avatar IDs remain unchanged");\n}\n')
 
 # --- 4. the receive path: OpenCE's (every co-op kind decoded), the VR avatars first
 assert 'header.type > _distributed_message_pings &&' not in distributed_c, 'no filter drops OpenCE\'s co-op kinds'

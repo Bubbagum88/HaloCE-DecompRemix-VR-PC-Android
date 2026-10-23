@@ -11,9 +11,21 @@ between ticks (render_interpolation.c), stay as responsive as ever.
 A local game only: never a network game's client or host, co-op or
 multiplayer (their machines must tick together). Not in a menu, a cutscene
 or while paused; in a seat as on foot (Test72: its button, R UP too, works
-there: vr_frame.c's bullet_stick_up). A speed a map's script set (game_speed) is kept and
-given back; if something else changes the speed meanwhile, that is left as it
-is. Eased in and out over a sixth of a second.
+there: vr_frame.c's bullet_stick_up). Eased in and out over a sixth of a
+second.
+
+Test73: the slowing is game_time.c's local scale, on top of the game's own
+speed, never written into it (game_time_set_local_scale). Before, BULLET TIME
+set the game's speed itself, which is the game state's: a checkpoint saved
+during it kept the slow motion, a death's revert brought it back with BULLET
+TIME off (so turning it off, or the setting, gave nothing back), and pressing
+its button slowed that slow motion again (a player's report: "stuck in bullet
+time", "only causes the slo motion to double up"). Now a checkpoint keeps the
+game's own speed only; a speed a map's script sets (game_speed) is the game's
+own, and BULLET TIME slows it as it slows 1, and gives it back as it is. A
+saved game taken (a revert, a continue, a core) starts with BULLET TIME off
+(game_state_call_after_load_procs: vr_bullet_time_reset), and one an earlier
+build left slowed is put back (game_time_after_load).
 */
 
 #ifdef HALO_VR
@@ -31,15 +43,13 @@ is. Eased in and out over a sixth of a second.
 
 void platform_log(char const *format, ...);
 unsigned long system_milliseconds(void);
-real game_time_get_speed(void);
-void game_time_set_speed(real speed);
 
 static struct
 {
-	boolean on, toggled, was_held, owns_speed;
-	real base_speed, applied, blend;
+	boolean on, toggled, was_held;
+	real blend;
 	unsigned long last_ms;
-} bullet = { FALSE, FALSE, FALSE, FALSE, 1.0f, 1.0f, 0.0f, 0 };
+} bullet = { FALSE, FALSE, FALSE, 0.0f, 0 };
 
 static boolean vr_bullet_time_allowed(void)
 {
@@ -50,12 +60,10 @@ static boolean vr_bullet_time_allowed(void)
 		!game_time_get_paused();
 }
 
+/* the game's own speed, unslowed, back at once */
 static void vr_bullet_time_release(void)
 {
-	/* the game's own speed back, unless another changed it meanwhile */
-	if (bullet.owns_speed && fabsf(game_time_get_speed() - bullet.applied) < 0.001f)
-		game_time_set_speed(bullet.base_speed);
-	bullet.owns_speed = FALSE;
+	game_time_set_local_scale(1.0f);
 	bullet.blend = 0.0f;
 }
 
@@ -64,18 +72,16 @@ void vr_bullet_time_frame(void)
 	unsigned long now = system_milliseconds();
 	real seconds = bullet.last_ms ? (real)(now - bullet.last_ms) * 0.001f : 0.0f;
 	boolean allowed = vr_bullet_time_allowed(), held = allowed && vr_bullet_time_held(), want;
-	real scale, target, speed;
+	real scale, target;
 
 	bullet.last_ms = now;
 	if (!(seconds >= 0.0f && seconds < 0.5f))
 		seconds = 0.0f;
 	if (!allowed)
 	{
-		if (bullet.on || bullet.owns_speed)
-		{
+		if (bullet.on || bullet.blend > 0.0f)
 			platform_log("VR bullet time: off (%s)", config_boolean("vr.bullet_time") ? "not here" : "turned off");
-			vr_bullet_time_release();
-		}
+		vr_bullet_time_release();
 		bullet.on = bullet.toggled = bullet.was_held = FALSE;
 		return;
 	}
@@ -95,23 +101,9 @@ void vr_bullet_time_frame(void)
 		vr_haptic(1, want ? 0.45f : 0.25f, 0.06f);
 		platform_log("VR bullet time: %s", want ? "on" : "off");
 	}
-	if (!bullet.on && !bullet.owns_speed)
-		return;
-	if (!bullet.owns_speed)
+	if (!bullet.on && bullet.blend <= 0.0f)
 	{
-		bullet.base_speed = game_time_get_speed();
-		if (!(bullet.base_speed > 0.0f && bullet.base_speed <= 100.0f))
-			bullet.base_speed = 1.0f;
-		bullet.owns_speed = TRUE;
-		bullet.applied = bullet.base_speed;
-		bullet.blend = 0.0f;
-	}
-	else if (fabsf(game_time_get_speed() - bullet.applied) >= 0.001f)
-	{
-		/* a script changed the speed: it is the game's now */
-		bullet.owns_speed = FALSE;
-		bullet.on = bullet.toggled = FALSE;
-		platform_log("VR bullet time: off (the game set its own speed)");
+		vr_bullet_time_release();
 		return;
 	}
 	scale = (real)config_real("vr.bullet_time_scale");
@@ -121,20 +113,19 @@ void vr_bullet_time_frame(void)
 	bullet.blend += (target - bullet.blend) * MIN(1.0f, seconds / 0.06f);
 	if (fabsf(bullet.blend - target) < 0.02f)
 		bullet.blend = target;
-	speed = bullet.base_speed * (1.0f - bullet.blend * (1.0f - scale));
 	if (!bullet.on && bullet.blend <= 0.0f)
 	{
 		vr_bullet_time_release();
 		return;
 	}
-	game_time_set_speed(speed);
-	bullet.applied = game_time_get_speed();
+	game_time_set_local_scale(1.0f - bullet.blend * (1.0f - scale));
 }
 
 void vr_bullet_time_reset(void)
 {
 	vr_bullet_time_release();
 	bullet.on = bullet.toggled = bullet.was_held = FALSE;
+	bullet.last_ms = 0;
 }
 
 #else

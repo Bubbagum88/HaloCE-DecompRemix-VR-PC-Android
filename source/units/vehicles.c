@@ -165,6 +165,7 @@ symbols in this file:
 #include "structures/structure_bsp_definitions.h"
 #include "units/unit_definitions.h"
 #include "units/vehicle_definitions.h"
+#include "mcc_objects.h" /* port: port/linux/game/mcc_objects.c */
 
 /* ---------- constants */
 
@@ -509,6 +510,54 @@ boolean vehicle_is_turret(
 	if (!object || object->object.type != _object_type_vehicle || object->definition_index == NONE)
 		return FALSE;
 	return vehicle_specific_definition_get(object->definition_index)->vehicle_type == _vehicle_type_turret;
+}
+
+/* port (Test73, the VR immersive controls; the owner: "all vehicles should be
+as responsive and feel good to use as possible"): the facing offset (radians,
+the controls' own sign) that makes this vehicle answer the controls' turn
+`controls` (of their full lock `lock`) in proportion, all the way at full
+lock, by how vehicle_update reads a driver's facing:
+- a jeep (the Warthog) turns its wheels to the offset, up to its turn bounds
+  (30 degrees each way): the controls' full lock is that;
+- a tank (the Scorpion) turns at a rate of the offset over 90 degrees, full
+  from 90 on: the controls' full lock is 90;
+- a hover (the Ghost, the Wraith) turns at a rate of the offset's square root
+  (update_alien_scout_physics), which made a small turn a strong one: the
+  offset goes with the square of the controls, so the rate goes with them,
+  and full lock is as before;
+- a flyer (the Banshee) turns at a rate in proportion already: as it is.
+A vehicle of another kind, or none: as it is */
+real vehicle_vr_steering_facing(
+	long vehicle_index,
+	real controls,
+	real lock)
+{
+	struct object_datum *object = vehicle_index != NONE ? object_try_and_get(vehicle_index) : NULL;
+	struct vehicle_definition *definition;
+	real share;
+
+	if (!object || object->object.type != _object_type_vehicle || object->definition_index == NONE ||
+		!(lock > 0.0f) || !(controls == controls))
+		return controls;
+	share = PIN(controls / lock, -1.0f, 1.0f);
+	definition = vehicle_specific_definition_get(object->definition_index);
+	switch (definition->vehicle_type)
+	{
+	case _vehicle_type_human_jeep:
+	{
+		real left = DEGREES_TO_RADIANS(definition->unknown308);
+		real right = -DEGREES_TO_RADIANS(definition->unknown30c);
+		real bound = MIN(left, right);
+
+		return bound > 0.0f && bound < 3.0f ? share * bound : controls;
+	}
+	case _vehicle_type_human_tank:
+		return share * (real)(_pi * 0.5f);
+	case _vehicle_type_alien_scout:
+		return share * (real)fabs(share) * lock;
+	default:
+		return controls;
+	}
 }
 
 boolean vehicle_stuck(
@@ -1999,6 +2048,9 @@ static void update_human_boat_physics(
 		real maximum_angle;
 		real *rotation;
 		real const *forward;
+
+		/* port: initialize MCC boat controls before assigning active channels. */
+		mcc_boat_controls_initialize(state);
 
 		speed = (real)fabs(magnitude3d(&vehicle->object.translational_velocity)*2.5f);
 		maximum_angle = vehicle->vehicle.turn*0.5f;

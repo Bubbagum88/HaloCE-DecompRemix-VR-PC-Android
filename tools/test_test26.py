@@ -367,8 +367,10 @@ for key, kind, default in [('vr.button_reticle', '_config_string', r'"\"left_sti
 # --- 8b. Controls -> L STICK CLICK: RETICLE (default) or CROUCH, the layout before 1.0.8
 assert '{ "L STICK CLICK", "buttons", _vr_setting_crouch_click, 2, { { "RETICLE", "reticle" }, { "CROUCH", "crouch" } } },' in \
     between(menu, 'static struct vr_menu_setting const vr_menu_controls[] =', '};')
-change = fn(menu, 'vr_menu_setting_change')
-click_change = between(change, '\tcase _vr_setting_crouch_click:\n', '\t\tbreak;\n\t}\n\tvr_reload_settings();', include_end=False)
+# (Test73, item 10h: a row's write is vr_menu_apply, which the menu's change ends in)
+change = fn(menu, 'vr_menu_apply')
+assert fn(menu, 'vr_menu_setting_change').rstrip().rstrip('}').rstrip().endswith('return vr_menu_apply(setting, value);')
+click_change = between(change,'\tcase _vr_setting_crouch_click:\n', '\t\tbreak;\n\t}\n\tvr_reload_settings();', include_end=False)
 click_change = click_change[click_change.index('\n') + 1:]
 click_index = between(fn(menu, 'vr_menu_value_index'), '\t\tcase _vr_setting_crouch_click:\n', '\t\t\tbreak;', include_end=False)
 click_index = click_index[click_index.index('\n') + 1:]
@@ -585,7 +587,8 @@ identity = identity_match.group(1)
 # The identity banner now explicitly names the candidate's upstream network.
 # Keep the history assertion and accept the verified Build201 merge identity.
 assert 'test26 candidate 1.0.8' in frame or 'test26:' in frame
-assert ('OpenCE Build208 merged / network29' in identity or 'OpenCE Build206 merged / network29' in identity or
+assert ('OpenCE Build256 merged / network34' in identity or
+        'OpenCE Build208 merged / network29' in identity or 'OpenCE Build206 merged / network29' in identity or
         'OpenCE Build201 merged / network28' in identity or
         'OpenCE Build157 base / network28' in identity or 'OpenCE Build157 base / network26' in identity or
         'OpenCE Build157 base / network24' in identity or

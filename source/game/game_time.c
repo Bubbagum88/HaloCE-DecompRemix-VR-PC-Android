@@ -67,6 +67,7 @@ symbols in this file:
 /* ---------- headers */
 
 #include "cseries.h"
+#include "errors.h" /* port (Test73): game_time_after_load's note */
 #include "network_campaign.h"
 #include "cseries_windows.h"
 #include "real_math.h"
@@ -76,6 +77,8 @@ symbols in this file:
 #include "networking/network_game_globals.h"
 #include "networking/network_server_manager.h"
 #include "saved games/game_state.h"
+#include "scenario/scenario.h" /* port: game_time_menu_scene */
+#include "scenario/scenario_definitions.h"
 #include "profile_sections.h" /* port: port/linux/include/profile_sections.h */
 #include "mcc_game_speed.h" /* port: port/linux/game/mcc_game_speed.c */
 #include "vr_bullet_time.h" /* port: port/linux/game/vr_bullet_time.c (Test70) */
@@ -119,6 +122,15 @@ struct game_time_globals_struct
 /* ---------- globals */
 
 static struct game_time_globals_struct *game_time_globals;
+
+/* port (Test73): BULLET TIME's slowing (port/linux/game/vr_bullet_time.c), on
+top of the game's own speed. Kept out of game_time_globals, which is the game
+state's (game_state_malloc): a checkpoint or a core keeps that, and before
+this BULLET TIME wrote its slow motion there, so a checkpoint saved during it
+brought the slow motion back after a death, for good (a player's report: "stuck
+in bullet time"; game_time_after_load puts such a speed back). 1 but in a local
+game's BULLET TIME. */
+static real game_time_local_scale = 1.0f;
 
 /* ---------- public code */
 
@@ -286,13 +298,15 @@ real game_time_get_tick_fraction(
 
 	if (!game_time_globals || !game_time_globals->active || game_time_globals->paused)
 		return 1.0f;
-	fraction = game_time_globals->leftover_dt * game_time_globals->speed * TICKS_PER_SECOND;
+	fraction = game_time_globals->leftover_dt * game_time_globals->speed * game_time_local_scale * TICKS_PER_SECOND;
 	/* port: MCC clients interpolate using only the host's approved speed. */
 	if (network_game_distributed_client())
 		fraction = game_time_globals->leftover_dt * mcc_game_speed_client(game_time_globals->speed) * TICKS_PER_SECOND;
 	return PIN(fraction, 0.0f, 1.0f);
 }
 
+/* port: the speed the game's time runs at: its own (game_time_get_own_speed)
+slowed by BULLET TIME's, if that is on (game_time_set_local_scale) */
 real game_time_get_speed(
 	void)
 {
@@ -302,7 +316,36 @@ real game_time_get_speed(
 	set before it joined too: cheats_network_client_enforce) */
 	if (network_game_distributed_client())
 		return mcc_game_speed_client(1.0f); /* port: legacy clients remain at one */
+	return game_time_globals->speed * game_time_local_scale;
+}
+
+/* port (Test73): the game's own speed: a map's script's (game_speed), the
+console's, or 1; the one a checkpoint keeps. What reads the speed to put it
+back (main_skip_private) or for a script reads this one, so that BULLET TIME's
+slowing is never written into it */
+real game_time_get_own_speed(
+	void)
+{
+	match_assert("c:\\halo\\SOURCE\\game\\game_time.c", 555, game_time_globals);
+
+	if (network_game_distributed_client())
+		return mcc_game_speed_client(1.0f);
 	return game_time_globals->speed;
+}
+
+/* port (Test73): BULLET TIME's slowing, 0 (exclusive) to 1; anything else is 1 */
+void game_time_set_local_scale(
+	real scale)
+{
+	game_time_local_scale = scale > 0.0f && scale <= 1.0f ? scale : 1.0f;
+
+	return;
+}
+
+real game_time_get_local_scale(
+	void)
+{
+	return game_time_local_scale;
 }
 
 void game_time_set_speed(
@@ -335,6 +378,38 @@ boolean game_time_reset_speed(
 	return changed;
 }
 
+/* port (Test73): after a saved game is taken (a checkpoint's revert, a saved
+game continued, a core; game_state_call_after_load_procs). Test70 to Test72's
+BULLET TIME wrote its slow motion into the game's own speed, which a
+checkpoint keeps: one saved during it brought the slow motion back for good.
+A speed below 1 and not below BULLET TIME's least (TIME SCALE's 25%, eased in
+from 1), in a local game, on a map none of whose scripts calls game_speed (an
+MCC map's may set game_speed_value: never), can only be that: it is put back
+to 1. A speed a map's script may set, or a network game's, is kept */
+#define GAME_TIME_BULLET_TIME_LEAST_SPEED 0.2f
+
+void game_time_after_load(
+	void)
+{
+	extern boolean hs_scenario_may_set_game_speed(void);
+	real speed;
+
+	if (!game_time_globals || !game_time_globals->initialized ||
+		game_connection() != _game_connection_local)
+	{
+		return;
+	}
+	speed = game_time_globals->speed;
+	if (speed >= GAME_TIME_BULLET_TIME_LEAST_SPEED - 0.001f && speed < 1.0f && !hs_scenario_may_set_game_speed())
+	{
+		error(_error_silent, "game time: the saved game kept a slow motion (speed %.3f) no script of this map sets: "
+			"an earlier build's BULLET TIME's; back to 1", speed);
+		game_time_globals->speed = 1.0f;
+	}
+
+	return;
+}
+
 /* whether a client's clock waits for the host's first game update, which
 brings the host's time (the host ticks only once every machine has
 loaded) */
@@ -347,6 +422,18 @@ boolean game_time_held(
 		return FALSE;
 	client = global_network_game_client_get();
 	return client && !network_game_client_server_has_started_game(client);
+}
+
+/* port: whether the main menu's scene is what ticks. It runs on this
+machine's clock and takes no player input: a tick waits for the players'
+input, an action for each, and the menus change who the local players are
+(profiles), and a lobby's network game owns the queues, so with none the
+ticks stopped and the scene froze behind the menus (players.c gives its
+players idle actions) */
+boolean game_time_menu_scene(
+	void)
+{
+	return global_scenario && global_scenario->type == _scenario_type_main_menu;
 }
 
 void game_time_start(
@@ -397,7 +484,7 @@ void game_time_update(
 	{
 		long connection;
 		long ticks_elapsed;
-		real ticks_per_second = game_time_globals->speed*TICKS_PER_SECOND;
+		real ticks_per_second = game_time_globals->speed*game_time_local_scale*TICKS_PER_SECOND;
 		/* port: preserve native client cheat enforcement; use MCC host state separately. */
 		if (network_game_distributed_client())
 			ticks_per_second = mcc_game_speed_client(game_time_globals->speed)*TICKS_PER_SECOND;
@@ -456,6 +543,15 @@ void game_time_update(
 			game_time_globals->leftover_dt = game_time - ticks_elapsed_real/ticks_per_second;
 			if (game_time_globals->leftover_dt < 0.f)
 				game_time_globals->leftover_dt = 0.f;
+			/* port: debug.fixed_step, a game of this machine alone: one tick a
+			frame that has time (main.c gives it a tick's; a 30th of a second in
+			a float is not one tick exactly), so that what runs once a frame
+			(aiming) sees the game's time; game_speed has no effect */
+			if (halo_fixed_step() && game_connection() == _game_connection_local && time_delta_sec > 0.f)
+			{
+				ticks_elapsed = 1;
+				game_time_globals->leftover_dt = 0.f;
+			}
 			match_assert("c:\\halo\\SOURCE\\game\\game_time.c", 306,
 				game_time_globals->leftover_dt>=0.f && game_time_globals->leftover_dt<100.f);
 
@@ -479,7 +575,13 @@ void game_time_update(
 				with its own input and the latest the host relayed, from the
 				host's first game update, which brings the host's time: the
 				host ticks only once every machine has loaded) */
-				if (game_connection() == _game_connection_network_client)
+				/* port: the main menu's scene ticks on this machine's clock,
+				in a lobby too (game_time_menu_scene) */
+				if (game_time_menu_scene())
+				{
+					maximum_possible_server_time = final_local_time;
+				}
+				else if (game_connection() == _game_connection_network_client)
 				{
 					maximum_possible_server_time = game_time_held() ?
 						game_time_globals->server_time : final_local_time;
@@ -499,8 +601,10 @@ void game_time_update(
 						profile_scope(game_time_render_interpolation_tick_section, render_interpolation_tick();)
 						game_time_globals->server_time++;
 						game_time_globals->local_time++;
-						/* the distributed netcode's per-tick state */
-						profile_scope(game_time_network_distributed_tick_section, network_distributed_tick();)
+						/* the distributed netcode's per-tick state (port: none of
+						the main menu's scene, which a lobby's machines do not share) */
+						if (!game_time_menu_scene())
+							profile_scope(game_time_network_distributed_tick_section, network_distributed_tick();)
 					}
 				}
 

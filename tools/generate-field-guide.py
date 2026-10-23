@@ -4,6 +4,30 @@ import re,ast
 import os
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'port/android/app/src/main/assets/guide';OUT.mkdir(parents=True,exist_ok=True)
+
+def launcher_text(markdown):
+    """Test73 (the owner: the launcher's controls section clear): a Markdown reference of '# title', '## heading',
+    '- point' (wrapped with two-space continuations) and paragraphs as the launchers show What's New
+    (WhatsNew.styled): the title line, each heading in capitals, each point one '• ' line, paragraphs one line,
+    blank lines kept; no Markdown marks left."""
+    out=[]
+    for line in markdown.split('\n'):
+        line=line.rstrip()
+        plain=line.replace('**','').replace('`','')
+        if line.startswith('# '):
+            out.append(plain[2:].strip())
+        elif line.startswith('## '):
+            out.append(plain[3:].strip().upper())
+        elif line.startswith('- '):
+            out.append('• '+plain[2:].strip())
+        elif not line.strip():
+            out.append('')
+        elif out and out[-1] and (line.startswith('  ') or not out[-1].isupper() or out[-1].startswith('• ')):
+            out[-1]+=' '+plain.strip()
+        else:
+            out.append(plain.strip())
+    return '\n'.join(out).strip('\n')+'\n'
+
 (OUT/'credits.txt').write_text((ROOT/'CREDITS.md').read_text(encoding='utf-8')+'\n\n'+(ROOT/'THIRD-PARTY-NOTICES.txt').read_text(encoding='utf-8'),encoding='utf-8',newline='\n')
 for source,target in [('PLAYER-GUIDE.md','player-guide.txt'),('CONTROLS-AND-OPTIONS.md','controls.txt'),('ANDROID-TOUCH-CONTROLS.md','touch.txt')]:
     text=(ROOT/'docs'/source).read_text(encoding='utf-8')
@@ -19,6 +43,7 @@ for source,target in [('PLAYER-GUIDE.md','player-guide.txt'),('CONTROLS-AND-OPTI
             (ROOT/'docs/RELEASE-1.0.16.md').read_text(encoding='utf-8')
         text = cover + '\n\n---\n\n' + text
     if target=='touch.txt': text+='\n\n'+(ROOT/'docs/ANDROID-GAMEPAD.md').read_text(encoding='utf-8')
+    if target=='controls.txt': text=launcher_text(text)
     (OUT/target).write_text(text,encoding='utf-8',newline='\n')
 s=(ROOT/'port/linux/src/port_config.c').read_text(encoding='utf-8')
 s=s[s.index('static const struct config_setting config_settings[]'):s.index('/* ----------',s.index('static const struct config_setting config_settings[]')+1)]

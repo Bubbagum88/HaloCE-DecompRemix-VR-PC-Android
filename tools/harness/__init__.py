@@ -89,8 +89,10 @@ def build(test, generated):
     executable = work / test
     # (the Quest port, Test66: HALO_HARNESS_NATIVE=1 builds for this machine's
     # width, where 32-bit programs cannot run (WSL1); only for tests whose
-    # code does not depend on the 32-bit layout)
-    width = [] if os.environ.get("HALO_HARNESS_NATIVE") == "1" else ["-m32"]
+    # code does not depend on the 32-bit layout). Test73: -m32 for the CPU the
+    # game's builds are (configure.py's -march=x86-64: SSE2 float math, as the
+    # game's); bare -m32's x87 kept a test's own float above float precision
+    width = [] if os.environ.get("HALO_HARNESS_NATIVE") == "1" else ["-m32", "-march=x86-64"]
     command = [os.environ.get("CC", "clang"), *width, "-std=gnu99", "-O2", "-Wall", "-Werror", "-Wno-unused-function",
                "-Wno-unused-variable", "-I", str(HARNESS / "include"), "-I", str(work),
                str(HARNESS / "tests" / f"{test}.c"), "-o", str(executable), "-lm"]

@@ -65,10 +65,12 @@ config = read("port/linux/src/port_config.c")
 assert '{ "game.death_physics", _config_string, "\\"ragdoll\\"", "HALO_DEATH_PHYSICS", _environment_value, _platform_all,' in config
 menu = read("port/linux/game/vr_menu.c")
 assert '"DEATH PHYSICS", "game.death_physics", _vr_setting_string, 2, { { "DYNAMIC", "ragdoll" }, { "CLASSIC", "classic" } }' in menu
-graphics = read("port/assets/menus/ce/main_menu.settings_select.player_setup.player_profile_edit.video_settings.graphics.xml")
-assert 'op_death_physics" x="54" y="223"/>' in graphics  # shown on Android too (Test67: Shield Glow moved to Extra Effects)
+bodies = read("port/assets/menus/ce/main_menu.settings_select.player_setup.player_profile_edit.video_settings.bodies_decals.xml")
+# shown on Android too, no platform attribute (Test67: Shield Glow moved to Extra Effects; Test73: OpenCE 232's
+# BUTTON STYLE row above it; then, after OpenCE 244's rows, the first row of Video Setup's BODIES AND DECALS)
+assert 'op_death_physics" x="54" y="73"/>' in bodies
 objects = read("source/objects/objects.c")
-assert "object_bounds_cache_update(object_index, &object->object.bounding_sphere_center" in objects
+assert "object_bounds_cache_update(object_index, object->object.type, &object->object.bounding_sphere_center" in objects
 assert (ROOT / "port/linux/game/object_bounds_cache.c").is_file()
 
 drop = r'''

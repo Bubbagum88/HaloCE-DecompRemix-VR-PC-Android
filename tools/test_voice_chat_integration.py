@@ -84,7 +84,8 @@ assert "VOICE_MICROPHONE_RETRY_MS = 10000" in network_voice
 assert "microphone_result == VOICE_AUDIO_MICROPHONE_PERMISSION_DENIED" in voice_update
 assert "microphone_result == VOICE_AUDIO_MICROPHONE_DEVICE_FAILURE" in voice_update
 assert "retrying in %d ms" in voice_update
-assert "held = push_to_talk && halo_push_to_talk_held() && !console_is_active();" in voice_update
+# (Test73: and not while a text chat line is typed, OpenCE 232's)
+assert "held = push_to_talk && halo_push_to_talk_held() && !console_is_active() && !network_chat_typing();" in voice_update
 assert "Keep PTT available in the network lobby, which is itself a menu" in voice_update
 assert "else if (open_mic || held)" in voice_update
 assert "voice_microphone_permission_denied = FALSE;" in voice_update
@@ -166,7 +167,7 @@ assert "per-player mute controls are not wired" in notes
 assert "not a claim of complete upstream" in notes
 assert "no dedicated hold-to-talk touch button" in notes
 package = read("tools/package-quest.py")
-assert "required_candidate_code = 84 if candidate_at_least(args.label, 72) else 83 if candidate_at_least(args.label, 71) else 82 if candidate_at_least(args.label, 70) else 81 if candidate_at_least(args.label, 69) else 80 if candidate_at_least(args.label, 68) else 79 if candidate_at_least(args.label, 67) else 78 if candidate_at_least(args.label, 66) else 77 if candidate_at_least(args.label, 65) else 76 if candidate_at_least(args.label, 64) else 75 if candidate_at_least(args.label, 63) else 74 if candidate_at_least(args.label, 62) else 73 if candidate_at_least(args.label, 61) else 72 if candidate_at_least(args.label, 60) else 71 if candidate_at_least(args.label, 59) else 70 if candidate_at_least(args.label, 58) else 69 if candidate_at_least(args.label, 57) else 68 if candidate_at_least(args.label, 56) else 67 if candidate_at_least(args.label, 55) else 66 if candidate_at_least(args.label, 54) else 65 if candidate_at_least(args.label, 53) else 64 if candidate_at_least(args.label, 52) else 62 if candidate_at_least(args.label, 51) else 61 if candidate_at_least(args.label, 50) else 60 if candidate_at_least(args.label, 49)" in package
+assert "required_candidate_code = 85 if candidate_at_least(args.label, 73) else 84 if candidate_at_least(args.label, 72) else 83 if candidate_at_least(args.label, 71) else 82 if candidate_at_least(args.label, 70) else 81 if candidate_at_least(args.label, 69) else 80 if candidate_at_least(args.label, 68) else 79 if candidate_at_least(args.label, 67) else 78 if candidate_at_least(args.label, 66) else 77 if candidate_at_least(args.label, 65) else 76 if candidate_at_least(args.label, 64) else 75 if candidate_at_least(args.label, 63) else 74 if candidate_at_least(args.label, 62) else 73 if candidate_at_least(args.label, 61) else 72 if candidate_at_least(args.label, 60) else 71 if candidate_at_least(args.label, 59) else 70 if candidate_at_least(args.label, 58) else 69 if candidate_at_least(args.label, 57) else 68 if candidate_at_least(args.label, 56) else 67 if candidate_at_least(args.label, 55) else 66 if candidate_at_least(args.label, 54) else 65 if candidate_at_least(args.label, 53) else 64 if candidate_at_least(args.label, 52) else 62 if candidate_at_least(args.label, 51) else 61 if candidate_at_least(args.label, 50) else 60 if candidate_at_least(args.label, 49)" in package
 assert '"dump", "permissions"' in package and "android.permission.RECORD_AUDIO" in package
 assert "OpenCE Build167 voice-chat runtime marker missing from APK" in package
 assert "OpenCE Build167 voice-chat player-guide marker missing from APK" in package

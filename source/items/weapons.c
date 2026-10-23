@@ -206,6 +206,7 @@ symbols in this file:
 #include "vr_manual_reload.h"
 #endif
 #include "vr_cooldown_shake.h"
+#include "network_interaction.h" /* port: Test73, co-op VR clients' reloads */
 
 #include "equipment.h"
 #include "weapon_datum_flags.h"
@@ -227,6 +228,7 @@ symbols in this file:
 #include "game/game.h"
 #include "game/game_engine.h"
 #include "game/players.h"
+#include "game/aim_assist.h" /* port: the reticle's read-only shot direction */
 #include "interface/first_person_weapons.h"
 #include "math/periodic_functions.h"
 #include "models/model_animation_definitions.h"
@@ -376,6 +378,11 @@ struct trigger_firing_effect
 };
 
 /* ---------- prototypes */
+
+/* port/linux/game/network_objects.c's: whether a client of the distributed
+netcode is deleting an object in distributed_client_delete (the host's, on
+its word, or one the host has not told it of) */
+boolean network_objects_client_deleting(void);
 
 static short weapon_magazine_count(
 	struct weapon_definition const *weapon_definition);
@@ -921,7 +928,10 @@ void weapon_set_total_rounds(
 void weapon_delete(
 	long weapon_index)
 {
-	if (game_engine_running())
+	/* (port: but a flag or ball a client of the distributed netcode deletes,
+	on the host's word or as one the host has not told it of: objects.c's
+	object_delete_initial_recursive) */
+	if (game_engine_running() && !network_objects_client_deleting())
 	{
 		match_assert("c:\\halo\\SOURCE\\items\\weapons.c", 234, !weapon_is_flag(weapon_index));
 	}
@@ -2423,6 +2433,50 @@ boolean weapon_vr_preview_primary_ray(long weapon_index, long player_index,
 		isfinite(forward->i) && isfinite(forward->j) && isfinite(forward->k) && normalize3d(forward) > 0.0f;
 }
 #endif
+/* port: the player's pre-spread ray, following trigger_create_projectiles'
+origin, offset, autoaim and weapon-origin rules, without creating a shot. */
+boolean weapon_get_projectile_ray(long weapon_index, short trigger_index, real_point3d *origin, real_vector3d *forward)
+{
+	struct weapon_datum *weapon = weapon_get(weapon_index);
+	struct weapon_definition *definition = weapon_definition_get(weapon->definition_index);
+	long owner_index = weapon_get_owner_object_index(weapon_index);
+	struct unit_datum *unit = owner_index != NONE ? unit_try_and_get(owner_index) : NULL;
+	struct weapon_trigger_definition *trigger;
+	struct object_marker marker;
+	real velocity = 0.0f;
+
+	if (!unit || unit->unit.player_index == NONE || trigger_index < 0 ||
+		trigger_index >= definition->weapon.triggers.count)
+		return FALSE;
+	trigger = TAG_BLOCK_GET_ELEMENT(&definition->weapon.triggers, trigger_index, struct weapon_trigger_definition);
+	if (trigger->projectile.index == NONE)
+		return FALSE;
+	object_get_marker_by_name(weapon_get_effect_object_index(weapon_index),
+		trigger_index == 0 ? "primary trigger" : "secondary trigger", &marker, 1);
+	*origin = marker.matrix.position;
+	*forward = marker.matrix.forward;
+	if (!TEST_FLAG(trigger->flags, _weapon_trigger_projectiles_cannot_be_aimed_bit) &&
+		!TEST_FLAG(unit->object.damage_flags, _object_dead_bit))
+	{
+		struct unit_definition *unit_definition = unit_definition_get(unit->definition_index);
+		real_vector3d right, up;
+
+		unit_adjust_projectile_ray(owner_index, origin, forward, &velocity,
+			TEST_FLAG(unit_definition->unit.flags, _unit_fires_from_camera_bit), TRUE);
+		cross_product3d(global_up3d, forward, &right);
+		if (normalize3d(&right) == 0.0f)
+			right = *global_left3d;
+		cross_product3d(forward, &right, &up);
+		normalize3d(&up);
+		point_from_line3d(origin, forward, trigger->first_person_weapon_offset.x, origin);
+		point_from_line3d(origin, &right, trigger->first_person_weapon_offset.y, origin);
+		point_from_line3d(origin, &up, trigger->first_person_weapon_offset.z, origin);
+		player_aim_projectile_preview(unit->unit.player_index, origin, forward);
+	}
+	if (TEST_FLAG(trigger->flags, _weapon_trigger_uses_weapon_origin_bit))
+		*origin = marker.matrix.position;
+	return normalize3d(forward) != 0.0f;
+}
 
 static void trigger_create_projectiles(
 	long weapon_index,
@@ -3105,6 +3159,25 @@ static void weapon_trigger_overcharged(
 	return;
 }
 
+/* port (Test73, 10d): a physical reload's commit: the magazine in and
+chambered. Native conservation handles tactical/empty reloads and infinite
+ammo once; its optional follow-on automatic reload (an infinite-ammo
+magazine with less reserve than its capacity too) is suppressed. The local
+player's (VR_MANUAL_COMMIT below), or a co-op VR client's that its host was
+sent (network_interaction.c), in every build. */
+void weapon_vr_reload_commit(
+	long weapon_index)
+{
+	struct weapon_datum *weapon = weapon_get(weapon_index);
+	word saved_control_flags = weapon->weapon.control_flags;
+
+	SET_FLAG(weapon->weapon.control_flags, _weapon_control_user_switching_weapons_bit, TRUE);
+	weapon_magazine_finish_reload(weapon_index, 0);
+	weapon->weapon.control_flags = saved_control_flags;
+	weapon_magazine_finish_chamber(weapon_index, 0);
+	SET_FLAG(weapon->weapon.flags, _weapon_needs_to_reload_bit, FALSE);
+}
+
 boolean weapon_update(
 	long weapon_index)
 {
@@ -3252,16 +3325,22 @@ boolean weapon_update(
 		physical_reload_auto = (manual & VR_MANUAL_SUPPRESS_AUTO) != 0;
 		physical_reload_block = (manual & VR_MANUAL_BLOCK_FIRE) != 0;
 		if (manual & VR_MANUAL_COMMIT) {
-			word saved_control_flags = weapon->weapon.control_flags;
-			/* Physical insertion and chambering are complete. Native conservation
-			 * handles tactical/empty reloads and infinite-ammo semantics once.
-			 * Suppress its optional follow-on automatic reload (including an
-			 * infinite-ammo magazine with less reserve than its capacity). */
-			SET_FLAG(weapon->weapon.control_flags, _weapon_control_user_switching_weapons_bit, TRUE);
-			weapon_magazine_finish_reload(weapon_index, 0);
-			weapon->weapon.control_flags = saved_control_flags;
-			weapon_magazine_finish_chamber(weapon_index, 0);
-			SET_FLAG(weapon->weapon.flags, _weapon_needs_to_reload_bit, FALSE);
+			/* Test73 (10d): a co-op client's reload is its host's to commit
+			(network_interaction.c): sent, by the held weapon's tag */
+			if (game_connection() == _game_connection_network_client)
+			{
+				long unit_index = weapon->object.parent_object_index;
+				struct unit_datum *unit = unit_index != NONE ?
+					(struct unit_datum *)object_try_and_get_and_verify_type(unit_index, _object_mask_unit) : NULL;
+
+				if (unit && unit->unit.player_index != NONE)
+					network_interaction_client_action(NETWORK_VR_ACTION_RELOAD, unit->unit.player_index, unit_index,
+						weapon->definition_index, NULL, NULL);
+			}
+			else
+			{
+				weapon_vr_reload_commit(weapon_index);
+			}
 		}
 	}
 	/* Test70: the needler with MANUAL RELOAD reloads when shaken (or with the
@@ -3279,6 +3358,14 @@ boolean weapon_update(
 		}
 	}
 #endif
+	/* port (Test73, 10d): the host's copy of a co-op VR client's weapon whose
+	player reloads by hand (network_interaction.c): not reloaded on its own
+	when empty, as the client's own is not; its reload button still reloads */
+	if (!TEST_FLAG(weapon->weapon.control_flags, _weapon_control_reload_bit) &&
+		network_interaction_unit_manual_reload(weapon->object.parent_object_index))
+	{
+		physical_reload_auto = TRUE;
+	}
 	if (TEST_FLAG(weapon->weapon.control_flags, _weapon_control_reload_bit) && weapon_definition->weapon.magazines.count>0)
 	{
 		SET_FLAG(weapon->weapon.flags, _weapon_needs_to_reload_bit, TRUE);

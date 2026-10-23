@@ -97,6 +97,9 @@ static void network_game_client_dispose(struct network_game_client *client)
 }
 static void player_ui_clear_multiplayer_joins(void) { joins_cleared++; note('J'); }
 static void player_ui_clear_multiplayer_variant(void) { variants_cleared++; note('V'); }
+/* (HaloCE-Quest-VR: the port's community server browser, stopped with the menus that leave it:
+port/linux/game/network_browser.c; nothing of the teardown here) */
+static void network_browser_end(void) { }
 static boolean network_game_start_new_server(struct widget_instance *widget, struct event_record *event, boolean *deleted)
 {
 	CHECK(!bss_004566dc.client && !bss_004566dc.server, "new host started before old host/client disposed");

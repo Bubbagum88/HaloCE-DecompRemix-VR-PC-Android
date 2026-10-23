@@ -64,7 +64,10 @@ assert re.search(r'OPENXR_SHA256 = "[0-9a-f]{64}"', build)
 assert 'n.build(outputs="windows_vr", rule="phony", inputs=[vr_output, vr_sdl, vr_loader])' in build
 assert '"-DHALO_VR=1"' in build and "[Path(\"port/android/host/host_xr.c\")]" in build
 assert "#elif defined(_WIN32) && defined(HALO_VR)\n/* Test72: the Windows PCVR build (halo-vr.exe): VR settings and Windows ones */\n#define CONFIG_PLATFORM (_platform_windows | _platform_vr)" in config
-assert config.count("#if defined(HALO_ANDROID) || defined(HALO_VR)") == 1  # the line editors, which VR's migration uses
+# the line editors, which VR's migration uses; since the PC VR fixes (docs/HANDOFF-2026-10-18.md item 1) every
+# build's but the web's, the desktop's Safe-geometry migration among them (tools/test_test32_geometry.py)
+assert config.count("#if !defined(HALO_WEB)\n#define CONFIG_GEOMETRY_MIGRATION 1") == 1
+assert '#define GEOMETRY_REVISION_KEY "desktop_geometry_revision"' in config
 assert 'snprintf(path, size, "%sconfig-vr.toml", base ? base : "");' in config
 assert 'static const char name[] = "halo-vr.log";' in posix
 print("PASS: Test72 Windows: flat build (expat/zlib), its two start-up halts fixed (blood's game time, the 24-byte "

@@ -88,12 +88,18 @@ final class LauncherHelp {
                 try(InputStream in=activity.getAssets().open("guide/"+files[index])) {
                     ByteArrayOutputStream out=new ByteArrayOutputStream(); byte[] buffer=new byte[4096];
                     for(int n;(n=in.read(buffer))!=-1;) out.write(buffer,0,n);
-                    page(activity,"Field guide",out.toString(StandardCharsets.UTF_8.name()));
+                    // (Test73, the owner: the controls section clear: written as the What's New notes and shown styled as they are)
+                    String content=out.toString(StandardCharsets.UTF_8.name());
+                    if(files[index].equals("controls.txt")) page(activity,"VR controls & settings",content,true);
+                    else page(activity,"Field guide",content);
                 } catch(IOException e) { page(activity,"Guide unavailable","Could not open the bundled guide. See the project's docs on GitHub."); }
             }).setNegativeButton("Back",null).show();
     }
-    static void page(Activity activity,String title,String content) {
-        TextView text=new TextView(activity); text.setText(content); text.setTextSize(16); text.setTextIsSelectable(true);
+    static void page(Activity activity,String title,String content) { page(activity,title,content,false); }
+    static void page(Activity activity,String title,String content,boolean styled) {
+        TextView text=new TextView(activity); text.setTextSize(16); text.setTextIsSelectable(true);
+        text.setText(styled?WhatsNew.styled(content,(int)Math.ceil(text.getPaint().measureText("\u2022 "))):content);
+        if(styled) text.setLineSpacing(0,1.1f);
         int pad=(int)(20*activity.getResources().getDisplayMetrics().density); text.setPadding(pad,pad,pad,pad);
         ScrollView scroll=new ScrollView(activity); scroll.addView(text);
         new GamepadNavigation.Builder(activity).setTitle(title).setView(scroll).setPositiveButton("Close",null).show();
@@ -151,10 +157,23 @@ final class LauncherHelp {
         boolean vr=activity.getPackageName().endsWith(".vr");
         boolean current=geometrySafe(root,vr);
         new GamepadNavigation.Builder(activity).setTitle("Geometry compatibility")
-            .setMessage("Safe geometry is the default for Quest VR and flat Android, including the first upgrade to this default. You can select Normal here; that choice is kept on later launches. Safe avoids scenery stretching into triangles or strips by bypassing static geometry caching, persistent streaming and GPU base-vertex rebasing. It can reduce frame rate. This is a renderer option, not a game-revision selection. Restart the game after changing it.\n\nCurrent: "+(current?"Safe":"Normal"))
+            .setMessage("Safe geometry is the default on every build: Quest VR, flat Android, and the PC (flat and VR), including the first upgrade to this default. You can select Normal here; that choice is kept on later launches. Safe avoids scenery stretching into triangles or strips by bypassing static geometry caching, persistent streaming and GPU base-vertex rebasing. It can reduce frame rate. This is a renderer option, not a game-revision selection. Restart the game after changing it.\n\nCurrent: "+(current?"Safe":"Normal"))
             .setPositiveButton(current?"Use normal":"Use safe",(d,w)->{
                 try { saveGeometry(root,vr,!current);
                     Toast.makeText(activity,"Saved for next launch",Toast.LENGTH_LONG).show(); }
+                catch(IOException e) { page(activity,"Could not save",e.getMessage()); }
+            }).setNegativeButton("Cancel",null).show();
+    }
+    /** Test73 (the owner's): where the VR menus are shown, the main menu's too, chosen before playing (MenuPosition) */
+    static void menuPosition(Activity activity,File root) {
+        String[] names={"Follow your head (default)","Fixed in front of you","Fixed; back in front when you look away"};
+        int current=Arrays.asList(MenuPosition.ANCHORS).indexOf(MenuPosition.read(root));
+        new GamepadNavigation.Builder(activity).setTitle("Menu position (also in VR SETTINGS)")
+            .setSingleChoiceItems(names,current,(d,which)->{
+                try { MenuPosition.save(root,MenuPosition.ANCHORS[which]);
+                    RunLog.line("VR menu position: "+MenuPosition.ANCHORS[which]);
+                    Toast.makeText(activity,names[which]+". A stick click brings a fixed menu back in front.",Toast.LENGTH_LONG).show();
+                    d.dismiss(); }
                 catch(IOException e) { page(activity,"Could not save",e.getMessage()); }
             }).setNegativeButton("Cancel",null).show();
     }

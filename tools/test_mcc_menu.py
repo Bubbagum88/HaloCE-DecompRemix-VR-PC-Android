@@ -56,7 +56,7 @@ struct player_profile {int last_single_player_map_played;};
 struct widget_instance {struct {struct {short selected_index;struct widget_instance *extended_description;} list;} parameters;};
 static struct widget_instance spinner, description, list;
 static struct {short shown_level,saved_level;struct {boolean available;void *finished;} levels[10];} campaign;
-static int no_spinner, empty_catalog, failed, launched, deferred, cooperated, multiplayer;
+static int no_spinner, empty_catalog, failed, launched, deferred, cooperated, multiplayer, last_saved_game = -1;
 static int opened, backed, last_controller, last_difficulty, last_sound, focus_first, focus_chosen;
 static int solo_updated, host_updated, legacy_updated;
 static char last_level[40];
@@ -98,8 +98,8 @@ static boolean campaign_fail(void) {failed++;return FALSE;}
 static void main_set_map_name(char const *name) {strcpy(last_level,name);}
 static void main_defer_map_map_change(void) {deferred++;}
 static short main_get_difficulty(void) {return 2;}
-static void campaign_start(char const *name,short difficulty,short controller) {
-    launched++;strcpy(last_level,name);last_difficulty=difficulty;last_controller=controller;
+static void campaign_start(char const *name,short difficulty,short controller,boolean saved_game) {
+    launched++;strcpy(last_level,name);last_difficulty=difficulty;last_controller=controller;last_saved_game=saved_game;
 }
 static boolean ui_widget_port_mcc_cooperative_level_choose(char const *name,short difficulty) {
     cooperated++;strcpy(last_level,name);last_difficulty=difficulty;return TRUE;
@@ -176,6 +176,8 @@ int main(int argc,char **argv) {
         CHECK(last_controller==3 && !failed,3);
         CHECK(deferred==singleplayer && launched==!singleplayer,4);
         if(!singleplayer)CHECK(last_difficulty==2,5);
+        /* (played alone, the map starts anew: no saved game goes on, halo-ce-universal eaa3b6194) */
+        if(!singleplayer)CHECK(last_saved_game==FALSE,6);
         return 0;
     }
     if(!strcmp(argv[1],"host")) {

@@ -208,7 +208,14 @@ long long host_syscall(long long number, long long a, long long b, long long c,
 	case SYS_clock_getres:
 	{
 		struct timespec value;
-		long result = syscall(number, (clockid_t)a, &value);
+		/* (the C library's, not the system call: Android's clock_gettime
+		reads the clock in the process, with no trip into the kernel, and the
+		game reads it thousands of times a frame, every clock of the guest
+		coming here; halo-ce-universal a6445c28f found those trips a tenth of
+		a busy match's game thread on a phone, and reads the CPU's timer in
+		the guest instead) */
+		long result = number == SYS_clock_gettime ? clock_gettime((clockid_t)a, &value) :
+			clock_getres((clockid_t)a, &value);
 
 		if (result == 0)
 			timespec_out((uint64_t)b, &value);

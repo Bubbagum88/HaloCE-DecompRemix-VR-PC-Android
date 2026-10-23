@@ -45,6 +45,127 @@ builds are unchanged: everything here is behind `configure.py --vr` (`HALO_VR`).
   `port/android/patches/sdl3-no-clipboard-service.patch` handles that in SDL3.
 - **Storage:** `/sdcard/Documents` is the headset's `~/Documents`, which survives Lepton
   resets. Game data, `config.toml` and saves go to `Documents/HaloCE`.
+  *Superseded in Test73:* Android 11's scoped storage keeps an app out of
+  `/sdcard/Documents`, so the app now uses the SteamOS user's folder at its host path,
+  `/home/<user>/Documents/HaloCEQuestVR` (see "Test73" below).
+
+## Test73: the Steam Frame plan (item 8, 2026-10-20)
+
+This was written from Valve's Steamworks Steam Frame pages, Lepton's behaviour, and the field
+findings of [ringfall-mjolnir-vr](https://github.com/Cesarus85/ringfall-mjolnir-vr) (now Mjolnir VR;
+CC0, AGPL-3.0 or later since 2026-10-19), and on 2026-10-22 from Lepton's own source and the other
+Frame ports (below). It has
+**not been run on a Frame**: none of it has device acceptance. The same VR APK serves the Quest,
+the PICO and the Frame. Everything below is chosen at run time and applies only inside Lepton.
+
+- **Detection** (`Lepton.java`, `host_lepton_running` in `host_main.c`): one of the properties
+  `lepton.app_id` or `waydroid.host.user` is set, `ro.steam.running_in_app_container` is "true", or
+  the build's model is "Lepton" (Lepton 3; its maker is now "Valve") or its maker "Lepton" (before).
+- **Data** (`Lepton.dataRoot`, `lepton_data_root`): `/home/<user>/Documents/HaloCEQuestVR`.
+  It is used only when writable, and the user name must be a plain one. The launcher, the game,
+  config.toml, saves and logs all go there (`RunLog` writes to its `logs/`). Lepton 2 emptied
+  `/sdcard/Android/data` and reinstalled the APK at every start; Lepton 3 (below) keeps an install
+  until the APK changes, but the folder in Documents is kept by both, and by a Lepton reset.
+- **Steam launches are headless** (`lepton.headless`):
+  - if the data is present, the launcher starts the game at once;
+  - otherwise it unpacks the largest `.iso`/`.xiso` in the user's Downloads, Documents or
+    Desktop (`XisoExtractor`) and then starts it;
+  - otherwise it writes `STEAM-FRAME-README.txt` there and ends.
+- **One process:** Lepton ends the container when the package's main process ends. So the VR
+  game runs in the main process there (`HaloFrameActivity`) rather than in `:halo_game`.
+- **No self-update** on the Frame: Lepton installs the APK it is given (updating is installing a
+  newer bundle, below), and the package-replaced receiver starts nothing there.
+- **Pickers:** a missing document picker (`ActivityNotFoundException`) is reported instead of
+  crashing.
+- **The fdm_injection layer:** SteamVR lists `XR_APILAYER_VALVE_fdm_injection` as an implicit
+  layer, but an app cannot load the system's library from its own namespace, so the loader fails
+  `xrCreateInstance`. The VR APK carries a pass-through layer under that library's name
+  (`port/android/xr_layer/fdm_injection_stub.c`, ringfall's). The Quest and PICO never load it.
+- **Controllers:** the Frame's own profile was already bound. Its touch sensors are now bound
+  too, for the finger poses, and so are the Index's (`suggest_pair`). If the runtime refuses
+  them, the profile is suggested again without them. A controller that never reports a touch
+  (HP Reverb G2, or a refused pair) shows a hand resting on it. Before, holding grip for a second
+  showed the middle finger there.
+- **Frame timing on Mesa zink** (each `glGet*` waits for Mesa's GL thread):
+  - uniform locations are asked once per program (`uniform_location`, `vr_frame.c`);
+  - on SteamVR in Lepton, the swapchain images are released together as the frame ends, with a
+    flush after the right eye (`HALO_XR_DEFERRED=1|0` overrides this on any runtime);
+  - the frame thread is pinned to the fast cores (`HALO_XR_ANY_CORE` turns that off).
+- **Quitting:** the main menu's QUIT GAME (pause > quit to the main menu > QUIT GAME) ends the
+  process, and with it the container, and leaves `quit_requested.txt` beside the data (for the
+  launcher below). Started from the Steam library by `launch.sh`, Steam's "Exit game" works too.
+- **Deploying from a computer:** `tools/steam_frame/deploy.sh` copies the maps to
+  `~/Documents/HaloCEQuestVR/maps` and makes the folder writable for the app.
+
+### Installing without a computer (2026-10-22; ringfall's, AGPL-3.0, adapted)
+
+`tools/steam_frame/bundle.py <VR APK> <folder>` makes `HaloCEQuestVR-SteamFrame.zip`: the VR APK as
+`HaloCEQuestVR.apk`, `install.sh`, `launch.sh`, "Install HaloCE Quest VR.desktop" and a README. A
+player unpacks it in the Frame's Downloads (Desktop Mode) with a disc image there, and opens the
+desktop file:
+- `install.sh` (zenity dialogs; `HALO_UNATTENDED=1` for testing) puts the APK and the launcher
+  (`halo-ce-quest-vr.sh`) in `~/Documents/HaloCEQuestVR`, says whether it sees a disc image, and has
+  Steam add the game to the library (`steam://addnonsteamgame`, from a desktop file beside the game,
+  as SteamOS's "Add to Steam" does; Steam is not closed). Running it again with a newer bundle
+  updates the game; settings, saves and data stay.
+- `launch.sh`, the library entry, runs `lepton waitforexitandrun -- HaloCEQuestVR.apk` as Steam
+  runs an Android title of its own: a container id of its own (4290007373; with the shortcut's id
+  SteamVR's client stalled in `xrCreateInstance`, ringfall's finding), a compat data path with its
+  `internal/`, a watcher that ends the container when Steam ends the script ("Exit game"), the
+  container's logcat in `logcat.txt`, and a start that ends within 30 s tried again (up to three
+  times) unless the game was quit (`quit_requested.txt`). No self-update: test candidates have no
+  public release to fetch (ringfall's launcher fetches its releases).
+
+### Lepton 3.0.8, from its source (gitlab.steamos.cloud/frame-public/lepton, 2026-10-22)
+
+- **The activity started** is the first `<activity>` whose intent filter has both MAIN and
+  LAUNCHER (`apk_extractor`; an `activity-alias` is not looked at), here `LauncherActivity`; the
+  manifest must have exactly one `<uses-sdk>` (Gradle's merge writes it). `uses-feature` is never
+  read, so `android.hardware.vr.headtracking` `required="true"` blocks nothing (HaloCE-VR, which
+  runs on the Frame, declares it the same way; ringfall declares `"false"`).
+- **Two images:** Android 11 (API 30) and Android 14 (API 34); the app works the same in both
+  (its data folder is reached at its host path either way).
+- **Storage:** `/sdcard` is the compat data path's `external/` and is kept; Documents, Download and
+  Movies in it are links to the SteamOS user's folders, which are mounted at their host paths.
+- **Installs are kept** ("baked") until the APK's hash or Lepton's version changes; a container
+  that ends within 30 s of its start has its install dropped (the next start installs again).
+- **The 2D window** is hidden unless the depot has a `lepton-show-flatscreen` file.
+
+### From the other Frame ports (2026-10-22)
+
+Taken, each tested in `tools/test_test73_frame_ports.py`:
+- **The runtime waited for** (astromaddie's HaloCE-VR, e92d54fa): in Lepton, an instance SteamVR
+  refuses (not running yet, or asleep with the headset) is asked for again each second for a
+  minute; then, or on any later failure, the game ends with its reason in the log and no message
+  box. A flat screen fallback there drew to a window Lepton never shows, and its display composer
+  aborted, taking the container down. Elsewhere the flat screen stays.
+- **The clock by display times** (HaloCE-VR 02887521): the runtime's frame is begun at the top of
+  the main loop and the game clock steps from one frame's display time to the next, whole
+  periods, so steady motion between the ticks no longer judders (seen on the Frame). A movie's
+  and `debug.fixed_step`'s own steps still stand.
+- **The 72 Hz fall back said once** (HaloCE-VR 82b6d12e): the Frame's SteamVR offers only the
+  display setting's rate, so asking for 72 every twenty seconds got nothing.
+- **No start on a reinstall in Lepton** (HaloCE-VR 6be73ed4, `UpdateReceiver`).
+- **The runtime's extensions listed once**, not at each retry.
+- **The Steam library launcher and installer** (ringfall's, above).
+
+Already here: the vDSO clock (halo-ce-universal's), the profiler's texture timer only while its
+graph shows, the null tag table and the VR menu's allocations (HaloCE-VR 7d96cc32, 19c433c9).
+
+Not taken (decided 2026-10-22, the owner leaving it to this port's judgement: each changes how every
+headset draws, Quest and PC VR included, and only a Frame can show what it gains; Test73's first
+need is that its untested whole builds and runs). Candidates once a Frame can measure them:
+- single-pass stereo (multiview; Mjolnir VR turned it off by default on 2026-10-16: doubled pictures
+  online; HaloCE-VR has it on);
+- one atlas swapchain for the eyes and the quad (HaloCE-VR 3cfa297b: SteamVR's GL binding makes its
+  own context current at each acquire, wait and release; this port's deferred releases already take
+  the zink stalls ringfall measured);
+- the runtime's hidden-area mask drawn first in each eye (HaloCE-VR 6eaf8e92, XR_KHR_visibility_mask:
+  the GPU's frame from 11.5 to 10.0 ms at 1.5x; it would draw on the Quest too);
+- cutscenes' and menus' screens drawn at the quad's resolution (HaloCE-VR 75cdea48; here the 3D
+  screen's layer takes each eye's whole image, so it needs the layer's rectangle in the frame ABI).
+Meanwhile the Frame's automatic resolution is 1.0 (1728 an eye). Mjolnir VR's field advice: keep the
+Frame's display at 72 Hz, or lower `vr.resolution_scale` (about 0.85) for 90.
 
 ## Build and deploy
 
@@ -88,11 +209,12 @@ The guest calls seven functions (`host_imports_vr.list`) with plain structures
 texture names, which it draws into directly.
 
 **Guest platform layer (`port/linux/src/vr_frame.c`, `vr.h`).**
-- **Frame protocol.** The runtime's frame is begun by whichever comes first: `vr_aim`
-  (`player_control_update`), `vr_stereo_begin` (`main_game_render`) or `vr_present`
-  (`D3DDevice_Present`). It is ended in `vr_present`, which replaces the window blit and swap,
-  so `xrWaitFrame` paces the loop. Halo already interpolates its 30 Hz simulation to the display
-  rate, so no display-time scheduler is needed.
+- **Frame protocol.** The runtime's frame is begun by whichever comes first: the main loop's
+  time update (`vr_frame_seconds`, Test73), `vr_aim` (`player_control_update`), `vr_stereo_begin`
+  (`main_game_render`) or `vr_present` (`D3DDevice_Present`). It is ended in `vr_present`, which
+  replaces the window blit and swap, so `xrWaitFrame` paces the loop. Halo interpolates its 30 Hz
+  simulation to the display rate; since Test73 its clock steps by the frames' display times
+  (whole periods), not by the loop's own measure, which wandered with the tick and the drawing.
 - **Screen.** In VR the game draws its 640×480 screen at the eye resolution
   (`vr.resolution_scale` × 1728, through the existing `screen_scale`).
 - **Flat frames** (menus, loading, cutscenes) copy the picture to an opaque quad floating ahead

@@ -121,8 +121,8 @@ for forbidden in ("object_reset(", "unit_port_resurrect(", "actor_set_active(",
                   "unit_interaction_recover(", "actor_move_halt(", "network_send("):
     assert forbidden not in rescue, f"rescue must preserve native mission/AI state: {forbidden}"
 assert re.search(
-    r'"vr\.npc_rescue",\s*_config_boolean,\s*"false",\s*"HALO_VR_NPC_RESCUE"', config
-), "rescue must be default-off"
+    r'"vr\.npc_rescue",\s*_config_boolean,\s*"true",\s*"HALO_VR_NPC_RESCUE"', config
+), "rescue is on by default (Test73, item 10h)"
 assert '"NPC RESCUE", "vr.npc_rescue"' in menu
 assert objects.count("vr_npc_rescue_reset();") >= 2, "rescue state must reset on map init/disposal"
 assert "vr_npc_rescue_tick();" in objects

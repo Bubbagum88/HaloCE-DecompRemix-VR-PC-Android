@@ -54,12 +54,12 @@ for row in ('{ "VIEW UP", "vr.vehicle_turret_up"', '{ "VIEW FWD", "vr.vehicle_tu
 # not sure I want to lower every vehicle": VEHICLES in topics, one a vehicle, TURRETS + SHADE among them
 page = menu[menu.index("static struct vr_menu_setting const vr_menu_vehicles[] ="):]
 page = page[:page.index("\n};\n")]
-rows = [line.strip() for line in page.split("\n")[2:] if line.strip().startswith(('{ "', 'VR_IMMERSION_'))]
+rows = [line.strip() for line in page.split("\n")[2:] if line.strip().startswith(('{ "', 'VR_IMMERSION_', 'VR_COMFORT_'))]
 sections = menu[menu.index("static struct vr_menu_section const vr_menu_vehicles_sections[] ="):]
 sections = re.findall(r'\{ "([^"]+)", (\d+) \}', sections[:sections.index("};")])
 assert [name for name, _ in sections] == ["DRIVING", "VEHICLE OPTIONS", "ALL VEHICLES", "WARTHOG", "GHOST", "BANSHEE",
                                           "SCORPION", "PELICAN", "TURRETS + SHADE"]
-assert sum(int(count) for _, count in sections) == len(rows) == 57 and all(0 < int(c) <= 8 for _, c in sections)
+assert sum(int(count) for _, count in sections) == len(rows) == 59 and all(0 < int(c) <= 8 for _, c in sections)  # (Test73: + VEHICLE TURN)
 topic, at = {}, 0
 for name, count in sections:
     topic[name] = rows[at:at + int(count)]
@@ -72,7 +72,7 @@ for name, key in (("ALL VEHICLES", "all"), ("WARTHOG", "warthog"), ("GHOST", "gh
     assert keys == ["vr.vehicle_%s_%s" % (key, axis) for axis in ("up", "forward", "right")], (name, keys)
 assert "VR_IMMERSION_HOG_REACH," in topic["WARTHOG"] and "VR_IMMERSION_TANK_SIZE," in topic["SCORPION"]
 assert '{ "VEHICLES", vr_menu_vehicles, NUMBEROF(vr_menu_vehicles),\n\t\tvr_menu_vehicles_sections, NUMBEROF(vr_menu_vehicles_sections) },' in menu
-assert "7 + 6 + 8 + 8 + 7 + 7 + 7 + 3 + 4 == NUMBEROF(vr_menu_vehicles) ? 1 : -1];" in menu
+assert "8 + 7 + 8 + 8 + 7 + 7 + 7 + 3 + 4 == NUMBEROF(vr_menu_vehicles) ? 1 : -1];" in menu  # (Test73: + HAND LOCK, + VEHICLE TURN)
 assert 'static const char *const vehicles[]={"all","warthog","ghost","banshee","scorpion","pelican","turret"};' in menu
 
 print("PASS: Test72 tester's reports: VEHICLES in topics (TURRETS + SHADE its own); grenade throws at the hand's peak speed, 15 cm grabs; the Shade a turret gunner "

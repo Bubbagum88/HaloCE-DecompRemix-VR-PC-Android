@@ -9,6 +9,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 
+import network_expected as netv  # noqa: E402 (tools/: the versions this build hosts and joins)
 ROOT = Path(__file__).resolve().parents[1]
 read = lambda path: (ROOT / path).read_text(encoding="utf-8")
 npc = read("port/linux/game/vr_npc_interaction.c")
@@ -126,7 +127,7 @@ assert "if (tracked_fingers || grip_blend[controller] > 0.0f)" in render
 # game in progress (network_game_server_start_late_joiner).
 server = read("source/networking/network_server_manager.c")
 limits = read("port/linux/include/halo_port_limits.h")
-assert "#define HALO_PORT_NETWORK_VERSION 29" in limits
+assert "#define HALO_PORT_NETWORK_VERSION %d" % netv.CURRENT in limits
 # (Test66: map sharing itself, OpenCE Build 201's map_share.c: the server
 # waits for a machine still downloading the map)
 assert "map_share_machine_needs_map(" in server and '#include "map_share.h"' in server

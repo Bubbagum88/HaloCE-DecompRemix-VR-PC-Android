@@ -38,6 +38,7 @@ Offline only (a local game), as sprint is: network movement is unchanged.
 #include "vr_extra_interaction.h"
 #include "../src/vr.h"
 #include "../src/port_config.h"
+#include "network_interaction.h"
 
 void platform_log(char const *format, ...);
 void vr_body_reaction_hit(long object, real_point3d const *point, real_vector3d const *push, real strength);
@@ -61,7 +62,9 @@ static boolean vr_slide_eligible(long biped_index, short *local_out)
 	long player = local != NONE ? local_player_get_player_index(local) : NONE;
 
 	if (local_out) *local_out = local;
-	return config_boolean("vr.slide") && vr_active() && game_connection() == _game_connection_local &&
+	/* (Test73, 10d: or a co-op game whose host's VR INTERACTIONS allows VR
+	movement, network_interaction.c: its movement checks then allow slides) */
+	return config_boolean("vr.slide") && vr_active() && network_interaction_vr_allowed(NETWORK_VR_MOVEMENT) &&
 		player != NONE && player_get(player)->unit_index == biped_index && !cinematic_in_progress() &&
 		!director_inhibited_input(local);
 }

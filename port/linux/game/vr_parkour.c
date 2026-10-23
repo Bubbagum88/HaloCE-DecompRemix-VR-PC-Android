@@ -18,6 +18,7 @@
 #include "vr_parkour_math.h"
 #include "vr_world_math.h"
 #include "network_coop.h"
+#include "network_interaction.h"
 void platform_log(char const *format,...);
 
 /* A wall run starts on a wall reached within a second of pressing Jump (it
@@ -36,6 +37,8 @@ static struct {
     int jump_down,jump_age,run_ticks,running,jumped_wall,wall_valid;
     int walljump_age; /* Test55: ticks since the last wall jump (chained runs) */
     int lost_ticks,miss_logged; /* Test66: a run kept over a short gap; one diagnostic a jump */
+    int leap_ticks; /* Test73: the wall jump's leap held against air control (vr_pk_leap_hold) */
+    float leap_direction[2],leap_speed;
     real run_speed;
     real_vector3d wall_normal;
     real_point3d wall_point;
@@ -66,12 +69,17 @@ static boolean parkour_enabled(void)
  * authoritatively and its clients take that state. A client's prediction of a
  * wall run or climb would be refused by the host's movement checks (no
  * hovering, slow falls or rises past a jump: port/linux/NETCODE.md), and in
- * PvP it would be an advantage, so clients and PvP keep stock movement. */
+ * PvP it would be an advantage, so PvP keeps stock movement. Test73 (10d): a
+ * co-op client too when its host's VR INTERACTIONS allows VR movement, whose
+ * movement checks then allow its wall runs, climbs and slides
+ * (network_distributed.c distributed_on_foot_bound). */
 static boolean parkour_session_allowed(void)
 {
     short connection=game_connection();
     return connection==_game_connection_local ||
-        (connection==_game_connection_network_server&&network_coop_active());
+        (connection==_game_connection_network_server&&network_coop_active()) ||
+        (connection==_game_connection_network_client&&network_coop_active()&&
+         network_interaction_vr_allowed(NETWORK_VR_MOVEMENT));
 }
 static char const *parkour_gate_reason(long unit,int *is_local)
 {
@@ -306,7 +314,9 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
     if(edge)parkour.jump_age=0;else if(parkour.jump_age<1000)parkour.jump_age++;
     if(parkour.walljump_age<1000)parkour.walljump_age++;
     airborne=TEST_FLAG(biped->biped.flags,_biped_airborne_bit);
-    if(!airborne){parkour.run_ticks=0;parkour.jumped_wall=0;parkour.wall_valid=0;}
+    if(!airborne){parkour.run_ticks=0;parkour.jumped_wall=0;parkour.wall_valid=0;parkour.leap_ticks=0;}
+    /* Test73: the leap goes where the head looked, not back along the stick */
+    if(parkour.leap_ticks>0){vr_pk_leap_hold(parkour.leap_direction,parkour.leap_speed,velocity->n);parkour.leap_ticks--;}
     throttle=sqrtf(biped->unit.throttle.i*biped->unit.throttle.i+biped->unit.throttle.j*biped->unit.throttle.j);
     center=*position;center.z+=height*0.55f;
     real waist_z=position->z+height*0.55f;
@@ -454,17 +464,14 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
         /* Test70: the wall run along, not the nearest face a probe met (one
          * looked at is not the one jumped from); the look leads */
         real_vector3d from_wall=parkour.running&&parkour.wall_valid?parkour.wall_normal:wall.plane.n;
-        float stick[2]={0,0};
         {
-            real_vector3d facing=biped->object.forward;facing.k=0;
-            if(normalize3d(&facing)>0.001f){
-                stick[0]=(float)(facing.i*biped->unit.throttle.i-facing.j*biped->unit.throttle.j);
-                stick[1]=(float)(facing.j*biped->unit.throttle.i+facing.i*biped->unit.throttle.j);
-            }
-        }
-        {
+            /* Test73: the head alone aims the leap (no stick bend: in VR the stick
+             * is held along the wall the run went), and the leap is held against
+             * the air control that turned it back toward the stick */
             float carried[3]={(float)velocity->i,(float)velocity->j,(float)velocity->k};
-            vr_pk_wall_leap(look.n,from_wall.n,carried,stick,5.0f*per_second*scale,upward,velocity->n);
+            vr_pk_wall_leap(look.n,from_wall.n,carried,NULL,5.0f*per_second*scale,upward,velocity->n);
+            parkour.leap_ticks=vr_pk_leap_start(velocity->n,parkour.leap_direction,&parkour.leap_speed)?
+                VR_PK_LEAP_HOLD_TICKS:0;
         }
         platform_log("VR parkour: wall jump look=%.2f/%.2f/%.2f wall=%.2f/%.2f/%.2f%s out=%.2f/%.2f/%.2f m/s",
             look.i,look.j,look.k,from_wall.i,from_wall.j,from_wall.k,parkour.running?" (run wall)":"",
@@ -476,7 +483,7 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
     }
     if(contacts){
         scale_vector3d(&climb,1.0f/contacts,&climb);vr_pk_cap(climb.n,4.0f*per_second);
-        *velocity=climb;parkour.running=0;return;
+        *velocity=climb;parkour.running=0;parkour.leap_ticks=0;return;
     }
     if(released){
         real scale=vr_pk_bound(config_real("vr.climb_launch_scale"),1,0,1.5f);
@@ -543,7 +550,7 @@ void vr_parkour_velocity(long unit,real_point3d const *position,float height,flo
                 else velocity->k*=PIN((progress-0.6f)/0.4f,0.0f,1.0f);
             }
             if(!parkour.running)platform_log("VR parkour: wall run unit=%ld chained=%d",unit,parkour.walljump_age<=2*TICKS_PER_SECOND);
-            parkour.running=1;parkour.run_ticks++;return;
+            parkour.running=1;parkour.run_ticks++;parkour.leap_ticks=0;return;
         }
     }
     parkour.running=0;

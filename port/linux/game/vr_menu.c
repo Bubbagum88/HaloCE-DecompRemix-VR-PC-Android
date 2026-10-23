@@ -214,6 +214,11 @@ struct vr_menu_section
 /* Test53: the immersion features' rows, each defined once and shown both
 on its own page and on IMMERSION, which gathers them so they can be set in
 one place (the same setting either way: changing one shows on the other) */
+/* Test73 (10i, a tester's request; the owner: a toggle, on by default):
+VEHICLE TURN: a seat turns smoothly whatever TURNING is, on foot snaps
+again (vr_frame.c turn); on COMFORT beside TURNING and in VEHICLES >
+VEHICLE OPTIONS */
+#define VR_COMFORT_VEHICLE_TURN { "VEHICLE TURN", "vr.vehicle_smooth_turn", _vr_setting_boolean, 2, { { "AS SET", "false" }, { "SMOOTH", "true" } } }
 #define VR_IMMERSION_COMBAT { "FIST COMBAT", "vr.assisted_combat", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_COMBAT_MOVES { "COMBAT MOVES", "vr.combat_moves", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_PROJECTILE_PARRY { "DEFLECT SHOTS", "vr.projectile_parry", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
@@ -251,6 +256,8 @@ the hand */
 #define VR_IMMERSION_GRENADE_DOWN { "GRENADE DOWN", "vr.grenade_chest_down", _vr_setting_real, 8, { { "30 CM", "0.30" }, { "40 CM", "0.40" }, { "50 CM", "0.50" }, { "55 CM", "0.55" }, { "60 CM", "0.60" }, { "65 CM", "0.65" }, { "70 CM", "0.70" }, { "80 CM", "0.80" } } }
 #define VR_IMMERSION_GRENADE_SPREAD { "GRENADE GAP", "vr.grenade_chest_spread", _vr_setting_real, 6, { { "6 CM", "0.06" }, { "10 CM", "0.10" }, { "14 CM", "0.14" }, { "18 CM", "0.18" }, { "24 CM", "0.24" }, { "30 CM", "0.30" } } }
 #define VR_IMMERSION_GRENADE_POWER { "THROW POWER", "vr.grenade_throw_scale", _vr_setting_real, 5, { { "0.5X", "0.5" }, { "0.75X", "0.75" }, { "1X", "1" }, { "1.5X", "1.5" }, { "2X", "2" } } }
+/* Test73 (the owner: the grenades at their true size): the waist's and the hand's, as thrown */
+#define VR_IMMERSION_GRENADE_SIZE { "GRENADE SIZE", "vr.grenade_scale", _vr_setting_real, 6, { { "50%", "0.5" }, { "75%", "0.75" }, { "90%", "0.9" }, { "100%", "1" }, { "125%", "1.25" }, { "150%", "1.5" } } }
 #define VR_IMMERSION_WEAPONS { "WEAPONS", "vr.weapons", _vr_setting_multi, 3, { { "LOCKED", "vr.weapons=locked" }, { "PHYSICAL", "vr.weapons=physical;vr.physical_multiplayer=false" }, { "PHYSICAL + MP", "vr.weapons=physical;vr.physical_multiplayer=true" } } }
 #define VR_IMMERSION_HOLSTERS { "HOLSTERS", "vr.holsters", _vr_setting_multi, 7, { { "OFF", "vr.holsters=false" }, { "10 CM", "vr.holsters=true;vr.holster_size=0.1" }, { "15 CM", "vr.holsters=true;vr.holster_size=0.15" }, { "20 CM", "vr.holsters=true;vr.holster_size=0.2" }, { "25 CM", "vr.holsters=true;vr.holster_size=0.25" }, { "30 CM", "vr.holsters=true;vr.holster_size=0.3" }, { "40 CM", "vr.holsters=true;vr.holster_size=0.4" } } }
 #define VR_IMMERSION_HOLSTER_HAPTICS { "HOLSTER HAPTICS", "vr.holster_haptics", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
@@ -311,6 +318,8 @@ remapping (conflicts, NONE, the saved binding). */
 #define VR_IMMERSION_VIRTUAL_WHEEL { "VIRTUAL WHEEL", "vr.vehicle_wheel_visible", _vr_setting_boolean, 2, { { "HIDDEN", "false" }, { "VISIBLE", "true" } } }
 #define VR_IMMERSION_COCKPIT_LOCK { "COCKPIT LOCK", "vr.vehicle_cockpit_lock", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_GRIP_GUIDE { "GRIP GUIDE", "vr.vehicle_grip_guide", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
+/* Test73 (a tester's request: "the hands locked onto the steering wheels when holding grip") */
+#define VR_IMMERSION_HAND_LOCK { "HAND LOCK", "vr.vehicle_hand_lock", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_CONTROL_GLOW { "CONTROL GLOW", "vr.vehicle_control_glow", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_STEER_HAPTICS { "STEER HAPTICS", "vr.vehicle_steer_haptics", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
 #define VR_IMMERSION_COMFORT_REACH { "COMFORT REACH", "vr.vehicle_comfort_reach", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } }
@@ -481,6 +490,7 @@ static struct vr_menu_setting const vr_menu_controls[] =
     VR_IMMERSION_GRENADE_DOWN,
     VR_IMMERSION_GRENADE_SPREAD,
     VR_IMMERSION_GRENADE_POWER,
+    VR_IMMERSION_GRENADE_SIZE,
 };
 
 static struct vr_menu_setting const vr_menu_body[] =
@@ -491,6 +501,8 @@ static struct vr_menu_setting const vr_menu_body[] =
 	/* test21: FLOATING is hands with no arms again (test20c); FLOAT + ARMS
 	hangs arms from a floating shoulder */
 	{ "HANDS", "vr.hand_tracking", _vr_setting_multi, 5, { { "BODY IK", "vr.arms=ik;vr.hand_tracking=ik" }, { "FLOATING", "vr.arms=ik;vr.hand_tracking=floating" }, { "FLOAT + ARMS", "vr.arms=ik;vr.hand_tracking=floating_arms" }, { "ANIMATED", "vr.arms=animated;vr.hand_tracking=ik" }, { "GUN ONLY", "vr.arms=hidden;vr.hand_tracking=ik" } } },
+	/* Test73: the arms of the character played (vr.character_arms) */
+	{ "ARMS FROM", "vr.character_arms", _vr_setting_string, 3, { { "AUTO", "auto" }, { "CHARACTER", "on" }, { "FIRST PERSON", "off" } } },
     { "CONTACT VOLUMES", "vr.contact_volumes", _vr_setting_boolean, 2, { { "RAYS", "false" }, { "VOLUMES", "true" } } },
     { "CONTACT LOG", "vr.contact_debug", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 	VR_IMMERSION_FINGERS,
@@ -547,6 +559,10 @@ static struct vr_menu_setting const vr_menu_vr[] =
     { "BODY RADIUS", "vr.grab_radius", _vr_setting_real, 9, { { "18 CM", "0.18" }, { "20 CM", "0.20" }, { "22 CM", "0.22" }, { "25 CM", "0.25" }, { "30 CM", "0.30" }, { "35 CM", "0.35" }, { "40 CM", "0.40" }, { "50 CM", "0.50" }, { "60 CM", "0.60" } } },
 	/* (Test72: the wall runs and climbing went to LOCOMOTION) */
 	VR_IMMERSION_CLOSE_CONTACT,
+	/* Test73: online co-op's own FRIENDLY FIRE (network.coop_own_friendly_fire, read as it changes:
+	network_coop.c), which the flat build's campaign pause menu has (menu_tags.c pause_campaign_patch) and the
+	headset's, whose campaign pause menu is its own, had not */
+	{ "FRIENDLY FIRE", "network.coop_own_friendly_fire", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },
 };
 
 /* test26: what the HUD shows and where: the crosshair (formerly on
@@ -604,6 +620,8 @@ static struct vr_menu_setting const vr_menu_vehicles[] =
      * (the owner's Test64 Warthog: "lock the head and wheel in place"), and
      * an optional mark where the hands take the Warthog's rim */
     VR_IMMERSION_COCKPIT_LOCK,
+    /* Test73: a holding hand locked on the control, turning with it */
+    VR_IMMERSION_HAND_LOCK,
     VR_IMMERSION_GRIP_GUIDE,
 	/* VEHICLE OPTIONS */
     /* Test57: the immersive controls' highlight within reach, their steering
@@ -617,6 +635,8 @@ static struct vr_menu_setting const vr_menu_vehicles[] =
     VR_IMMERSION_TANK_DRIVE,
     /* Test57b: a tank's first-person eyes over its hull, as from an open hatch */
     VR_IMMERSION_TANK_HATCH,
+    /* Test73 (10i): a seat turns smoothly for a snap turner */
+    VR_COMFORT_VEHICLE_TURN,
 	/* ALL VEHICLES: every vehicle's view and controls moved, before each one's own */
 	{ "VIEW UP", "vr.vehicle_all_up", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
 	{ "VIEW FWD", "vr.vehicle_all_forward", _vr_setting_vehicle_centimetres, 0, { { NULL, NULL } } },
@@ -672,12 +692,12 @@ static struct vr_menu_setting const vr_menu_vehicles[] =
 };
 static struct vr_menu_section const vr_menu_vehicles_sections[] =
 {
-	{ "DRIVING", 7 }, { "VEHICLE OPTIONS", 6 }, { "ALL VEHICLES", 8 }, { "WARTHOG", 8 }, { "GHOST", 7 },
+	{ "DRIVING", 8 }, { "VEHICLE OPTIONS", 7 }, { "ALL VEHICLES", 8 }, { "WARTHOG", 8 }, { "GHOST", 7 },
 	{ "BANSHEE", 7 }, { "SCORPION", 7 }, { "PELICAN", 3 }, { "TURRETS + SHADE", 4 },
 };
 /* (a page whose topics do not cover its rows is not built: vr_menu_paged) */
 typedef char vr_menu_vehicles_sections_cover_the_rows[
-	7 + 6 + 8 + 8 + 7 + 7 + 7 + 3 + 4 == NUMBEROF(vr_menu_vehicles) ? 1 : -1];
+	8 + 7 + 8 + 8 + 7 + 7 + 7 + 3 + 4 == NUMBEROF(vr_menu_vehicles) ? 1 : -1];
 
 static struct vr_menu_setting const vr_menu_graphics[] =
 {
@@ -758,6 +778,8 @@ static struct vr_menu_setting const vr_menu_comfort[] =
 	{ "SNAP ANGLE", "vr.snap_turn_amount", _vr_setting_snap_angle, 9, { { "10 DEG", "10" }, { "15 DEG", "15" }, { "20 DEG", "20" }, { "22.5 DEG", "22.5" }, { "30 DEG", "30" }, { "40 DEG", "40" }, { "45 DEG", "45" }, { "60 DEG", "60" }, { "90 DEG", "90" } } },
 	{ "VIGNETTE", "vr.vignette", _vr_setting_real, 4, { { "OFF", "0" }, { "LOW", "0.35" }, { "MEDIUM", "0.65" }, { "HIGH", "1" } } },
 	{ "VIGNETTE ON", "vr.vignette_when", _vr_setting_string, 3, { { "MOVING", "move_turn" }, { "TURNING", "turn" }, { "ALWAYS", "always" } } },
+	/* Test73 (10i): smooth in a seat whatever TURNING is */
+	VR_COMFORT_VEHICLE_TURN,
 };
 
 /* test22: the scopes' places and sizes, the pistol's and the sniper
@@ -770,7 +792,8 @@ screen's title, so the rows say only what they move */
     { "FORWARD", "vr.scope_" #key "_forward", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }, \
     { "UP", "vr.scope_" #key "_up", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }, \
     { "RIGHT", "vr.scope_" #key "_right", _vr_setting_scope_centimetres, 0, { { NULL,NULL } } }, \
-    { "SIZE", "vr.scope_" #key "_scale", _vr_setting_real, 7, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "125%", "1.25" }, { "150%", "1.5" }, { "175%", "1.75" }, { "200%", "2" } } },
+    /* (Test73, the owner's: up to 400%, not 200) */ \
+    { "SIZE", "vr.scope_" #key "_scale", _vr_setting_real, 11, { { "50%", "0.5" }, { "75%", "0.75" }, { "100%", "1" }, { "125%", "1.25" }, { "150%", "1.5" }, { "175%", "1.75" }, { "200%", "2" }, { "250%", "2.5" }, { "300%", "3" }, { "350%", "3.5" }, { "400%", "4" } } },
     VR_SCOPE_PROFILES(SCOPE_MENU)
 #undef SCOPE_MENU
     { "RESET SCOPES", "scopes", _vr_setting_reset_scopes, 0, { { NULL,NULL } } },
@@ -899,6 +922,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 	VR_IMMERSION_GRENADE_DOWN,
 	VR_IMMERSION_GRENADE_SPREAD,
 	VR_IMMERSION_GRENADE_POWER,
+	VR_IMMERSION_GRENADE_SIZE,
 	/* RELOAD */
 	VR_IMMERSION_MANUAL_RELOAD,
 	VR_IMMERSION_RELOAD_INPUT,
@@ -975,6 +999,7 @@ static struct vr_menu_setting const vr_menu_immersion[] =
     VR_IMMERSION_TANK_DRIVE,
 	/* VEHICLE OPTIONS */
     VR_IMMERSION_VEHICLE_VIEW,
+    VR_IMMERSION_HAND_LOCK,
     VR_IMMERSION_BANSH_SLIDE,
     VR_IMMERSION_TANK_HATCH,
     VR_IMMERSION_CTRL_REACH,
@@ -1020,9 +1045,9 @@ static struct vr_menu_setting const vr_menu_immersion[] =
 
 static struct vr_menu_section const vr_menu_immersion_sections[] =
 {
-	{ "WEAPONS", 8 }, { "PICKUPS", 4 }, { "FIST COMBAT", 8 }, { "FIST OPTIONS", 7 }, { "GRENADES", 5 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
+	{ "WEAPONS", 8 }, { "PICKUPS", 4 }, { "FIST COMBAT", 8 }, { "FIST OPTIONS", 7 }, { "GRENADES", 6 }, { "RELOAD", 8 }, { "POUCH PLACES", 7 }, { "HOLSTER PLACES", 6 },
 	{ "LOCOMOTION", 8 }, { "LOCOMOTION OPTIONS", 6 }, { "PARKOUR", 8 }, { "BODY", 4 }, { "GRAB + NPCS", 8 },
-	{ "VEHICLES", 8 }, { "VEHICLE OPTIONS", 7 }, { "WARTHOG + GHOST", 8 }, { "TANK + BANSHEE", 8 },
+	{ "VEHICLES", 8 }, { "VEHICLE OPTIONS", 8 }, { "WARTHOG + GHOST", 8 }, { "TANK + BANSHEE", 8 },
 	{ "RAGDOLLS", 7 }, { "ADVANCED", 8 },
 };
 
@@ -1080,6 +1105,7 @@ static struct vr_menu_dependency
 	{ "vr.vehicle_wheel_visible", "vr.vehicle_handles", TRUE },
 	{ "vr.vehicle_control_glow", "vr.vehicle_handles", TRUE },
 	{ "vr.vehicle_cockpit_lock", "vr.vehicle_handles", TRUE },
+	{ "vr.vehicle_hand_lock", "vr.vehicle_handles", TRUE },
 	{ "vr.vehicle_grip_guide", "vr.vehicle_handles", TRUE },
 	{ "vr.vehicle_steer_haptics", "vr.vehicle_handles", TRUE },
 	{ "vr.vehicle_comfort_reach", "vr.vehicle_handles", TRUE },
@@ -2785,6 +2811,8 @@ boolean vr_menu_setting_text(
 	return TRUE;
 }
 
+static boolean vr_menu_apply(struct vr_menu_setting const *setting, char const *value);
+
 boolean vr_menu_setting_change(
 	long definition_tag_index,
 	long step)
@@ -2998,6 +3026,19 @@ boolean vr_menu_setting_change(
 	else
 		value_index = value_index == NONE ? 0 : (value_index + step + setting->value_count) % setting->value_count;
 	value = setting->values[value_index].value;
+	(void)written;
+	return vr_menu_apply(setting, value);
+}
+
+/* a row's choice written, as a player's is, and what it needs with it
+(vr_menu_dependencies); Test73: the update's VR features too
+(vr_menu_features_on) */
+static boolean vr_menu_apply(
+	struct vr_menu_setting const *setting,
+	char const *value)
+{
+	boolean written = FALSE;
+
 	if (setting->type == _vr_setting_boolean && !strcmp(setting->key, "vr.button_sprint"))
 	{
 		vr_menu_button_sprint_set(!strcmp(value, "true"));
@@ -3062,6 +3103,101 @@ boolean vr_menu_setting_change(
 		vr_reload_settings();
 	platform_log("vr: %s set to %s%s", setting->key, value, written ? "" : " (not saved to config.toml)");
 	return TRUE;
+}
+
+/* Test73 (the owner, for the next release: "make it so all the vr features
+(manual reload, parkour, fist combat, immersive vehicles, npc/wall grab, one
+hand heavies, etc.) are all enabled by default upon update. this would be
+for everyone ... overwriting previous settings in those areas"): each VR
+feature turned on, once (vr_initialize, vr.test73_features_applied), as the
+player would turn it on in VR SETTINGS: its row's ON, with what it needs and
+plays best with (IMMERSIVE VEHICLE the first-person seat, FIST COMBAT impact
+melee, SLIDE a sprint...). Turned off afterwards, a feature stays off. Not
+here, being ways to play rather than features: ARM RUN, BUTTON SPRINT and
+SPRINT TOGGLE (SLIDE brings a sprint itself), BULLET TIME MODE, GRIP GUIDE,
+TANK HATCH (the owner keeps the tank's own view), the online switches */
+static char const *const vr_menu_update_features[] =
+{
+	/* reloads */
+	"vr.manual_reload", "vr.dropped_magazines", "vr.reload_shoulder", "vr.reload_hip", "vr.cooldown_shake",
+	/* weapons, fists and grenades */
+	"vr.holster_haptics", "vr.weapon_pull", "vr.weapon_pull_glow", "vr.scope",
+	"vr.assisted_combat", "vr.combat_moves", "vr.projectile_parry", "vr.combat_highlights", "vr.combat_combo_display",
+	"vr.combat_counters", "vr.close_contact", "vr.physical_grenades",
+	/* movement and parkour */
+	"vr.slide", "vr.slide_physical_crouch", "vr.slide_jump_cancel", "vr.bullet_time",
+	"vr.parkour_wallrun", "vr.parkour_walljump", "vr.parkour_climb", "vr.roomscale", "vr.fingers",
+	/* grabs and bodies */
+	"vr.world_interaction", "vr.custom_scenery_grab", "vr.vehicle_lift", "vr.npc_interaction", "vr.custom_npc_rigs",
+	"vr.npc_rescue", "vr.npc_one_hand_heavy", "vr.interaction_damage",
+	"vr.death_ragdolls", "vr.active_ragdoll", "vr.npc_lift_to_ragdoll",
+	/* immersive vehicles */
+	"vr.vehicle_handles", "vr.vehicle_wheel_visible", "vr.vehicle_cockpit_lock", "vr.vehicle_hand_lock",
+	"vr.vehicle_control_glow", "vr.vehicle_steer_haptics", "vr.vehicle_comfort_reach", "vr.vehicle_tank_drive",
+	"vr.vehicle_banshee_slide",
+};
+
+/* a feature's row (any page's) and its ON: "true", or a combined row's
+value that sets the key true ("vr.manual_reload=true", ...); FALSE: none */
+static boolean vr_menu_feature_row(
+	char const *key,
+	struct vr_menu_setting const **row,
+	char const **on)
+{
+	char pattern[96];
+	long page, index, value;
+
+	snprintf(pattern, sizeof(pattern), "%s=true", key);
+	for (page = 0; page < VR_MENU_PAGE_COUNT; page++)
+	{
+		for (index = 0; index < vr_menu_pages[page].count; index++)
+		{
+			struct vr_menu_setting const *setting = &vr_menu_pages[page].settings[index];
+
+			if (strcmp(setting->key, key))
+				continue;
+			if (setting->type == _vr_setting_boolean)
+			{
+				*row = setting;
+				*on = "true";
+				return TRUE;
+			}
+			for (value = 0; setting->type == _vr_setting_multi && value < setting->value_count; value++)
+			{
+				if (!strncmp(setting->values[value].value, pattern, strlen(pattern)))
+				{
+					*row = setting;
+					*on = setting->values[value].value;
+					return TRUE;
+				}
+			}
+		}
+	}
+	return FALSE;
+}
+
+void vr_menu_features_on(void)
+{
+	long index, turned = 0, missing = 0;
+
+	for (index = 0; index < (long)NUMBEROF(vr_menu_update_features); index++)
+	{
+		struct vr_menu_setting const *row;
+		char const *on;
+
+		if (!vr_menu_feature_row(vr_menu_update_features[index], &row, &on))
+		{
+			platform_log("vr: the update's VR features: no row for %s", vr_menu_update_features[index]);
+			missing++;
+			continue;
+		}
+		if (!config_boolean(vr_menu_update_features[index]))
+			turned++;
+		vr_menu_apply(row, on);
+	}
+	platform_log("vr: the update's VR features on, once: %ld of %ld turned on now (the rest were on)%s; any can be "
+		"turned off again in VR SETTINGS", turned, (long)NUMBEROF(vr_menu_update_features) - missing,
+		missing ? ", some not found" : "");
 }
 
 #endif

@@ -44,6 +44,10 @@ typedef float real;
 typedef int BOOL;
 static BOOL reverb_enabled;
 static int config_boolean(const char *key){assert(!strcmp(key,"audio.reverb"));return 0;}
+/* Test73: audio.resampler (OpenCE 232's Sound Processing page): SMOOTH, our curve, or LINEAR */
+static BOOL resampler_linear;
+static const char *resampler_value="sinc";
+static const char *config_string(const char *key){assert(!strcmp(key,"audio.resampler"));return resampler_value;}
 #define PIN(x,lo,hi) ((x)<(lo)?(lo):((x)>(hi)?(hi):(x)))
 enum { _sound_class_music=26, _sound_class_scripted_dialog_to_player=20,
  _sound_class_scripted_dialog_to_other=21, _sound_class_scripted_dialog_force_unspatialized=22 };
@@ -82,8 +86,12 @@ int main(void){
  assert(sound_manager_port_volume(26)==1 && sound_manager_port_volume(2)==0);
  music=NAN;effects=INFINITY;generation++;
  assert(sound_manager_port_volume(26)==1 && sound_manager_port_volume(2)==1);
- audio_update_volume();assert(master_volume==1 && locks==1 && unlocks==1);
+ audio_update_volume();assert(master_volume==1 && locks==1 && unlocks==1 && !resampler_linear);
  int old_reads=reads;audio_update_volume();assert(reads==old_reads && locks==1);
+ resampler_value="linear";generation++;audio_update_volume();assert(resampler_linear);
+ resampler_value="sinc";generation++;audio_update_volume();assert(!resampler_linear);
+ resampler_value=NULL;generation++;audio_update_volume();assert(!resampler_linear); /* unknown: our curve */
+ locks=unlocks=1;old_reads=reads;
  master=0.25f;generation++;audio_update_volume();assert(master_volume==0.25f);
  master=0;generation++;audio_update_volume();assert(master_volume==0);
  master=2;generation++;audio_update_volume();assert(master_volume==2); /* preserve legacy gain boost */

@@ -14,6 +14,7 @@ No network file changed: network 29 stays (no protocol bump).
 from pathlib import Path
 import re
 
+import network_expected as netv  # noqa: E402 (tools/: the versions this build hosts and joins)
 ROOT = Path(__file__).resolve().parents[1]
 read = lambda path: (ROOT / path).read_text(encoding="utf-8")
 
@@ -35,12 +36,16 @@ assert 'flags="pass_unhandled_to_focused_child pause_game main_menu_if_no_histor
 assert '"main_menu_if_no_history"' in read("port/linux/game/menu_tags.c")
 
 # the network is unchanged
-assert "#define HALO_PORT_NETWORK_VERSION 29" in (ROOT / "port/linux/include").joinpath("halo_port_limits.h").read_text(encoding="utf-8") \
+# (Test73: OpenCE 242 and 244 then moved it on: tools/network_expected.py)
+assert "#define HALO_PORT_NETWORK_VERSION %d" % netv.CURRENT in (ROOT / "port/linux/include").joinpath("halo_port_limits.h").read_text(encoding="utf-8") \
     if (ROOT / "port/linux/include/halo_port_limits.h").exists() else True
 identity = read("port/linux/src/vr_frame.c")
-assert "(OpenCE Build208 merged / network29" in identity
-assert "Selected fixes through Build 208 are included" in read("port/android/app/src/main/java/com/halo/decomp/Updater.java")
-assert 'current_upstream_markers = ([b"OpenCE Build208 merged / network29"' in read("tools/package-quest.py")
+# (Test73: a newer merge carries Build 208 in it: OpenCE Build 256, network 34)
+assert "(OpenCE Build208 merged / network29" in identity or "(OpenCE Build256 merged / network34" in identity
+updater_text = read("port/android/app/src/main/java/com/halo/decomp/Updater.java")
+assert "Selected fixes through Build 208 are included" in updater_text or "Engine: OpenCE Build 256 and its newer branches, merged" in updater_text
+assert ('current_upstream_markers = ([b"OpenCE Build208 merged / network29"' in read("tools/package-quest.py") or
+        'current_upstream_markers = ([b"OpenCE Build256 merged / network34"' in read("tools/package-quest.py"))
 
 print("PASS: OpenCE Build 208 parity: the voice frame guard and the postgame menu fix ported, the string-literal "
-      "conversion already here; network 29 unchanged")
+      "conversion already here; network unchanged by it")

@@ -5222,20 +5222,18 @@ void unit_render_debug(
 		struct object_marker marker;
 		real mouth_aperture;
 
-		/*
-		 * BUG (original): January ignores the marker count and consumes the
-		 * output even when the requested head marker is absent. A safe,
-		 * intentionally nonmatching build should render only when this call
-		 * returns a value greater than zero.
-		 */
-		object_get_marker_by_name(unit_index, "head", &marker, 1);
-		mouth_aperture = unit->unit.mouth_aperture;
-		origin = marker.matrix.position;
-		render_debug_string_at_point(
-			FALSE,
-			&origin,
-			csprintf(temporary, "%.2f", mouth_aperture),
-			global_real_argb_orange);
+		/* port: the Xbox's bug fixed: it ignored the marker count and read
+		the marker of a unit with no head marker uninitialised */
+		if (object_get_marker_by_name(unit_index, "head", &marker, 1) > 0)
+		{
+			mouth_aperture = unit->unit.mouth_aperture;
+			origin = marker.matrix.position;
+			render_debug_string_at_point(
+				FALSE,
+				&origin,
+				csprintf(temporary, "%.2f", mouth_aperture),
+				global_real_argb_orange);
+		}
 	}
 
 	return;
@@ -8087,24 +8085,25 @@ static void unit_throw_grenade_move_to_hand(
 	return;
 }
 
-#ifdef HALO_VR
 /* Physical throws use the same projectile, owner, ammo and cheat rules as
- * unit_throw_grenade_move_to_hand. No live projectile/fuse exists while held. */
-boolean unit_vr_throw_grenade(long unit_index,short type,real_point3d const *point,real_vector3d const *velocity)
+ * unit_throw_grenade_move_to_hand. No live projectile/fuse exists while held.
+ * Test73 (10d): the throw of any player's unit, in every build: a co-op host
+ * throws a VR client's this way (network_interaction.c, which has checked who
+ * sent it and that it is within reach); the local player's throw is
+ * unit_vr_throw_grenade's (the VR build's), which checks that first. */
+boolean unit_vr_throw_player_grenade(long unit_index,short type,real_point3d const *point,real_vector3d const *velocity)
 {
     struct unit_datum *unit=unit_try_and_get(unit_index);
     struct game_globals *globals=scenario_get_game_globals();
     struct object_placement_data placement;
     struct game_globals_grenade *grenade;
-    real_point3d camera,safe=*point;
-    real_vector3d ray,direction=*velocity;
+    real_point3d camera,safe;
+    real_vector3d ray,direction;
     struct collision_result hit;
     long object_index;
-    short local=local_player_get_next(NONE);
-    long player=local!=NONE?local_player_get_player_index(local):NONE;
-    if(!unit||player==NONE||player_get(player)->unit_index!=unit_index||
-        !(game_connection()==_game_connection_local||
-          (game_connection()==_game_connection_network_server&&network_coop_active()&&network_interaction_host_ready()))||
+    if(!point||!velocity)return FALSE;
+    safe=*point;direction=*velocity;
+    if(!unit||
         !globals||type<0||type>=NUMBER_OF_UNIT_GRENADE_TYPES||type>=globals->grenades.count||
         unit->unit.player_index==NONE||unit->object.parent_object_index!=NONE||
         TEST_FLAG(unit->object.damage_flags,_object_dead_bit)||
@@ -8137,6 +8136,20 @@ boolean unit_vr_throw_grenade(long unit_index,short type,real_point3d const *poi
     network_damage_note_grenade(unit_index,type);
     player_control_unzoom(unit_index);
     return TRUE;
+}
+
+#ifdef HALO_VR
+/* the local player's physical throw: a local game, or a co-op host whose
+clients have all negotiated VR INTERACTIONS */
+boolean unit_vr_throw_grenade(long unit_index,short type,real_point3d const *point,real_vector3d const *velocity)
+{
+    short local=local_player_get_next(NONE);
+    long player=local!=NONE?local_player_get_player_index(local):NONE;
+    if(player==NONE||player_get(player)->unit_index!=unit_index||
+        !(game_connection()==_game_connection_local||
+          (game_connection()==_game_connection_network_server&&network_coop_active()&&network_interaction_host_ready())))
+        return FALSE;
+    return unit_vr_throw_player_grenade(unit_index,type,point,velocity);
 }
 #endif
 
@@ -9526,6 +9539,115 @@ void unit_cause_player_melee_damage(
 	return;
 }
 
+/* port: Test72: the material an object's body is struck on (its collision
+model's indirect damage material), or NONE (Test73: in every build, for a
+host dealing a VR client's blow) */
+static short unit_vr_object_material_type(long object_index)
+{
+	struct object_datum *object = object_try_and_get(object_index);
+	struct object_definition *definition = object ? object_definition_get(object->definition_index) : NULL;
+
+	if (definition && definition->object.collision_model.index != NONE)
+	{
+		struct collision_model *model = collision_model_definition_get(definition->object.collision_model.index);
+		short index = model->resistance.indirect_damage_material_index;
+
+		if (VALID_INDEX(index, model->resistance.materials.count))
+			return TAG_BLOCK_GET_ELEMENT(&model->resistance.materials, index, struct damage_resistance_material)->material_type;
+	}
+	return NONE;
+}
+
+/* port (Test73, 10d, the owner: "make it so everyone can do advanced fist
+combat"): a co-op VR client's fist blow, dealt by its host as
+unit_vr_impact_melee_apply deals the local player's: the striker's unarmed
+melee (or the globals' impact at a quarter, as the assisted fists' fallback)
+at `scale`, its fist combat's share (combo, ENEMY HEALTH, armour, a
+takedown's six) as the multiplier, where it met the body, then the body
+shoved along it (a client's knockdown is a shove here). network_interaction.c
+has checked who sent it, its reach, its rate and its bounds. In every build,
+so a flat host serves VR clients. */
+boolean unit_vr_remote_strike(
+	long unit_index,
+	long target_index,
+	real_point3d const *point,
+	real_vector3d const *direction,
+	real scale,
+	real multiplier,
+	real_vector3d const *shove)
+{
+	struct unit_datum *unit = unit_try_and_get(unit_index);
+	struct object_datum *target = object_try_and_get(target_index);
+	struct unit_definition *unit_definition;
+	struct damage_data damage_data;
+	long melee_damage_effect_index;
+	real_vector3d along, normal;
+	short material_type;
+
+	if (!unit || !target || target_index == unit_index || !point || !direction || !valid_real_point3d(point) ||
+		!valid_real_vector3d(direction))
+	{
+		return FALSE;
+	}
+	along = *direction;
+	if (!(normalize3d(&along) > 0.0001f))
+		return FALSE;
+	unit_definition = unit_definition_get(unit->definition_index);
+	melee_damage_effect_index = unit_definition->unit.melee_damage.index;
+	if (melee_damage_effect_index == NONE)
+		melee_damage_effect_index = unit_unarmed_melee_damage(unit_index);
+	if (melee_damage_effect_index == NONE)
+	{
+		melee_damage_effect_index = damage_globals_impact_effect();
+		scale *= 0.25f;
+	}
+	if (melee_damage_effect_index == NONE)
+		return FALSE;
+	/* (a vehicle struck: shoved as the local blow shoves it, level and away) */
+	if (target->object.type == _object_type_vehicle)
+	{
+		struct object_definition *vehicle_definition = object_definition_get(target->definition_index);
+		real acceleration_scale = vehicle_definition->object.acceleration_scale * 0.035f * (scale < 1.0f ? scale : 1.0f);
+		real_vector3d acceleration;
+
+		vector_from_points3d(&unit->object.position, &target->object.bounding_sphere_center, &acceleration);
+		acceleration.k = 0.0f;
+		if (normalize3d(&acceleration) > 0.0001f)
+		{
+			scale_vector3d(&acceleration, acceleration_scale, &acceleration);
+			vehicle_accelerate(target_index, &acceleration);
+		}
+	}
+	material_type = unit_vr_object_material_type(target_index);
+	damage_data_new(&damage_data, melee_damage_effect_index);
+	damage_data.location = unit->object.location;
+	damage_data.owner_object_index = unit_index;
+	damage_data.owner_team_index = unit->object.owner_team_index;
+	damage_data.owner_player_index = unit->unit.player_index;
+	damage_data.origin = *point;
+	damage_data.epicenter = *point;
+	damage_data.direction = along;
+	damage_data.material_type = material_type;
+	damage_data.scale = scale;
+	damage_data.multiplier = multiplier;
+	if (target->object.type == _object_type_machine)
+		machine_try_to_open_with_damage(target_index);
+	normal.i = -along.i;
+	normal.j = -along.j;
+	normal.k = -along.k;
+	object_cause_contact_damage(&damage_data, target_index, NONE, NONE, NONE, &normal);
+	if (material_type != NONE)
+		unit_melee_sound(unit_index, material_type, melee_damage_effect_index);
+	/* (the target may have been destroyed by the blow) */
+	target = object_try_and_get(target_index);
+	if (shove && target && target->object.type == _object_type_biped && target->object.parent_object_index == NONE &&
+		valid_real_vector3d(shove))
+	{
+		biped_accelerate(target_index, shove);
+	}
+	return TRUE;
+}
+
 #ifdef HALO_VR
 static boolean unit_vr_impact_melee_target(
 	long unit_index,
@@ -9570,24 +9692,6 @@ boolean unit_vr_combat_strike(
 	point_from_line3d(&target->object.bounding_sphere_center, &along, -reach, &from);
 	scale_vector3d(&along, reach + 0.2f * units, &sweep);
 	return unit_vr_impact_melee_target(unit_index, &from, &sweep, scale, FALSE, 0.05f * units, target_index);
-}
-
-/* port: Test72: the material an object's body is struck on (its collision
-model's indirect damage material), or NONE */
-static short unit_vr_object_material_type(long object_index)
-{
-	struct object_datum *object = object_try_and_get(object_index);
-	struct object_definition *definition = object ? object_definition_get(object->definition_index) : NULL;
-
-	if (definition && definition->object.collision_model.index != NONE)
-	{
-		struct collision_model *model = collision_model_definition_get(definition->object.collision_model.index);
-		short index = model->resistance.indirect_damage_material_index;
-
-		if (VALID_INDEX(index, model->resistance.materials.count))
-			return TAG_BLOCK_GET_ELEMENT(&model->resistance.materials, index, struct damage_resistance_material)->material_type;
-	}
-	return NONE;
 }
 
 /* port: Test72: the blow on a body a hand holds, at `point` (the held
@@ -9809,6 +9913,27 @@ static boolean unit_vr_impact_melee_apply(
     }
 	if (melee_damage_effect_index != NONE && hit_object_index != NONE)
 		scale *= vr_combat_hit(unit_index, hit_object_index, &collision.point, &direction, scale, weapon_hand);
+
+	/* port (Test73, 10d): a co-op client's blow is its host's to deal
+	(network_interaction.c; unit_vr_remote_strike there): sent with its
+	strength, the fists' share and the shove its combat gave it; the sound
+	and the hand's feel are this machine's as ever. Glass and walls are
+	left to the host's own (native) melee. */
+	if (game_connection() == _game_connection_network_client)
+	{
+		real multiplier = vr_combat_damage_share();
+		real_vector3d shove;
+
+		if (!vr_combat_take_remote_shove(&shove))
+			shove.i = shove.j = shove.k = 0.0f;
+		if (melee_damage_effect_index != NONE && hit_object_index != NONE)
+			network_interaction_client_strike(unit->unit.player_index, unit_index, hit_object_index, &collision.point,
+				&direction, scale, multiplier, &shove);
+		vr_combat_damage_end();
+		if (hit_material_type != NONE)
+			unit_melee_sound(unit_index, hit_material_type, melee_damage_effect_index);
+		return TRUE;
+	}
 
 	/* port: Test72: a vehicle struck is shoved as the game's own melee shoves
 	it (unit_cause_player_melee_damage): at that strength at most, level and

@@ -41,6 +41,13 @@ int halo_windows_rmdir(const char *path);
 #define _mkdir halo_windows_mkdir
 #define rmdir halo_windows_rmdir
 #define _rmdir halo_windows_rmdir
+#else
+/* Test72: the platform layer's rename as POSIX's, the Linux and Android
+builds' (win32_posix.c): a file replaces an existing file of the new name,
+where the C runtime's rename fails (config.toml's migrations were written
+in memory only, "will retry", on every PC launch) */
+int halo_windows_rename_replacing(const char *old_path, const char *new_path);
+#define rename halo_windows_rename_replacing
 #endif
 
 #endif

@@ -43,6 +43,7 @@ the web.
 #include "text_hires.h"
 #include "desktop_launcher.h"
 #include "halo_port_version.h"
+#include "save_transfer.h"
 
 #if !defined(HALO_ANDROID) && !defined(HALO_WEB)
 
@@ -282,6 +283,10 @@ enum
 	JOB_MOD_IN,
 	JOB_MOD_OUT,
 	JOB_UPDATES,
+	/* Test73: the saves in from a .zip or a folder, out as a .zip (job_saves) */
+	JOB_SAVES_IMPORT_ZIP,
+	JOB_SAVES_IMPORT_FOLDER,
+	JOB_SAVES_EXPORT,
 };
 
 static struct
@@ -553,6 +558,27 @@ static int mod_installed(const char *root, const struct launcher_mod *mod)
 	snprintf(name, sizeof(name), "%s.changing", mod->id);
 	mod_path(marker, sizeof(marker), root, "mods", name, NULL);
 	return file_exists(marker);
+}
+
+int desktop_launcher_mod_map(const char *root, const char *file_name)
+{
+	int mod, index;
+
+	if (!root || !file_name)
+		return 0;
+	for (mod = 0; mod < (int)(sizeof(launcher_mods) / sizeof(launcher_mods[0])); mod++)
+	{
+		if (!mod_installed(root, &launcher_mods[mod]))
+			continue;
+		for (index = 0; index < launcher_mods[mod].map_count; index++)
+		{
+			char name[128];
+			snprintf(name, sizeof(name), "%s%s", launcher_mods[mod].maps[index].name, launcher_mods[mod].extension);
+			if (!SDL_strcasecmp(name, file_name))
+				return 1;
+		}
+	}
+	return 0;
 }
 
 /* the files a campaign needs, each with its place and its recipe's size and
@@ -1007,8 +1033,9 @@ static int job_updates(char *result, size_t size)
 
 	path_join(path, sizeof(path), base ? base : ".", "latest-release.json");
 	job_progress("Asking GitHub for the latest release", 0.3);
-	if (!update_download("https://api.github.com/repos/" HALO_PORT_REPOSITORY "/releases/latest", path, NULL, NULL,
-		error, sizeof(error)))
+	/* (no more than 1 MiB of it, as updater.c's check) */
+	if (!update_download("https://api.github.com/repos/" HALO_PORT_REPOSITORY "/releases/latest", path,
+		1024ULL * 1024, NULL, NULL, error, sizeof(error)))
 	{
 		snprintf(result, size, "Could not reach GitHub (%s).", error);
 		return 0;
@@ -1035,6 +1062,31 @@ static int job_updates(char *result, size_t size)
 		snprintf(result, size, "The latest release is %s (this build: %s). OPEN THE RELEASES PAGE shows it and its files.",
 			tag, HALO_PORT_VERSION);
 	return 1;
+}
+
+/* ---------- the saves (Test73: save_transfer.c, as the Android launcher's
+SaveTransfer.java): brought in from a .zip or a folder, the saves already
+there kept first as a .zip in the save root's backups folder; taken out as a
+.zip. The game is not running while the launcher is shown */
+
+static int job_saves(int kind, const char *path, char *result, size_t size)
+{
+	const char *save_root = platform_save_root();
+	char backups[LAUNCHER_PATH], zip[LAUNCHER_PATH];
+
+	if (kind == JOB_SAVES_EXPORT)
+	{
+		size_t length = strlen(path);
+
+		/* (a name typed without its .zip) */
+		snprintf(zip, sizeof(zip), "%s%s", path, length >= 4 && lower_equals(path + length - 4, ".zip") ? "" : ".zip");
+		job_progress("Exporting the saves", 0.5);
+		return save_transfer_export(save_root, zip, result, size) >= 0;
+	}
+	path_join(backups, sizeof(backups), save_root, "backups");
+	job_progress(kind == JOB_SAVES_IMPORT_FOLDER ? "Bringing the saves in from the folder" :
+		"Bringing the saves in from the .zip", 0.5);
+	return save_transfer_import(path, kind == JOB_SAVES_IMPORT_FOLDER, save_root, backups, result, size);
 }
 
 static int SDLCALL job_thread(void *data)
@@ -1075,6 +1127,9 @@ static int SDLCALL job_thread(void *data)
 				launcher_mods[job.mod].title);
 		break;
 	case JOB_UPDATES: ok = job_updates(result, sizeof(result)); break;
+	case JOB_SAVES_IMPORT_ZIP:
+	case JOB_SAVES_IMPORT_FOLDER:
+	case JOB_SAVES_EXPORT: ok = job_saves(job.kind, job.path, result, sizeof(result)); break;
 	}
 	platform_log("launcher: %s", result);
 	SDL_LockMutex(job.lock);
@@ -1378,6 +1433,19 @@ static void dialog_folder(int kind)
 	SDL_ShowOpenFolderDialog(dialog_answer, NULL, ui.window, NULL, false);
 }
 
+/* Test73: a .zip of saves to bring in, or where to write one */
+static void dialog_zip(int kind, int save)
+{
+	static const SDL_DialogFileFilter filters[] = { { "Zip archives", "zip" }, { "All files", "*" } };
+	SDL_SetAtomicInt(&ui.dialog_done, 0);
+	ui.dialog_kind = kind;
+	ui.dialog_pending = 1;
+	if (save)
+		SDL_ShowSaveFileDialog(dialog_answer, NULL, ui.window, filters, 1, NULL);
+	else
+		SDL_ShowOpenFileDialog(dialog_answer, NULL, ui.window, filters, 2, NULL, false);
+}
+
 /* ---------- the data root and the builds */
 
 static int data_root_maps(char *root, size_t size, int *map_count)
@@ -1548,6 +1616,18 @@ static void page_data(void)
 		snprintf(url, sizeof(url), "file:///%s", has ? root : (base ? base : "."));
 		SDL_OpenURL(url);
 	}
+	/* Test73: the saves (the player profiles, the campaign's checkpoint,
+	Xbox save containers), in and out, as the Android launcher's */
+	snprintf(line, sizeof(line), "SAVES \xE2\x80\xA2 %s", platform_save_root());
+	text_draw(&ui.body, 80.0f, 500.0f, line, COLOR_TEXT);
+	if (button(80.0f, 540.0f, 360.0f, 56.0f, "IMPORT SAVES (.ZIP)", !job.running))
+		dialog_zip(JOB_SAVES_IMPORT_ZIP, 0);
+	if (button(460.0f, 540.0f, 300.0f, 56.0f, "IMPORT SAVES (FOLDER)", !job.running))
+		dialog_folder(JOB_SAVES_IMPORT_FOLDER);
+	if (button(780.0f, 540.0f, 300.0f, 56.0f, "EXPORT SAVES (.ZIP)", !job.running))
+		dialog_zip(JOB_SAVES_EXPORT, 1);
+	text_draw(&ui.small, 80.0f, 608.0f, "An import keeps the saves already here first, as a .zip in the backups folder there.",
+		COLOR_DIM);
 	if (back_button() && !job.running) { ui.page = PAGE_HOME; ui.focus = 0; }
 }
 
@@ -1630,6 +1710,14 @@ static const struct launcher_setting launcher_settings[] =
 	{ "DISPLAY", "display.mode", 3, { "fullscreen", "borderless", "windowed" }, { "FULLSCREEN", "BORDERLESS", "WINDOWED" } },
 	{ "V-SYNC", "display.vsync", 2, { "true", "false" }, { "ON", "OFF" } },
 	{ "FRAME RATE LIMIT", "display.max_fps", 6, { "0", "60", "120", "144", "240", "-1" }, { "AUTO", "60", "120", "144", "240", "NONE" } },
+	/* Test73: as the Android launcher's Geometry compatibility (LauncherHelp.java) */
+	{ "GEOMETRY", "renderer.safe_geometry", 2, { "true", "false" }, { "SAFE", "NORMAL" } },
+#ifdef HALO_VR
+	/* Test73 (the owner's): where the headset shows the menus, the main
+	menu's too (VR SETTINGS' MENU POSITION, vr.menu_anchor) */
+	{ "MENU POSITION", "vr.menu_anchor", 3, { "head", "world", "follow" },
+		{ "FOLLOWS THE HEAD", "FIXED IN FRONT", "FIXED, COMES BACK" } },
+#endif
 #ifndef HALO_VR
 	{ "STEREO 3D", "display.stereo", 6, { "off", "sbs_half", "sbs_full", "tab_half", "tab_full", "anaglyph" },
 		{ "OFF", "SBS HALF", "SBS FULL", "TAB HALF", "TAB FULL", "ANAGLYPH" } },
@@ -1670,6 +1758,12 @@ static void page_settings(void)
 		"of view, extra effects, STEREO 3D), Controls Setup (keyboard and mouse, with remapping), Gamepad Setup, "
 		"Audio, MOVEMENT. They are saved in config.toml beside the game.",
 		COLOR_DIM, 1, 0.0f, (float)LAUNCHER_HEIGHT);
+	text_wrapped(&ui.small, 760.0f, 330.0f, LAUNCHER_WIDTH - 840.0f,
+		"GEOMETRY: Safe is the default on every build (PC, PC VR, Quest VR, Android). It keeps scenery from "
+		"stretching into triangles or strips by not caching static geometry, not streaming it persistently and "
+		"not rebasing vertices on the GPU, and can cost frame rate. Normal turns those back on. It is a renderer "
+		"option, not a game version. It applies from the game's start (PLAY).",
+		COLOR_DIM, 1, 0.0f, (float)LAUNCHER_HEIGHT);
 	if (back_button()) { ui.page = PAGE_HOME; ui.focus = 0; }
 }
 
@@ -1693,7 +1787,12 @@ static void page_vr(void)
 		COLOR_TEXT, 1, 0.0f, (float)LAUNCHER_HEIGHT);
 	text_wrapped(&ui.small, 80.0f, 420.0f, LAUNCHER_WIDTH - 160.0f,
 		"VR settings (hands, buttons, IMMERSION, scopes, menus) are in the headset: pause, VR SETTINGS. They are "
-		"saved apart from the screen build's, in config-vr.toml.",
+		"saved apart from the screen build's, in config-vr.toml."
+#ifdef HALO_VR
+		" Where the menus are shown (following the head, or fixed in front of you, the main menu's too) is "
+		"also in SETTINGS here: MENU POSITION."
+#endif
+		,
 		COLOR_DIM, 1, 0.0f, (float)LAUNCHER_HEIGHT);
 	other_build(other, sizeof(other));
 #ifndef HALO_VR
@@ -1712,6 +1811,78 @@ static void page_vr(void)
 	if (back_button()) { ui.page = PAGE_HOME; ui.focus = 0; }
 }
 
+/* Test73 (the owner: "make sure the new features details are more clean (the pop up that shows new features in
+the launcher is the one i mean)"): What's New drawn as it is written (whats_new.txt; the Android launcher's
+WhatsNew.java alike): its first line the title, a line in capitals a heading, "• " a point whose lines wrap after
+its bullet, a blank line a small gap, anything else plain text */
+enum news_line { NEWS_GAP, NEWS_TITLE, NEWS_HEADING, NEWS_POINT, NEWS_TEXT };
+
+static enum news_line news_line_kind(const char *line, size_t length, int first)
+{
+	size_t index;
+
+	while (length && (line[length - 1] == ' ' || line[length - 1] == '\r'))
+		length--;
+	if (!length)
+		return NEWS_GAP;
+	if (first)
+		return NEWS_TITLE;
+	if (length >= 4 && !memcmp(line, "\xE2\x80\xA2 ", 4))
+		return NEWS_POINT;
+	for (index = 0; index < length; index++)
+	{
+		if (line[index] >= 'a' && line[index] <= 'z')
+			return NEWS_TEXT;
+	}
+	return NEWS_HEADING;
+}
+
+/* the notes laid out from y, drawn when draw is set (the lines within top..bottom): their height */
+static float news_layout(const char *text, float y, int draw, float top, float bottom)
+{
+	float start = y, width = LAUNCHER_WIDTH - 160.0f;
+	int first = 1;
+
+	while (text && *text)
+	{
+		const char *end = strchr(text, '\n');
+		size_t length = end ? (size_t)(end - text) : strlen(text);
+		char line[2048];
+		enum news_line kind;
+
+		if (length >= sizeof(line))
+			length = sizeof(line) - 1;
+		memcpy(line, text, length);
+		line[length] = '\0';
+		kind = news_line_kind(line, length, first);
+		switch (kind)
+		{
+		case NEWS_GAP:
+			y += ui.body.size * 0.6f;
+			break;
+		case NEWS_TITLE:
+			y += text_wrapped(&ui.body, 80.0f, y, width, line, COLOR_TEXT, draw, top, bottom) + 4.0f;
+			break;
+		case NEWS_HEADING:
+			y += 4.0f;
+			y += text_wrapped(&ui.body, 80.0f, y, width, line, COLOR_BLUE, draw, top, bottom) + 2.0f;
+			break;
+		case NEWS_POINT:
+			if (draw && y + ui.body.size * 1.25f >= top && y <= bottom)
+				text_draw(&ui.body, 86.0f, y, "\xE2\x80\xA2", COLOR_BLUE);
+			y += text_wrapped(&ui.body, 108.0f, y, width - 28.0f, line + 4, COLOR_TEXT, draw, top, bottom) + 3.0f;
+			break;
+		case NEWS_TEXT:
+			y += text_wrapped(&ui.body, 80.0f, y, width, line, COLOR_DIM, draw, top, bottom);
+			break;
+		}
+		if (kind != NEWS_GAP)
+			first = 0;
+		text = end ? end + 1 : NULL;
+	}
+	return y - start;
+}
+
 static void page_news(void)
 {
 	static char *text;
@@ -1722,13 +1893,12 @@ static void page_news(void)
 	page_heading("WHAT'S NEW");
 	if (text)
 	{
-		height = text_wrapped(&ui.body, 80.0f, 0.0f, LAUNCHER_WIDTH - 160.0f, text, COLOR_TEXT, 0, 0.0f, 0.0f);
+		height = news_layout(text, 0.0f, 0, 0.0f, 0.0f);
 		if (ui.scroll > height - 520.0f) ui.scroll = height - 520.0f;
 		if (ui.scroll < 0.0f) ui.scroll = 0.0f;
 		SDL_Rect clip = { 0, 100, LAUNCHER_WIDTH, LAUNCHER_HEIGHT - 210 };
 		SDL_SetRenderClipRect(ui.renderer, &clip);
-		text_wrapped(&ui.body, 80.0f, 110.0f - ui.scroll, LAUNCHER_WIDTH - 160.0f, text, COLOR_TEXT, 1, 100.0f,
-			(float)(LAUNCHER_HEIGHT - 110));
+		news_layout(text, 110.0f - ui.scroll, 1, 100.0f, (float)(LAUNCHER_HEIGHT - 110));
 		SDL_SetRenderClipRect(ui.renderer, NULL);
 	}
 	if (button(300.0f, LAUNCHER_HEIGHT - 90.0f, 400.0f, 50.0f, "FULL RELEASE NOTES (GITHUB)", 1))
@@ -1937,5 +2107,6 @@ void desktop_launcher_run(void)
 int desktop_launcher_wanted(void) { return 0; }
 void desktop_launcher_run(void) {}
 int desktop_launcher_active(void) { return 0; }
+int desktop_launcher_mod_map(const char *root, const char *file_name) { (void)root; (void)file_name; return 0; }
 
 #endif

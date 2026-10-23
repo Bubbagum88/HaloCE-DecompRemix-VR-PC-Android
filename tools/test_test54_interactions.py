@@ -44,7 +44,7 @@ assert "if (!feigned && !vr_player_body)\n\t\tvr_npc_interaction_death(unit_inde
 assert "boolean vr_player_body = unit->unit.player_index != NONE;" in units
 assert 'config_boolean("vr.death_ragdolls")' in npc
 assert '(npc.death&&config_boolean("vr.death_ragdolls"))' in npc
-assert '{ "vr.death_ragdolls", _config_boolean, "false"' in config
+assert '{ "vr.death_ragdolls", _config_boolean, "true"' in config  # Test73 (item 10h): on by default
 # Mass by carried joints.
 assert "inverse_mass=1.0f/(1.0f+0.35f*(real)below[n])" in native
 # Climbing: radius setting, through-the-wall hold, slopes/ledges, grace.

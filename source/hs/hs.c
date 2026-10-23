@@ -2828,6 +2828,7 @@ symbols in this file:
 #include "interface/hud_weapon.h"
 #include "interface/interface.h"
 #include "interface/player_ui.h"
+#include "saved games/player_profile.h" /* port: profile_reset_campaign */
 #include "rasterizer/rasterizer_cinematics.h"
 #include "shaders/shaders.h"
 #include "sound/game_sound.h"
@@ -2846,6 +2847,7 @@ symbols in this file:
 #include "ragdoll.h" /* port: port/linux/game/ragdoll.c */
 
 #include "network_campaign.h"
+#include "structure_culling.h" /* port: port/linux/game/structure_culling.c */
 
 /* ---------- constants */
 
@@ -3384,7 +3386,7 @@ typedef void (*hs_token_enumerator)(
 
 struct hs_function_table_storage
 {
-	struct hs_function_definition const *functions[418];
+	struct hs_function_definition const *functions[418 + 7];
 	struct profile_section profile;
 	hs_token_enumerator token_enumerators[18];
 };
@@ -3673,6 +3675,9 @@ enum
 	_hs_node_refusal_global,
 	_hs_node_refusal_arguments,
 	_hs_node_refusal_damaged,
+	/* port: a downloaded map's (hs_functions_denied_to_downloaded_maps) */
+	_hs_node_refusal_downloaded_function,
+	_hs_node_refusal_downloaded_global,
 };
 
 /* ---------- globals */
@@ -3689,6 +3694,11 @@ static unsigned long hs_scenario_disabled_scripts[BIT_VECTOR_SIZE_IN_LONGS(MAXIM
 static unsigned long hs_scenario_disabled_globals[BIT_VECTOR_SIZE_IN_LONGS(MAXIMUM_HS_GLOBALS)];
 /* port: the nodes linked to, then walked (hs_scenario_functions_check) */
 static unsigned long hs_syntax_nodes_marked[BIT_VECTOR_SIZE_IN_LONGS(MAXIMUM_HS_SYNTAX_NODES_PER_SCENARIO_UPGRADED)];
+/* port (Test73): whether the map's scripts may set the game's speed: one of
+its nodes calls game_speed, or it is an MCC map (game_speed_value), or its
+scripts were not looked at; hs_scenario_functions_check finds it
+(game_time_after_load) */
+static boolean hs_scenario_calls_game_speed = TRUE;
 #define hs_token_enumerators hs_function_table.token_enumerators
 struct data_array *hs_syntax_data;
 extern long global_scenario_index;
@@ -11637,7 +11647,165 @@ static struct hs_function_definition_with_1_parameter const xbox_set_machine_nam
 	},
 };
 
-long const hs_function_table_count= 418;
+/* port: Halo PC's sv_say and sv_end_game, which Custom Edition maps' scripts
+call (lookout_classic's and the Halo Kart maps' sv_say). They go at the end
+of the table: Xbox maps call functions by their place in it, Custom Edition
+maps by name (custom_edition_scripts.c). Every machine runs the scripts */
+
+/* (each machine shows the message to its own players) */
+static void hs_sv_say(
+	char const *message)
+{
+	wchar_t text[128];
+	short local_player_index;
+	long length = 0;
+	long index;
+
+	/* (without '|', which the HUD's text takes with the character after it
+	as one: at the end, the string's terminator) */
+	for (index = 0; message && message[index] && length < NUMBEROF(text) - 1; index++)
+	{
+		if (message[index] != '|')
+		{
+			text[length++] = (unsigned char)message[index];
+		}
+	}
+	text[length] = 0;
+	for (local_player_index = 0; local_player_index < MAXIMUM_LOCAL_PLAYERS; local_player_index++)
+	{
+		if (local_player_get_player_index(local_player_index) != NONE)
+			hud_print_message(local_player_index, text);
+	}
+
+	return;
+}
+
+/* (the host ends the game, as its time running out does) */
+static void hs_sv_end_game(
+	void)
+{
+	if (global_network_game_server_get() && game_engine_running())
+		game_engine_end_game();
+
+	return;
+}
+
+HS_EVALUATE_VOID_STRING(hs_sv_say_evaluate, hs_sv_say)
+HS_EVALUATE_NO_ARGUMENTS(hs_sv_end_game_evaluate, hs_sv_end_game)
+
+static struct hs_function_definition_with_1_parameter const sv_say_definition=
+{
+	{
+		_hs_type_void,
+		0,
+		"sv_say",
+		hs_macro_function_parse,
+		hs_sv_say_evaluate,
+		"Halo PC's: shows every player a message.",
+		NULL,
+		1,
+		{ _hs_type_string },
+	},
+};
+
+static struct hs_function_definition const sv_end_game_definition=
+{
+	_hs_type_void,
+	0,
+	"sv_end_game",
+	hs_macro_function_parse,
+	hs_sv_end_game_evaluate,
+	"Halo PC's: the host ends the game.",
+	NULL,
+	0,
+};
+
+/* port: the mods' tags played over the map's on this machine
+(the main menu's Mods: port/linux/game/mods.c), at the console */
+void mods_reload(void);
+void mods_enable(boolean enabled);
+void mods_list(void);
+
+HS_EVALUATE_NO_ARGUMENTS(hs_mods_reload_evaluate, mods_reload)
+HS_EVALUATE_VOID_BOOLEAN(hs_mods_enable_evaluate, mods_enable)
+HS_EVALUATE_NO_ARGUMENTS(hs_mods_list_evaluate, mods_list)
+
+static struct hs_function_definition const mods_reload_definition=
+{
+	_hs_type_void,
+	0,
+	"mods_reload",
+	hs_macro_function_parse,
+	hs_mods_reload_evaluate,
+	"finds the mods again and reads their tag files again (all sounds stop if any changed).",
+	NULL,
+	0,
+};
+
+static struct hs_function_definition_with_1_parameter const mods_enable_definition=
+{
+	{
+		_hs_type_void,
+		0,
+		"mods_enable",
+		hs_macro_function_parse,
+		hs_mods_enable_evaluate,
+		"plays the mods' sounds, bitmaps, text and models, or (false) the map's own, until the map changes.",
+		NULL,
+		1,
+		{ _hs_type_boolean },
+	},
+};
+
+static struct hs_function_definition const mods_list_definition=
+{
+	_hs_type_void,
+	0,
+	"mods_list",
+	hs_macro_function_parse,
+	hs_mods_list_evaluate,
+	"lists the mods in the mods folder, and what they play on this map.",
+	NULL,
+	0,
+};
+
+/* port: the culling tests change only this machine's rendering */
+HS_EVALUATE_VOID_LONG(hs_structure_culling_evaluate, structure_culling_set_tests)
+
+static struct hs_function_definition_with_1_parameter const structure_culling_definition=
+{
+	{
+		_hs_type_void,
+		0,
+		"structure_culling",
+		hs_macro_function_parse,
+		hs_structure_culling_evaluate,
+		"which structure culling tests run, as bits (1 triangle planes, 2 bucket facing, 4 triangle facing, 8 finer buckets, 16 near first); 0 is the original walk.",
+		NULL,
+		1,
+		{ _hs_type_long_integer },
+	},
+};
+
+/* port: the debug view changes only this machine's rendering */
+HS_EVALUATE_VOID_BOOLEAN(hs_debug_structure_culling_evaluate, structure_culling_debug)
+
+static struct hs_function_definition_with_1_parameter const debug_structure_culling_definition=
+{
+	{
+		_hs_type_void,
+		0,
+		"debug_structure_culling",
+		hs_macro_function_parse,
+		hs_debug_structure_culling_evaluate,
+		"draws the structure triangles culled for the culling camera (red: outside the view, blue: facing away) and the counts.",
+		NULL,
+		1,
+		{ _hs_type_boolean },
+	},
+};
+
+long const hs_function_table_count= 418 + 7;
 
 struct hs_enum_definition const hs_enum_table[]=
 {
@@ -12069,6 +12237,13 @@ struct hs_function_table_storage hs_function_table=
 		&display_scenario_help_definition.definition,
 		&hs_network_game_start_now_definition,
 		&xbox_set_machine_name_definition.definition,
+		&sv_say_definition.definition,
+		&sv_end_game_definition,
+		&mods_reload_definition,
+		&mods_enable_definition.definition,
+		&mods_list_definition,
+		&structure_culling_definition.definition, /* port: local structure culling switch */
+		&debug_structure_culling_definition.definition, /* port: local culling debug view */
 	},
 	{
 		"hs_update",
@@ -12566,6 +12741,19 @@ static boolean const hs_function_allowed_in_maps[]=
 	TRUE, /* display_scenario_help */
 	FALSE, /* network_game_start_now: starts a network game */
 	FALSE, /* xbox_set_machine_name: the machine's name */
+
+	/* Halo PC's, for Custom Edition maps */
+	TRUE, /* sv_say */
+	TRUE, /* sv_end_game: the host's */
+
+	/* the port's, for this machine's mods */
+	FALSE, /* mods_reload */
+	FALSE, /* mods_enable */
+	FALSE, /* mods_list */
+
+	/* port: local structure rendering */
+	FALSE, /* structure_culling: this machine's rendering */
+	FALSE, /* debug_structure_culling: this machine's rendering */
 };
 typedef char verify_hs_function_allowed_in_maps_size[
 	NUMBEROF(hs_function_allowed_in_maps) == NUMBEROF(hs_function_table.functions) ? 1 : -1];
@@ -12769,6 +12957,51 @@ static boolean hs_syntax_node_linked_twice(
 	return twice;
 }
 
+/* port: what a downloaded map's scripts (map_share_map_downloaded: one map
+sharing downloaded, or game.downloaded_maps names) may not call or set, on top
+of what no map's may (hs_function_allowed_in_maps,
+hs_external_global_settable_by_maps): what changes the player's settings
+(their profile's), other players' games (ending a game for everyone, the
+HUD text every player sees), and the globals that outlive the map (they
+keep their values into the maps played after it, a host's other players'
+among them) */
+static char const *const hs_functions_denied_to_downloaded_maps[]=
+{
+	"player0_look_invert_pitch",
+	"sv_end_game",
+	"sv_say",
+	NULL
+};
+
+static char const *const hs_globals_denied_to_downloaded_maps[]=
+{
+	"cheat_deathless_player",
+	"rider_ejection",
+	"stun_enable",
+	"rasterizer_near_clip_distance",
+	"rasterizer_far_clip_distance",
+	"rasterizer_first_person_weapon_near_clip_distance",
+	"rasterizer_first_person_weapon_far_clip_distance",
+	NULL
+};
+
+/* port: whether the map whose scripts are checked is a downloaded one
+(hs_scenario_functions_check) */
+static boolean hs_scenario_downloaded = FALSE;
+
+static boolean hs_name_listed(
+	char const *name,
+	char const *const *list)
+{
+	for (; name && *list; list++)
+	{
+		if (!csstrcmp(name, *list))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
 /* port: why a map's script may not have the node (_hs_node_refusal_none if
 it may), and the function or global it names. A map may not have:
 - a link (to the next argument, or a call's first node) that isn't a node:
@@ -12838,6 +13071,9 @@ static short hs_syntax_node_refusal(
 	*name = function->name;
 	if (!hs_function_allowed_in_maps[function_index])
 		return _hs_node_refusal_function;
+	/* port: a downloaded map's (hs_functions_denied_to_downloaded_maps) */
+	if (hs_scenario_downloaded && hs_name_listed(function->name, hs_functions_denied_to_downloaded_maps))
+		return _hs_node_refusal_downloaded_function;
 
 	if (function->parse == hs_macro_function_parse)
 	{
@@ -12912,6 +13148,13 @@ static short hs_syntax_node_refusal(
 		{
 			*name = hs_global_external_get(designator & 0x7FFF)->name;
 			return _hs_node_refusal_global;
+		}
+		/* port: a downloaded map's (hs_globals_denied_to_downloaded_maps) */
+		if ((designator & 0x8000) && hs_scenario_downloaded &&
+			hs_name_listed(hs_global_external_get(designator & 0x7FFF)->name, hs_globals_denied_to_downloaded_maps))
+		{
+			*name = hs_global_external_get(designator & 0x7FFF)->name;
+			return _hs_node_refusal_downloaded_global;
 		}
 	}
 	else if (function_index == _hs_function_wake)
@@ -12996,6 +13239,43 @@ static short hs_expression_refusal(
 	return _hs_node_refusal_none;
 }
 
+/* port (Test73): whether a map's node is a call of the game's own function
+`name` (a node hs_syntax_node_refusal takes for a function's call, not one of
+an MCC or OpenSauce function of that index) */
+static boolean hs_syntax_node_calls_function(
+	struct hs_syntax_node const *expression,
+	char const *name)
+{
+	extern struct hs_function_definition *mcc_script_function(short index);
+	extern struct hs_function_definition *custom_edition_script_function(short index);
+	struct hs_function_definition const *function;
+	short function_index;
+
+	if (!expression || !TEST_FLAG(expression->flags, _hs_syntax_node_permanent_bit) ||
+		TEST_FLAG(expression->flags, _hs_syntax_node_primitive_bit) ||
+		TEST_FLAG(expression->flags, _hs_syntax_node_script_bit) || !hs_type_valid(expression->type))
+	{
+		return FALSE;
+	}
+	function_index = expression->function_index;
+	if (mcc_script_function(function_index) || custom_edition_script_function(function_index) ||
+		function_index<0 || function_index>=(short)NUMBEROF(hs_function_allowed_in_maps))
+	{
+		return FALSE;
+	}
+	function = hs_function_get(function_index);
+
+	return function && function->name && !csstrcmp(function->name, name);
+}
+
+/* port (Test73): whether the map's scripts may set the game's speed
+(hs_scenario_calls_game_speed) */
+boolean hs_scenario_may_set_game_speed(
+	void)
+{
+	return hs_scenario_calls_game_speed;
+}
+
 /* port: a map's script that may not run (hs_syntax_node_refusal: one that
 calls a function a map may not, sets an external global it may not, or
 holds a node the runtime would go wrong on) doesn't: a startup, dormant or
@@ -13007,6 +13287,10 @@ console's expressions, compiled later, may call and set anything */
 static void hs_scenario_functions_check(
 	struct scenario *scenario)
 {
+	boolean calls_game_speed = FALSE;
+
+	/* (an MCC map's scripts may set game_speed_value: taken to set the speed) */
+	hs_scenario_calls_game_speed = TRUE;
 	{
 		extern boolean mcc_syntax_functions_check(struct scenario *scenario, struct data_array *syntax,
 			short (*node_refusal)(struct hs_syntax_node const *, char const **),
@@ -13030,6 +13314,11 @@ static void hs_scenario_functions_check(
 	short disabled_global_count = 0;
 	char reason[128];
 
+	/* port: a downloaded map's are held to tighter rules (map_share.c's
+	map_share_map_downloaded) */
+	hs_scenario_downloaded = map_share_map_downloaded(cache_file_loaded_map_name());
+	if (hs_scenario_downloaded)
+		error(_error_silent, "%s is a downloaded map: its scripts may call and set less", cache_file_loaded_map_name());
 	csmemset(hs_syntax_nodes_marked, 0, sizeof(hs_syntax_nodes_marked));
 	for (script_index = 0; script_index<scenario->hs_scripts.count; script_index++)
 	{
@@ -13063,6 +13352,8 @@ static void hs_scenario_functions_check(
 
 		if (hs_syntax_node_refusal(expression, &name) != _hs_node_refusal_none)
 			refused = TRUE;
+		if (hs_syntax_node_calls_function(expression, "game_speed"))
+			calls_game_speed = TRUE;
 		if (hs_syntax_node_linked_twice(expression->next_node_index))
 			linked_twice = TRUE;
 		if (!TEST_FLAG(expression->flags, _hs_syntax_node_primitive_bit) &&
@@ -13071,6 +13362,7 @@ static void hs_scenario_functions_check(
 			linked_twice = TRUE;
 		}
 	}
+	hs_scenario_calls_game_speed = calls_game_speed;
 	if (!refused && !linked_twice)
 		return;
 
@@ -13136,6 +13428,13 @@ static void hs_scenario_functions_check(
 			break;
 		case _hs_node_refusal_global:
 			csprintf(reason, "sets %s, which a map's scripts may not", first_name);
+			break;
+		/* port: a downloaded map's */
+		case _hs_node_refusal_downloaded_function:
+			csprintf(reason, "calls %s, which a downloaded map's scripts may not", first_name);
+			break;
+		case _hs_node_refusal_downloaded_global:
+			csprintf(reason, "sets %s, which a downloaded map's scripts may not", first_name);
 			break;
 		case _hs_node_refusal_arguments:
 			csprintf(reason, "calls %s with arguments it doesn't take", first_name);
@@ -15203,6 +15502,8 @@ boolean hs_scenario_postprocess(
 	}
 	hs_syntax_data = (struct data_array *)scenario->hs_syntax_data.address;
 	hs_syntax_data->data = (char *)hs_syntax_data+sizeof(struct data_array);
+	/* port (Test73): not the last map's, until its scripts are looked at */
+	hs_scenario_calls_game_speed = TRUE;
 	if (!recompile && hs_compile_postprocess(&error_message, &error_source))
 	{
 		/* port: before the console's expressions are compiled into the
@@ -15269,6 +15570,10 @@ static boolean hs_expression_changes_no_game(
 		"player0_look_yaw_rate", "player1_look_yaw_rate", "player2_look_yaw_rate", "player3_look_yaw_rate",
 		"player0_look_pitch_rate", "player1_look_pitch_rate", "player2_look_pitch_rate",
 		"player3_look_pitch_rate",
+		/* (a machine's mods are its own: mods.c) */
+		"mods_reload", "mods_enable", "mods_list",
+		"structure_culling", /* port: only this machine's rendering */
+		"debug_structure_culling", /* port: only this machine's rendering */
 		"true", "false", "on", "off",
 	};
 	char const *character = expression;
@@ -15414,6 +15719,40 @@ static boolean hs_compile_and_evaluate_command(
 			return (boolean)ragdoll_result;
 	}
 #endif
+	/* port: profile_reset_campaign, which clears the first player's
+	profile's campaign progress (player_ui_reset_campaign_progress) once
+	confirmed: "profile_reset_campaign yes" */
+	{
+		char const *text = hs_host_player_command(expression, "profile_reset_campaign");
+
+		if (text)
+		{
+			wchar_t wide_name[MAXIMUM_PLAYER_PROFILE_NAME_LENGTH];
+			char name[MAXIMUM_PLAYER_PROFILE_NAME_LENGTH];
+			boolean confirmed;
+			long length;
+
+			while (*text == ' ' || *text == '\t' || *text == '"')
+				text++;
+			confirmed = csstrncmp(text, "yes", 3) == 0 &&
+				(!text[3] || text[3] == ' ' || text[3] == '\t' || text[3] == '"' || text[3] == ')');
+			if (!player_ui_reset_campaign_progress(confirmed, wide_name, NUMBEROF(wide_name)))
+			{
+				console_warning("there is no profile to reset: make or choose one first");
+				return FALSE;
+			}
+			for (length = 0; wide_name[length]; length++)
+				name[length] = wide_name[length] < 0x80 ? (char)wide_name[length] : '?';
+			name[length] = 0;
+			if (!confirmed)
+				console_printf(FALSE,
+					"This clears every level %s finished and starts the campaign over at The Pillar of Autumn. "
+					"To do it, type: profile_reset_campaign yes", name);
+			else
+				console_printf(FALSE, "%s's campaign progress is reset: The Pillar of Autumn is the only level open", name);
+			return TRUE;
+		}
+	}
 	/* port: playing in another's game, the host decides the game: no
 	cheats, no game speed, nothing else a command changes of the game (the
 	game run each tick also puts back what was changed before joining,

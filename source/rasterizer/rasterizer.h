@@ -41,13 +41,21 @@ enum
 	RASTERIZER_MAXIMUM_DYNAMIC_TRIANGLES = 49152,
 	RASTERIZER_MAXIMUM_DYNAMIC_TRIANGLE_BUFFERS = 1024,
 	/* four per particle (build_sprites_begin), for the native builds' larger
-	particle pool (halo_port_capacity.h) */
-	RASTERIZER_MAXIMUM_DYNAMIC_UNLIT_VERTICES = 4 * HALO_PORT_MAXIMUM_PARTICLES,
+	particle pool (halo_port_capacity.h); Test73: and eight per particle
+	system particle, which asks for two sprites' worth on each draw
+	(particle_systems.c), its pool grown eight times (512 to 4096) while this
+	was not: the owner's 10-18 Quest log, "too many dynamic vertices requested
+	from rasterizer" in a Scorpion fight. (A draw's indices start at its own
+	first vertex: no 16-bit index reaches past its draw) */
+	RASTERIZER_MAXIMUM_DYNAMIC_UNLIT_VERTICES = 4 * HALO_PORT_MAXIMUM_PARTICLES + 8 * HALO_PORT_MAXIMUM_SYSTEM_PARTICLES,
 	RASTERIZER_MAXIMUM_DYNAMIC_LIT_VERTICES = 2,
 	RASTERIZER_MAXIMUM_DYNAMIC_SCREEN_VERTICES = 16384,
 	RASTERIZER_MAXIMUM_DYNAMIC_MODEL_VERTICES = 2048,
 	RASTERIZER_MAXIMUM_DYNAMIC_MODEL_PROCESSED_VERTICES = 8192,
-	RASTERIZER_MAXIMUM_DYNAMIC_VERTEX_BUFFERS = 1024,
+	/* port (Test73): the Xbox's 1024, and two for each particle system
+	particle (its state's draw and its transition's, a buffer each: the
+	Xbox's 512 alone could take all 1024) */
+	RASTERIZER_MAXIMUM_DYNAMIC_VERTEX_BUFFERS = 1024 + 2 * HALO_PORT_MAXIMUM_SYSTEM_PARTICLES,
 	RASTERIZER_MAXIMUM_DETAIL_OBJECTS_PER_FRAME = 4096,
 	RASTERIZER_NODES_PER_MODEL_VERTEX = 2,
 	RASTERIZER_MAXIMUM_NODES_PER_MODEL = 44,
@@ -172,7 +180,9 @@ struct rasterizer_dynamic_screen_geometry_parameters
 	short map1_to_2_blend_function;
 	short framebuffer_blend_function;
 	boolean point_sampled;
-	byte pad8B;
+	/* port: the maps' color is weighted by their alpha before the
+	framebuffer blend (Halo PC's HUD overlays, hud_draw.c) */
+	boolean alpha_weighted;
 };
 
 typedef char verify_rasterizer_dynamic_screen_geometry_parameters_size[
@@ -596,6 +606,29 @@ void rasterizer_environment_shadow_draw(
 	long triangle_count,
 	struct vertex_buffer const *vertex_buffer);
 void rasterizer_environment_shadows_end(
+	void);
+
+/* port: object shadows drawn in two passes (rasterizer_xbox_shadows.c,
+render_objects.c): every object's shadow map first, each kept in a map of its
+own, then all of them cast onto the level at once, so that the frame leaves
+its target once for the shadows rather than once for each, which a GPU that
+renders in tiles pays for in whole copies of the target. Up to this many at
+a time; a shadow past them, or when they cannot be had, is cast at once as
+before. */
+#define RASTERIZER_PORT_SHADOW_SLOTS 32
+/* whether the shadow begun last (rasterizer_environment_shadow_begin) is
+being deferred: its map drawn now, its casting later */
+boolean rasterizer_port_environment_shadow_deferred(
+	void);
+/* a deferred shadow's map finished (convolved) and kept: its slot */
+short rasterizer_port_environment_shadow_finish(
+	void);
+/* a deferred shadow made current again to be cast
+(rasterizer_environment_shadow_draw, then rasterizer_environment_shadow_end) */
+void rasterizer_port_environment_shadow_cast_begin(
+	short slot);
+/* every deferred shadow cast: the game's own map back */
+void rasterizer_port_environment_shadows_cast(
 	void);
 void rasterizer_environment_diffuse_textures_end(
 	void);

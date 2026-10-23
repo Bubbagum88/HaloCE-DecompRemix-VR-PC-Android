@@ -62,7 +62,11 @@ typedef void (*LPFNXMEDIAOBJECTCALLBACK)(void *, void *, unsigned long);
                  "XMEDIAPACKET_STATUS_FAILURE", "XMEDIAPACKET_STATUS_PENDING"]:
         # These SDK status expressions include casts, unlike integer capacities.
         text += next(line for line in statuses.splitlines() if line.startswith("#define " + name + " ")) + "\n"
-    for name in ["MAXIMUM_STREAM_PACKETS", "RESAMPLER_HISTORY"]:
+    for name in ["MAXIMUM_STREAM_PACKETS", "RESAMPLER_HISTORY", "MAXIMUM_OUTPUT_CHANNELS"]:
+        # (HaloCE-Quest-VR keeps its own resampler, without upstream's sinc history: RESAMPLER_HISTORY only where
+        # the backend has it)
+        if name == "RESAMPLER_HISTORY" and "#define RESAMPLER_HISTORY" not in backend:
+            continue
         text += f"#define {name} {constant(backend, name)}\n"
     for name in ["MAXIMUM_SOUND_CHANNELS", "NUMBER_OF_SOUND_CHANNEL_TYPES"]:
         text += f"#define {name} {constant(game, name)}\n"

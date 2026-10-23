@@ -10,6 +10,7 @@ shoulder's holster and never showed it again. Run with python3 tools/test_test29
 """
 from pathlib import Path
 import hashlib, re, subprocess
+import network_expected as netv  # noqa: E402 (tools/: the versions this build hosts and joins)
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'build/test29'; OUT.mkdir(parents=True, exist_ok=True)
 
@@ -52,9 +53,9 @@ updater = read('port/android/app/src/main/java/com/halo/decomp/Updater.java')
 
 # --- 1. OpenCE's network version 21, exactly; its co-op, lobby and message files byte for byte
 network = int(re.search(r'#define HALO_PORT_NETWORK_VERSION (\d+)\b', limits).group(1))
-assert network == 29
-assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MINIMUM 11\b', limits)
-assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MAXIMUM 29\b', limits)
+assert network == netv.CURRENT
+assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MINIMUM %d\b' % netv.MINIMUM, limits)
+assert re.search(r'#define HALO_PORT_NETWORK_VERSION_MAXIMUM %d\b' % netv.MAXIMUM, limits)
 assert re.search(r'#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15\b', limits)
 assert re.search(r'#define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23\b', limits)
 UPSTREAM_144 = [
@@ -94,6 +95,8 @@ for path, digest in (UPSTREAM_144 if network < 23 else []):
 expected_upstream = ('OpenCE build 144 (network 21)' if network == 21 else
                      'OpenCE build 145 (network 22)' if network == 22 else
                      'OpenCE build 148 (network 23)' if network == 23 else
+                     "Engine: OpenCE Build 256 and its newer branches, merged with this project's VR, co-op and launcher; hosting network 34."
+                      if 'Build 256' in updater else
                      "Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 208 are included, with OpenCE's network 25 (units' integrated lights), 26 (internet signalling), 27 (map sharing: this app's hosts answer that they share no maps), 28 (its gameplay rules) and 29 (Custom Edition maps keep their names; the map's version is its hash's), so current OpenCE servers can be joined and can join this app's hosts; OpenCE's browser players cannot join this app's hosts. This is not a full Build208 rebase."
                       if 'Build208' in updater else
                      ("Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 206 are included, with OpenCE's network 25 (units' integrated lights), 26 (internet signalling), 27 (map sharing: this app's hosts answer that they share no maps), 28 (its gameplay rules) and 29 (Custom Edition maps keep their names; the map's version is its hash's), so current OpenCE servers can be joined and can join this app's hosts; OpenCE's browser players cannot join this app's hosts. This is not a full Build206 rebase."

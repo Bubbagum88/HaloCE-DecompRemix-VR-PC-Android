@@ -91,3 +91,12 @@ Read and write repository text explicitly as UTF-8, especially on Windows.
 Do not rely on the shell/Python locale for credits, notices or player guides.
 Regenerate the field guide after changes and inspect bundled text for encoding
 damage before packaging.
+
+The committed button and gem art (`tools/button_assets.py`, `tools/desktop_icon.py`,
+checked by `test_hud_button_style`) is reproduced byte for byte with Pillow 11.3 or
+12.0, not Pillow 13, whose LANCZOS resampling differs: keep Pillow at 12.0.0
+(`pip install --user Pillow==12.0.0`), with rsvg-convert, NumPy and SciPy.
+
+Since Test73 the code is under the GNU AGPL 3.0 or later (README, Licence): keep
+each file's notices, and ship each build with its source (the packaged source
+zip) and the licence text (LICENSE, which the packages carry as LICENSE.txt).

@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def function(source, name):
-    match = re.search(r"(?m)^(?:static )?(?:boolean|void|long|wchar_t \*)\s*" + re.escape(name) + r"\([^;]*?\)\n\{", source)
+    match = re.search(r"(?m)^(?:static )?(?:boolean|void|long|char|wchar_t \*)\s*" + re.escape(name) + r"\([^;]*?\)\n\{", source)
     assert match, name
     end = source.index("\n}", match.end()) + 2
     return source[match.start():end]
@@ -61,7 +61,11 @@ static boolean virtual_keyboard_select(void);
         "virtual_keyboard_active", "virtual_keyboard_last_exit_saved_text", "virtual_keyboard_cancel",
         "virtual_keyboard_close", "virtual_keyboard_display_text", "virtual_keyboard_free_space_in_text_buffer",
         "virtual_keyboard_backspace", "virtual_keyboard_select", "virtual_keyboard_pointer"]
-    production = "\n".join(function(source, name) for name in names)
+    # Test73: Done on a profile name cleans it first (OpenCE Build 201's player_name_clean, restored), so the
+    # production cleaner is compiled in as well
+    players = (ROOT / "source/game/players.c").read_text()
+    production = "\n".join([function(players, "player_name_character_ascii"), function(players, "player_name_clean")] +
+        [function(source, name) for name in names])
     fields = menus.split("/* ---- a text field", 1)[1]
     fields = fields[fields.index("static struct"):fields.index("static void text_field_insert")]
     adapters = r'''
@@ -126,6 +130,16 @@ int main(void)
     unique_name=0;choose(_vkey_a);choose(_vkey_done);
     assert(unique_calls==1&&errors==2&&!virtual_keyboard_last_exit_saved_text());
     assert(!ustrcmp(buffer,L"profile"));
+    /* Test73: Done trims a profile name's outer spaces (Build 201's player_name_clean); one with no character
+       the ban command can type is refused as empty. */
+    unique_name=1;ustrcpy(buffer,L"  ab  ");
+    assert(virtual_keyboard_launch(buffer,sizeof(buffer),8));
+    choose(_vkey_done);
+    assert(virtual_keyboard_last_exit_saved_text()&&!ustrcmp(buffer,L"ab")&&errors==2);
+    ustrcpy(buffer,L"ab");buffer[0]=0x200B;buffer[1]=0;
+    assert(virtual_keyboard_launch(buffer,sizeof(buffer),8));
+    choose(_vkey_done);
+    assert(!virtual_keyboard_last_exit_saved_text()&&errors==3);
     /* Modal menu completion survives arbitrarily long editing and commits once. */
     text_field_begin_masked(&row,"old",32,completed);
     assert(text_field.native_keyboard&&text_field.masked);

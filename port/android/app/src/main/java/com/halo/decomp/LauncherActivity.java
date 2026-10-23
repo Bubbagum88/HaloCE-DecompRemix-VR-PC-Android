@@ -69,6 +69,13 @@ public class LauncherActivity extends Activity {
             new File(dataRoot, "maps").mkdirs();
         passOnHardwareId();
         passOnInvite(getIntent());
+        // Test73: the Steam Frame (Lepton): a Steam launch shows no 2D window, so
+        // the launcher starts the game at once, or imports a disc image it finds
+        // first (leptonStart)
+        if (Lepton.running() && (Lepton.headless() || haveData())) {
+            leptonStart();
+            return;
+        }
         if (haveData()) {
             // an invite link goes straight to the game; otherwise the menu
             if (isInvite(getIntent()))
@@ -175,7 +182,10 @@ public class LauncherActivity extends Activity {
         RunLog.line("Starting game; data root=" + gameRoot());
         File[] mapFiles = new File(gameRoot(), "maps").listFiles((dir, name) -> name.endsWith(".map"));
         if (mapFiles != null) for (File mapFile : mapFiles) RunLog.line("Data header: " + mapFile.getName() + " " + MapInfo.read(mapFile).summary() + " bytes=" + mapFile.length());
-        Intent game = new Intent(this, HaloActivity.class);
+        // (Test73: on the Steam Frame the VR game runs in the main process, which
+        // Lepton watches: HaloFrameActivity; elsewhere in :halo_game)
+        Intent game = new Intent(this, BuildConfig.APPLICATION_ID.endsWith(".vr") && Lepton.running()
+            ? HaloFrameActivity.class : HaloActivity.class);
 
         // in the VR build, the headset opens the game immersive only when the
         // intent says so; without these it opens a 2D window, where the
@@ -188,6 +198,82 @@ public class LauncherActivity extends Activity {
         startActivity(game);
         finish();
         return true;
+    }
+
+    /**
+     * Test73, the Steam Frame (Lepton): no launcher screen (a Steam launch has no 2D window). With the game's data
+     * the game starts at once; without, the largest disc image in the SteamOS user's Downloads, Documents or Desktop
+     * (or the data folder) is unpacked first; with none, a note in the data folder says what to do, and the launcher
+     * ends (in "Lepton Development", which shows the window, the ordinary screens are shown instead).
+     */
+    private void leptonStart() {
+        RunLog.line("Steam Frame (Lepton" + (Lepton.headless() ? ", headless" : "") + "): data folder " + baseRoot());
+        if (haveData()) {
+            if (startGame())
+                return;
+            leptonNote("The game could not start: " + (status != null ? status.getText() : "see the launcher log in logs/") + ".");
+            if (Lepton.headless()) finish(); else buildMenu();
+            return;
+        }
+        File image = Lepton.findDiscImage();
+        if (image == null) {
+            leptonNote("No game data yet. Put your own disc image of Halo: Combat Evolved for the original Xbox "
+                + "(.iso or .xiso) in Downloads, Documents or on the Desktop, or the maps folder from it into this "
+                + "folder, then start the game again.");
+            if (Lepton.headless()) finish(); else buildInterface();
+            return;
+        }
+        RunLog.line("Steam Frame: unpacking the disc image " + image + " (" + (image.length() >> 20) + " MB)");
+        File destination = baseRoot();
+        new Thread(() -> {
+            try (FileInputStream in = new FileInputStream(image)) {
+                XisoExtractor.extractMaps(in.getChannel(), destination, (file, done, total) -> { });
+                handler.post(() -> {
+                    if (haveData() && startGame())
+                        return;
+                    leptonNote("The disc image " + image.getName() + " was unpacked, but maps/ui.map is missing.");
+                    finish();
+                });
+            } catch (Exception exception) {
+                RunLog.line("Steam Frame: unpacking failed: " + exception);
+                handler.post(() -> {
+                    leptonNote("The disc image " + image.getName() + " could not be unpacked: " + exception.getMessage());
+                    finish();
+                });
+            }
+        }).start();
+    }
+
+    /** the note the Steam Frame's player finds in the data folder (Lepton), and the launcher log's line */
+    private void leptonNote(String text) {
+        RunLog.line("Steam Frame: " + text);
+        File root = baseRoot();
+        if (root == null)
+            return;
+        try (OutputStream out = new FileOutputStream(new File(root, "STEAM-FRAME-README.txt"))) {
+            out.write(("HaloCE Quest VR on the Steam Frame\n\n" + text + "\n\nThis folder (" + root
+                + ") holds the game's data, settings, saves and logs.\n").getBytes("UTF-8"));
+        } catch (java.io.IOException e) {
+            RunLog.line("Steam Frame: the note could not be written: " + e);
+        }
+    }
+
+    /**
+     * Opens the system's file picker; where there is none (Test73: the Steam Frame's Lepton lacks many of Android's
+     * own packages) it says where to put the files instead of ending the launcher.
+     */
+    private boolean openPicker(Intent intent, int request) {
+        try {
+            startActivityForResult(intent, request);
+            return true;
+        } catch (android.content.ActivityNotFoundException e) {
+            RunLog.line("No file picker on this device: " + e);
+            LauncherHelp.page(this, "No file picker here",
+                "This device has no file picker to choose files with. Put the files in " + baseRoot()
+                + " instead (on the Steam Frame: Documents/" + Lepton.FOLDER + " in Desktop Mode), then open the "
+                + "launcher again.");
+            return false;
+        }
     }
 
     /** Plain Play reaches the native menus, even after an older launcher crashed before consuming its command. */
@@ -234,6 +320,14 @@ public class LauncherActivity extends Activity {
     File baseRoot() {
         File shared = new File("/sdcard/Documents/HaloCE");
 
+        // Test73: the Steam Frame (Lepton) empties the app's own storage at every
+        // start: its data folder is the SteamOS user's Documents/HaloCEQuestVR
+        // (Lepton.dataRoot; host_main.c's lepton_data_root chooses the same)
+        if (Lepton.running()) {
+            File lepton = Lepton.dataRoot();
+            if (lepton != null)
+                return lepton;
+        }
         if (BuildConfig.APPLICATION_ID.endsWith(".vr") && new File(shared, "maps/ui.map").isFile())
             return shared;
         return dataRoot;
@@ -429,11 +523,11 @@ public class LauncherActivity extends Activity {
         });
         menuButton(layout, "Import MCC maps from a folder").setOnClickListener(v -> {
             if (busy) return;
-            startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), PICK_MCC_MAPS);
+            openPicker(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), PICK_MCC_MAPS);
         });
         menuButton(layout, "Import MCC's resource maps (from your MCC)").setOnClickListener(v -> {
             if (busy) return;
-            startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), PICK_MCC_SHARED);
+            openPicker(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), PICK_MCC_SHARED);
         });
         menuButton(layout, "Remove all MCC maps").setOnClickListener(v -> {
             if (busy) return;
@@ -472,6 +566,9 @@ public class LauncherActivity extends Activity {
         menuButton(layout, "Game files & versions").setOnClickListener(v -> {if(!busy)dataManager().show();});
         menuButton(layout, "Game data & compatibility").setOnClickListener(v -> { if (!busy) LauncherHelp.data(this, gameRoot()); });
         menuButton(layout, "Geometry compatibility").setOnClickListener(v -> { if (!busy) LauncherHelp.graphics(this, gameRoot()); });
+        // Test73: where the VR menus are shown, the main menu's too (vr.menu_anchor)
+        if (BuildConfig.APPLICATION_ID.endsWith(".vr"))
+            menuButton(layout, "Menu position").setOnClickListener(v -> { if (!busy) LauncherHelp.menuPosition(this, gameRoot()); });
         resetSettings = menuButton(layout, "Reset settings to defaults");
         resetSettings.setOnClickListener(v -> resetSettings());
         label(layout, BuildConfig.APPLICATION_ID.endsWith(".vr")
@@ -555,7 +652,7 @@ public class LauncherActivity extends Activity {
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("*/*");
             intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-            startActivityForResult(intent, PICK_RESOURCES);
+            openPicker(intent, PICK_RESOURCES);
         });
         TextView setupHelp = new TextView(this);
         // Test71: every mod installs in one tap (the owner); importing is the fallback
@@ -586,7 +683,7 @@ public class LauncherActivity extends Activity {
         modImport = menuButton(modDetails, "Import " + mod.title + " from a folder");
         modImport.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-            startActivityForResult(intent, PICK_MOD_FOLDER);
+            openPicker(intent, PICK_MOD_FOLDER);
         });
         // Test70: or straight from the archive its authors published
         // (Test71: or its .rar / .7z, unpacked here: ArchiveExtractor)
@@ -598,7 +695,7 @@ public class LauncherActivity extends Activity {
             intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] { "application/zip", "application/x-zip-compressed",
                 "application/vnd.rar", "application/x-rar-compressed", "application/x-rar",
                 "application/x-7z-compressed", "application/octet-stream" });
-            startActivityForResult(intent, PICK_MOD_ZIP);
+            openPicker(intent, PICK_MOD_ZIP);
         });
         modAction = menuButton(modDetails, "");
         modAction.setOnClickListener(v -> modActionClicked());
@@ -1113,7 +1210,7 @@ public class LauncherActivity extends Activity {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("*/*");
-            startActivityForResult(intent, PICK_IMAGE);
+            openPicker(intent, PICK_IMAGE);
         });
         layout.addView(pick, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT));

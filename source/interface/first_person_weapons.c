@@ -448,6 +448,10 @@ void first_person_weapons_initialize_for_new_map(
 			0,
 			sizeof(first_person_weapons[local_player_index]));
 		first_person_weapons[local_player_index].unit_index= NONE;
+		/* port: no weapon either (innerhat 83e8bb135): the memset's 0 is no
+		datum's index, and the render's check for a weapon deleted under it
+		logged "weapon (0x0), deleted unexpectedly" after each map load */
+		first_person_weapons[local_player_index].weapon_index= NONE;
 		first_person_weapons[local_player_index].current_sound_index= NONE;
 		first_person_weapons[local_player_index].current_sound_state= NONE;
 	}

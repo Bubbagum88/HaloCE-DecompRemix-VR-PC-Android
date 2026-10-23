@@ -57,6 +57,12 @@ boolean vehicle_moving_near_any_player(
 boolean vehicle_stuck(
 	long vehicle_index,
 	real_vector3d *direction);
+/* port (Test73): the facing offset that turns this vehicle in proportion to
+the VR immersive controls' turn (`controls` of full lock `lock`, radians) */
+real vehicle_vr_steering_facing(
+	long vehicle_index,
+	real controls,
+	real lock);
 /* port: Test72: whether a vehicle is a turret (the Shade): its seat works
 the gun, not a vehicle (port/linux/game/vr_render.c) */
 boolean vehicle_is_turret(

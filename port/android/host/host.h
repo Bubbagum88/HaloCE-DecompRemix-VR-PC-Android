@@ -28,6 +28,8 @@ void host_log_file_line(const char *line);
 /* guest services also used inside the host (host_main.c) */
 void host_exit(int code) __attribute__((noreturn));
 int host_errno(void);
+/* Test73: whether this runs in the Steam Frame's Lepton (host_main.c) */
+int host_lepton_running(void);
 
 /* logs, shows the message to the player and terminates */
 void host_fatal(const char *format, ...) __attribute__((format(printf, 1, 2), noreturn));

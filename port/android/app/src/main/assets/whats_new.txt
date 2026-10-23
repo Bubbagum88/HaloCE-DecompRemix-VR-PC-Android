@@ -1,119 +1,73 @@
-NEW IN THIS UPDATE (TEST72): EVERY HEADSET, THE PC AND THE FIGHT
-Your settings and saves are kept. New defaults (below) replace only values still at the old defaults; your own stay.
+NEW IN THIS UPDATE (TEST73)
+Your settings and saves are kept. Every VR feature is turned on once by this update; turn any of them off again in VR SETTINGS and it stays off.
 
-HEADSETS
-• One VR APK for Quest, Pico (Pico 4, Neo 3, 4 Ultra) and the Steam Frame: each one's controllers are recognised, the buttons keep their places, and the BUTTONS page names them as your controllers do. Pico and Steam Frame are not yet confirmed on the headsets themselves: tell us how they work.
-• Windows: a flat build (keyboard, mouse, gamepad) and a PC VR build (OpenXR: SteamVR, Quest Link, Virtual Desktop, Pico Connect) in one folder with one launcher: PLAY, PLAY IN VR, GAME DATA (import your Xbox disc image, VERIFY, REPAIR), CUSTOM CAMPAIGNS, SETTINGS, WHAT'S NEW and UPDATES (checked only when you press CHECK). Nothing of the game comes with the download. Flat PC only: STEREO 3D (side by side, over and under, red-cyan) with HUD and reticle depth; Controls Setup warns when a key moves from another action, Delete sets NONE, Backspace gives a key its default.
-• Flat (Android and PC): SPRINT, SLIDE, WALL RUN and WALL JUMP (Player profile > MOVEMENT), each off until you turn it on. No wall grab on a flat screen.
+EVERY VR FEATURE ON (QUEST AND PC VR)
+• On now: manual reload with MAG DEBRIS, fist combat, physical grenades, parkour, slides, grabbing, NPC grab, one-hand heavies, ragdolls, the immersive vehicle controls and more.
+• BULLET TIME is on too. IMMERSIVE VEHICLE brings the first-person seat with it.
 
-FIST COMBAT (Quest)
-• Lunges reach much further by default (12 m, up to 15) as a Spartan leap (about 30 cm up, higher to an enemy above you); airborne lunges still dive or rise to the enemy.
-• A punch is judged by where you look and where your fist goes: uppercuts, hooks and punches off to the side pick the enemy you meant; close in (1.6 m) it is forgiving.
-• HIT ASSIST (now 50 cm by default, up to 70) measures your fist's whole stroke against the enemy's skeleton, not one point.
-• Punch the enemy you hold in your other hand: the blow lands where you hold it. A seated enemy (a Shade's gunner, a Ghost's driver) is a target.
-• FIX: punching a Shade could kill you (the blow shoved the turret into you). A vehicle you punch is now pushed as the game's own melee pushes it, away from you.
-• Freeflow: the combo counts blows, switching enemies, parries, blocks, grabs and knockdowns (three seconds to keep it going); a parry pulses twice. NEW: COMBO DISPLAY (FIST OPTIONS), a small Halo-blue counter. The combo's damage bonus is now modest; melee toughness follows the difficulty more.
-• GRAB ASSIST: now 30 cm by default (up to 50), the nearest body first.
+CO-OP: VR FOR EVERY PLAYER
+• One switch for the host, on by default: VR INTERACTIONS (Server Setup > CO-OP OPTIONS) lets every VR player use fists and fist combat (lunges, combos, takedowns), waist grenades, manual reload, parkour and slides online.
+• HOST VR ACTIONS is part of it now. A player whose build lacks it plays with the buttons, as before.
 
-VEHICLES, MENUS AND CONTROLS (Quest)
-• Passengers (the Warthog's, the Scorpion's riders) aim the gun in their hand, 6DoF, as on foot; the head looks freely.
-• NEW: MENU POSITION (HUD + RETICLE): HEAD (as before), WORLD (fixed in front of you: lean in to read) or FOLLOW, with MENU DISTANCE, SIZE and HEIGHT. A stick click brings a fixed menu back in front.
-• BULLET TIME's settings moved to LOCOMOTION (and IMMERSION); its button stays on BUTTONS. FIX: with R UP it now works in vehicles and turrets too (it could stick on there).
-• IMMERSION gains LOCOMOTION (sprint, slide, bullet time), PARKOUR, TWO HANDS, SCOPE and the vehicles' VIEW. SCOPES: one topic a weapon, each screen titled.
-• LEFT-HAND MODE: BUTTONS rows show the button you actually press (an Index's left controller as L-A and L-B); the menus' Back stays the right controller's B.
-• A replacement magazine in your hand follows your hand's wrist.
+VEHICLES
+• Immersive driving turns in proportion to your hands, all the way to full lock, for every vehicle: the Warthog no longer reaches full lock halfway, and the Scorpion now reaches its full turn.
+• NEW: HAND LOCK (on). A hand holding a vehicle's control stays on it and turns with it.
+• NEW: VEHICLE TURN (on). If you snap turn, you turn smoothly in a vehicle's seat, and snap again once you are out (COMFORT, or VEHICLES > VEHICLE OPTIONS).
+• Passengers look around freely (full 6DoF), and their view settles once seated.
+• FIX: after climbing into the Scorpion the view could stay off to one side; it now settles back.
 
-DISPLAY (Quest)
-• FIX (to confirm): models could look stretched and garbled in the left eye alone, in SPV1 and busy matches. The left eye now starts each frame from the same drawing state as the right. NEW: EYE ORDER (DISPLAY): RIGHT FIRST draws the right eye first, a test if it still happens: tell us whether the garbling moves to the right eye, and send the log (it now compares what each eye draws).
-• SPV1: each eye's view is written to the log once a level; its repeated "incompatible bitmap" errors are written once a bitmap (fewer log writes while it plays).
+COMBAT, GRENADES AND SCOPES
+• NEW: GRENADE SIZE. Grenades are now the game's own size, and a held grenade shows in your hand.
+• Scopes: SIZE goes up to 400%.
+• FIX: an error with bodies near a moving vehicle (seen in the Scorpion).
+• FIX: in busy fights some effects could stop being drawn.
+• FIX: STENCIL SHADOWS (Video Setup > EXTRA EFFECTS) no longer dim a flashlight's or a shield's light: a shadow takes away only the light it blocks.
 
-SHOT DEFLECTION (Quest)
-• DEFLECT SHOTS is now on by default, with or without FIST COMBAT. Just hold your gun in a shot's path and it glances off: no swing needed. Swing the gun or punch to send a shot back hard.
-• What turns away: plasma (pistol, rifle, Ghost and Banshee bolts, needles) by the gun or the fist; bullets by the gun only; grenades by either; a fuel rod's bolt only by a strong swing or punch, never a block. Rockets and sniper rounds never. Your own shots are left alone.
-• A deflection buzzes the hand (both hands when holding the gun two-handed), echoes a moment later, sounds and flashes. DEFLECT AID (OFF, NORMAL, WIDE) and DEFLECT FORCE (75% to 125%): CONTROLS and IMMERSION > FIST OPTIONS.
+MOVEMENT AND BODY
+• A wall run's leap now goes where you look.
+• NEW: ARMS FROM (BODY). With a custom character (SPV1's and others) your arms are its own; the stock Spartan is unchanged.
+• Smoother motion in the headset: what moves (vehicles, cutscene cameras) no longer judders between the game's ticks.
 
-TESTERS' REPORTS (Quest)
-• Physical grenades are thrown at your hand's real speed (its peak over the throw, not the last instant), and the chest slots take a grenade from 15 cm.
-• The Shade: you are its gunner (TURRET AIM, not steering), you face its gun when you get in, and the view sits 25 cm higher so you can see over it.
-• VEHICLES is now in sections, one per vehicle: DRIVING, VEHICLE OPTIONS, ALL VEHICLES, WARTHOG, GHOST, BANSHEE, SCORPION, PELICAN, TURRETS + SHADE. Each vehicle's VIEW UP / FWD / RIGHT sits with its controls, so the Shade can be raised without moving every vehicle.
+MENUS AND LAUNCHERS
+• NEW: MENU POSITION in the Quest launcher and the PC VR launcher's SETTINGS: keep menus fixed in front of you instead of following your head.
+• PC launcher: GAME DATA has IMPORT SAVES (.zip or folder) and EXPORT SAVES; SETTINGS has GEOMETRY (SAFE or NORMAL).
+• A new profile has every level unlocked again.
+• Co-op FRIENDLY FIRE is in the VR menu's GAMEPLAY page too.
 
-NEW: THIRD PERSON IN VR (Quest and PC VR)
-• GAMEPLAY > THIRD PERSON: on foot in a campaign or co-op (not multiplayer), the view from behind you over your shoulder, turning with the stick. You aim with your head at what you look at; the buttons fire, reload, throw and melee.
-• While it is on, the hands' physical features (holding and holstering guns, manual reload, chest grenades, punches and fist combat, deflection, grabbing, climbing, arm run, walking the room, ducking to crouch) rest, and they come back exactly as they were when you turn it off or get in a vehicle. Nothing is saved over your settings.
+STEAM FRAME AND PC
+• Steam Frame support: its controllers and finger touches are recognised. Not yet confirmed on a Frame: tell us how it works.
+• Steam Frame: install it on the Frame itself, no computer needed (the Steam Frame bundle's installer), start it from your Steam library, and quit with Steam's Exit game too.
+• Steam Frame: the game waits for SteamVR to wake up instead of failing, and ends cleanly if it never does.
+• Index controllers: finger touches now move the fingers.
+• FIX: on controllers that report no finger touch, a gripping hand no longer shows the middle finger.
+• The PC builds have this project's own icon.
 
-FROM HALOFREAK95'S BUILD
-• HOLSTERED GUNS (off; FOV and Viewmodels, VR DISPLAY): characters wear the guns they carry, a rifle across the back, a pistol or needler on the thigh.
-• FAST DECALS (Extra Effects, VR DISPLAY): bullet holes and blood drawn as the Xbox drew them, far less work with many in view. On for PC; off on Android and Quest until measured there.
-• BLOOD LAYERS (VR DISPLAY): at most 6 splats of blood on one spot on Android and Quest (more add nothing but drawing work); ALL on PC.
-• RIFLE DISPLAY (Spartan Armor): the assault rifle's ammo counter and display in an armor colour.
-• Stencil shadows now stop at machines and scenery behind what casts them.
-• AIM ASSIST (Mouse Settings) also covers swipe and gyro aim on Android (as it did; now said).
+FROM OPENCE (BUILDS 232 TO 256)
+• TEXT CHAT in multiplayer, server-browser pings, and MATCH TIMER (Video Setup > GRAPHICS).
+• Co-op: FRIENDLY FIRE, EXTRA PICKUPS and EXTRA VEHICLES; a gravity lift now takes every player along, not just two.
+• NEW: ALLY FRIENDLY FIRE (CO-OP OPTIONS, on as in the campaign). Turn it off and players can't hurt their AI allies: Keyes, the Marines and the others a level needs.
+• FIX: in co-op, The Pillar of Autumn could shut a blast door for good with players still outside.
+• Video Setup in three screens (GRAPHICS, EXTRA EFFECTS, BODIES AND DECALS) with TEXTURE FILTERING, MODEL DETAIL and HDR (off; on Quest it costs frame time).
+• New Game starts its level again (it could resume the checkpoint), and checkpoints save in the background.
+• PC: 5.1 surround (audio.channels in config.toml), the menus' blue arrow cursor, and fewer frame stalls on NVIDIA cards. FIX: lens flares on AMD graphics cards.
+• Android: Custom Edition maps' textures stay loaded and drawn correctly.
+• FIX: online, everyone can break a map's energy shields (Rat Race) and tripmines, and sees them broken and coming back.
+• Network 34: joins OpenCE games of network 11 to 34. OpenCE players join your games once their build is on network 34 too.
 
-ANDROID
-• FIX: some wireless controllers had only their face buttons and triggers working in game, not the sticks or D-pad. Sticks and D-pad now reach the game whatever the controller reports (the launcher's controller check always saw them).
-• NEW: Game files & versions: IMPORT SAVES from a .zip or a folder (another phone's save folder, a backup, or an Xbox UDATA folder), EXPORT SAVES as a .zip. Your current saves are backed up first.
-• Internet play over a VPN or mobile data: the game's connection now uses smaller pieces and lets large packets be split, where some VPNs dropped them and a join timed out. If a join still fails, the log now says why.
+ALSO NEW SINCE 1.0.37 (TEST72)
+• One VR APK for Quest, Pico and the Steam Frame; Windows flat and PC VR builds with one launcher.
+• Fist combat: 12 m Spartan lunges, HIT ASSIST against the skeleton, COMBO DISPLAY; punching a Shade no longer hurts you.
+• Shot deflection on by default: hold your gun in a shot's path, swing or punch to send it back.
+• THIRD PERSON in VR (GAMEPLAY): on foot in campaign and co-op.
+• Passengers aim the gun in their hand; MENU POSITION (HUD + RETICLE); per-weapon SCOPES.
+• Flat (Android and PC): SPRINT, SLIDE, WALL RUN and WALL JUMP.
+• From HALOFREAK95's build: HOLSTERED GUNS, FAST DECALS, BLOOD LAYERS, RIFLE DISPLAY.
+• Android: IMPORT SAVES and EXPORT SAVES; wireless controllers' sticks and D-pad fixed; internet play over a VPN or mobile data.
 
-OPENCE BUILD 208 (network unchanged)
-• Voice chat ignores a damaged voice packet instead of playing it. Leaving the connected map list with nothing behind it returns to the main menu.
+ALSO NEW SINCE 1.0.37 (TEST71)
+• CUSTOM CAMPAIGNS: every mod installs in one tap, "Download and install", from where its authors published it; every file is size- and SHA-256-checked.
+• Project Lumoria downloads from halomaps.org; The Altheros Experience from moddb.com in the launcher's own browser (the download resumes; about 5 GB free needed; still marked "Experimental — currently not working").
+• Importing stays for every mod, SPV1 included: a folder, a .zip or a .rar.
+• MANUAL RELOAD now works with the mods' own guns; a mod's needler is shaken to reload.
 
-EARLIER (TEST71), ALSO IN THIS UPDATE
-EVERY CAMPAIGN MOD IN ONE TAP
-• CUSTOM CAMPAIGNS: every mod now installs the way SPV1 does: choose it, tap "Download and install". The launcher downloads it from where its authors published it and checks every file (exact size and SHA-256) before installing. Nothing of theirs comes with the app.
-• Project Lumoria: "Download and install" fetches its four levels from halomaps.org (about 460 MB). Like SPV1 it still needs Custom Edition's bitmaps.map, sounds.map and loc.map.
-• The Altheros Experience: still marked "Experimental — currently not working" (not yet confirmed to run). "Download and install" opens its moddb.com download in the launcher's own browser (if the page asks, tap its download button). The 1.4 GB archive downloads (it resumes if stopped), is checked, unpacked on the headset (about 5 GB free needed while it does) and deleted, and the mod installs.
-• Importing stays as the fallback for every mod, SPV1 included: from a folder, a .zip, or now a .rar.
-• Deleting a mod's files also removes a downloaded or half-downloaded archive.
-
-WEAPONS (Quest)
-• MANUAL RELOAD now works with the mods' own guns. SPV1 hides every weapon's name, which had left all its guns reloading by themselves, its stock-looking rifles included; now each gun is recognised by its own model: SPV1's SMG, pistol, sniper and rifles (magazine, then the handle or slide), its shotgun (shell by shell, then cock it), flamethrower (canister) and launchers (tubes). The rifle with an underbarrel shotgun: its magazine by hand, the shotgun still reloads itself. A mod's needler is shaken to reload. Project Lumoria's guns already worked (its plasma cannon has no magazine).
-
-EARLIER (TEST70), ALSO IN THIS UPDATE
-Your settings and saves are kept. One exception: GRAB ASSIST still at the old automatic 10 cm (with NPC GRAB or FIST COMBAT on) becomes the new 15 cm, once.
-
-LAUNCHER AND CAMPAIGNS (Quest and Android)
-• This What's New page: shown once after each update; reopen it any time with "What's new in this version".
-• Status labels on every custom campaign: SPV1 and Project Lumoria "Supported"; The Altheros Experience and Halo 1 MCC maps "Experimental — currently not working" (still there to try; send a log if you do).
-• NEW: Project Lumoria. CUSTOM CAMPAIGNS > Project Lumoria: Download and install (see above), or import your Lumoria_Full_Campaign.zip (straight from Download) or its folder, then Install. Every file is size- and SHA-256-checked; its own ui.map and PC DLLs are left out. Needs Custom Edition's bitmaps.map, sounds.map and loc.map, as SPV1 does. Its four levels play from New Game, map kind CUSTOM SINGLEPLAYER (start with lumoria_a); the original campaign stays as it is.
-• Imported mods (Lumoria, Altheros) can now be imported from a .zip as well as a folder.
-• FIX: Halo 1 MCC maps showed "There's a problem with the disc you're using". Cause found and fixed (MCC maps were looked for among the Xbox maps); not yet confirmed on a headset, so still labelled experimental.
-• The Altheros Experience: still being worked on. If a level stops, the launch log names the step.
-
-CONTROLS (Quest)
-• Remapping never moves your other buttons any more. On VR SETTINGS > BUTTONS, press A (or left/right) on a row to choose a button: it shows with a "?" and nothing changes until you press A again.
-• A button another action already has asks first: CANCEL, SWAP, CLEAR (the other action gets none) or BOTH (one button does both). The line at the bottom says whose button it is and what A will do.
-• Every action can be set to NONE.
-• RESET CONTROLS is the first and last row of BUTTONS. To reset one action, choose the button the bottom line marks (DEFAULT).
-• A * on a row marks a button that does nothing for now (Button Sprint has the stick click, the grenade is on the grip, the grip with physical weapons); a + marks a button two actions share.
-• FIX: turning BUTTON SPRINT off now gives PUSH TO TALK back its left stick click too.
-• NEW: MIRROR BUTTONS (CONTROLS, AUTO). Left-handed, the face buttons (jump, use/reload and the magazine release) are on the gun hand even with the sticks standard. Your bindings are never changed by left-hand mode. OFF: as before.
-
-WEAPONS (Quest)
-• Locked weapons can be holstered: grip at a holster to put the gun away (the hand is truly empty: climb and grab with both hands), grip there again to draw. Letting go elsewhere still never drops it.
-• NEW: Needler with MANUAL RELOAD: shake it deliberately to reload (a strong pulse when it takes). Aiming, walking and punching do not set it off; the reload button still works.
-• FIX: SHAKE COOLING now works. A brisk shake cools a hot plasma rifle or pistol 1.5x to 3x faster (a light tick per shake); tiny movements do nothing. It works while the gun is hot, not only once overheated.
-• FIX: Rocket launcher. After firing both rockets, the new tubes are ready as soon as they are in (no extra push needed).
-• Emptied guns that must be charged (Assault Rifle, Pistol, Sniper, Shotgun) tick your gun hand every 1.5 s until you rack them, so you know why they will not fire.
-• Pistol and Assault Rifle magazines now sit in the hand (centred in your grip). The Sniper's is unchanged. (vr.reload_grip_fit false: the old place.)
-
-DISPLAY (Quest)
-• Left hand: the Rocket Launcher, Sniper Rifle, Shotgun and Pistol now read the right way round (lettering such as SPNKr and PUSH no longer mirrored). The Assault Rifle keeps its fixed ammo display; Covenant weapons are unchanged.
-• Each first-person part is drawn facing the right way whatever its size, so guns turned back for the left hand are never inside out.
-
-MOVEMENT (Quest, optional, solo)
-• NEW: SLIDE (LOCOMOTION, off by default). Sprint, then crouch (the crouch button, or lower your head with CROUCH SLIDES) to slide with your run's momentum, slowing with friction, faster downhill, steerable a little. Stand up to stop; JUMP CANCELS turns it into a jump (and a wall run). Slide into enemies: a Grunt is knocked down, an Elite staggered, a Hunter barely moves and stops you; a little damage, never a kill. Settings: SLIDE DISTANCE, SLIDE FRICTION, SLIDE IMPACT, CROUCH SLIDES, JUMP CANCELS. Turning SLIDE on turns on BUTTON SPRINT if no sprint is on.
-• NEW: BULLET TIME (GAMEPLAY, off by default). Hold the right stick up to slow the world (TIME SCALE 25% to 65%; BULLET TIME KEY: HOLD or TOGGLE; its button can be remapped on BUTTONS). Your head and hands stay at full speed. Solo games only; not in vehicles, menus or cutscenes.
-• Climbing holds better high up trees and on thin trunks and branches.
-• Wall jumps go where you look: from the wall you are running on, keeping your speed, always away from the wall. Wall running itself is unchanged.
-
-FIST COMBAT AND GRABBING (Quest)
-• NEW: HIT ASSIST (30 cm): a punch at an enemy right in front of you lands without having to touch its face through Halo's collision bubble. Not long-range: farther enemies are still reached by the lunge.
-• NEW: LUNGE HOP: a lunge begins with a small Spartan leap (OFF, LOW, NORMAL, HIGH).
-• GRAB ASSIST: NPC GRAB and FIST COMBAT now bring 15 cm, and the 25 cm maximum now really reaches (it was being undone after the grab was found).
-• Menu: FIST COMBAT now holds REACH, HIT ASSIST, LUNGE, LUNGE HOP, ENEMY HEALTH and COUNTERS; a new FIST OPTIONS section holds HIT HIGHLIGHTS, DEFLECT SHOTS, FIST REQUIRED and AIM STEADYING.
-• Unchanged: airborne lunges, difficulty, blocking and parrying, target switching, body-part grabs, light and heavy enemies.
-
-ONLINE AND COMPATIBILITY
-• Unchanged and current: OpenCE Build 206 (the newest), hosting network 29 and joining 11 to 29: every server listed today.
-• HALOFREAK95's newest change (GPU decals) was reviewed and is held back until it is measured on a headset.
-• Android: the launcher changes above (campaign labels, Project Lumoria, the MCC fix, this page); its play is unchanged.
+Version 1.0.37 (Test70) and earlier: the full release notes on GitHub.

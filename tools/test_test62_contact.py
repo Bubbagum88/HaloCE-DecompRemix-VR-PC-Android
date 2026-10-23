@@ -131,6 +131,11 @@ int main(void){
 impact=fn(units,'unit_vr_impact_melee_apply')  # (Test72: the damage is chosen where the strike is applied)
 start=impact.index('\t/* Prefer the biped')
 end=impact.index('\n\tif (hit_object_index != NONE && object_get',start)
+# (Test73, 10d: a co-op client's blow is sent to the host just after the
+# selection; test_test67_strike runs that branch)
+client=impact.index('\n\t/* port (Test73, 10d): a co-op client',start)
+assert client<end
+end=client
 selection=impact[start:end]
 assert 'if (melee_damage_effect_index == NONE && !weapon_hand && vr_combat_enabled())' in selection
 run('fist_fallback',r"""

@@ -4,6 +4,7 @@ import hashlib
 import re
 import subprocess
 
+import network_expected as netv  # noqa: E402 (tools/: the versions this build hosts and joins)
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -23,9 +24,9 @@ def function(source, name):
 
 
 limits = read("port/linux/include/halo_port_limits.h")
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 29$", limits, re.M)
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MINIMUM 11$", limits, re.M)
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MAXIMUM 29$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION %d$" % netv.CURRENT, limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MINIMUM %d$" % netv.MINIMUM, limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MAXIMUM %d$" % netv.MAXIMUM, limits, re.M)
 
 # Exercise the port helper compiled from the real C function under sanitizers.
 source = read("source/input/input_abstraction.c")
@@ -93,8 +94,9 @@ enough = function(server, "server_has_enough_machines")
 countdown = function(server, "server_ok_to_countdown")
 can_start = function(server, "network_game_server_game_can_start")
 assert "minimum_machine_count = 1" in enough
-assert "server_alone(server)" in countdown and "server_needs_more_teams" in countdown
-assert "server_alone(server)" in can_start
+# (OpenCE 242: server_alone is server_players_on_one_machine: the host alone, or with local players)
+assert "server_players_on_one_machine(server)" in countdown and "server_needs_more_teams" in countdown
+assert "server_players_on_one_machine(server)" in can_start
 ui = read("source/interface/ui_widget_game_data_input_functions.c")
 directions = function(ui, "multiplayer_game_directions")
 assert "game->machine_count < 1" in directions

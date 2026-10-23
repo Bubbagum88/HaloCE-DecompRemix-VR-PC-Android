@@ -68,7 +68,7 @@ assert 'vr_shake_cooling_multiplier(&shake.detect, shake.now)' in cool
 assert 'multiplier >= 1.0f && multiplier <= 3.0f ? multiplier : 1.0f' in cool
 assert 'TEST_FLAG(weapon->weapon.flags, _weapon_overheated_bit)' in weapons
 assert 'heat_loss *= vr_cooldown_shake_rate(weapon_index)' in weapons
-assert '"vr.cooldown_shake", _config_boolean, "false"' in config
+assert '"vr.cooldown_shake", _config_boolean, "true"' in config  # Test73 (item 10h): on by default
 assert '"vr.weight_haptics", _config_boolean' not in config
 assert 'config_setting_index(name) < 0 && strcmp(name, "vr.weight_haptics")' in config
 assert '"SHAKE COOLING", "vr.cooldown_shake"' in menu
@@ -82,9 +82,9 @@ assert 'void vr_world_interaction_weight_feedback(int hand, float mobility,' in 
 assert 'vr_world_interaction_weight_feedback(hand, mobility, (float)(strain / units), (float)speed);' in world
 reset = world[world.index('void vr_world_interaction_reset(void)'):]
 assert 'weight_haptic_at[0]=weight_haptic_at[1]=0' in reset
-assert 'vr.cooldown_shake", _config_boolean, "false"' in config
-assert 'vr.custom_scenery_grab", _config_boolean, "false"' in config
-assert 'vr.custom_npc_rigs", _config_boolean, "false"' in config
+assert 'vr.cooldown_shake", _config_boolean, "true"' in config  # Test73 (item 10h): on by default
+assert 'vr.custom_scenery_grab", _config_boolean, "true"' in config  # Test73 (item 10h): on by default
+assert 'vr.custom_npc_rigs", _config_boolean, "true"' in config  # Test73 (item 10h): on by default
 frame = (ROOT / "port/linux/src/vr_frame.c").read_text(encoding="utf-8")
 assert 'vr.haptics = vr_haptics_level((float)config_real("vr.haptics"));' in frame
 assert 'vr_haptics_scale(vr.haptics, amplitude, seconds, &scaled_amplitude)' in frame

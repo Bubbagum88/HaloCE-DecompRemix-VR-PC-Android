@@ -7,6 +7,7 @@
 #include "game/players.h"
 #include "units/units.h"
 #include "objects/objects.h"
+#include "items/weapons.h"
 #include "networking/network_game_globals.h"
 #include "network_distributed.h"
 #include "network_coop.h"
@@ -22,12 +23,38 @@ void vr_world_interaction_remote_cancel(long player,int hand);
 int vr_npc_interaction_remote(long player,int hand,int held,float const world[3]);
 void vr_npc_interaction_remote_cancel(long player,int hand);
 int vr_npc_interaction_snapshot(long *index,int *count,real_matrix4x3 *matrices,int capacity);
+/* Test73 (10d): the host's half of a client's reload and grenade (weapons.c,
+units.c; every build, so a flat host serves VR clients) */
+void weapon_vr_reload_commit(long weapon_index);
+boolean unit_vr_throw_player_grenade(long unit_index,short type,real_point3d const *point,real_vector3d const *velocity);
+boolean unit_vr_remote_strike(long unit_index,long target_index,real_point3d const *point,real_vector3d const *direction,
+    real scale,real multiplier,real_vector3d const *shove);
 unsigned long system_milliseconds(void);
 void platform_log(char const *,...);
+/* Test73: NI_FEATURES (host: the VR features it allows, as the sequence),
+NI_CLIENT_FEATURES (client: the ones it uses), NI_ACTION (client: a reload's
+commit, a grenade's throw or a fist blow, in a hand's wire); version 1 kept:
+older peers drop kinds they do not know */
 enum { NI_MAGIC=0x56494e31, NI_VERSION=1, NI_LEASE=6000, NI_INPUT_LEASE=300,
        NI_WORLD_READY=1, NI_NPC_READY=2,
        NI_NODES=64, NI_OFFER=1,NI_ACK,NI_CONFIRM,NI_HAND,NI_RESULT,NI_JOINT,NI_CANCEL,
-       NI_NPC_CONFIRM=9 };
+       NI_NPC_CONFIRM=9, NI_FEATURES=10, NI_CLIENT_FEATURES=11, NI_ACTION=12,
+       /* a client's action is sent this many times (the host takes one, by
+       its sequence), and each kind taken no oftener than these (ms; a
+       flurry's punches come a few ticks apart) */
+       NI_ACTION_COPIES=3, NI_RELOAD_INTERVAL=500, NI_GRENADE_INTERVAL=250, NI_STRIKE_INTERVAL=60 };
+/* (a fist blow: where it meets the body within reach of the striker's eyes
+(a lunge has carried it there) and within this of the body's own sphere;
+its strength, share (a takedown's six at most) and shove (6 m/s) bounded) */
+#define NI_STRIKE_REACH (2.5f/3.048f)
+#define NI_STRIKE_BODY (0.6f/3.048f)
+#define NI_STRIKE_SCALE 2.5f
+#define NI_STRIKE_SHARE 6.0f
+#define NI_STRIKE_SHOVE (6.5f/3.048f/30.0f)
+/* (a thrown grenade: within reach of the unit's eyes, and no faster than a
+physical throw's cap, 15 m/s; world units are 10 feet, 30 ticks a second) */
+#define NI_GRENADE_REACH (1.2f/3.048f)
+#define NI_GRENADE_SPEED (15.0f/3.048f/30.0f)
 struct ni_header { unsigned long magic,seed,nonce,sequence; long round; word version,kind; };
 struct ni_hand_wire { struct ni_header h; long unit,object; byte player,hand,held,features;
     real_point3d position; real_vector3d forward,up; };
@@ -36,7 +63,11 @@ struct ni_joint { struct ni_header h; long unit; byte node,count; word cadence_m
 typedef char ni_header_size[sizeof(struct ni_header)==24?1:-1];
 typedef char ni_hand_size[sizeof(struct ni_hand_wire)==72?1:-1];
 typedef char ni_joint_size[sizeof(struct ni_joint)==72?1:-1];
-static struct { unsigned long nonce,seen; long player; boolean ready; } ni_peers[HALO_PORT_MAXIMUM_NETWORK_MACHINES];
+static struct { unsigned long nonce,seen,features; long player; boolean ready; } ni_peers[HALO_PORT_MAXIMUM_NETWORK_MACHINES];
+/* Test73: (host) each player's last action, and when each kind was taken;
+(client) the VR features the host allows */
+static struct { unsigned long sequence,reload_at,grenade_at,strike_at; boolean sequenced; } ni_actions[MAXIMUM_TRACKED_PLAYERS];
+static unsigned long ni_host_features;
 static struct { struct network_interaction_hand request; unsigned long received,sequence;
     unsigned long result_sequence; long machine; boolean valid,active,sequenced,result_sent;
     byte owner,down,result_owner; } ni_hands[MAXIMUM_TRACKED_PLAYERS][2];
@@ -63,6 +94,7 @@ void network_interaction_reset(void)
     memset(ni_hands,0,sizeof(ni_hands));
     for(short player=0;player<MAXIMUM_TRACKED_PLAYERS;player++)for(int hand=0;hand<2;hand++)ni_hands[player][hand].down=1;
     memset(ni_peers,0,sizeof(ni_peers));memset(ni_poses,0,sizeof(ni_poses));
+    memset(ni_actions,0,sizeof(ni_actions));ni_host_features=0;
     ni_host_ready=FALSE;ni_offer_at=ni_host_nonce=ni_host_seen=ni_last_pose=0;
 }
 static long ni_machine_player(long machine)
@@ -119,6 +151,76 @@ static boolean ni_active_npc(long unit,int count)
         (u=unit_try_and_get(unit))&&u->unit.player_index==NONE&&u->object.type==_object_type_biped&&
         u->object.parent_object_index==NONE&&u->object.node_matrices.size==count*sizeof(real_matrix4x3);
 }
+/* Test73 (10d): the VR features this machine's player uses, for its host
+(none in a build without VR) */
+static unsigned long ni_client_features(void)
+{
+#ifdef HALO_VR
+    unsigned long features=NETWORK_VR_MELEE;
+    if(config_boolean("vr.manual_reload"))features|=NETWORK_VR_RELOAD;
+    if(config_boolean("vr.physical_grenades"))features|=NETWORK_VR_GRENADES;
+    if(config_boolean("vr.slide")||config_boolean("vr.parkour_wallrun")||config_boolean("vr.parkour_walljump")||
+       config_boolean("vr.parkour_climb"))features|=NETWORK_VR_MOVEMENT;
+    return features;
+#else
+    return 0;
+#endif
+}
+/* Test73 (10d): (host) a client's reload, committed as the local player's is
+(weapons.c): the weapon its unit holds, when it is the kind the client
+reloaded (its tag, which every machine with the map numbers alike), at most
+every NI_RELOAD_INTERVAL */
+static void ni_action_reload(short player,long unit,long definition,unsigned long now)
+{
+    struct unit_datum *u=unit_get(unit);
+    long weapon=u->unit.current_weapon_index>=0?unit_inventory_get_weapon(unit,u->unit.current_weapon_index):NONE;
+    struct weapon_datum *held=weapon!=NONE?weapon_try_and_get(weapon):NULL;
+    if(!held||held->definition_index!=definition||
+       (ni_actions[player].reload_at&&now-ni_actions[player].reload_at<NI_RELOAD_INTERVAL))return;
+    ni_actions[player].reload_at=now;
+    weapon_vr_reload_commit(weapon);
+    platform_log("[physical network] player %d: manual reload committed (weapon %08lx)",player,(unsigned long)weapon);
+}
+/* (host) a client's physical grenade, thrown as the local player's is
+(units.c): within reach, no faster than a throw may be, of a kind it has */
+static void ni_action_grenade(short player,long unit,long type,real_point3d const *point,
+    real_vector3d const *velocity,unsigned long now)
+{
+    real_point3d camera;real_vector3d reach;
+    if(type<0||type>1||!valid_real_point3d(point)||!valid_real_vector3d(velocity)||
+       !(magnitude3d(velocity)<=NI_GRENADE_SPEED)||
+       (ni_actions[player].grenade_at&&now-ni_actions[player].grenade_at<NI_GRENADE_INTERVAL))return;
+    unit_get_camera_position(unit,&camera);vector_from_points3d(&camera,point,&reach);
+    if(!(magnitude3d(&reach)<=NI_GRENADE_REACH))return;
+    ni_actions[player].grenade_at=now;
+    platform_log("[physical network] player %d: grenade %ld %s",player,type,
+        unit_vr_throw_player_grenade(unit,(short)type,point,velocity)?"thrown":"refused (count, state or collision)");
+}
+/* (host) a client's fist blow, dealt as the local player's is (units.c):
+on another body, within reach, its numbers within bounds, at most every
+NI_STRIKE_INTERVAL; the shove along the blow, level */
+static void ni_action_strike(short player,long unit,long target,real_point3d const *point,
+    real_vector3d const *direction,real_vector3d const *numbers,unsigned long now)
+{
+    struct object_datum *body;real_point3d camera;real_vector3d reach,shove;
+    real scale=numbers->i,share=numbers->j,push=numbers->k;
+    if(target==unit||!distributed_object_index_valid(target)||!(body=object_try_and_get(target))||
+       !valid_real_point3d(point)||!valid_real_vector3d(direction)||
+       !(scale>=0.0f&&scale<=NI_STRIKE_SCALE)||!(share>=0.0f&&share<=NI_STRIKE_SHARE)||
+       !(push>=0.0f&&push<=NI_STRIKE_SHOVE)||
+       (ni_actions[player].strike_at&&now-ni_actions[player].strike_at<NI_STRIKE_INTERVAL))return;
+    unit_get_camera_position(unit,&camera);vector_from_points3d(&camera,point,&reach);
+    if(!(magnitude3d(&reach)<=NI_STRIKE_REACH))return;
+    vector_from_points3d(&body->object.bounding_sphere_center,point,&reach);
+    if(!(magnitude3d(&reach)<=body->object.bounding_sphere_radius+NI_STRIKE_BODY))return;
+    ni_actions[player].strike_at=now;
+    shove=*direction;shove.k=0;
+    if(magnitude3d(&shove)>0.0001f)scale_vector3d(&shove,push/magnitude3d(&shove),&shove);
+    else shove.i=shove.j=shove.k=0;
+    platform_log("[physical network] player %d: fist blow on %08lx (strength %.2f, share %.2f) %s",player,
+        (unsigned long)target,scale,share,unit_vr_remote_strike(unit,target,point,direction,scale,share,&shove)?
+        "dealt":"refused");
+}
 void network_interaction_receive(long machine,byte type,void const *data,short count,word bytes)
 {
     struct ni_header h;unsigned long now=system_milliseconds();
@@ -138,9 +240,19 @@ void network_interaction_receive(long machine,byte type,void const *data,short c
              * installs; the additive NPC confirmation is ignored by old peers. */
             ni_cap(machine,NI_CONFIRM,h.nonce,ready?1:0);
             ni_cap(machine,NI_NPC_CONFIRM,h.nonce,npc_ready?1:0);
+            /* Test73: what VR INTERACTIONS allows the clients (none while a
+            client has not negotiated) */
+            ni_cap(machine,NI_FEATURES,h.nonce,ready?NETWORK_VR_FEATURES:0);
+        } else if(server&&h.kind==NI_CLIENT_FEATURES&&ni_peers[machine].nonce==h.nonce&&
+            ni_peers[machine].player==ni_machine_player(machine)) {
+            ni_peers[machine].features=h.sequence&NETWORK_VR_FEATURES;
         } else if(!server&&h.kind==NI_OFFER) {
-            if(ni_host_nonce!=h.nonce)ni_host_ready=ni_host_npc_ready=FALSE;
+            if(ni_host_nonce!=h.nonce){ni_host_ready=ni_host_npc_ready=FALSE;ni_host_features=0;}
             ni_host_nonce=h.nonce;ni_cap(NONE,NI_ACK,h.nonce,0);
+            ni_cap(NONE,NI_CLIENT_FEATURES,h.nonce,ni_client_features());
+        } else if(!server&&h.kind==NI_FEATURES&&ni_host_nonce==h.nonce) {
+            ni_host_features=h.sequence&NETWORK_VR_FEATURES;
+            ni_host_seen=now;
         } else if(!server&&h.kind==NI_CONFIRM&&ni_host_nonce==h.nonce) {
             ni_host_ready=h.sequence==1;
             if(!ni_host_ready)ni_host_npc_ready=FALSE;
@@ -154,6 +266,24 @@ void network_interaction_receive(long machine,byte type,void const *data,short c
     if(type!=_distributed_message_vr_pose)return;
     if(server?(!network_interaction_host_ready()||ni_peers[machine].nonce!=h.nonce):
        (!ni_host_ready||now-ni_host_seen>NI_LEASE||ni_host_nonce!=h.nonce))return;
+    /* Test73 (10d): a client's reload or grenade: its own player's living
+    unit, each sequence once (it sends copies), a kind it said it uses */
+    if(h.kind==NI_ACTION&&server&&bytes==sizeof(struct ni_hand_wire)) {
+        struct ni_hand_wire w;struct unit_datum *u;struct player_datum *p;memcpy(&w,data,sizeof(w));
+        if(!VALID_INDEX(w.player,MAXIMUM_TRACKED_PLAYERS)||!distributed_machine_has_player(machine,w.player)||
+           !(p=distributed_player(w.player))||p->unit_index!=w.unit||!distributed_object_index_valid(w.unit)||
+           !(u=unit_try_and_get(w.unit))||u->object.parent_object_index!=NONE||
+           TEST_FLAG(u->object.damage_flags,_object_dead_bit)||
+           (ni_actions[w.player].sequenced&&(long)(h.sequence-ni_actions[w.player].sequence)<=0))return;
+        ni_actions[w.player].sequence=h.sequence;ni_actions[w.player].sequenced=TRUE;
+        if(w.features==NETWORK_VR_ACTION_RELOAD&&(ni_peers[machine].features&NETWORK_VR_RELOAD))
+            ni_action_reload(w.player,w.unit,w.object,now);
+        else if(w.features==NETWORK_VR_ACTION_GRENADE&&(ni_peers[machine].features&NETWORK_VR_GRENADES))
+            ni_action_grenade(w.player,w.unit,w.object,&w.position,&w.forward,now);
+        else if(w.features==NETWORK_VR_ACTION_STRIKE&&(ni_peers[machine].features&NETWORK_VR_MELEE))
+            ni_action_strike(w.player,w.unit,w.object,&w.position,&w.forward,&w.up,now);
+        return;
+    }
     if(h.kind==NI_CANCEL&&server&&bytes==sizeof(struct ni_hand_wire)) {
         struct ni_hand_wire w;struct player_datum *p;memcpy(&w,data,sizeof(w));
         if(w.hand>1||!VALID_INDEX(w.player,MAXIMUM_TRACKED_PLAYERS)||!distributed_machine_has_player(machine,w.player)||
@@ -387,4 +517,76 @@ boolean network_interaction_palette_owned(long unit)
         if(pose->valid&&pose->unit==unit&&now-pose->received<=MAX(500,pose->cadence_ms*3)&&ni_active_npc(unit,pose->count))return TRUE;
     }
     return FALSE;
+}
+
+/* ---------- Test73 (10d): VR INTERACTIONS for the host and every player */
+
+boolean network_interaction_vr_allowed(unsigned long feature)
+{
+    switch(game_connection()) {
+    case _game_connection_local:
+        return TRUE;
+    case _game_connection_network_server:
+        return network_interaction_host_ready();
+    case _game_connection_network_client:
+        return ni_host_ready&&system_milliseconds()-ni_host_seen<=NI_LEASE&&(ni_host_features&feature)==feature;
+    default:
+        return FALSE;
+    }
+}
+
+boolean network_interaction_player_vr(long player,unsigned long feature)
+{
+    long machines[HALO_PORT_MAXIMUM_NETWORK_MACHINES];short count;byte index;
+    if(player==NONE||game_connection()!=_game_connection_network_server||!network_interaction_host_ready())return FALSE;
+    index=distributed_player_to_byte(player);
+    count=distributed_client_machines(machines,NUMBEROF(machines));
+    for(short i=0;i<count;i++) {
+        long m=machines[i];
+        if(VALID_INDEX(m,NUMBEROF(ni_peers))&&ni_peers[m].ready&&distributed_machine_has_player(m,index))
+            return (ni_peers[m].features&feature)==feature;
+    }
+    return FALSE;
+}
+
+boolean network_interaction_unit_manual_reload(long unit)
+{
+    struct unit_datum *u;
+    if(unit==NONE||game_connection()!=_game_connection_network_server)return FALSE;
+    u=(struct unit_datum *)object_try_and_get_and_verify_type(unit,_object_mask_unit);
+    return u&&u->unit.player_index!=NONE&&network_interaction_player_vr(u->unit.player_index,NETWORK_VR_RELOAD);
+}
+
+/* (a client) an action in a hand's wire: position, vector (the forward) and
+numbers (the up), each optional */
+static void ni_client_action(byte kind,long player,long unit,long object,real_point3d const *position,
+    real_vector3d const *vector,real_vector3d const *numbers)
+{
+    struct ni_hand_wire w;
+    if(game_connection()!=_game_connection_network_client||!ni_host_ready||system_milliseconds()-ni_host_seen>NI_LEASE)return;
+    memset(&w,0,sizeof(w));
+    ni_header_init(&w.h,NI_ACTION,ni_host_nonce,++ni_sequence);
+    w.features=kind;w.player=distributed_player_to_byte(player);w.unit=unit;w.object=object;
+    if(position)w.position=*position;
+    if(vector)w.forward=*vector;
+    if(numbers)w.up=*numbers;
+    /* (copies of the one sequence: one is taken, however many arrive) */
+    for(int copy=0;copy<NI_ACTION_COPIES;copy++)ni_send(NONE,&w,sizeof(w),_distributed_message_vr_pose);
+}
+
+void network_interaction_client_action(byte kind,long player,long unit,long object,
+    real_point3d const *position,real_vector3d const *vector)
+{
+    ni_client_action(kind,player,unit,object,position,vector,NULL);
+}
+
+void network_interaction_client_strike(long player,long unit,long target,real_point3d const *point,
+    real_vector3d const *direction,real scale,real multiplier,real_vector3d const *shove)
+{
+    real_vector3d numbers;
+    if(!point||!direction)return;
+    /* (in the hand wire's last vector: strength, share, the shove's speed) */
+    numbers.i=scale;numbers.j=multiplier;numbers.k=shove?magnitude3d(shove):0.0f;
+    if(!isfinite(numbers.k))numbers.k=0.0f;
+    ni_client_action(NETWORK_VR_ACTION_STRIKE,player,unit,target,point,direction,&numbers);
 }

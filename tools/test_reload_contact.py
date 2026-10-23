@@ -50,6 +50,8 @@ static int enabled=1,active=1,network;static double now=10;
 static int config_boolean(char const*k){(void)k;return enabled;}
 static int vr_active(void){return active;}
 static int game_connection(void){return network;}
+/* (Test73, 10d: the production gate is network_interaction_vr_allowed; here a network session whose host does not allow it) */
+static int reload_session_allowed(void){return game_connection()==_game_connection_local;}
 static double vr_pose_time(void){return now;}
 static int valid_real_point3d(real_point3d const*p){return p&&isfinite(p->x)&&isfinite(p->y)&&isfinite(p->z);}
 static void reload_refresh_held_pose(void){}

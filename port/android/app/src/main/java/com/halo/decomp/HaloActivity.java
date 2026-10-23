@@ -49,6 +49,8 @@ public class HaloActivity extends SDLActivity implements TouchControls.LayoutTra
         java.io.File gameRoot = getExternalFilesDir(null);
         java.io.File shared = new java.io.File("/sdcard/Documents/HaloCE");
         if (BuildConfig.APPLICATION_ID.endsWith(".vr") && new java.io.File(shared, "maps/ui.map").isFile()) gameRoot = shared;
+        // (Test73: the Steam Frame's, as LauncherActivity.baseRoot and host_main.c have it)
+        if (Lepton.running() && Lepton.dataRoot() != null) gameRoot = Lepton.dataRoot();
         gameRoot=GameDataLibrary.activeRoot(gameRoot);
         NetworkProfile.gameStarted(gameRoot);
         if (gameRoot != null) { new java.io.File(gameRoot, "coop_status.txt").delete(); new java.io.File(gameRoot, "pvp_status.txt").delete(); }

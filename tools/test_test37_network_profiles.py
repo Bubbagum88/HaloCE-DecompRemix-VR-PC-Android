@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 import subprocess
 
+import network_expected as netv  # noqa: E402 (tools/: the versions this build hosts and joins)
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -22,9 +23,9 @@ def function(source, name):
 
 
 limits = read("port/linux/include/halo_port_limits.h")
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 29$", limits, re.M)
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MINIMUM 11$", limits, re.M)
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MAXIMUM 29$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION %d$" % netv.CURRENT, limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MINIMUM %d$" % netv.MINIMUM, limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MAXIMUM %d$" % netv.MAXIMUM, limits, re.M)
 assert re.search(r"^#define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15$", limits, re.M)
 assert re.search(r"^#define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23$", limits, re.M)
 assert "int halo_port_active_network_version(void);" in limits
@@ -106,9 +107,9 @@ fixture = r'''#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define HALO_PORT_NETWORK_VERSION 29
-#define HALO_PORT_NETWORK_VERSION_MINIMUM 11
-#define HALO_PORT_NETWORK_VERSION_MAXIMUM 29
+#define HALO_PORT_NETWORK_VERSION ''' + str(netv.CURRENT) + r'''
+#define HALO_PORT_NETWORK_VERSION_MINIMUM ''' + str(netv.MINIMUM) + r'''
+#define HALO_PORT_NETWORK_VERSION_MAXIMUM ''' + str(netv.MAXIMUM) + r'''
 #define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15
 #define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23
 #define HALO_PORT_ADVERTISED_DISTRIBUTED_FLAG 0x01
@@ -280,8 +281,8 @@ cfile, binary = out / "native_profiles.c", out / "native_profiles"
 cfile.write_text(fixture, encoding="utf-8")
 subprocess.run(["clang", "-std=gnu11", "-O1", "-Wall", "-Wextra", "-Wno-unused-function",
                 "-Wno-unused-parameter", "-fsanitize=address,undefined", str(cfile), "-pthread", "-o", str(binary)], check=True)
-# Test59: every target 11..28 (27 and 28 included), and 29 refused
-for target in [0, *range(11, 29), -1, 10, 29, 65535]:
+# every target in the join range accepted (Test59: 27 and 28 included), one either side of it refused
+for target in [0, *range(netv.MINIMUM, netv.MAXIMUM + 1), -1, netv.MINIMUM - 1, netv.MAXIMUM + 1, 65535]:
     subprocess.run([str(binary), str(target)], check=True)
 
 print("PASS: native discovery and admission use client target selection while the host remains protocol 28")

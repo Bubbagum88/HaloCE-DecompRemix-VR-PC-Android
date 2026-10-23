@@ -370,6 +370,9 @@ static struct
 	long unit, tick;
 	int jump_down, jump_age, run_ticks, running, jumped_wall, wall_valid;
 	int walljump_age, lost_ticks;
+	/* Test73: the wall jump's leap held against air control (vr_pk_leap_hold) */
+	int leap_ticks;
+	float leap_direction[2], leap_speed;
 	real run_speed;
 	real_vector3d wall_normal;
 	real_point3d wall_point;
@@ -465,6 +468,13 @@ void flat_movement_parkour_velocity(long unit, real_point3d const *position, flo
 		wall.run_ticks = 0;
 		wall.jumped_wall = 0;
 		wall.wall_valid = 0;
+		wall.leap_ticks = 0;
+	}
+	/* Test73: the leap goes where it was aimed, not back along the held key */
+	if (wall.leap_ticks > 0)
+	{
+		vr_pk_leap_hold(wall.leap_direction, wall.leap_speed, velocity->n);
+		wall.leap_ticks--;
 	}
 	throttle = sqrtf(biped->unit.throttle.i * biped->unit.throttle.i + biped->unit.throttle.j * biped->unit.throttle.j);
 	left.i = -biped->object.forward.j;
@@ -565,6 +575,7 @@ void flat_movement_parkour_velocity(long unit, real_point3d const *position, flo
 			stick[1] = (float)(facing.j * biped->unit.throttle.i + facing.i * biped->unit.throttle.j);
 		}
 		vr_pk_wall_leap(look.n, from_wall.n, carried, stick, 5.0f * per_second * scale, upward, velocity->n);
+		wall.leap_ticks = vr_pk_leap_start(velocity->n, wall.leap_direction, &wall.leap_speed) ? VR_PK_LEAP_HOLD_TICKS : 0;
 		platform_log("flat wall jump: wall %.2f/%.2f/%.2f%s", from_wall.i, from_wall.j, from_wall.k,
 			wall.running ? " (run wall)" : "");
 		wall.jumped_wall = 1;
@@ -634,6 +645,7 @@ void flat_movement_parkour_velocity(long unit, real_point3d const *position, flo
 				platform_log("flat wall run: started (chained=%d)", wall.walljump_age <= 2 * TICKS_PER_SECOND);
 			wall.running = 1;
 			wall.run_ticks++;
+			wall.leap_ticks = 0;
 			return;
 		}
 	}

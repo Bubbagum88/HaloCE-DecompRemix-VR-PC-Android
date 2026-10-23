@@ -47,3 +47,14 @@ Please report both failures and successful tests, especially for fist combat/def
 Contact **@MeWhenINameMyself** by Discord DM, use the [Halo CE Decomp Discord](https://discord.gg/S9uSCKxKx), or report in the [Flat2VR Halo CE discussion](https://discord.com/channels/747967102895390741/1555959498349215774). This build is intended to collect real-device feedback for the next refinement pass.
 
 The About description is unchanged. This repository is an unofficial community project, not affiliated with Microsoft. No Halo game files are distributed. See [credits](CREDITS.md) and [third-party notices](THIRD-PARTY-NOTICES.txt). PC and Steam Frame ports remain deferred.
+
+## Licence
+
+From Test73 on, this project is free software under the terms of the GNU Affero General Public License, version 3 or (at your option) any later version (`AGPL-3.0-or-later`), without any warranty; the full text is in [LICENSE](LICENSE).
+
+- **Why:** this port merges OpenCE, which moved to the AGPL 3.0 or later with its commit 4b09168e7 (between its Builds 232 and 246), as the decompilation both build on did ([punpckhdq/halo](https://github.com/punpckhdq/halo), from 17 October 2026).
+- **Before the change:** the code from before it, and every release of this project up to Test72 (v1.0.37 included), were released under [CC0 1.0](LICENSES/CC0-1.0.txt) and stay that way.
+- **Source:** each release's source is offered with it (the release's source zip, and its tag).
+- **Hosts and servers:** if you change the game and let other people play your version over a network (as an internet game's host, for example), the AGPL asks you to offer them your version's source (section 13).
+- **Other parts:** third-party code, fonts and art keep their own licences, next to them and in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
+- **Halo is not covered:** the licence covers this project's and its upstreams' work, and gives no rights in Halo, its maps or anything else Microsoft owns.

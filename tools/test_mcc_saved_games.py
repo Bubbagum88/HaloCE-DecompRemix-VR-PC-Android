@@ -45,7 +45,7 @@ static char mcc_saved_game_names[MAXIMUM_ROWS][256];
 static long active=PROFILE_VALID_BIT;
 static char saves[3][256];
 static short difficulty=2;
-static int storage_valid=1,required=0,available=1,stock_calls=0,starts=0;
+static int storage_valid=1,required=0,available=1,stock_calls=0,starts=0,saved_game_starts=0;
 static char started[256];
 long player_ui_get_active_player_profile_index(short player) {(void)player;return active;}
 boolean game_state_test_persistent_storage(char *name,short *out,boolean *corrupt) {
@@ -59,8 +59,8 @@ boolean campaign_profile(short controller,struct player_profile *profile) {
     (void)controller;wcscpy(profile->player_name,L"player");return active!=NONE;
 }
 boolean campaign_fail(void) {return FALSE;}
-void campaign_start(char const *name,short level,short controller) {
-    (void)level;(void)controller;strcpy(started,name);starts++;
+void campaign_start(char const *name,short level,short controller,boolean saved_game) {
+    (void)level;(void)controller;strcpy(started,name);starts++;saved_game_starts+=saved_game!=0;
 }
 boolean ui_widget_port_saved_game(char const **name,short *level,short *out) {
     stock_calls++;*name=saves[active&255];*level=0;*out=difficulty;
@@ -108,8 +108,8 @@ int main(int argc,char **argv) {
         if(!result && name[0])return 13;
         printf("difficulty=%d\n",out);
     } else return 2;
-    printf("result=%d\nstarts=%d\nstarted=%s\nrequired=%d\nstock_calls=%d\ncount=%d\n",
-        result,starts,started,required,stock_calls,campaign.saved_game_count);
+    printf("result=%d\nstarts=%d\nstarted=%s\nrequired=%d\nstock_calls=%d\ncount=%d\nsaved_game_starts=%d\n",
+        result,starts,started,required,stock_calls,campaign.saved_game_count,saved_game_starts);
     return 0;
 }
 '''
@@ -142,6 +142,8 @@ def test_continue_routes_only_mcc_to_new_loader(saved_game_tool, name, starts, r
     assert fields["stock_calls"] == str(stock_calls)
     if starts:
         assert fields["started"] == name
+        # (Continue goes on with the saved game: halo-ce-universal eaa3b6194)
+        assert fields["saved_game_starts"] == "1"
 
 
 def test_missing_mcc_checkpoint_map_does_not_start(saved_game_tool):
@@ -160,6 +162,8 @@ def test_saved_game_selection_uses_its_own_namespace(saved_game_tool, row, expec
     assert fields["result"] == "1"
     assert fields["started"] == expected
     assert fields["required"] == str(required)
+    # (Load Game goes on with the saved game)
+    assert fields["saved_game_starts"] == "1"
 
 
 @pytest.mark.parametrize("difficulty,expected", [(-8, 0), (8, 3)])

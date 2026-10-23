@@ -77,6 +77,7 @@ static struct { char const *key; int on; } store[] = {
     {"vr.npc_one_hand_heavy",0}, /* Test63: ONE-HAND HEAVIES */
     {"vr.combat_moves",0},{"vr.projectile_parry",0}, /* Test67 optional combat refinements */
     {"vr.vehicle_cockpit_lock",1},{"vr.vehicle_grip_guide",0},{"vr.npc_lift_to_ragdoll",1}, /* Test65 */
+    {"vr.vehicle_hand_lock",1}, /* Test73: HAND LOCK */
     {"vr.slide",0},{"vr.arm_run",0}}; /* Test70: SLIDE brings a sprint (BUTTON SPRINT unless ARM RUN) */
 static char automatic_store[256], view_store[32] = "chase", melee_store[32] = "swing";
 static real speed_store, assist_store = 0.05f;

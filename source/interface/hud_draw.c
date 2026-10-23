@@ -83,6 +83,7 @@ symbols in this file:
 /* ---------- headers */
 
 #include "cseries/cseries.h"
+#include "passenger_camera.h" /* port: port/linux/game/passenger_camera.c */
 #include "cseries/errors.h"
 #include "math/real_math.h"
 #include "bitmaps/bitmaps.h"
@@ -118,6 +119,9 @@ enum { _hud_mcc_bitmap_linear_bit = 4 };
 enum
 {
 	_hud_dont_scale_offset_bit = 0,
+	/* port: Halo PC's, which the Xbox's tags never set (OpenCE build 232:
+	hud_draw_numbers reads it, cache_file_formats.c keeps it on numbers) */
+	_hud_use_high_resolution_scale_bit = 2,
 };
 
 /* hud number and meter definitions (no shared header declares these yet;
@@ -217,6 +221,12 @@ enum hud_multitexture_overlay_blend_function
 enum bitmap_group_type
 {
 	_bitmap_group_type_interface_bitmaps = 4,
+};
+
+/* port: Halo PC's bitmap group flag, which the Xbox's tags never set */
+enum
+{
+	_bitmap_group_half_hud_scale_bit = 4,
 };
 
 enum
@@ -1502,6 +1512,9 @@ void hud_draw_static_element(
 	return;
 }
 
+/* port: the left of the last picture drawn (hud_draw.h) */
+short hud_draw_last_left;
+
 static void hud_draw_bitmap_internal(
 	void *meter_parameters,
 	struct bitmap_data const *bitmap,
@@ -1541,6 +1554,11 @@ static void hud_draw_bitmap_internal(
 		vertices[vertex_index].texture_coordinates.y = texture_y;
 		vertices[vertex_index].color = color;
 	}
+
+	/* port: where it is drawn (hud_draw_last_left) */
+	hud_draw_last_left = SHORT_MAX;
+	for (vertex_index = 0; vertex_index < 4; vertex_index++)
+		hud_draw_last_left = (short)MIN(hud_draw_last_left, vertices[vertex_index].position.x);
 
 	if (reticle_scale != 1.0f)
 	{
@@ -1630,6 +1648,9 @@ static void hud_draw_bitmap_with_meter(
 			_hud_dont_scale_offset_bit),
 		0.0f,
 		&point);
+	/* port: the crosshairs_draw scope moves only the weapon's reticle */
+	if (is_crosshair_bitmap)
+		passenger_camera_reticle_offset(&point);
 	hud_calculate_bitmap_bounds(
 		bitmap,
 		absolute_placement->corner,
@@ -2026,8 +2047,14 @@ void hud_draw_numbers(
 				scale = hud_globals_get_scale(
 					TEST_FLAG(draw_flags, _hud_draw_in_multiplayer_bit));
 			}
-
-			digit_scale = scale;
+			/* port: Halo PC draws the digits at half their size, spaced as
+			the digits tag says, for a number flagged to use its high
+			resolution scale (its Custom Edition maps' digits are twice the
+			size) or digits whose bitmap has its half HUD scale (OpenCE build
+			232; cache_file_formats.c keeps the flag on numbers) */
+			digit_scale = TEST_FLAG(numbers->placement.multiplayer_scaling_flags, _hud_use_high_resolution_scale_bit) ||
+				TEST_FLAG(bitmap_group->flags, _bitmap_group_half_hud_scale_bit) ?
+				scale*0.5f : scale;
 			if (mcc_cache_tags_loaded())
 				digit_scale *= mcc_hud_canvas_scale();
 

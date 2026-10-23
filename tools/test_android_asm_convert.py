@@ -14,6 +14,11 @@ real tables through the production pipeline and compares the assembled bytes.
 When the Android third-party headers exist (after configure.py), the actual
 Opus mode tables are compiled and compared with the vendored source, and a
 built guest image, when present, is checked as well.
+
+Conversions from floating point to an integer in a SIMD register become
+the vector form, which the x86 emulator's ARM translation has: the scalar
+form stopped the app with SIGILL in hud_calculate_point once a game was
+drawn (OpenCE 242). Those are checked as text and, with clang, compiled.
 """
 from pathlib import Path
 import re
@@ -61,6 +66,23 @@ assert convert('Lstr: .asciz "_x\\"_y"').splitlines()[-1] == '\t.asciz "_x\\"_y"
 # relocation operators inside strings are data, not errors
 convert('\t.asciz\t"user@host"')
 print("PASS: converter text transforms keep .ascii/.asciz data intact and still undecorate symbols")
+
+# scalar conversions to an integer in a SIMD register: the vector form (OpenCE 242)
+for instruction, replacement in (
+    ("\tfcvtzs\ts0, s0", ["\tfmov s0, s0", "\tfcvtzs v0.2s, v0.2s"]),
+    ("\tfcvtzu\ts2, s17", ["\tfmov s2, s17", "\tfcvtzu v2.2s, v2.2s"]),
+    ("\tfcvtms\td31, d4", ["\tfmov d31, d4", "\tfcvtms v31.2d, v31.2d"]),
+    ("\tfcvtau\td1, d1", ["\tfmov d1, d1", "\tfcvtau v1.2d, v1.2d"]),
+    ("\tfcvtns\ts3, s4, #4", ["\tfmov s3, s4", "\tfcvtns v3.2s, v3.2s, #4"]),
+    ("\tfcvtpu\td5, d6, #16", ["\tfmov d5, d6", "\tfcvtpu v5.2d, v5.2d, #16"]),
+):
+    assert convert(instruction).splitlines() == replacement, (instruction, convert(instruction))
+# the other conversions are kept
+for instruction in ("\tfcvtzs\tw0, s0", "\tfcvtzu\tx3, d1", "\tfcvtzs\tv0.4s, v1.4s", "\tscvtf\ts0, s0",
+                    "\tucvtf\td1, d2", "\tfcvt\td0, s0", "\tfcvtzs\tw8, s0, #4"):
+    op, args = instruction.strip().split("\t")
+    assert convert(instruction).splitlines() == [f"\t{op} {args}"], (instruction, convert(instruction))
+print("PASS: scalar float-to-integer conversions in SIMD registers become the vector form; the others are kept")
 
 
 # ---------- the production pipeline: C -> arm64_32 Darwin assembly -> ELF object
@@ -158,6 +180,31 @@ expected = b'_leading "_quoted_" Ltmp0 _main \\_x @PAGEOFF\0'
 got = symbol_bytes(obj, "halo_test_string", ".rodata", len(expected))
 assert got == expected, (got, expected)
 print("PASS: byte tables and strings compiled through the guest pipeline are byte-identical")
+
+# what clang makes of a rounded short (as hud_calculate_point's point),
+# through the guest's pipeline: no scalar form is left, and it assembles
+SCALAR_FROM_SIMD = re.compile(r"^\s*fcvt[amnpz][su]\s+[sd]\d+\s*,", re.MULTILINE)
+point_source = OUT / "point.c"
+point_source.write_text(
+    "struct point { short x, y; };\n"
+    "void calculate_point(float x, float y, struct point *result)\n"
+    "{ result->x = (short)__builtin_rintf(x); result->y = (short)__builtin_rintf(y); }\n"
+    "void store_doubles(double a, double b, long long *result) { result[0] = (long long)a; result[1] = (long long)b; }\n",
+    encoding="utf-8",
+)
+point_darwin = OUT / "point.darwin.s"
+subprocess.run([cc, *GUEST_ABI, "-S", str(point_source), "-o", str(point_darwin)], check=True)
+if SCALAR_FROM_SIMD.search(point_darwin.read_text()):
+    point_elf = OUT / "point.s"
+    subprocess.run([sys.executable, str(ROOT / "tools/android_asm_convert.py"), str(point_darwin), str(point_elf)],
+                   check=True)
+    text = point_elf.read_text()
+    assert not SCALAR_FROM_SIMD.search(text), "a scalar conversion is left"
+    assert re.search(r"fcvtzs v\d+\.2s, v\d+\.2s", text), "no vector conversion"
+    subprocess.run([cc, "--target=aarch64-linux-android", "-c", str(point_elf), "-o", str(OUT / "point.o")], check=True)
+    print("PASS: a compiled rounding conversion leaves no scalar SIMD form and assembles")
+else:
+    print("SKIP: this clang converts in general registers (no scalar SIMD form to replace)")
 
 # the real Opus mode tables (voice chat), when the guest libc headers exist
 musl = ROOT / "build/android/third_party/musl-1.2.5"

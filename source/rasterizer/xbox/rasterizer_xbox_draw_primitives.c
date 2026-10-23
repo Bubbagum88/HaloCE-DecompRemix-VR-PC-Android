@@ -328,6 +328,9 @@ typedef char rasterizer_triangle_size_assert[
 
 /* ---------- prototypes */
 
+/* (rasterizer_xbox.c) */
+void rasterizer_model_part_skinning(struct vertex_buffer const *vertex_buffer);
+
 static D3DVertexBuffer *dynamic_vertex_group_get_d3d_vertex_buffer(
 	struct dynamic_vertex_group const *group);
 static void draw_primitives_data_error(
@@ -801,6 +804,11 @@ long _rasterizer_dynamic_vertices_new(
 		else if (!dynamic_vertices_overflow_warning)
 		{
 			error(_error_silent, "### ERROR too many dynamic vertices requested from rasterizer");
+			/* port (Test73): which limit, said once: the vertices of the
+			type, or the buffers */
+			error(_error_silent, "dynamic vertices of type %d: %ld of %ld in use, %ld more asked; %ld of %d buffers in use",
+				type, group->vertex_count, group->maximum_vertex_count, count, dynamic_vertices.buffer_count,
+				(int)RASTERIZER_MAXIMUM_DYNAMIC_VERTEX_BUFFERS);
 			dynamic_vertices_overflow_warning = TRUE;
 		}
 	}
@@ -1291,6 +1299,8 @@ void rasterizer_draw_dynamic_triangles_static_vertices(
 		RASTERIZER_XBOX_DRAW_PRIMITIVES_FILE,
 		823,
 		global_d3d_device);
+	/* port: a part of a model of many nodes, its own nodes' matrices (rasterizer_xbox.c) */
+	rasterizer_model_part_skinning(vertex_buffer);
 
 	while (triangle_count>0)
 	{
@@ -1434,6 +1444,8 @@ void rasterizer_draw_dynamic_triangles_static_vertices2(
 		RASTERIZER_XBOX_DRAW_PRIMITIVES_FILE,
 		890,
 		global_d3d_device);
+	/* port: a part of a model of many nodes, its own nodes' matrices (rasterizer_xbox.c) */
+	rasterizer_model_part_skinning(vertex_buffer0);
 
 	while (triangle_count>0)
 	{
@@ -1773,6 +1785,8 @@ void rasterizer_draw_static_triangles_static_vertices(
 		RASTERIZER_XBOX_DRAW_PRIMITIVES_FILE,
 		1063,
 		global_d3d_device);
+	/* port: a part of a model of many nodes, its own nodes' matrices (rasterizer_xbox.c) */
+	rasterizer_model_part_skinning(vertex_buffer);
 
 	while (triangle_count>0)
 	{

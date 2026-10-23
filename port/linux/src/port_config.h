@@ -24,6 +24,9 @@ unsigned long config_changes(void);
 int config_override(const char *name, const char *text);
 int config_is_overridden(const char *name);
 void config_override_clear(void);
+/* debug.fixed_step (also in halo_linux_source_fixups.h, for the game's
+sources) */
+int halo_fixed_step(void);
 
 int config_boolean(const char *name);
 long config_integer(const char *name);
@@ -48,5 +51,8 @@ int config_write_text(const char *name, const char *text);
 #ifdef HALO_VR
 void config_vr_vehicle_defaults(void);
 #endif
+/* Test73 (10d): VR INTERACTIONS (net.physical_interactions) turned on once in
+a config saved before it was on by default (game.c game_initialize) */
+void config_vr_interactions_default(void);
 
 #endif

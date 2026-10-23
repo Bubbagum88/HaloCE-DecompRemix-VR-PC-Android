@@ -64,8 +64,9 @@ game advertisements. This build advertises 24; supported PvP clients may
 accept a compatible host version from the declared range. Hosts built before
 the field was added send zero, which clients reject. Raise the host version
 when a wire change requires it. */
-/* This build hosts and advertises as OpenCE network version 29 (OpenCE
-Build206). The supported PvP host range (11..29) follows ChupaThingyCE's
+/* This build hosts and advertises as OpenCE network version 33 (OpenCE's
+testing branch, on OpenCE Build 256). The supported PvP host range (11..33)
+follows ChupaThingyCE's
 OpenCE-derived compatibility table, extended by OpenCE's 25 (a unit's
 integrated light in the host's object states, with a bit saying it was sent,
 so older hosts' zeros are not "off"), 26 (internet signalling's message
@@ -81,21 +82,42 @@ holds a downloading machine's players, which this build's never are) and 29
 game record's map version its hash's first 32 bits, map_share_hash_version,
 where 28 named it for its hash and sent its header checksum: this build's
 client of a host before 29 finds such a map by its name and checks its
-checksum, custom_edition_cache.c).
+checksum, custom_edition_cache.c), 30 (OpenCE Build 242: a client keeps its
+own floor's height on an elevator only within 4 world units of the host's
+echo, and the host takes a rider of an elevator at rest only across, as a
+moving one's: a client of a host before 30 corrects a little more often)
+and 31 (OpenCE Build 242: the pregame keep-alive a long, as on the wire,
+its last two bytes zero, no byte moved; a datagram dropped when its tick is
+more than 15 seconds from its sender's latest, and a client's readiness,
+identity and hit reports taken only over its stream, both on the receiving
+side, which hosts before 31 pass; a second game on the host's computer
+answered at its own port) and 32 (OpenCE Build 244: the host's mouse aim
+assist policy, distributed message 90, network_aim_assist.c, to every
+client; a client of a host before 32, which sends none, keeps the mouse's
+magnetism off, as before the policy arrives) and 33 (OpenCE's testing
+branch after Build 256: co-op's ALLY FRIENDLY FIRE, bit 1 of the game's
+cooperative_flags; only the host deals damage, so a client of a host
+before 33 plays as before) and 34 (OpenCE's fix-scenery-shields-network
+branch: the map's scenery and devices whose shield damage can break are
+static targets, their shields run on every machine, and the host deals what
+one deals itself, a tripmine going off; a client of a host before 34 keeps
+version 33's static targets, network_damage.c's static_target_shields). OpenCE's
+own clients join only a host of their own version; this build's join any in
+the range.
 Client selection can narrow
 discovery/admission but never changes the local wire version. Campaign joins require version15 (the complete presentation
 and allegiance record); Custom Edition maps require version23 or newer. The range is also consumed by Android launcher/update metadata. */
-#define HALO_PORT_NETWORK_VERSION 29
+#define HALO_PORT_NETWORK_VERSION 34
 #define HALO_PORT_NETWORK_VERSION_MINIMUM 11
-#define HALO_PORT_NETWORK_VERSION_MAXIMUM 29
+#define HALO_PORT_NETWORK_VERSION_MAXIMUM 34
 #define HALO_PORT_CAMPAIGN_NETWORK_VERSION_MINIMUM 15
 #define HALO_PORT_CUSTOM_EDITION_NETWORK_VERSION_MINIMUM 23
 /* ... from which a host sends a Custom Edition map's hash version, not its
 header checksum, in the game record (OpenCE Build206) */
 #define HALO_PORT_MAP_HASH_VERSION_NETWORK_VERSION 29
-/* The binary always hosts/advertises as 29. This immutable startup selection
+/* The binary always hosts/advertises as 33. This immutable startup selection
  * controls which compatible remote PvP protocol versions are listed/joined;
- * zero (the default) means all compatible versions in the declared 11..29
+ * zero (the default) means all compatible versions in the declared 11..33
  * range. */
 int halo_port_active_network_version(void);
 /* ... the advertisement's reserved bytes: the version (a little-endian word),

@@ -43,6 +43,16 @@ for host in HOSTS:
     bindings = tables(source)
     bindings.update(tables(SHARED.read_text(encoding="utf-8")))
     suggestions = re.findall(r'suggest\("(/interaction_profiles/[^"]+)",\s*(\w+),', source)
+    # Test73: a table with its fingers' touches (suggest_pair): both are checked, each against the profile
+    pairs = re.findall(r'suggest_pair\("(/interaction_profiles/[^"]+)",\s*(\w+),\s*sizeof\(\2\)\s*/\s*sizeof\(\2\[0\]\),'
+                       r'\s*(\w+),\s*sizeof\(\3\)\s*/\s*sizeof\(\3\[0\]\)\);', source)
+    assert len(pairs) == source.count("\tsuggest_pair(") == 2, pairs
+    for profile, table, fingers in pairs:
+        suggestions += [(profile, table), (profile, fingers)]
+        # a refused pair falls back to the table alone
+        assert fingers.endswith("_fingers") and table + "_fingers" == fingers, (table, fingers)
+    assert "if (XR_SUCCEEDED(suggest(profile, both, count + finger_count)))\n\t\t\treturn;" in source
+    assert source.count("suggest(profile, bindings, count);") == 1
     assert suggestions, host
     for profile, table in suggestions:
         assert profile in SNAPSHOT, profile + " is not a known interaction profile (registry or vendor documentation)"

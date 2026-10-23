@@ -27,8 +27,17 @@
 #include "vr_reload_contact_math.h"
 #include "vr_magazine_debris_math.h"
 #include "vr_reload_generic_profile.h"
+#include "network_interaction.h"
 
 void platform_log(char const *format, ...);
+
+/* Test73 (10d): a local game, or a co-op game whose host's VR INTERACTIONS
+allows manual reload (network_interaction.c): a client's commit is then the
+host's (weapons.c sends it), its magazines and gestures its own as ever */
+static boolean reload_session_allowed(void)
+{
+    return network_interaction_vr_allowed(NETWORK_VR_RELOAD);
+}
 enum { RELOAD_MAGAZINE, RELOAD_SHELL, RELOAD_TUBES, RELOAD_CANISTER, RELOAD_CRYSTALS };
 struct reload_profile { char const *path, *ammo, *chamber; int kind; };
 static struct reload_profile const profiles[] = {
@@ -256,7 +265,7 @@ static void debris_spawn_from_reload(struct model *model, real_matrix4x3 *matric
     if (!model || !matrices || !reload.debris_pending) return;
     reload.debris_pending = 0;
     if (!config_boolean("vr.dropped_magazines") || !config_boolean("vr.manual_reload") ||
-        game_connection() != _game_connection_local ||
+        !reload_session_allowed() ||
         reload.kind != RELOAD_MAGAZINE || !reload.component_nodes ||
         model->nodes.count <= 0 || model->nodes.count > MAXIMUM_NODES_PER_MODEL ||
         !reload.bounds_valid[0] || !reload_local_weapon(reload.weapon, &unit_index)) return;
@@ -324,7 +333,7 @@ static void debris_spawn_from_reload(struct model *model, real_matrix4x3 *matric
 
 void vr_manual_reload_debris_tick(void)
 {
-    if (!config_boolean("vr.dropped_magazines") || game_connection() != _game_connection_local) {
+    if (!config_boolean("vr.dropped_magazines") || !reload_session_allowed()) {
         vr_manual_reload_debris_reset();
         return;
     }
@@ -376,7 +385,7 @@ void vr_manual_reload_debris_render(void)
     long player = local != NONE ? local_player_get_player_index(local) : NONE;
     long unit = player != NONE ? player_get(player)->unit_index : NONE;
     struct render_lighting *lighting;
-    if (game_connection() != _game_connection_local || unit == NONE ||
+    if (!reload_session_allowed() || unit == NONE ||
         !config_boolean("vr.dropped_magazines")) return;
     lighting = object_get_cached_render_lighting(unit, 100.0f);
     if (!lighting) return;
@@ -447,7 +456,7 @@ void vr_manual_reload_note_weapon(long weapon_index)
         cancelled_phase=0;
     }
     if (weapon_index == NONE || weapon_index != reload.weapon || !vr_active() ||
-        !config_boolean("vr.manual_reload") || game_connection() != _game_connection_local ||
+        !config_boolean("vr.manual_reload") || !reload_session_allowed() ||
         !reload_local_weapon(weapon_index, &unit) || vr_hand_empty())
         vr_manual_reload_reset();
 }
@@ -516,7 +525,7 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     boolean current = reload_local_weapon(weapon_index, &unit_index);
     char const *gate = NULL;
     boolean suppress_native = vr_mr_suppress_native_reload(
-        config_boolean("vr.manual_reload"), game_connection() == _game_connection_local,
+        config_boolean("vr.manual_reload"), reload_session_allowed(),
         reload.ready && reload.weapon == weapon_index && reload.model != NONE);
     /* Other world/NPC weapons must not cancel the local transaction. */
     if (!current) {
@@ -532,7 +541,7 @@ unsigned vr_manual_reload_update(long weapon_index, int explicit_reload)
     if (!vr_active()) gate = "vr-inactive";
     else if (!vr_controller(&buttons,triggers,thumbs)) gate = "controller-unavailable";
     else if (!config_boolean("vr.manual_reload")) gate = "manual-reload-disabled";
-    else if (game_connection() != _game_connection_local) gate = "network-session";
+    else if (!reload_session_allowed()) gate = "network-session";
     else if (!(units > 0)) gate = "invalid-unit-scale";
     else if (vr_hand_empty()) gate = "weapon-hand-empty";
     else if (!reload.ready) gate = "first-person-profile-not-ready";
@@ -1058,7 +1067,7 @@ int vr_manual_reload_trace(float const from[3],float const vector[3],float radiu
     int hit=0;
     float best=1;
     if(!result || !reload.ready || !config_boolean("vr.manual_reload") || !vr_active() ||
-        game_connection()!=_game_connection_local || vr_pose_time()<reload.sample_time ||
+        !reload_session_allowed() || vr_pose_time()<reload.sample_time ||
         vr_pose_time()-reload.sample_time>0.25)return 0;
     reload_refresh_held_pose();
     for(int part=0;part<2;part++) {
@@ -1130,7 +1139,7 @@ void vr_manual_reload_model(long weapon_index, long model_index, real_matrix4x3 
     short magazine, chamber;
     long unit_index;
     struct reload_profile const *profile = NULL;
-    if (!config_boolean("vr.manual_reload") || !vr_active() || game_connection() != _game_connection_local ||
+    if (!config_boolean("vr.manual_reload") || !vr_active() || !reload_session_allowed() ||
         !reload_local_weapon(weapon_index, &unit_index) || !matrices) return;
     name = tag_get_name(model_index);
     if (!name) {

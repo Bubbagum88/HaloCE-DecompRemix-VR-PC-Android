@@ -1,3 +1,162 @@
+# Test73: every VR feature on, co-op VR for everyone, the newest OpenCE
+
+Private 1.0.40-test73 / code85. Install the matching Quest VR or Android APK over
+Test72 (1.0.39), Test70 (1.0.37) or Test69; the package IDs and signing
+certificate are unchanged. Keep your saved settings. No uninstall is needed. On
+Windows, put the new release's files beside the old ones: your maps, saves,
+campaigns and settings stay. Test72's notes follow this section.
+
+**Every VR feature on, once**
+- This update turns on every VR feature once: manual reload with MAG DEBRIS,
+  fist combat and its options, physical grenades, parkour (wall run, wall
+  jump, climbing), slides, grabbing (NPCs, props, vehicles), one-hand heavies,
+  ragdolls, the immersive vehicle controls, weapon pull, scopes and more, 46
+  settings, each with what it needs (IMMERSIVE VEHICLE brings the first-person
+  seat, SLIDE a sprint button).
+- BULLET TIME is turned on too (its button: the right stick pushed up).
+- Turn anything off in VR SETTINGS and it stays off. Ways to play are left as
+  you had them: ARM RUN, SPRINT TOGGLE, BULLET TIME MODE, GRIP GUIDE, TANK
+  HATCH and the online switches.
+
+**Co-op: VR for every player**
+- One switch: the host's VR INTERACTIONS (Server Setup > CO-OP OPTIONS, on by
+  default) now covers every VR player: fist blows and FIST COMBAT with its
+  lunges, combos and takedowns (each blow dealt by the host), physical grenades
+  from the waist (thrown by the host), manual reload (committed by the host),
+  parkour and slides (the host's movement checks allow them) and grabbing.
+  HOST VR ACTIONS is part of it now. Online, a takedown knocks an enemy back
+  rather than down, a stun shows only to the player who struck, and BLOCK,
+  PARRY and DEFLECT SHOTS protect the host only.
+- Every player needs a Test73 build for this; a player with an older build
+  plays with the buttons, as before.
+- Still offline only: sprint's speed boost, BULLET TIME, SHAKE COOLING and
+  LIFT VEHICLES.
+
+**Vehicles**
+- Immersive driving turns in proportion to your hands all the way to full
+  lock, for every vehicle: the Warthog's wheel (its full lock is the Warthog's
+  own; before, it was reached halfway), the Scorpion's drive stick (now its
+  whole turn; before, two thirds of it), the Ghost and the Wraith (the turn
+  follows your hand evenly); the Banshee is unchanged.
+- HAND LOCK (on): while you grip a control, your hand is drawn on it where you
+  took hold and turns with it.
+- VEHICLE TURN (on, a tester's request): if you snap turn, a vehicle's seat
+  turns you smoothly (SMOOTH SPEED), and you snap again once you are out.
+  COMFORT, or VEHICLES > VEHICLE OPTIONS; AS SET turns a seat as TURNING says.
+- Passengers look around freely (full 6DoF), and their view settles once
+  seated.
+- FIX: climbing into the Scorpion could leave your view off to one side for
+  minutes; it settles back now.
+- FIX: bodies near a moving vehicle could raise a sound error (seen in the
+  Scorpion).
+
+**Grenades, scopes and effects**
+- GRENADE SIZE (100% is the game's own grenade; 50 to 150%). A held grenade
+  sits off the palm, toward the fingers, so it shows in your hand.
+- Scopes: SIZE goes up to 400%.
+- FIX: in busy fights with many particles, effects could stop being drawn.
+- FIX: STENCIL SHADOWS (Video Setup > EXTRA EFFECTS) take away only the light
+  they block: a flashlight's or a shield's light is as bright inside them, and
+  fog, particles and glass are no longer darkened (nor is a level's grass).
+
+**Movement and your body**
+- The leap off a wall run now goes where you look.
+- ARMS FROM (BODY: AUTO, CHARACTER or FIRST PERSON): playing a custom
+  character (SPV1's and others), your arms are its own, reaching to your hands;
+  the stock Spartan is unchanged.
+- Smoother motion in the headset: the game's clock follows the headset's own
+  frames, so what moves (vehicles, a cutscene's camera) no longer judders
+  between the game's ticks.
+
+**Menus and launchers**
+- MENU POSITION in the Quest launcher (Menu position) and in the PC VR
+  launcher's SETTINGS: keep menus fixed in front of you instead of following
+  your head.
+- PC launcher: GAME DATA > IMPORT SAVES (.zip or folder) and EXPORT SAVES
+  (.zip; your saves are backed up first); SETTINGS > GEOMETRY: SAFE (the
+  default everywhere) or NORMAL.
+- A new profile has every level unlocked again.
+- Co-op FRIENDLY FIRE is in the VR menu's GAMEPLAY page too.
+- What's New and the Field guide's VR controls page are rewritten: every
+  control and gesture in one place, and what changes each.
+
+**Steam Frame and PC VR**
+- Steam Frame: the VR APK runs in the Frame's Android layer (Lepton). Its data
+  lives in your Documents folder there, Steam launches start the game at once,
+  and the Frame's controllers and finger touches are recognised. Not yet
+  confirmed on a Frame.
+- Steam Frame without a computer: in Desktop Mode, unpack the Steam Frame
+  bundle (HaloCEQuestVR-SteamFrame.zip) in Downloads beside your disc image
+  and open "Install HaloCE Quest VR": the game is added to your Steam library,
+  where Steam's Exit game ends it too. Its first start copies the game data
+  out of the disc image.
+- Steam Frame: the game waits up to a minute for SteamVR (the headset asleep)
+  instead of failing, and ends cleanly if SteamVR never comes.
+- Index controllers: finger touches move the fingers. FIX: a controller that
+  reports no finger touch (a Reverb G2) no longer shows the middle finger
+  after a second of grip.
+- The PC builds have this project's own icon.
+
+**From OpenCE (Builds 232 to 256 and newer)**
+- TEXT CHAT in multiplayer (OpenCE's; the host can turn it off), server-browser
+  pings and MATCH TIMER (Video Setup > GRAPHICS).
+- Co-op: FRIENDLY FIRE, EXTRA PICKUPS and EXTRA VEHICLES; a gravity lift takes
+  every player along, not just two.
+- Co-op: ALLY FRIENDLY FIRE (Server Setup > CO-OP OPTIONS, on as in the
+  campaign): off, players cannot hurt their AI allies (Keyes, the Marines, the
+  others a level needs).
+- FIX: in co-op, The Pillar of Autumn could shut a blast door for good with
+  players still outside.
+- Online, every player breaks a map's energy shields (Rat Race) and a Custom
+  Edition map's tripmines, and sees them broken and coming back.
+- Video Setup in three screens, GRAPHICS, EXTRA EFFECTS and BODIES AND DECALS,
+  with TEXTURE FILTERING, MODEL DETAIL and HDR (off by default; on Quest it
+  costs frame time).
+- New Game starts its level again (at your saved game's difficulty it could
+  resume the checkpoint), and checkpoints are saved in the background.
+- Custom Edition maps: the HUD's numbers (the grenade counts) are drawn at
+  their proper size, as Halo PC and Chimera draw them.
+- A physical or Bluetooth keyboard types into the on-screen keyboard again.
+- PC: 5.1 surround (audio.channels in config.toml); lens flares fixed on AMD
+  graphics cards; the menus' blue arrow cursor (hidden while a controller is
+  used); fewer frame stalls on NVIDIA graphics cards.
+- Android: Custom Edition maps' textures stay loaded and drawn correctly.
+- Network 34: joins OpenCE games of network 11 to 34. OpenCE players join your
+  games once their build is on network 34 too. With a Test67 to Test72 build in
+  the same game, the extras it does not share are left out, and the game says
+  so once by name.
+
+**Fixed from earlier tests**
+- BULLET TIME: a checkpoint saved while time was slowed no longer leaves the
+  game slow; old checkpoints are put right as they load.
+
+## What to test
+
+- Update over Test72: open VR SETTINGS and check the features are on (BULLET
+  TIME too); turn one off, restart: it stays off.
+- Drive the Warthog, the Scorpion, a Ghost and a Banshee: the turn follows your
+  hands to full lock, and HAND LOCK keeps your hands on the controls.
+- Climb into the Scorpion and drive a while: your view stays put.
+- With TURNING on SNAP: drive a Warthog and turn with the right stick: it turns
+  smoothly; get out: it snaps again.
+- Ride as a passenger: lean and look around.
+- Grenades: take one from your waist, see it in your hand, throw at a walk and
+  at a full swing. Tell us if the waist spot itself should move.
+- Wall run, then jump off: the leap goes where you look.
+- Co-op with two Test73 players, VR INTERACTIONS on: the other player reloads
+  by hand, throws waist grenades, climbs, wall runs, slides and punches.
+- Co-op with ALLY FRIENDLY FIRE off: the Marines take no harm from players.
+- STENCIL SHADOWS on: a flashlight inside a character's shadow is as bright as
+  outside it.
+- MENU POSITION from the launcher; the Field guide's VR controls page.
+- SPV1: your arms are the character's.
+- PC: IMPORT SAVES and EXPORT SAVES; GEOMETRY.
+- Steam Frame, if you have one: install it from the bundle on the Frame and
+  start it from the Steam library.
+- Send the logs.
+
+---
+
 # Test72: every headset, the PC and the fight
 
 Private 1.0.39-test72 / code84. Install the matching Quest VR or Android APK over
@@ -502,7 +661,7 @@ choose otherwise. Most live in a new screen:
 | Dynamic Blood | Extra Effects | Hits throw blood on the wall behind, and it runs down. |
 | Vehicle Blood | Extra Effects | Blood stains vehicles and objects and rides with them. A vehicle that hits a body gets blood on it. |
 | Projectile Effects | Extra Effects | Bullet holes and burns on vehicles and armor; plasma sparks, smoke and light. |
-| Stencil Shadows | Extra Effects | Hard shadows from characters and vehicles. Costly on the Quest. In VR your own body casts none (it follows the headset, not the game). |
+| Stencil Shadows | Extra Effects | Hard shadows from characters and vehicles. On a level they take away only the light they block: a flashlight's or a shield's light stays as bright inside them. Costly on the Quest. In VR your own body casts none (it follows the headset, not the game). |
 | Weapons Physics | Extra Effects | Enhanced: dropped guns and grenades tumble and roll (the same physics as the ragdolls). A gun in your hand is never moved by it. |
 | Big Multiplayer Guns | Graphics | Classic: guns on the ground are oversized in multiplayer (the game's own). Enhanced: real size. Looks only. |
 | Corpse Duration, Corpse Limit | Graphics | Bodies stay longer, or many more of them. The host's setting decides online. |

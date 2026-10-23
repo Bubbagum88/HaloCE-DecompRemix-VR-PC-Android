@@ -185,7 +185,8 @@ assert all(len(label) <= 20 for label in labels)
 for value in [s for w in spinners.values() for s in w.get("strings").split("|")]:
     assert len(value) <= 9, value  # the spinner's 147 pixels
 video = read(VIDEO)
-assert 'op_stereo" x="54" y="373" platform="desktop"/>' in video
+# (Test73: the desktop's Video Setup rows 24 apart since BODIES AND DECALS joined them; STEREO 3D last)
+assert 'op_stereo" x="54" y="337" platform="desktop"/>' in video
 assert 'open="main_menu/settings_select/player_setup/player_profile_edit/video_settings/stereo/stereo_settings_screen"' in video
 video_labels = [s.get("text") for s in ET.parse(ROOT / VIDEO).getroot().iter("strings") if s.get("name").endswith("/labels") for s in s]
 assert video_labels[11] == "STEREO 3D:"

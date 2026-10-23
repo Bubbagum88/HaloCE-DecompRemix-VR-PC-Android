@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <errno.h>
 
 void *mcc_memory_reserve(uint32_t address, uint32_t size);
 void mcc_memory_release(void *allocation, uint32_t size);
@@ -224,6 +225,11 @@ void *mcc_runtime_allocate(struct mcc_runtime *runtime, uint32_t bytes)
 
 boolean mcc_cache_tags_loaded(void) { return mcc_loaded; }
 
+short mcc_cache_scenario_type(void)
+{
+    return mcc_loaded ? (short)mcc_loaded_cache.report.identity.scenario_type : NONE;
+}
+
 boolean mcc_cache_contains(void const *address, long bytes)
 {
     uintptr_t offset = (uintptr_t)address - (uintptr_t)mcc_loaded_cache.tags;
@@ -261,6 +267,7 @@ struct cache_file_tag_header *mcc_cache_tags_load(char const *name, void *header
     unsigned char *raw = NULL;
     enum mcc_cache_status status;
     uint32_t package_checksum;
+    char memory_problem[192];
     char const *problem = "the map could not be opened";
     mcc_cache_tags_unload();
     mcc_stream = mcc_open(mcc_identity_local_name(name), &runtime->source, &identity);
@@ -283,8 +290,14 @@ struct cache_file_tag_header *mcc_cache_tags_load(char const *name, void *header
     if (!mcc_identity_loaded(name,runtime)) goto failed;
     runtime->capacity = MCC_CACHE_TAG_CAPACITY;
     runtime->tags = mcc_memory_reserve(runtime->report.tag_base, runtime->capacity);
-    problem = "the MCC tag address window is unavailable";
-    if (!runtime->tags) goto failed;
+    if (!runtime->tags) {
+        snprintf(memory_problem, sizeof(memory_problem),
+            "the MCC tag address window at %08lx (%lu MiB) is unavailable: %s",
+            (unsigned long)runtime->report.tag_base,
+            (unsigned long)(runtime->capacity >> 20), strerror(errno));
+        problem = memory_problem;
+        goto failed;
+    }
     memcpy(runtime->tags, raw, identity.tag_data_size);
     runtime->used = identity.tag_data_size;
     runtime->tag_index = runtime->tags + 40;

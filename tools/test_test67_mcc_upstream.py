@@ -42,7 +42,21 @@ DESELECTED = {
 
 tests = sorted(str(p) for p in (ROOT / 'tools').glob('test_mcc_*.py') if p.name not in EXCLUDED)
 tests.append(str(ROOT / 'tools/test_viewmodel_shield.py'))
+# Test73: GulchCE's harness tests of its 2026-10-16 MCC fixes (boat controls, signed/vector damage impulses), which
+# compile our vehicles.c and damage.c with them
+tests += [str(ROOT / 'tools/harness/tests/test_mcc_boat.py'), str(ROOT / 'tools/harness/tests/test_mcc_damage.py')]
 deselect = [arg for test in DESELECTED for arg in ('--deselect', test)]
+# Test73: GulchCE's pixel checks of the high-resolution MCC prompts (e0bf0a2b) read the button art with numpy and
+# Pillow, which GulchCE's CI installs (3384f31d). Where either is missing they are left out and said so, never
+# counted as passed.
+IMAGE_TESTS = ('test_high_res_mcc_button_visible_size', 'test_high_res_mcc_controls_visible_size')
+try:
+    import numpy  # noqa: F401
+    import PIL  # noqa: F401
+    image_libraries = True
+except ImportError:
+    image_libraries = False
+    deselect += ['-k', ' and '.join('not ' + name for name in IMAGE_TESTS)]
 env = dict(os.environ, PYTHONPATH=str(ROOT / 'tools') + os.pathsep + os.environ.get('PYTHONPATH', ''))
 result = subprocess.run([sys.executable, '-m', 'pytest', '-q', '-p', 'no:cacheprovider', '-p', 'pytest_m32_not_run',
                          '-rfEs', *deselect, *tests], cwd=ROOT, env=env, capture_output=True, text=True)
@@ -58,6 +72,9 @@ for number, reason in re.findall(r"^SKIPPED \[(\d+)\] [^\n]*?:\d+: ([^\n]*)$", r
     reasons[reason] = reasons.get(reason, 0) + int(number)
 for reason, number in sorted(reasons.items(), key=lambda item: -item[1]):
     print('  skipped %d: %s' % (number, reason))
+if not image_libraries:
+    print('  NOT RUN: %s (numpy and Pillow are not installed here; GulchCE installs them for these pixel checks)'
+          % ', '.join(IMAGE_TESTS))
 if result.returncode or counts.get('failed') or counts.get('error') or counts.get('errors'):
     sys.exit('FAIL: GulchCE MCC tests (pytest exit %d)' % result.returncode)
 print('PASS: GulchCE MCC tests: %d files, %d passed (%d of them 32-bit programs run under qemu-i386); '

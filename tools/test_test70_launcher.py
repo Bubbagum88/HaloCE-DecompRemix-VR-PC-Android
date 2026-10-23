@@ -54,14 +54,20 @@ assert "prefs.edit().putInt(SEEN, BuildConfig.VERSION_CODE).apply();" in whats_n
 notes = read("port/android/app/src/main/assets/whats_new.txt")
 assert len(notes) > 400 and "GitHub" not in notes[:40]
 # the owner: the pop-up must not miss anything: every Test70 change is named
-for feature in ("settings and saves are kept", "What's new in this version", "Supported", "Experimental", "Project Lumoria",
-                ".zip", "problem with the disc", "Altheros", "never moves your other buttons", "CANCEL, SWAP, CLEAR",
-                "NONE", "RESET CONTROLS", "(DEFAULT)", "PUSH TO TALK", "MIRROR BUTTONS", "holstered", "Needler",
-                "SHAKE COOLING", "Rocket launcher", "tick your gun hand", "magazines now sit", "read the right way round",
-                "inside out", "SLIDE", "SLIDE DISTANCE", "SLIDE FRICTION", "SLIDE IMPACT", "CROUCH SLIDES", "JUMP CANCELS",
-                "BULLET TIME", "TIME SCALE", "Climbing", "Wall jumps", "HIT ASSIST", "LUNGE HOP", "GRAB ASSIST", "15 cm",
-                "FIST OPTIONS", "Build 206", "network 29", "HALOFREAK95", "Android"):
-    assert feature in notes, feature
+# (Test73: Test70 was published as 1.0.37, so from Test73's notes on its changes are 1.0.37's release notes, which
+# the notes point to; what is new since is checked in tools/test_test73_whats_new.py)
+if notes.startswith("NEW IN THIS UPDATE (TEST73)"):
+    assert "Version 1.0.37 (Test70) and earlier: the full release notes on GitHub." in notes
+else:
+    for feature in ("settings and saves are kept", "What's new in this version", "Supported", "Experimental",
+                    "Project Lumoria", ".zip", "problem with the disc", "Altheros", "never moves your other buttons",
+                    "CANCEL, SWAP, CLEAR", "NONE", "RESET CONTROLS", "(DEFAULT)", "PUSH TO TALK", "MIRROR BUTTONS",
+                    "holstered", "Needler", "SHAKE COOLING", "Rocket launcher", "tick your gun hand", "magazines now sit",
+                    "read the right way round", "inside out", "SLIDE", "SLIDE DISTANCE", "SLIDE FRICTION", "SLIDE IMPACT",
+                    "CROUCH SLIDES", "JUMP CANCELS", "BULLET TIME", "TIME SCALE", "Climbing", "Wall jumps", "HIT ASSIST",
+                    "LUNGE HOP", "GRAB ASSIST", "15 cm", "FIST OPTIONS", "Build 206", "network 29", "HALOFREAK95",
+                    "Android"):
+        assert feature in notes, feature
 recipe = read("port/android/app/src/main/assets/campaigns/lumoria.properties")
 for level, fid, size in (("a", 6503, 274873434), ("b", 6504, 228054210), ("c", 6505, 198269022), ("d", 6506, 191220134)):
     assert "file.lumoria_%s.map.size=%d" % (level, size) in recipe

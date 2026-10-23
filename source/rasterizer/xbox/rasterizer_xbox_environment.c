@@ -156,7 +156,7 @@ symbols in this file:
 #include "rasterizer/common/rasterizer_common.h"
 #include "rasterizer/rasterizer_geometry.h"
 #include "rasterizer/rasterizer_lights.h"
-#include "rasterizer/rasterizer_memory_pool.h"
+/* Empty reconstructed header removed; no declarations to include. */
 #include "rasterizer/rasterizer_transparent_geometry.h"
 #include "shaders/shader_definitions.h"
 #include "shaders/shaders.h"
@@ -505,6 +505,30 @@ static struct rasterizer_environment_globals rasterizer_environment_globals;
 static boolean warned = FALSE;
 extern struct pixel_shader_definition pixel_shader;
 static short specular_light_vertex_shader_permutation_index= NONE;
+
+/* port (halo-ce-universal 8e23d89d7): the light being drawn, its position and
+the reach of its distance attenuation (its radius, or the specular's), black
+past its border, for the screen's rectangle its passes are rasterized in
+(rasterizer_port_scissor_points); a sixteenth more each way keeps a texel's
+reach past the border */
+static real_point3d rasterizer_environment_port_light_position;
+static real rasterizer_environment_port_light_radius;
+
+static void rasterizer_environment_port_light_scissor(
+	void)
+{
+	real_point3d corners[8];
+	real reach = rasterizer_environment_port_light_radius * (1.0f + 2.0f / 16.0f);
+	short corner;
+
+	for (corner = 0; corner < 8; corner++)
+	{
+		corners[corner].x = rasterizer_environment_port_light_position.x + ((corner & 1) ? reach : -reach);
+		corners[corner].y = rasterizer_environment_port_light_position.y + ((corner & 2) ? reach : -reach);
+		corners[corner].z = rasterizer_environment_port_light_position.z + ((corner & 4) ? reach : -reach);
+	}
+	rasterizer_port_scissor_points(corners, 8);
+}
 
 /* ---------- public code */
 
@@ -1170,6 +1194,9 @@ void _rasterizer_environment_diffuse_light_begin(
 			"c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_environment.c",
 			0x2DC,
 			light->radius>0.0f);
+		/* port: its box, for its passes' rectangle on the screen */
+		rasterizer_environment_port_light_position = light->position;
+		rasterizer_environment_port_light_radius = light->radius;
 
 		rasterizer_set_texture(1, 2, 1, light->definition->gel.map.index, 0);
 		D3DDevice_SetTextureState_Deferred(1, D3DTSS_ADDRESSU, D3DTADDRESS_CLAMP);
@@ -1322,11 +1349,13 @@ void _rasterizer_environment_diffuse_light_draw(
 				D3DRS_PSFINALCOMBINERCONSTANT0,
 				real_rgb_color_to_pixel32(&shader_environment->environment.diffuse.material_color));
 
+			rasterizer_environment_port_light_scissor();
 			rasterizer_draw_dynamic_triangles_static_vertices(
 				dynamic_triangle_buffer_index,
 				first_triangle_index,
 				triangle_count,
 				vertex_buffer);
+			rasterizer_port_scissor_points(NULL, 0);
 			if (rasterizer_debug_options.statistics_mode == _rasterizer_statistics_mode_enabled)
 			{
 				rasterizer_frame_statistics.environment_dynamic_draw_count++;
@@ -1853,6 +1882,10 @@ void _rasterizer_environment_specular_light_begin(
 				real_rgb_color_brightness(&light->color);
 			inverse_radius = 1.0f /
 				(light->definition->geometry.specular_radius_multiplier * light->radius);
+			/* port: its box, for its passes' rectangle on the screen */
+			rasterizer_environment_port_light_position = light->position;
+			rasterizer_environment_port_light_radius =
+				light->definition->geometry.specular_radius_multiplier * light->radius;
 			vertex_constants[0].i = light->position.x;
 			vertex_constants[0].j = light->position.y;
 			vertex_constants[0].k = light->position.z;
@@ -2044,11 +2077,16 @@ void _rasterizer_environment_specular_light_draw(
 			}
 			rasterizer_set_pixel_shader(&pixel_shader);
 
+			/* port: a point light's pass only inside its box on the screen (a
+			spot light's has no distance attenuation to end it) */
+			if (specular_light_vertex_shader_permutation_index == 0)
+				rasterizer_environment_port_light_scissor();
 			rasterizer_draw_dynamic_triangles_static_vertices(
 				dynamic_triangle_buffer_index,
 				first_triangle_index,
 				triangle_count,
 				vertex_buffer);
+			rasterizer_port_scissor_points(NULL, 0);
 			if (rasterizer_debug_options.statistics_mode == _rasterizer_statistics_mode_enabled)
 			{
 				rasterizer_frame_statistics.specular_light_dynamic_draw_count++;

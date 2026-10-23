@@ -81,13 +81,27 @@ def main() -> int:
     for output in outputs:
         shutil.copy2(ROOT / output, dist)
         print(f"{output} -> {dist.relative_to(ROOT)}", flush=True)
-    # the disc image readers (port/linux/src/xiso.c, and the Android app's
-    # XisoExtractor.java) follow extract-xiso, whose license asks binaries
-    # to carry its notice
-    shutil.copy2(ROOT / "port/third_party/extract-xiso/LICENSE.TXT", dist / "extract-xiso-LICENSE.txt")
+    if args.platform == "windows":
+        # the symbols of halo.exe and SDL3.dll, apart (players do not need
+        # them), which turn a crash's addresses into functions and lines in a
+        # debugger. (port: only those built; OpenCE's crash reporting, which
+        # sends minidumps to Sentry, is not taken)
+        symbols = ROOT / "dist" / f"halo-windows-{args.config}-symbols"
+        if symbols.exists():
+            shutil.rmtree(symbols)
+        symbols.mkdir(parents=True)
+        for pdb in [ROOT / "build/windows/halo.pdb", *sorted((ROOT / "build/windows/third_party").glob("SDL3-*/lib/x86/SDL3.pdb"))]:
+            if not pdb.exists():
+                continue
+            shutil.copy2(pdb, symbols)
+            print(f"{pdb.relative_to(ROOT)} -> {symbols.relative_to(ROOT)}", flush=True)
+    # OpenCE's own licence, the AGPL, which asks each copy to carry its text
+    # (the code before its change, CC0, is LICENSES/CC0-1.0.txt)
+    shutil.copy2(ROOT / "LICENSE", dist / "LICENSE.txt")
+    shutil.copy2(ROOT / "LICENSES/CC0-1.0.txt", dist / "CC0-1.0.txt")
     if args.platform == "linux":
         # the self-updater's TLS (port/third_party/mbedtls), whose Apache
-        # license asks the same
+        # license asks binaries to carry its notice
         shutil.copy2(ROOT / "port/third_party/mbedtls/LICENSE", dist / "mbedtls-LICENSE.txt")
     # internet play's UPnP (port/third_party/miniupnpc), in every build,
     # whose BSD license asks binaries to carry its notice
@@ -97,6 +111,18 @@ def main() -> int:
     # the text's fonts (port/assets/fonts), embedded in every build, whose
     # SIL Open Font License asks each copy to carry it
     shutil.copy2(ROOT / "port/assets/fonts/Overpass-OFL.txt", dist / "Overpass-OFL.txt")
+    # the menus' XML parser (port/third_party/expat), in every build, whose
+    # MIT license asks copies to carry its notice
+    shutil.copy2(ROOT / "port/third_party/expat/COPYING", dist / "expat-COPYING.txt")
+    # voice chat's speaker icons and the Mods menu's warning icons
+    # (port/assets/icons/lucide, drawn into the menus' bitmaps), whose ISC
+    # license asks copies to carry its notice
+    shutil.copy2(ROOT / "port/assets/icons/lucide/LICENSE", dist / "lucide-LICENSE.txt")
+    # internet play's MQTT brokers, a file beside the game (network.brokers_file;
+    # Android's APK has its own copy). HaloCE-Quest-VR: this port builds its
+    # broker list in (p2p_signal.c), and has no such file yet
+    if args.platform != "android" and (ROOT / "port/assets/network/brokers.txt").exists():
+        shutil.copy2(ROOT / "port/assets/network/brokers.txt", dist / "brokers.txt")
     return 0
 
 

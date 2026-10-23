@@ -23,10 +23,22 @@ A volume is built again only when its caster's pose, light or reach change
 (a parked vehicle's, a resting body's are kept), and volumes wholly outside
 the view are skipped.
 
-Drawn after the 3D view's own passes are done with the stencil buffer (the
-game marks objects in it for its lights and transparent geometry), and the
-stencil cleared before and after. Nothing here changes the game: only how a
-frame is drawn.
+HaloCE-Quest-VR (Test73, 10j): a shadow takes away only the light its
+caster blocks. It is drawn once the level's lightmaps are in the frame and
+before the dynamic lights are added (render.c): there the frame holds the
+level's light, not yet its colour (the diffuse textures multiply it later,
+rasterizer_xbox_environment.c), so the shadow darkens the sun's and the
+lightmap's light, and a flashlight, a shield's or an explosion's light then
+falls into it at its full strength. What is drawn after (fog, particles,
+glass, specular, the grass of detail objects) is no longer darkened. The
+characters and vehicles are drawn before (render_objects): their light,
+dynamic lights included, is darkened as before.
+
+The game marks the first-person weapon in the stencil's bit 0 for its later
+passes (rasterizer_xbox_models.c; its decals use bit 1, later): bit 0 is
+moved to bit 7 for the volumes, which count in the bits under it, and put
+back after (stencil_shadow_stencil_quad). Nothing here changes the game:
+only how a frame is drawn.
 */
 
 #include "cseries.h"
@@ -94,8 +106,12 @@ caster (world units: about 2 m: its far end well under the surface,
 not flickering against it), so it lands on that surface and no
 further: not through a floor onto what is under it */
 #define STENCIL_SHADOW_PAST_SURFACE 0.6f
-/* what a shadowed pixel keeps of its colour */
+/* what a shadowed pixel keeps of its (lightmap's) light */
 #define STENCIL_SHADOW_KEEP 0.55f
+/* HaloCE-Quest-VR: the stencil's bit for the game's own bit 0 (the
+first-person weapon) while the volumes count in the bits under it */
+#define STENCIL_SHADOW_GAME_BIT 0x80
+#define STENCIL_SHADOW_COUNT_BITS 0x7f
 
 /* ---------- structures */
 
@@ -836,6 +852,41 @@ static short stencil_shadow_casters(
 	return count;
 }
 
+/* HaloCE-Quest-VR: a stencil-only quad over the view, the depth test off
+(_rasterizer_debug_immediate_begin_screenspace): where the stencil test
+passes the pass operation is done, elsewhere the fail one */
+static void stencil_shadow_stencil_quad(
+	DWORD function,
+	DWORD reference,
+	DWORD mask,
+	DWORD pass_operation,
+	DWORD fail_operation)
+{
+	short width = global_window_parameters.camera.viewport_bounds.x1 - global_window_parameters.camera.viewport_bounds.x0;
+	short height = global_window_parameters.camera.viewport_bounds.y1 - global_window_parameters.camera.viewport_bounds.y0;
+
+	_rasterizer_debug_immediate_begin_screenspace();
+	IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_COLORWRITEENABLE, 0);
+	IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_ZWRITEENABLE, FALSE);
+	IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_STENCILENABLE, TRUE);
+	IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_STENCILFUNC, function);
+	IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_STENCILREF, reference);
+	IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_STENCILMASK, mask);
+	IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_STENCILWRITEMASK, 0xff);
+	IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_STENCILFAIL, fail_operation);
+	IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_STENCILZFAIL, pass_operation);
+	IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_STENCILPASS, pass_operation);
+	IDirect3DDevice8_Begin(global_d3d_device, D3DPT_TRIANGLELIST);
+	IDirect3DDevice8_SetVertexDataColor(global_d3d_device, 9, 0xffffffffu);
+	IDirect3DDevice8_SetVertexData2s(global_d3d_device, 0, 0, 0);
+	IDirect3DDevice8_SetVertexData2s(global_d3d_device, 0, width, 0);
+	IDirect3DDevice8_SetVertexData2s(global_d3d_device, 0, width, height);
+	IDirect3DDevice8_SetVertexData2s(global_d3d_device, 0, 0, 0);
+	IDirect3DDevice8_SetVertexData2s(global_d3d_device, 0, width, height);
+	IDirect3DDevice8_SetVertexData2s(global_d3d_device, 0, 0, height);
+	IDirect3DDevice8_End(global_d3d_device);
+}
+
 /* ---------- public code */
 
 void stencil_shadows_render(
@@ -875,9 +926,13 @@ void stencil_shadows_render(
 	saved_ops[1] = D3D__RenderState[D3DRS_STENCILZFAIL];
 	saved_ops[2] = D3D__RenderState[D3DRS_STENCILPASS];
 
-	IDirect3DDevice8_Clear(global_d3d_device, 0, NULL, D3DCLEAR_STENCIL, 0, 1.f, 0);
+	/* (HaloCE-Quest-VR: the game's bit 0, the first-person weapon's, kept in
+	bit 7, every other bit cleared for the count) */
+	stencil_shadow_stencil_quad(D3DCMP_NOTEQUAL, STENCIL_SHADOW_GAME_BIT, 0x01,
+		D3DSTENCILOP_REPLACE, D3DSTENCILOP_ZERO);
 
-	/* the volumes into the stencil: a pixel inside any is left non-zero */
+	/* the volumes into the stencil: a pixel inside any is left non-zero (in
+	the count's bits) */
 	_rasterizer_debug_immediate_begin();
 	IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_ZWRITEENABLE, FALSE);
 	IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_ZFUNC, D3DCMP_LESS);
@@ -920,7 +975,9 @@ void stencil_shadows_render(
 		DWORD grey = (DWORD)(STENCIL_SHADOW_KEEP * 255.f);
 		D3DCOLOR keep = (D3DCOLOR)(0xff000000u | grey << 16 | grey << 8 | grey);
 
-		IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_ALL);
+		/* (HaloCE-Quest-VR: the light, not the alpha the level's passes keep) */
+		IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_COLORWRITEENABLE,
+			D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_GREEN | D3DCOLORWRITEENABLE_BLUE);
 		IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_ZWRITEENABLE, FALSE);
 		IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_CULLMODE, D3DCULL_NONE);
 		IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_ALPHABLENDENABLE, TRUE);
@@ -930,6 +987,7 @@ void stencil_shadows_render(
 		IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_STENCILENABLE, TRUE);
 		IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_STENCILFUNC, D3DCMP_NOTEQUAL);
 		IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_STENCILREF, 0);
+		IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_STENCILMASK, STENCIL_SHADOW_COUNT_BITS);
 		IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_STENCILWRITEMASK, 0);
 		IDirect3DDevice8_SetRenderState(global_d3d_device, D3DRS_STENCILZFAIL, D3DSTENCILOP_KEEP);
 		IDirect3DDevice8_Begin(global_d3d_device, D3DPT_TRIANGLELIST);
@@ -943,7 +1001,10 @@ void stencil_shadows_render(
 		IDirect3DDevice8_End(global_d3d_device);
 	}
 
-	IDirect3DDevice8_Clear(global_d3d_device, 0, NULL, D3DCLEAR_STENCIL, 0, 1.f, 0);
+	/* (HaloCE-Quest-VR: the game's bit 0 back where bit 7 kept it, the count
+	cleared: its later passes find the stencil as they left it) */
+	stencil_shadow_stencil_quad(D3DCMP_NOTEQUAL, 0x01, STENCIL_SHADOW_GAME_BIT,
+		D3DSTENCILOP_REPLACE, D3DSTENCILOP_ZERO);
 
 	/* (every state as the game left it: its own caches know no other) */
 	for (index = 0; index < 16; index++)

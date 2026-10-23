@@ -79,7 +79,17 @@ assert 'glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);' in draw and draw.rstr
     'glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);\n\tglDisable(GL_BLEND);\n}'), 'eye alpha untouched; state restored'
 assert 'if (!vr.aiming)\n\t\tvr.vignette_amount = vr.snap_pulse = 0.0f;' in fn(frame, 'vr_present')
 aim = fn(frame, 'vr_aim')
-assert aim.index('if (hand_may_aim >= 0) turn();') < aim.index('comfort_update(vr.frame.predicted_display_period * 1e-9);')
+assert aim.index('if (hand_may_aim >= 0) turn(seated);') < aim.index('comfort_update(vr.frame.predicted_display_period * 1e-9);')
+# Test73 (10i, a tester's request; the owner: "have it as a toggle of course but also make it on by default"):
+# VEHICLE TURN, on: a seat turns smoothly for a snap turner (the cases below run turn() itself)
+assert '{ "vr.vehicle_smooth_turn", _config_boolean, "true", "HALO_VR_VEHICLE_SMOOTH_TURN"' in config
+assert ('#define VR_COMFORT_VEHICLE_TURN { "VEHICLE TURN", "vr.vehicle_smooth_turn", _vr_setting_boolean, 2, '
+        '{ { "AS SET", "false" }, { "SMOOTH", "true" } } }') in menu
+assert comfort.count('VR_COMFORT_VEHICLE_TURN,') == 1  # (comfort: the COMFORT page's rows, above)
+vehicles = menu[menu.index('static struct vr_menu_setting const vr_menu_vehicles[] ='):]
+assert vehicles[:vehicles.index('\n};\n')].count('VR_COMFORT_VEHICLE_TURN,') == 1
+assert 'vr.vehicle_smooth_turn = config_boolean("vr.vehicle_smooth_turn");' in frame
+assert 'static void turn(int seated)' in frame and frame.count('turn(seated);') == 1
 
 # --- Test66: SPV1 works with OpenCE's Custom Edition support (the owner): its
 # "experimental; unverified" warnings are gone; the CUSTOM CAMPAIGNS section
@@ -157,7 +167,7 @@ run('comfort', r'''
 #define VR_VIGNETTE_FEATHER 0.35f
 static struct { struct { float thumb[4]; int64_t predicted_display_period; unsigned int flags; float fov[2][4]; } frame;
  float snap_turn, smooth_turn_speed, heading, vignette_strength, vignette_amount, comfort_move, comfort_turn, snap_pulse;
- int snap_armed, vignette_when, stereo, cinema, aiming, aiming_last_frame, pointer_age; } vr;
+ int snap_armed, vignette_when, stereo, cinema, aiming, aiming_last_frame, pointer_age, vehicle_smooth_turn, turn_seat_smooth; } vr;
 ''' + fn(frame, 'wrap_angle') + fn(frame, 'comfort_stick') + fn(frame, 'comfort_update') + fn(frame, 'turn') +
     fn(frame, 'vr_vignette_aperture') + fn(frame, 'vr_vignette_shown') + r'''
 static void frames(int n, double s){for(int i=0;i<n;i++)comfort_update(s);}
@@ -173,17 +183,34 @@ int main(void){
  vr.comfort_move=0; frames(12,f); assert(vr.vignette_amount>0.4f); frames(14,f); assert(vr.vignette_amount==0.0f);
  /* turning only: moving shows nothing, a smooth turn does */
  reset(VR_VIGNETTE_TURNING); vr.comfort_move=1; frames(30,f); assert(vr.vignette_amount==0.0f);
- vr.snap_turn=0; vr.smooth_turn_speed=2.0f; vr.frame.thumb[2]=0.9f; turn(); assert(vr.comfort_turn>0.9f);
+ vr.snap_turn=0; vr.smooth_turn_speed=2.0f; vr.frame.thumb[2]=0.9f; turn(0); assert(vr.comfort_turn>0.9f);
  frames(10,f); assert(vr.vignette_amount>0.9f);
- vr.frame.thumb[2]=0.0f; turn(); assert(vr.comfort_turn==0.0f);
+ vr.frame.thumb[2]=0.0f; turn(0); assert(vr.comfort_turn==0.0f);
  /* always: shown without any motion */
  reset(VR_VIGNETTE_ALWAYS); frames(10,f); assert(vr.vignette_amount==1.0f);
  /* a snap turn: one turn per push, and a brief pulse */
  reset(VR_VIGNETTE_MOVING); vr.snap_turn=0.785f; vr.heading=0; vr.snap_armed=1;
- vr.frame.thumb[2]=0.9f; turn(); assert(fabsf(vr.heading+0.785f)<1e-4f && vr.snap_pulse==1.0f && vr.comfort_turn==0.0f);
- turn(); assert(fabsf(vr.heading+0.785f)<1e-4f); /* held: no second turn */
+ vr.frame.thumb[2]=0.9f; turn(0); assert(fabsf(vr.heading+0.785f)<1e-4f && vr.snap_pulse==1.0f && vr.comfort_turn==0.0f);
+ turn(0); assert(fabsf(vr.heading+0.785f)<1e-4f); /* held: no second turn */
  frames(5,f); assert(vr.vignette_amount>0.4f);
- vr.frame.thumb[2]=0.0f; turn(); frames(60,f); assert(vr.vignette_amount==0.0f && vr.snap_pulse==0.0f);
+ vr.frame.thumb[2]=0.0f; turn(0); frames(60,f); assert(vr.vignette_amount==0.0f && vr.snap_pulse==0.0f);
+ /* Test73 (10i, a tester's request): VEHICLE TURN: a snap turner turns smoothly in a seat, at SMOOTH SPEED */
+ vr.snap_turn=0.785f; vr.smooth_turn_speed=2.0f; vr.vehicle_smooth_turn=1; vr.heading=0; vr.snap_armed=1; vr.snap_pulse=0;
+ vr.frame.thumb[2]=0.9f; turn(1); turn(1);
+ { float step=0.9f*2.0f*(float)(vr.frame.predicted_display_period*1e-9);
+   assert(fabsf(vr.heading+2*step)<1e-4f && vr.snap_pulse==0.0f && vr.comfort_turn>0.9f); }
+ /* out of the seat with the stick still pushed: no snap until it is let back, then snaps again */
+ turn(0); assert(fabsf(vr.heading+2*0.9f*2.0f*(float)(vr.frame.predicted_display_period*1e-9))<1e-4f && vr.snap_pulse==0.0f);
+ vr.frame.thumb[2]=0.0f; turn(0); vr.frame.thumb[2]=0.9f; { float before=vr.heading; turn(0);
+   assert(fabsf(wrap_angle(vr.heading-before)+0.785f)<1e-4f && vr.snap_pulse==1.0f); }
+ /* off (AS ON FOOT): a seat snaps as on foot */
+ vr.frame.thumb[2]=0.0f; turn(0); vr.vehicle_smooth_turn=0; vr.frame.thumb[2]=0.9f; { float before=vr.heading; turn(1);
+   assert(fabsf(wrap_angle(vr.heading-before)+0.785f)<1e-4f); }
+ /* a smooth turner is smooth everywhere; a snap turner with no SMOOTH SPEED still turns in a seat (120 a second) */
+ vr.frame.thumb[2]=0.0f; turn(1); vr.vehicle_smooth_turn=1; vr.smooth_turn_speed=0.0f; vr.frame.thumb[2]=1.0f;
+ { float before=vr.heading; turn(1); assert(wrap_angle(vr.heading-before)<-1e-4f); }
+ vr.snap_turn=0.0f; vr.smooth_turn_speed=2.0f; { float before=vr.heading; turn(0); assert(wrap_angle(vr.heading-before)<-1e-4f); }
+ vr.frame.thumb[2]=0.0f; vr.snap_pulse=0; vr.vehicle_smooth_turn=0;
  /* a long frame (a hitch) is taken as one display period */
  reset(VR_VIGNETTE_MOVING); vr.comfort_move=1; comfort_update(5.0); assert(vr.vignette_amount<0.2f);
  /* shown only in control in stereo gameplay, set on, and some showing */

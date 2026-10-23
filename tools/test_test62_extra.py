@@ -45,7 +45,7 @@ struct object_iterator{long index;};
 struct collision_result{int type;long object_index;float t;struct{real_vector3d n;float d;}plane;};
 struct model_node{char name[32];short parent_node_index;};
 struct model{struct{int count;struct model_node*address;}nodes;};
-struct object_definition{struct{struct{long index;}model;float acceleration_scale;}object;}definition={.object={.model={0},.acceleration_scale=1}};
+struct object_definition{struct{struct{long index;}model;float acceleration_scale,bounding_radius;}object;}definition={.object={.model={0},.acceleration_scale=1,.bounding_radius=.012f}}; /* (Test73: the held grenade's palm offset reads it) */
 static struct model_node nodes[3]={{"root",-1},{"spine",0},{"head",1}};
 static struct model model={.nodes={3,nodes}};
 #define TAG_BLOCK_GET_ELEMENT(b,i,t) ((t*)((b)->address)+(i))
@@ -70,6 +70,12 @@ static struct actor_datum*actor_try_and_get(long a){return a>=0&&a<4?&actors[a]:
 static void biped_get_physics_pill(long u,real_point3d*p,real*h,real*w){assert(u>=0&&u<4);*p=bodies[u].object.position;*h=1.5f;*w=widths[u];}
 static int vr_active(void){return active;}static int game_connection(void){return network;}static int network_coop_active(void){return coop;}
 static int network_interaction_host_ready(void){return ready;}
+/* (Test73, 10d: the one co-op VR toggle: what a client's host allows it, and a client's throw sent to its host) */
+enum{NETWORK_VR_RELOAD=1,NETWORK_VR_GRENADES=2,NETWORK_VR_MOVEMENT=4,NETWORK_VR_MELEE=8};
+enum{NETWORK_VR_ACTION_RELOAD=1,NETWORK_VR_ACTION_GRENADE=2};
+static unsigned long host_allows;static int sent_actions,sent_kind;static long sent_player,sent_unit,sent_object;static real_vector3d sent_velocity;
+static int network_interaction_vr_allowed(unsigned long f){return network==_game_connection_local||(network==_game_connection_network_server&&ready)||(network==_game_connection_network_client&&(host_allows&f)==f);}
+static void network_interaction_client_action(unsigned char kind,long player,long unit,long object,real_point3d const*p,real_vector3d const*v){(void)p;sent_actions++;sent_kind=kind;sent_player=player;sent_unit=unit;sent_object=object;sent_velocity=*v;}
 static int game_time_get_paused(void){return paused;}static int cinematic_in_progress(void){return cinematic;}
 static int director_inhibited_input(short x){(void)x;return inhibited;}
 static int vr_controller(unsigned*b,float*t,float*s){(void)b;(void)t;(void)s;return focused;}
@@ -190,6 +196,7 @@ static void setup(void){
  bodies[2].object.position.x=1.3f;bodies[2].object.bounding_sphere_center=(real_point3d){.n={1.3f,0,1.2f}};
  bodies[3].object.damage_flags=FLAG(_object_dead_bit);
  network=coop=host_allowed=ready=obstruction=paused=inhibited=cinematic=0;focused=active=empty=1;tracking[0]=tracking[1]=1;
+ host_allows=0;sent_actions=sent_kind=0;sent_player=sent_unit=sent_object=NONE;
  owned_npc=restrained_npc=NONE;now=10;enabled=1;combat=0;melee_speed=2;melee_mode="impact";widths[0]=.2f;widths[1]=widths[2]=widths[3]=.3f;ammo[0]=ammo[1]=2;throw_count=0;gaze=(real_vector3d){.n={1,0,0}};
  hands[0]=(real_point3d){.n={.13f,.14f,1.3f}};hands[1]=(real_point3d){.n={.13f,-.14f,1.3f}};
  vr_extra_reset();vr_extra_tick(0);
@@ -227,6 +234,22 @@ int main(void){
  setup();ammo[0]=1;hands[1]=hands[0];grip[0]=grip[1]=1;tick();assert(extra.hand[0].held&&!extra.hand[1].held);
  for(int net=1;net<=2;net++){setup();network=net;coop=1;grip[0]=1;tick();assert(!extra.hand[0].held);}
  setup();network=2;coop=host_allowed=ready=1;tick();grip[0]=1;tick();assert(extra.hand[0].held);ready=0;tick();assert(!extra.hand[0].held&&ammo[0]==2);
+ /* Test73 (10d): HOST VR ACTIONS is part of VR INTERACTIONS now: the co-op host's own grenades need only its
+  * clients negotiated (network_interaction_host_ready), not the old switch */
+ setup();network=2;coop=ready=1;host_allowed=0;tick();grip[0]=1;tick();assert(extra.hand[0].held);
+ /* a co-op client whose host allows physical grenades holds one; let go, its throw is sent to the host (which
+  * throws it: no local spawn, no local count change), the hand letting go as it would */
+ setup();network=1;coop=1;host_allows=NETWORK_VR_GRENADES;grip[0]=1;tick();assert(extra.hand[0].held&&owners[0]==VR_INTERACTION_GRENADE);
+ hands[0].x+=.1f;tick();hands[0].x+=.1f;grip[0]=0;tick();
+ assert(sent_actions==1&&sent_kind==NETWORK_VR_ACTION_GRENADE&&sent_player==0&&sent_unit==0&&sent_object==0);
+ assert(fabsf(sent_velocity.i-.1f)<1e-5f&&!throw_count&&ammo[0]==2);
+ tick();assert(!owners[0]&&!extra.hand[0].held);
+ /* ... not when the host allows other features only, nor with none of that grenade left */
+ setup();network=1;coop=1;host_allows=NETWORK_VR_RELOAD|NETWORK_VR_MOVEMENT|NETWORK_VR_MELEE;grip[0]=1;tick();assert(!extra.hand[0].held&&!sent_actions);
+ setup();network=1;coop=1;host_allows=NETWORK_VR_GRENADES;ammo[0]=ammo[1]=0;grip[0]=1;tick();assert(!extra.hand[0].held&&!sent_actions);
+ /* a client's fist combat stays off (it deals blows itself: the host's and local games' only) */
+ setup();network=1;coop=1;host_allows=NETWORK_VR_GRENADES;enabled=0;combat=1;grip[0]=1;tick();assert(!extra.hand[0].held&&extra.target==NONE);
+ assert(vr_extra_action_owner()==NONE);
  setup();combat=1;enabled=0;grip[0]=1;tick();real_point3d p={.n={.3f,0,1.2f}};real_vector3d punch={.n={.2f,0,0}};
  obstruction=1;vr_combat_punch(0,0,&p,&punch);assert(extra.target==NONE);obstruction=0;
  actors[1].meta.team_index=actors[2].meta.team_index=0;vr_combat_punch(0,0,&p,&punch);assert(extra.target==NONE);
@@ -588,7 +611,9 @@ def function(text,name):
   depth+=(text[c]=='{')-(text[c]=='}');c+=1
  return text[a:c]
 un=(R/'source/units/units.c').read_text()
-native=function(un,'boolean unit_vr_throw_grenade(')
+# (Test73, 10d: the throw of any player's unit, in every build, which a co-op host also uses for a client's; and the
+# local player's VR wrapper, which checks the session first)
+native=function(un,'boolean unit_vr_throw_player_grenade(')+'\n'+function(un,'boolean unit_vr_throw_grenade(')
 ns=stubs
 ns=re.sub(r'static int unit_vr_throw_grenade\([^\n]*\n','',ns)
 ns=ns.replace('real bounding_sphere_radius,shield_vitality;','real bounding_sphere_radius,shield_vitality;real_vector3d translational_velocity;')
@@ -636,6 +661,11 @@ int main(void){
  u->unit.grenade_counts[0]=0;assert(!unit_vr_throw_grenade(0,0,&p,&v));u->unit.grenade_counts[0]=1;
  network=1;assert(!unit_vr_throw_grenade(0,0,&p,&v));network=2;coop=1;ready=0;assert(!unit_vr_throw_grenade(0,0,&p,&v));
  ready=1;assert(unit_vr_throw_grenade(0,0,&p,&v));network=0;
+ /* Test73 (10d): the per-player throw has no session gate of its own (network_interaction.c checked the sender,
+  * its reach and speed): a co-op host throws a client's this way; it keeps every other check */
+ u->unit.grenade_counts[0]=1;network=2;coop=1;ready=0;assert(unit_vr_throw_player_grenade(0,0,&p,&v)&&u->unit.grenade_counts[0]==0);
+ assert(!unit_vr_throw_player_grenade(0,0,&p,&v));network=0;coop=0;u->unit.grenade_counts[0]=1;
+ assert(!unit_vr_throw_player_grenade(0,0,NULL,&v)&&!unit_vr_throw_player_grenade(0,0,&p,NULL)&&u->unit.grenade_counts[0]==1);
  u->unit.grenade_counts[0]=1;p.x=NAN;assert(!unit_vr_throw_grenade(0,0,&p,&v));p.x=.4f;v.i=NAN;assert(!unit_vr_throw_grenade(0,0,&p,&v));v.i=.1f;
  u->unit.grenade_throw_state=1;assert(!unit_vr_throw_grenade(0,0,&p,&v));u->unit.grenade_throw_state=0;
  u->object.damage_flags=FLAG(_object_dead_bit);assert(!unit_vr_throw_grenade(0,0,&p,&v));

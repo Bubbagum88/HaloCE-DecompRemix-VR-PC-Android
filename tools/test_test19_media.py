@@ -20,8 +20,9 @@ c=r'''
 #include <string.h>
 #include <stdio.h>
 #define HEAD_REACH .35f
-static struct {int heading_valid,roomscale;float units_per_metre,heading,reticle_distance,reticle_position[3];
- struct {int origin_valid,recentre_pending;float origin[3];} vehicle_seat;
+#define SEAT_PASSENGER_REACH .8f /* Test73: a passenger's reach */
+static struct {int heading_valid,roomscale,seated;float units_per_metre,heading,reticle_distance,reticle_position[3];
+ struct {int origin_valid,recentre_pending,role;float origin[3];} vehicle_seat;
  float room_previous[2],room_now[2];struct {struct {float position[3];} head;} frame;
  int cockpit_valid,heading_from_seat;float cockpit[3][3];} vr; /* Test65: COCKPIT LOCK (off here) */
 static float render_interpolation_fraction(void){return .4f;}

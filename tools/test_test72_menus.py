@@ -45,7 +45,7 @@ assert macros["VR_IMMERSION_BULLET_MODE"] == '{ "BULLET TIME MODE", "vr.bullet_t
 buttons = page("vr_menu_buttons")
 assert '{ "BULLET TIME", "vr.button_bullet_time", _vr_setting_button, 10,' in buttons
 assert "vr.button_bullet_time" not in locomotion and "vr.button_bullet_time" not in immersion
-for key, default in (("vr.bullet_time", '"false"'), ("vr.bullet_time_scale", '"0.4"'), ("vr.bullet_time_toggle", '"false"'),
+for key, default in (("vr.bullet_time", '"true"'), ("vr.bullet_time_scale", '"0.4"'), ("vr.bullet_time_toggle", '"false"'),
                      ("vr.button_bullet_time", '"\\"right_stick_up\\""')):
     assert '{ "%s", _config_' % key in config and re.search(r'\{ "%s", _config_\w+, %s,' % (re.escape(key), re.escape(default)), config), key
 # parkour on LOCOMOTION, not GAMEPLAY
@@ -57,7 +57,7 @@ assert "VR_IMMERSION_HAPTICS," in gameplay
 sections = re.findall(r'\{ "([A-Z +]+)", (\d+) \}', menu[menu.index("vr_menu_immersion_sections[] ="):].split("};")[0])
 labels = [label for label, _ in sections]
 assert labels[labels.index("HOLSTER PLACES") + 1:labels.index("GRAB + NPCS")] == ["LOCOMOTION", "LOCOMOTION OPTIONS", "PARKOUR", "BODY"]
-assert ("WEAPONS", "8") in sections and ("VEHICLE OPTIONS", "7") in sections and ("BODY", "4") in sections
+assert ("WEAPONS", "8") in sections and ("VEHICLE OPTIONS", "8") in sections and ("BODY", "4") in sections  # (Test73: + HAND LOCK)
 for macro in ("VR_IMMERSION_BUTTON_SPRINT", "VR_IMMERSION_SPRINT_TOGGLE", "VR_IMMERSION_SLIDE", "VR_IMMERSION_BULLET_TIME",
               "VR_IMMERSION_TWO_HANDS", "VR_IMMERSION_SCOPE", "VR_IMMERSION_VEHICLE_VIEW", "VR_IMMERSION_JUMP_CANCELS"):
     assert immersion.count(macro + ",") == 1, macro

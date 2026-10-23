@@ -63,6 +63,12 @@ sharp); "ssaa2x" draws at twice the resolution each way (four times
 the work); "msaa2x", "msaa4x" or "msaa8x" draw with that many samples
 a pixel. Android has "fxaa" for "smaa", and no "ssaa2x".
 
+display.hud_button_style [string]
+Default: "classic"
+High-res gameplay controller buttons: classic uses plain Xbox faces;
+gems uses shaded Xbox faces; menu_gems uses the menu's button art.
+Requires display.high_res_hud.
+
 display.shadow_resolution [integer]
 Default: 128
 The size the objects' shadows are drawn at, in pixels each way: 128 as
@@ -73,12 +79,63 @@ Default: "pc"
 The menus: "pc" for the PC version's main menu (port/assets/menus,
 and a menus folder here for your own), "xbox" for the Xbox's.
 
+display.menu_language [string]
+Default: "maps"
+The PC menus' language: "maps" for the language of the Custom Edition
+whose loc.map is in custom_maps (as that edition shows them; English
+without one), "english" for English. The port's own lines are English.
+
 display.per_pixel_lighting [boolean]
 Default: false
 Light the models (characters, weapons, vehicles, scenery) for each
 pixel by the lights the game gives them, without the facets the light
 of each vertex shows across curved surfaces; false lights each vertex,
 as the Xbox does.
+
+display.structure_culling [integer]
+Default: 31
+Which tests skip the level's triangles the camera cannot see, as bits
+added together: 1 outside the view, 2 groups facing away, 4 triangles
+facing away, 8 smaller groups, 16 nearer rooms first; 0 walks them as
+the Xbox does. The console's structure_culling changes it until the
+game quits.
+
+display.model_detail [string]
+Default: "stock"
+Which of their levels of detail models are drawn at: "stock" chooses by
+their size on the Xbox's 480 lines, at any resolution; "native" by their
+size on the display's, so that more detail is kept at a distance at high
+resolutions; "highest" draws the models "native" does, each at its most
+detailed level.
+
+display.hdr [boolean]
+Default: false
+Draw the 3D view into a floating-point back buffer, which keeps what
+the game's additive effects (explosions, plasma, lights, the sun's
+glare) add past white, and tone map it before the HUD is drawn:
+display.hdr_tone_mapping brings it back to the display's range
+instead of clipping it. false draws into 8 bits a channel, as the
+Xbox does. In VR (Test73) the eyes are drawn into 16-bit floating-point
+targets: on the Quest that is twice the memory traffic, a frame-time cost.
+
+display.hdr_exposure [real]
+Default: 1.0
+With display.hdr, the 3D view's brightness in linear light before it
+is tone mapped, 0.25 to 4.0.
+
+display.hdr_tone_mapping [string]
+Default: "neutral"
+With display.hdr, the curve that brings what is past white into the
+display's range: "neutral" (the picture as drawn, with only its
+brightest parts rolled off), "aces" (filmic, more contrast) or
+"reinhard" (softer, and darker throughout).
+
+display.hdr_output [boolean]
+Default: false
+With display.hdr, ask for a floating-point window (scRGB), so that an
+HDR display shows what is past white brighter than the desktop's
+white rather than tone mapped down to it; the operating system's HDR
+must be on. Taken up when the game starts.
 
 audio.music_volume [real]
 Default: 1.0
@@ -89,11 +146,29 @@ Default: 1.0
 The volume of every other sound (effects and speech), 0.0 to 1.0 (of
 audio.volume).
 
+audio.buffer_frames [integer]
+Default: 512
+The audio device's buffer, in sample frames at 48 kHz (64 to 8192): larger
+rides out stalls that cut the sound out, smaller has less delay (512
+is 11 ms, 2048 is 43 ms).
+
+audio.channels [string]
+Default: "stereo"
+"stereo", "5.1" (surround, as the Xbox's Dolby Digital), or "auto"
+for 5.1 when the sound device has six or more channels.
+
 audio.reverb [boolean]
 Default: false
 Reverberate the world's sounds as the place the player is in does (the
 maps' sound environments, as the Xbox's I3DL2 reverb did); false keeps
 them dry.
+
+audio.resampler [string]
+Default: "sinc"
+How sounds are converted to the output's rate (OpenCE 232's Sound
+Processing): "sinc" this port's smooth curve (Catmull-Rom: the Quest
+cannot afford upstream's band-limited filter); "linear" between
+neighbouring samples, brighter for the aliasing it lets through.
 
 audio.voice_chat [string]
 Default: "off"
@@ -108,13 +183,20 @@ The volume of other players' voices, from 0 (muted) to 2.
 
 audio.input_device [string]
 Default: "default"
-The voice chat microphone device by its SDL name, or "default" for the
-system default. Android uses the system's default recording device.
+The microphone voice chat listens to: a device's name as Settings >
+Audio lists it, or "default" for the system's (also if it is not found).
 
 audio.output_device [string]
 Default: "default"
 Where game and voice audio plays: an SDL device name or "default" for
 the system's default.
+
+input.playstation_kernel_driver [boolean]
+Default: false
+Linux: a PlayStation controller (DualSense, DualShock 4) through the
+kernel's driver of it (hid-playstation, hid-sony), which needs no setup;
+false: through SDL's own, which needs Steam's udev rules to open it. Read
+at start-up.
 
 input.mouse_vertical_sensitivity [real]
 Default: 0.0
@@ -125,9 +207,11 @@ controls.move_forward [string]
 Default: "W"
 The keyboard and mouse's controls, which Settings > Controls Setup
 changes: up to two keys or buttons each, separated by a comma. Keys by
-their names ("W", "Space", "Left Ctrl", "F1"), and "Mouse Left",
-"Mouse Right", "Mouse Middle", "Mouse 4", "Mouse 5", "Wheel" (either
-way), "Wheel Up" and "Wheel Down"; empty for none. Moving forward:
+their names on a US keyboard ("W", "Space", "Left Ctrl", "F1"): a key
+is the one in that place on any keyboard, which the menus show by its
+own label. Buttons: "Mouse Left", "Mouse Right", "Mouse Middle",
+"Mouse 4", "Mouse 5", "Wheel" (either way), "Wheel Up" and "Wheel
+Down"; empty for none. Moving forward:
 
 controls.move_backward [string]
 Default: "S"
@@ -195,6 +279,11 @@ controls.pause [string]
 Default: "Escape"
 The pause menu (the controller's Start).
 
+controls.screenshot [string]
+Default: "F10"
+Save a PNG screenshot in the screenshots folder beside maps/ (one a
+press; the desktop builds).
+
 controls.push_to_talk [string]
 Default: "V"
 Hold to transmit voice when audio.voice_chat is "push_to_talk". In VR,
@@ -210,9 +299,14 @@ Default: "Left Alt, Right Alt"
 Held in the third-person camera: the camera turns alone, the player
 keeps on its way.
 
-controls.text_chat [string]
+controls.chat [string]
 Default: "T"
-Text chat: open a line to type (game.text_chat).
+Network games' text chat: type a line to everyone (Enter sends it,
+Escape lets it go).
+
+controls.team_chat [string]
+Default: "Y"
+Network games' text chat: type a line to your team.
 
 controls.sprint [string]
 Default: "Left Shift"
@@ -396,6 +490,10 @@ Default: true
 Draw the first-person weapon, hands and what is attached to them.
 Off, they are not drawn; firing, animation, sound and lights go on.
 
+display.passenger_third_person [boolean]
+Default: false
+Third-person Warthog and Scorpion passengers. Weapon zoom is disabled.
+
 display.viewmodel_shield [boolean]
 Default: false
 The energy shield's flare on the first-person arms too, as on the body
@@ -411,7 +509,9 @@ Default: false
 Hard stencil shadows from characters and vehicles besides the game's
 own, as F.E.A.R. and Doom 3 cast them: on the level, on other objects
 and on themselves, your own body's and weapon's in first person too
-(not in VR, where your body follows the headset). Costly on a Quest.
+(not in VR, where your body follows the headset). On the level a
+shadow takes away only the light it blocks: a flashlight's or a
+shield's light falls into it at full strength. Costly on a Quest.
 
 game.shadow_objects_stop [boolean]
 Default: true
@@ -560,6 +660,13 @@ Default: 1.0
 How large the players' names are drawn: 1.0 three quarters of the size of
 the HUD's text, 0.25 to 4.
 
+display.match_timer [boolean]
+Default: false
+Draw the match clock at the bottom right in multiplayer. It counts up
+from the game's first tick, which the items' respawn periods count from
+too: a weapon is back on the map at every multiple of its period on the
+clock.
+
 display.scoreboard_team_layout [string]
 Default: "teams"
 How the scoreboard lists a team game's players: "teams" in a column for
@@ -574,6 +681,19 @@ display.scoreboard_background_color [string]
 Default: "16, 16, 16, 150"
 The scoreboard panel's colour: "red, green, blue, alpha", each 0 to 255
 (alpha 0 is see-through, 255 solid).
+
+display.anisotropic_filtering [integer]
+Default: 0
+Sharpen textures seen at a grazing angle (floors, walls, terrain), which
+the Xbox did not: 2, 4, 8 or 16 times; 0 filters as the Xbox did. 4 keeps
+most of 16's sharpness at less cost on slower GPUs.
+
+display.latency_meter [boolean]
+Default: false
+In a network game, your round trip to the host in milliseconds at the
+screen's top right, with bars (the host: its slowest player's), and
+"Connection problem" when the host has sent nothing for two seconds;
+the scoreboard's pings in the same colours, as this machine times them.
 
 audio.enabled [boolean]
 Default: true
@@ -590,6 +710,10 @@ How far the view turns for the mouse's movement.
 input.invert_mouse [boolean]
 Default: false
 Moving the mouse forward looks down.
+
+network.block_mouse_aim_assist [boolean]
+Default: false
+Host: disable optional mouse magnetism for mouse/keyboard players. Controllers and touch keep their own assist.
 
 input.mouse_aim_assist [boolean]
 Default: false
@@ -613,11 +737,33 @@ The language the game asks the Xbox for: "ja", "de", "fr", "es" or "it";
 empty for English. The game data decides what is translated.
 
 game.custom_edition [boolean]
-Default: false
-Load and run Halo Custom Edition and OpenSauce (.yelo) maps, which are
-otherwise refused. Experimental: docs/custom_edition_caches.md in the
-source says what works. On Android the launcher's mods turn it on while
+Default: true
+Load and run Halo Custom Edition and OpenSauce (.yelo) maps, and download
+them from a network game's host (network.map_download); false refuses them.
+Experimental: docs/custom_edition_caches.md in the source says what works.
+On by default, as OpenCE's (Test73). On Android the launcher's mods turn it on while
 one is installed.
+
+game.custom_edition_revision [integer]
+Default: 1
+Internal one-time migration (Test73): a config saved with Custom Edition
+maps off, the default before, has them on. Later saved choices are kept.
+
+bots.count [integer]
+Default: 0
+Computer players (bots) in a local (split screen) Slayer game: 0 to 15
+join its lobby with the players, as far as the game has room. Not in
+system link or internet games. 0: none, as in the stock game.
+
+bots.skill [string]
+Default: "normal"
+How well the bots play: "easy", "normal", "heroic" or "legendary"
+(how soon they react, how well they aim, how far they see).
+
+bots.teams [string]
+Default: "even"
+In team games: "even" puts the bots on both teams, evening them with
+the players; "against" puts them all on the team the players are not on.
 
 debug.profile_record [boolean]
 Default: false
@@ -653,6 +799,17 @@ down stairs and over ledges: OpenCE's dynamic ragdolls, Jolt Physics,
 port/third_party/JoltPhysics; on Android the host runs Jolt). How this
 machine draws its dead: nothing sent between machines changes.
 
+display.text_chat [boolean]
+Default: true
+Show the text chat of network games: false hides its lines and keeps
+its keys (and a controller's D-pad Up) from opening it, as for purists
+and streamers.
+
+display.chat_style [string]
+Default: "colors"
+The text chat's colours: "colors" (names in their team's colour, the
+text a pale blue) or "white" (all white, as Custom Edition).
+
 game.enhanced_animations [boolean]
 Default: true
 The player bipeds' grenade throws keep their legs moving (crouched,
@@ -687,21 +844,21 @@ How many decals (bullet holes, scorch marks, blood) stay before the
 oldest give way: "default" (the game's own limit, 2048), "4x", "8x"
 or "insane" (twelve times). Takes effect as the next map begins.
 
-game.text_chat [boolean]
+game.unlock_all_levels [boolean]
 Default: true
-Text chat in network games, in the lobby too: controls.text_chat (T)
-opens a line to type (Enter sends it, Tab: to your team or to all,
-Escape cancels), and the players' lines show at the left of the
-screen. Off: none shown, none typed.
+true (default): a profile made from now on starts with every campaign
+level finished on every difficulty, so any level can be played. false: a
+new profile starts at The Pillar of Autumn and opens each level as the
+one before it is finished, as on the Xbox. Profiles already made keep
+their progress; the console's profile_reset_campaign starts one over.
 
-game.text_chat_opacity [integer]
-Default: 100
-How opaque text chat is drawn, in percent (25 to 100).
-
-game.text_chat_size [string]
-Default: "large"
-How large text chat is drawn: "small", "medium" or "large" (the HUD's
-own size).
+game.downloaded_maps [string]
+Default: ""
+Maps played as downloaded ones, besides those map sharing downloaded:
+their names (bloodgulch, hugeass), separated by commas, or "*" for
+every map. A downloaded map's scripts may not change the player's
+settings or other players' games (debug.txt names what they were
+refused).
 
 paths.data [string]
 Default: ""
@@ -716,9 +873,10 @@ Where saved games and profiles go; empty for the usual place
 
 renderer.safe_geometry [boolean]
 Default: true in Quest VR and flat Android; false on desktop
-Geometry compatibility mode (Android; restart required). Streams geometry
-through the fenced stream ring with no persistent buffers/static mirrors, and CPU index rebasing.
-Default on in both Quest VR and flat Android; desktop unchanged. Can reduce performance. Not a data revision selector.
+Geometry compatibility mode (restart required). Streams every vertex each
+frame (the fenced stream ring on Android), with no static mirrors, and CPU index rebasing.
+Default on everywhere: Quest VR, flat Android, Windows and Linux, flat and PC VR (Test72:
+Normal's vertex mirror drew stale effect and grass quads on PC). Not a data revision selector.
 
 renderer.vr_geometry_revision [integer]
 Default: 1
@@ -727,6 +885,10 @@ Internal VR geometry-default migration revision. Keep at 1 after choosing Safe o
 renderer.android_geometry_revision [integer]
 Default: 1
 Internal flat Android geometry-default migration revision. Keep at 1 after choosing Safe or Normal. VR uses vr_geometry_revision.
+
+renderer.desktop_geometry_revision [integer]
+Default: 1
+Internal Windows/Linux (flat and PC VR) geometry-default migration revision. Keep at 1 after choosing Safe or Normal.
 
 network.address [string]
 Default: ""
@@ -767,15 +929,15 @@ Hosting: proximity voice range in world units (5 to 100).
 network.legacy_coop [boolean]
 Default: false
 Opt in to legacy network12-14 campaign clients. Old hosts omit scripted team allegiance; marine reticles/team behavior may be wrong.
-Uses old native presentation behavior without invented allegiance. Prefer network15-29. Hosting stays29.
+Uses old native presentation behavior without invented allegiance. Prefer network15-32. Hosting stays32.
 
 network.protocol_version [integer]
 Default: 0
 Client protocol target: 0 (the default) lists/joins all compatible PvP
-versions 11-29; 11-29 selects one exact server version. This build always
-hosts as 29. Campaign needs15+, or consented legacy12-14; Custom Edition
+versions 11-32; 11-32 selects one exact server version. This build always
+hosts as 32. Campaign needs15+, or consented legacy12-14; Custom Edition
 needs23+. This is read once when the game starts; restart after changing
-it. Invalid values fall back to the build's own version, 29.
+it. Invalid values fall back to the build's own version, 32.
 
 network.join_from_clipboard [boolean]
 Default: true
@@ -811,14 +973,28 @@ own broker (its brokers.txt); the earlier default list moves to this one.
 
 network.community_extras [boolean]
 Default: true
-Community extras in network games: the players' Armor choices shared,
-text chat, and votes to kick or ban with a reason. Players without
-them (OpenCE network 29) play as ever; false sends and reads none.
+Community extras in network games: the players' Armor choices shared
+and votes to kick or ban with a reason. Players without them (OpenCE's
+own builds) play as ever; false sends and reads none. Text chat is
+OpenCE's own (network.text_chat). A player on a Test67-72 build of
+this port gets none of these, nor text chat, until they update.
 
 net.physical_interactions [boolean]
+Default: true
+VR INTERACTIONS (Server Setup > co-op options): the co-op host's one switch for every player's VR play: grabs and
+throws, physical melee and fist combat, physical grenades, manual reload, parkour and slides (Test73: HOST VR
+ACTIONS is part of it). Requires every peer to negotiate this port's optional extension. On by default (Test73);
+unsupported or mixed peers retain ordinary campaign behavior. PvP keeps stock movement.
+
+net.vr_interactions_applied [boolean]
 Default: false
-Host permission for enhanced campaign physical interactions. Requires every peer to negotiate this port's optional extension.
-Off by default; unsupported or mixed peers retain ordinary campaign behavior.
+Internal: Test73 turned VR INTERACTIONS on once in older configs (config_vr_interactions_default).
+
+network.text_chat [string]
+Default: "on"
+Hosting: the text chat: "on" (links in lines are refused), "links"
+(links allowed) or "off", in either case. Always off in a game listed
+in the server browser (a public internet game).
 
 network.votekick [boolean]
 Default: true
@@ -846,7 +1022,8 @@ game's other players help (network.map_seed).
 network.map_share_upload [integer]
 Default: 1024
 Hosting: the most kilobytes a second the host sends of maps (16 to
-65536), so that the game's own traffic keeps the rest of the upload.
+20480: 20 MB/s), so that the game's own traffic keeps the rest of the
+upload.
 
 network.map_seed [boolean]
 Default: true
@@ -857,7 +1034,7 @@ most network.map_seed_upload).
 network.map_seed_upload [integer]
 Default: 256
 Playing in another's game: the most kilobytes a second this machine
-sends of maps to other players (16 to 65536).
+sends of maps to other players (16 to 10240: 10 MB/s).
 
 network.map_download [boolean]
 Default: true
@@ -878,7 +1055,23 @@ Default: "on"
 Whether the players of an online co-op game hurt each other: "off",
 "on", "shields_only" or "explosives_only" (FRIENDLY FIRE in
 co-op's Server Setup > Co-op Options writes its choice here). Their AI
-allies they always can, as in the campaign.
+allies they hurt as network.coop_ally_friendly_fire says.
+
+network.coop_ally_friendly_fire [boolean]
+Default: true
+Whether the players of an online co-op game hurt their AI allies (the
+Marines, Captain Keyes, the Sentinels while they are allies), as in the
+campaign; false, the players' weapons, grenades and vehicles do them
+no harm. ALLY FRIENDLY FIRE in co-op's Server Setup > Co-op Options
+writes its choice here.
+
+network.coop_own_friendly_fire [boolean]
+Default: true
+Whether this machine's players hurt, and are hurt by, the other players
+of an online co-op game: two players hurt each other only if both have
+it true. FRIENDLY FIRE in that game's pause menu writes its choice
+here. A player away from the controls for over 70 seconds is hurt by
+every player, whatever either chose.
 
 network.coop_player_collisions [boolean]
 Default: true
@@ -895,6 +1088,21 @@ enemies grows by coop_enemies for each player past the first) or
 number of players). EXTRA ENEMIES in co-op's Server Setup > Co-op
 Options writes its choice here.
 
+network.coop_pickups [string]
+Default: "none"
+Extra campaign weapons, grenades, health kits, overshields and camouflage.
+Modes: "none", "per_player" (coop_enemies percent per extra player),
+or "multiplier" (coop_enemies_multiplier times as many), up to 8 times
+the original pickups. Only safe nearby places receive copies.
+
+network.coop_vehicles [string]
+Default: "none"
+Extra campaign vehicles: "none", "per_player" or "multiplier".
+After a player clears its unloaded starting place by both bounding
+radii plus 15 percent, make one more there, up to
+floor((players - 1) * coop_enemies * 2 / 300) extras, or floor((coop_enemies_multiplier - 1) * 2 / 3) in static mode.
+The host alone creates them, and waits while the starting place is blocked.
+
 network.coop_enemies [integer]
 Default: 50
 Online co-op's extra enemies per player, a percentage: for each player
@@ -904,9 +1112,10 @@ Server Setup > Co-op Options writes its choice here.
 
 network.coop_enemies_multiplier [integer]
 Default: 2
-Online co-op's static multiplier of its enemies: each squad of enemies
-a level places is this many times as large (2 to 32). Server Setup's
-MULTIPLIER in co-op writes its choice here.
+Online co-op's shared static multiplier (2 to 32). Pickups are capped
+at 8 times their original count; extra vehicle growth uses two thirds
+of (multiplier - 1), rounded down. MULTIPLIER in
+co-op's Server Setup > Co-op Options writes its choice here.
 
 network.stun_servers [string]
 Default: "stun.l.google.com:19302,stun.cloudflare.com:3478"
@@ -923,12 +1132,34 @@ Default: true
 Look for a new version when the game starts, and offer to update to it;
 false never looks (the game's "Do not ask again" writes false here).
 
+streamer.enabled [boolean]
+Default: false
+Hide offensive words in names and text from other players, maps and mods
+as stars, at the levels below (Settings > Network Setup > Streamer Mode).
+
+streamer.slurs [string]
+Default: "mild"
+With streamer.enabled, the slurs (race, sexuality, gender, disability)
+hidden: "off", "severe", "strong" (and severe) or "mild" (all).
+
+streamer.swearing [string]
+Default: "strong"
+With streamer.enabled, the swearing and sexual words hidden: "off",
+"severe", "strong" (and severe) or "mild" (all).
+
+streamer.insults [string]
+Default: "off"
+With streamer.enabled, the insults that are not slurs hidden: "off",
+"severe", "strong" (and severe) or "mild" (all).
+
 debug.network_test [string]
 Default: ""
 Automated system link sessions for testing (port/linux/game/network_test.c):
-"host:<map>" hosts a game on that map, "join" joins the first game found,
+"host:<map>" hosts a game on that map, "local:<map>" plays a local (split
+screen) game on it, "join" joins the first game found,
 "browse" the one with the most players the server browser lists (not
-co-op, if it can); empty for none.
+co-op, if it can), "log" logs the game that runs (and runs its cues);
+empty for none.
 
 debug.network_test_start [real]
 Default: 15.0
@@ -959,10 +1190,35 @@ Default: 0.0
 This many seconds into an automated test game the host stands its last
 player on a weapon, which a joining player then picks up; 0 never.
 
+debug.network_test_chat [real]
+Default: 0.0
+This many seconds into an automated test game each machine's player
+says a chat line to everyone, then to the team and to the vehicle (the
+host seats the last two players in one first), then the host mutes and
+unmutes a player, refuses a link and turns the chat off, and the
+clients type on the on-screen keyboard (port/linux/NETCODE.md); 0 never.
+
+debug.network_test_name [string]
+Default: ""
+The name this machine's player takes in an automated test game (ASCII);
+empty keeps its profile's.
+
 debug.network_test_pickup_weapon [string]
 Default: ""
-The weapon network_test_pickup stands the player on: the first whose tag
-name has this in it ("sniper", say); empty any.
+The weapon network_test_pickup stands the player on, and the second weapon
+the host gives its last player: the first whose tag name has this in it
+("sniper", "assault", say); empty any.
+
+debug.network_test_cues [string]
+Default: ""
+Console lines an automated test runs at a game second, from the first tick
+every player of debug.network_test_cue_players has a unit:
+"<second> <line>|<second> <line>..." (the host's, or a game of one machine;
+not on the web).
+
+debug.network_test_cue_players [integer]
+Default: 1
+The players debug.network_test_cues waits for.
 
 debug.network_test_public [boolean]
 Default: false
@@ -987,6 +1243,14 @@ legend button red, the band beside a list's slots orange; the virtual
 keyboard's keys white), mark where the last finger went down and the
 last tap landed for 3 seconds, and log each tap with the target it hit
 (and a value's split); to judge touch accuracy.
+
+debug.log_addresses [boolean]
+Default: false
+Write other machines' internet addresses whole in debug.txt and the
+console, for debugging your own network. False writes each public
+address as a tag (addr#3f2a9c) that only matches up within one run;
+local network addresses are always whole. Do not post a debug.txt
+written with this on: it has the address of everyone you played with.
 
 debug.network_latency [real]
 Default: 0.0
@@ -1017,16 +1281,30 @@ debug.test_input [string]
 Default: ""
 "bot:<seed>" plays controller 1 with a scripted pattern (automated
 network tests); "look:<seed>" stands still, only turning and looking
-up and down; empty for none.
+up and down; "menu:<buttons>" presses menu buttons one a second (a,
+b, x, y, up, down, left, right, start, back or wait, separated by
+spaces or commas), for testing the menus; empty for none.
+
+debug.bot_trace [integer]
+Default: 0
+Log each bot's state (bots.count) every this many seconds: where it is
+and goes, its path, target and weapon; 0 never.
 
 debug.update_answer [string]
 Default: ""
 The answer to the new version question, for automated tests: "yes",
 "no" or "never" (do not ask again, confirmed); empty asks.
 
+debug.fixed_step [boolean]
+Default: false
+A game of this machine alone runs one tick a frame, whatever time has
+passed, so that it plays the same every time (tests); game_speed has no
+effect.
+
 debug.exit_after [real]
 Default: 0.0
-Quit this many seconds after the window opens; 0 never.
+Quit this many seconds after the window opens (without a window, after
+the first frame); 0 never.
 
 debug.hidden_window [boolean]
 Default: false
@@ -1051,7 +1329,7 @@ Log the renderer's draw counts once a second.
 
 debug.gpu_trace_frame [integer]
 Default: -1
-Log every draw of this frame; -1 none.
+Log every draw of this frame; -1 none (VR: -2, vr.dump_frame's).
 
 debug.gpu_trace_constants [boolean]
 Default: false
@@ -1076,6 +1354,19 @@ Pixel shaders show their first texture.
 debug.gpu_debug_flat [boolean]
 Default: false
 Pixel shaders show their vertex colour.
+
+debug.gpu_draw_scissor [boolean]
+Default: true
+Rasterize an object's shadow and a dynamic light's pass only inside the
+rectangle of the screen they can change (halo-ce-universal's); false
+rasterizes their whole triangles, as before, to compare: the pictures are
+the same.
+
+debug.shadows_one_at_a_time [boolean]
+Default: false
+Cast each object's shadow as soon as its map is drawn, as the game did,
+instead of all of them after the last map (rasterizer_xbox_shadows.c): for
+comparing the two, whose pictures are the same.
 
 debug.screenshot_directory [string]
 Default: ""
@@ -1117,11 +1408,11 @@ Default: 0.0
 The game's picture in the headset as a fraction of the runtime's
 recommended eye resolution (about 1680x1760 on the Quest 3, 1728x1728 on
 the Steam Frame), 0.5 to 2.0; 0 chooses for the headset: 1.0 on the
-Quest 3, 3S and Pro, 0.85 on the Quest 2, 0.7 on the first Quest. 1.5
-holds 72 frames a second on the Steam Frame. The eye images the
-compositor gets are this size too, so above 1.0 the extra detail
-reaches the display; 1.25 is about the Quest 3's own panels
-(2064x2208), above that supersampling.
+Quest 3, 3S and Pro and the Steam Frame, 0.85 on the Quest 2, 0.7 on
+the first Quest. The eye images the compositor gets are this size too,
+so above 1.0 the extra detail reaches the display; 1.25 is about the
+Quest 3's own panels (2064x2208) and the Steam Frame's (2160x2160),
+above that supersampling.
 
 vr.fov_mode [string]
 Default: "full"
@@ -1277,8 +1568,8 @@ Default: 0
 Extra shared gun/shot/scope aim steadying, 0..0.8. Zero preserves stock scope smoothing.
 
 vr.assisted_combat [boolean]
-Default: false
-Optional enemy-only gaze/punch combo assist, local play or a co-op host. Native collision and damage remain in use.
+Default: true
+Optional enemy-only gaze/punch combo assist, in a local game or co-op whose host's VR INTERACTIONS is on (Test73: every co-op player's; its host deals each blow). Native collision and damage remain in use.
 
 vr.combat_moves [boolean]
 Default: true
@@ -1359,8 +1650,8 @@ Default: 3.0
 How far from the eyes a punch picks an enemy (metres, 0.75..3); short of striking range a short step closes the gap.
 
 vr.physical_grenades [boolean]
-Default: false
-Grab a chest grenade with a free hand and release Grip to throw. Local play and co-op host only; buttons remain available.
+Default: true
+Grab a waist grenade with a free hand and release Grip to throw. A local game, or (Test73) co-op whose host's VR INTERACTIONS allows it (the host throws a co-op player's); buttons remain available.
 
 vr.grenade_chest_forward [real]
 Default: 0.12
@@ -1378,9 +1669,23 @@ vr.grenade_throw_scale [real]
 Default: 1.5
 Physical grenade hand momentum multiplier, 0.5..2.0; final speed capped at 15 m/s.
 
+vr.grenade_scale [real]
+Default: 1.0
+Test73, GRENADE SIZE: the waist grenades and the one held, as a share of the game's own grenade (1: as it is thrown; 0.5..1.5).
+
+vr.diag_grenade_hand [boolean]
+Default: false
+Test73, for testing: draw a frag grenade held in the free hand (vr.dump_frame's images show it), with or without PHYS GRENADES.
+
+vr.diag_weapon [string]
+Default: ""
+Test73, for testing: a weapon tag's name (weapons\\sniper rifle\\sniper rifle): put in the hand two seconds into a
+local game, for eye dumps of each zoom weapon's scope. Empty: none.
+
 net.host_vr_actions [boolean]
 Default: false
-Co-op host permission for its optional fist assist and physical chest grenades. Requires Physical Interactions and all peers negotiated. Guests retain standard controls.
+Before Test73, the co-op host's fist assist and physical grenades on their own switch; now part of VR INTERACTIONS
+(net.physical_interactions). Kept for older configs; no longer read.
 
 vr.crosshair_opacity [real]
 Default: 1.0
@@ -1631,6 +1936,15 @@ Default: "legs"
 and legs too; "legs": legs plus arms/hands with the torso hidden.
 Local visibility only; supported peers see the complete VR avatar.
 
+vr.character_arms [string]
+Default: "auto"
+Test73: ARMS FROM, with the body shown (vr.body full or legs) and the arms
+reached by IK: "on" (CHARACTER) the played character's own upper arms
+and forearms, as its model has them, with the first-person gloves' tracked
+fingers (the characters' own hands have no finger bones); "off" (FIRST
+PERSON) the map's first-person arms; "auto" the character's own when it
+is not the game's Spartan (a custom campaign's, such as SPV1's Chief).
+
 vr.fingers [boolean]
 Default: true
 A free hand turns with your wrist and its fingers follow yours on the
@@ -1671,10 +1985,11 @@ Default: 1.5
 Maximum offline sprint movement multiplier, bounded from 1.0x to 3.0x; default 1.5x.
 
 vr.slide [boolean]
-Default: false
+Default: true
 Test70: sprinting on the ground, a crouch begun slides on with the run's momentum, giving it
 up to friction and slope, steered a little by the stick; standing, jumping, a wall or a walk's
-pace ends it. Offline only, as sprint. Turning it on in the VR menu also turns on BUTTON
+pace ends it. A local game, or (Test73) co-op whose host's VR INTERACTIONS allows VR movement
+(SPRINT SPEED's boost itself stays offline). Turning it on in the VR menu also turns on BUTTON
 SPRINT unless ARM RUN sprints already.
 
 vr.slide_momentum [real]
@@ -1768,16 +2083,16 @@ Default: 0.25
 Offline player contact radius in metres, clamped 0.18..0.60 and never above the native radius. Occupied space blocks radius expansion.
 
 vr.parkour_wallrun [boolean]
-Default: false
-Optional offline wall running. Jump near a wall while moving along it; the wallrun is brief and native collision remains authoritative.
+Default: true
+Optional wall running: a local game, a co-op host, or (Test73) a co-op player whose host's VR INTERACTIONS allows VR movement. Jump near a wall while moving along it; the wallrun is brief and native collision remains authoritative.
 
 vr.parkour_walljump [boolean]
-Default: false
-Optional offline wall jumping. Press jump again while airborne beside a wall to leap away; native collision remains authoritative.
+Default: true
+Optional wall jumping, where wall running is allowed. Press jump again while airborne beside a wall to leap away; native collision remains authoritative.
 
 vr.parkour_climb [boolean]
-Default: false
-Optional offline grip climbing. Touch a solid vertical world surface with a free tracked hand, then squeeze Grip; pull to climb and release to launch. HAND CONTACT controls the palm collision radius, not reach; native collision remains authoritative.
+Default: true
+Optional grip climbing, where wall running is allowed. Touch a solid vertical world surface with a free tracked hand, then squeeze Grip; pull to climb and release to launch. HAND CONTACT controls the palm collision radius, not reach; native collision remains authoritative.
 
 vr.wallrun_speed [real]
 Default: 1.5
@@ -1804,7 +2119,7 @@ Default: false
 Opt-in detailed contact diagnostics emitted outside render hooks.
 
 vr.vehicle_handles [boolean]
-Default: false
+Default: true
 IMMERSIVE VEHICLE: first-person cockpit controls. Grip the Warthog's own wheel, or the Ghost handlebar, Scorpion sticks or Banshee yoke (push/pull to dive/climb), and turn physically; stick throttle remains. While shown they replace controller steering and return to centre when let go; your first-person hands hold them.
 
 vr.vehicle_wheel_visible [boolean]
@@ -1814,6 +2129,10 @@ Show virtual cockpit control geometry. Hiding it retains physical grip controls;
 vr.vehicle_cockpit_lock [boolean]
 Default: true
 COCKPIT LOCK: with IMMERSIVE VEHICLE controls up, the eyes, the hands and the controls are held to the vehicle as one: the cockpit stays still around you and the world moves (pitch, roll and turns), so the wheel stays on the dash under your hands. Off, the horizon follows HORIZON.
+
+vr.vehicle_hand_lock [boolean]
+Default: true
+Test73, HAND LOCK (a tester's request): with IMMERSIVE VEHICLE controls up, a hand holding grip on the wheel, the handlebar, the drive stick or the flight bar is drawn locked on it where it took hold, turning with it, until the grip is let go. Off, a holding hand is drawn on the control only within 10 cm of the controller, turned as the controller is.
 
 vr.vehicle_grip_guide [boolean]
 Default: false
@@ -1988,8 +2307,8 @@ Default: 0.16
 Reach of each magazine pouch in metres (0.08 to 0.30).
 
 vr.manual_reload [boolean]
-Default: false
-Optional solo VR physical reload for supported weapons. The USE/RELOAD action drops the magazine (it never reloads automatically while this is on); take a fresh one from a hip or shoulder pouch, push it into the well, and charge the gun only if the chamber was empty. Unsupported weapons keep the stock reload.
+Default: true
+Optional VR physical reload for supported weapons, in a local game or (Test73) co-op whose host's VR INTERACTIONS allows it (a co-op player's reload is then committed by its host). The USE/RELOAD action drops the magazine (it never reloads automatically while this is on); take a fresh one from a hip or shoulder pouch, push it into the well, and charge the gun only if the chamber was empty. Unsupported weapons keep the stock reload.
 
 vr.npc_grab_assist [real]
 Default: 0.30
@@ -1998,6 +2317,12 @@ GRAB ASSIST: how far from an NPC's body (its visible surface) a squeeze still ta
 vr.object_throw [real]
 Default: 2.0
 OBJECT THROW: how hard a prop or a vehicle let go of while moving flies: the hand's speed times this (0 to 3; 2 by default; a vehicle at most 12 m/s, a prop 24). 0 lets it drop. WORLD GRAB and LIFT VEHICLES bring it.
+
+vr.test73_features_applied [boolean]
+Default: false
+Internal one-time change (Test73, the owner's): every VR feature (manual reload, parkour, fist combat,
+immersive vehicles, NPC and world grabs, one-hand heavies, physical grenades, slide, bullet time, death
+ragdolls...) turned on once, as VR SETTINGS turns it on, with what it needs; turned off after, it stays off.
 
 vr.test72_combat_defaults_applied [boolean]
 Default: false
@@ -2015,7 +2340,7 @@ Default: false
 Internal one-time move (Test66): the physical grenades to the waist (GRENADE DOWN 60 cm, FWD 12 cm, GAP 18 cm), once; later choices stay.
 
 vr.npc_one_hand_heavy [boolean]
-Default: false
+Default: true
 ONE-HAND HEAVIES: a living Elite or Hunter lifts with one hand (off: one hand holds it in place, the second lifts). Needs NPC GRAB.
 
 vr.npc_hold_strength [real]
@@ -2043,7 +2368,7 @@ Default: true
 GRAB RAGDOLL: ON LIFT keeps a living NPC taken by a limb on its feet (held still, a light one dragged along; it cannot walk or shoot) until the hands lift it 18 cm or yank it, then it is a ragdoll in the hands; AT ONCE makes it a ragdoll as soon as it is taken (as before). Corpses are ragdolls at once either way.
 
 vr.death_ragdolls [boolean]
-Default: false
+Default: true
 Solo (and co-op host): NPCs killed nearby fall as physical ragdolls carrying their momentum, then rest as grabbable corpses. Uses the NPC RIG SLOTS pool.
 
 vr.death_ragdoll_range [real]
@@ -2063,8 +2388,8 @@ Default: "grip"
 Input for the free hand during optional manual reload only: grip (default) or trigger. Other interaction and firing inputs are unchanged.
 
 vr.dropped_magazines [boolean]
-Default: false
-Keep ejected supported rifle/pistol/sniper magazines as local visual debris until the map changes. Requires MANUAL RELOAD; disabling MANUAL RELOAD in the VR menu also turns this off. Cancelled reloads remove their provisional visual. No ammo, save, or network state is created.
+Default: true
+Keep ejected supported rifle/pistol/sniper magazines as local visual debris until the map changes, wherever MANUAL RELOAD works (Test73: co-op too, when the host allows it). Requires MANUAL RELOAD; disabling MANUAL RELOAD in the VR menu also turns this off. Cancelled reloads remove their provisional visual. No ammo, save, or network state is created.
 
 vr.reload_grip_fit [boolean]
 Default: true
@@ -2074,19 +2399,19 @@ in the closed hand (the reload animation's own fingers), not where their animati
 Test67's authored place.
 
 vr.cooldown_shake [boolean]
-Default: false
+Default: true
 Offline VR toggle: shake the currently held overheated weapon to speed its authored cooling. Automatically disabled online.
 
 vr.custom_scenery_grab [boolean]
-Default: false
+Default: true
 Opt in to bounded collision-box grabbing of eligible unnamed custom scenery. The VR menu also enables WORLD GRAB; scripted, animated, unsafe or malformed tags remain refused.
 
 vr.custom_npc_rigs [boolean]
-Default: false
+Default: true
 Solo-only fallback for otherwise-unprofiled human, Covenant, and combat-form actors with grounded native biped capsules and a valid authored joint graph. The VR menu also enables NPC GRAB. Existing species profiles are unchanged; flying, swarm, scripted, unsafe, and malformed rigs remain refused.
 
 vr.npc_rescue [boolean]
-Default: false
+Default: true
 Optional solo VR recovery for eligible live encounter NPCs falling unsupported for 10 seconds. Returns them to a clear last-grounded pose; does not respawn, revive, or override active scripts.
 
 vr.npc_max_ragdolls [integer]
@@ -2098,7 +2423,7 @@ Default: 75
 Solo campaign only: active-garbage cleanup trigger per 16 players. 75 (default) uses a 75 trigger / 45 target; 100 uses 100 / 60; 0 keeps OpenCE's 50 / 30. Corpses share this pool with other garbage, and memory/object pressure can still collect sooner. Multiplayer always uses native thresholds.
 
 vr.npc_interaction [boolean]
-Default: false
+Default: true
 Optional physical interaction with supported native NPC rigs. Co-op requires host permission and negotiated compatible peers; PvP stays native.
 
 vr.interaction_damage [boolean]
@@ -2114,7 +2439,7 @@ Default: 1.0
 Maximum impact damage as a multiple of the grabbing player native melee damage.
 
 vr.world_interaction [boolean]
-Default: false
+Default: true
 Optional loose weapon, equipment and movable prop grabbing. Grip close with a free hand.
 Two hands improve control. Co-op requires a consenting compatible host and peers; competitive multiplayer stays native.
 
@@ -2123,7 +2448,7 @@ Default: 0.04
 Tracked palm contact-sphere radius in metres for physical object/NPC grabs and climbing (0.02 to 0.08). Grip only acquires a target while the hand collision sphere overlaps its collision model or solid surface.
 
 vr.vehicle_lift [boolean]
-Default: false
+Default: true
 Optional offline, contact-grabbed full-body lifting of unoccupied, unnamed Warthog, Ghost, Scorpion and turret vehicles; independent of WORLD GRAB. One/two hand motion controls bounded native translation and orientation; release leaves a speed-capped vehicle in native physics. No teleporting. Destroyed, occupied, parented, named/movie-star, unsupported and network vehicles remain native.
 
 vr.scope_size [real]
@@ -2144,7 +2469,7 @@ The pistol (round sight) scope moved right (in either hand) from its usual place
 
 vr.scope_pistol_scale [real]
 Default: 1.0
-The pistol (round sight) scope's size as a share of vr.scope_size (1 = as usual).
+The pistol (round sight) scope's size as a share of its usual size (1 = as usual; 0.5 to 4).
 
 vr.scope_sniper_forward [real]
 Default: 0.0
@@ -2160,7 +2485,7 @@ The sniper rifle scope moved right (in either hand) from its usual place, metres
 
 vr.scope_sniper_scale [real]
 Default: 1.0
-The sniper rifle scope's size as a share of vr.scope_size (1 = as usual).
+The sniper rifle scope's size as a share of its usual size (1 = as usual; 0.5 to 4).
 
 vr.scope_rocket_launcher_forward [real]
 Default: 0.0
@@ -2176,7 +2501,7 @@ SPNKR native scope right adjustment; applies when this weapon has zoom.
 
 vr.scope_rocket_launcher_scale [real]
 Default: 1.0
-SPNKR native scope scale adjustment; applies when this weapon has zoom.
+SPNKR native scope size as a share of its usual size (1 = as usual; 0.5 to 4); applies when this weapon has zoom.
 
 vr.scope_other_forward [real]
 Default: 0.0
@@ -2192,7 +2517,7 @@ OTHER native scope right adjustment; applies when this weapon has zoom.
 
 vr.scope_other_scale [real]
 Default: 1.0
-OTHER native scope scale adjustment; applies when this weapon has zoom.
+OTHER native scope size as a share of its usual size (1 = as usual; 0.5 to 4); applies when this weapon has zoom.
 
 vr.scope_plasma_pistol_forward [real]
 Default: 0.0
@@ -2208,7 +2533,7 @@ PLASMA PISTOL native scope right adjustment; applies when this weapon has zoom.
 
 vr.scope_plasma_pistol_scale [real]
 Default: 1.0
-PLASMA PISTOL native scope scale adjustment; applies when this weapon has zoom.
+PLASMA PISTOL native scope size as a share of its usual size (1 = as usual; 0.5 to 4); applies when this weapon has zoom.
 
 vr.scope_assault_rifle_forward [real]
 Default: 0.0
@@ -2224,7 +2549,7 @@ ASSAULT RIFLE native scope right adjustment; applies when this weapon has zoom.
 
 vr.scope_assault_rifle_scale [real]
 Default: 1.0
-ASSAULT RIFLE native scope scale adjustment; applies when this weapon has zoom.
+ASSAULT RIFLE native scope size as a share of its usual size (1 = as usual; 0.5 to 4); applies when this weapon has zoom.
 
 vr.scope_plasma_rifle_forward [real]
 Default: 0.0
@@ -2240,7 +2565,7 @@ PLASMA RIFLE native scope right adjustment; applies when this weapon has zoom.
 
 vr.scope_plasma_rifle_scale [real]
 Default: 1.0
-PLASMA RIFLE native scope scale adjustment; applies when this weapon has zoom.
+PLASMA RIFLE native scope size as a share of its usual size (1 = as usual; 0.5 to 4); applies when this weapon has zoom.
 
 vr.scope_shotgun_forward [real]
 Default: 0.0
@@ -2256,7 +2581,7 @@ SHOTGUN native scope right adjustment; applies when this weapon has zoom.
 
 vr.scope_shotgun_scale [real]
 Default: 1.0
-SHOTGUN native scope scale adjustment; applies when this weapon has zoom.
+SHOTGUN native scope size as a share of its usual size (1 = as usual; 0.5 to 4); applies when this weapon has zoom.
 
 vr.scope_needler_forward [real]
 Default: 0.0
@@ -2272,7 +2597,7 @@ NEEDLER native scope right adjustment; applies when this weapon has zoom.
 
 vr.scope_needler_scale [real]
 Default: 1.0
-NEEDLER native scope scale adjustment; applies when this weapon has zoom.
+NEEDLER native scope size as a share of its usual size (1 = as usual; 0.5 to 4); applies when this weapon has zoom.
 
 vr.scope_fuel_rod_forward [real]
 Default: 0.0
@@ -2288,7 +2613,7 @@ FUEL ROD native scope right adjustment; applies when this weapon has zoom.
 
 vr.scope_fuel_rod_scale [real]
 Default: 1.0
-FUEL ROD native scope scale adjustment; applies when this weapon has zoom.
+FUEL ROD native scope size as a share of its usual size (1 = as usual; 0.5 to 4); applies when this weapon has zoom.
 
 vr.scope_flamethrower_forward [real]
 Default: 0.0
@@ -2304,7 +2629,7 @@ FLAMETHROWER native scope right adjustment; applies when this weapon has zoom.
 
 vr.scope_flamethrower_scale [real]
 Default: 1.0
-FLAMETHROWER native scope scale adjustment; applies when this weapon has zoom.
+FLAMETHROWER native scope size as a share of its usual size (1 = as usual; 0.5 to 4); applies when this weapon has zoom.
 
 vr.button_jump [string]
 Default: "a"
@@ -2354,7 +2679,7 @@ stick pushed up by default (right_stick_up; the one input no action has), or a, 
 right_stick, left_stick, right_stick_down, grip or none.
 
 vr.bullet_time [boolean]
-Default: false
+Default: true
 Test70: BULLET TIME: the world slowed while its button is held (or toggled), offline only (a
 local game, never co-op or multiplayer); the head and hands keep their full frame rate.
 Not in a seat, a menu or a cutscene.
@@ -2632,6 +2957,12 @@ Default: 120.0
 With vr.snap_turn 0: degrees a second the right stick turns you at full
 push.
 
+vr.vehicle_smooth_turn [boolean]
+Default: true
+Test73, VEHICLE TURN (a tester's request): in a vehicle's seat the right stick turns smoothly
+(vr.smooth_turn_speed) even when vr.snap_turn snaps on foot, and snaps again once you are out;
+false: a seat turns as on foot.
+
 vr.force_render [boolean]
 Default: false
 Draw stereo frames with the headset off (in standby), from a head
@@ -2640,6 +2971,15 @@ looking ahead: for testing.
 vr.diag_yaw [real]
 Default: 0.0
 With vr.force_render: turn that head left by this many degrees.
+
+vr.diag_turn_speed [real]
+Default: 0.0
+Test73, with vr.force_render: that head keeps turning left, this many degrees a second
+from its first synthesized frame (testing MENU POSITION).
+
+vr.diag_pitch [real]
+Default: 0.0
+With vr.force_render: that head looks down by this many degrees (testing).
 
 vr.diag_hand_yaw [real]
 Default: 0.0
@@ -2666,10 +3006,20 @@ Default: 0.0
 This many seconds into play, zoom in (switching first to a weapon that
 zooms): for testing the scope; 0 never.
 
+vr.diag_fire_frame [integer]
+Default: 0
+With vr.force_render: pull the trigger in pulses from this stereo frame on, for
+muzzle flashes in vr.dump_frame's images: for testing; 0 never.
+
 vr.dump_frame [integer]
 Default: 0
 Write the eyes and HUD of this stereo frame as vr-eye0.bmp, vr-eye1.bmp
 and vr-hud.bmp in the data folder; 0 none.
+
+vr.dump_frames [integer]
+Default: 1
+With vr.dump_frame: this many stereo frames from it on, each written as
+vr-eye0-<frame>.bmp and so on (more than 1): for testing.
 
 vr.timing [boolean]
 Default: true

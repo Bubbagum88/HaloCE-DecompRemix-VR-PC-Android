@@ -50,6 +50,9 @@ host_logf and the guest's host_gl_has_extension) */
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+/* (sched_setaffinity: xr_fast_cores, the Steam Frame's) */
+#include <sched.h>
+#include <unistd.h>
 
 #include <SDL3/SDL.h>
 
@@ -79,6 +82,8 @@ struct swapchain
 	uint32_t width, height, count;
 	uint32_t images[HALO_XR_MAXIMUM_IMAGES];
 	int acquired;
+	/* Test73: drawn, its release left for the frame's end (xr.defer_releases) */
+	int held;
 };
 
 
@@ -90,6 +95,11 @@ static struct
 	XrSession session;
 	XrSessionState state;
 	int running, focused, exiting, frame_controller, refresh_rate_extension, bd_controller, bd_ultra_controller, hp_controller;
+	/* Test73: SteamVR's runtime, and (the Steam Frame) the frames' thread kept on the fast cores: xr_fast_cores */
+	int steamvr, cores_pinned;
+	/* Test73: the images released together as the frame ends, not each as
+	it is drawn (the Steam Frame: host_xr_release) */
+	int defer_releases;
 	XrSpace local, view;
 	XrSpace grip[2], aim[2];
 	XrActionSet action_set;
@@ -119,6 +129,10 @@ static struct
 	/* the refresh rate asked for, and windows in a row it was not held */
 	float refresh_rate;
 	int refresh_misses;
+	/* Test73 (astromaddie's HaloCE-VR, 82b6d12e, CC0): the fall back to 72 Hz
+	was asked for and the runtime has no such rate (the Steam Frame's SteamVR
+	offers only its display setting's) */
+	int refresh_fallback_failed;
 	struct timespec stats_start;
 	/* XR_EXT_performance_settings: the CPU and GPU levels are asked for */
 	int performance_settings;
@@ -342,13 +356,17 @@ static int create_action(int index, XrActionType type, const char *name, const c
 }
 
 
-static void suggest(const char *profile, const struct binding *bindings, int count)
+#define SUGGESTED_MAX (NUMBER_OF_ACTIONS * 2)
+
+static XrResult suggest(const char *profile, const struct binding *bindings, int count)
 {
-	XrActionSuggestedBinding suggested[NUMBER_OF_ACTIONS * 2];
+	XrActionSuggestedBinding suggested[SUGGESTED_MAX];
 	XrInteractionProfileSuggestedBinding info = { XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING };
 	XrResult result;
 	int index;
 
+	if (count > SUGGESTED_MAX)
+		return XR_ERROR_VALIDATION_FAILURE;
 	for (index = 0; index < count; index++)
 	{
 		suggested[index].action = xr.actions[bindings[index].action];
@@ -360,6 +378,27 @@ static void suggest(const char *profile, const struct binding *bindings, int cou
 	result = xrSuggestInteractionProfileBindings(xr.instance, &info);
 	host_logf(HOST_LOG_INFO, "[openxr] bindings %s: %s", profile,
 		XR_SUCCEEDED(result) ? "suggested" : result_name(result));
+	return result;
+}
+
+/* Test73: a profile's bindings with the fingers' touches (the Steam Frame's,
+the Index's), or, if the runtime refuses them, its bindings alone: one path
+it lacks would discard the whole suggestion and leave that controller with
+no input at all */
+static void suggest_pair(const char *profile, const struct binding *bindings, int count,
+	const struct binding *fingers, int finger_count)
+{
+	struct binding both[SUGGESTED_MAX];
+
+	if (count + finger_count <= SUGGESTED_MAX)
+	{
+		memcpy(both, bindings, (size_t)count * sizeof(*both));
+		memcpy(both + count, fingers, (size_t)finger_count * sizeof(*both));
+		if (XR_SUCCEEDED(suggest(profile, both, count + finger_count)))
+			return;
+		host_logf(HOST_LOG_INFO, "[openxr] bindings %s: again without the fingers' touches", profile);
+	}
+	suggest(profile, bindings, count);
 }
 
 
@@ -411,10 +450,11 @@ static int create_actions(void)
 	if (!ok)
 		return 0;
 	if (xr.frame_controller)
-		suggest("/interaction_profiles/valve/frame_controller_valve", halo_xr_bindings_frame, sizeof(halo_xr_bindings_frame) / sizeof(halo_xr_bindings_frame[0]));
+		suggest_pair("/interaction_profiles/valve/frame_controller_valve", halo_xr_bindings_frame, sizeof(halo_xr_bindings_frame) / sizeof(halo_xr_bindings_frame[0]),
+			halo_xr_bindings_frame_fingers, sizeof(halo_xr_bindings_frame_fingers) / sizeof(halo_xr_bindings_frame_fingers[0]));
 	suggest("/interaction_profiles/oculus/touch_controller", halo_xr_bindings_touch, sizeof(halo_xr_bindings_touch) / sizeof(halo_xr_bindings_touch[0]));
-	suggest("/interaction_profiles/valve/index_controller", halo_xr_bindings_index,
-		sizeof(halo_xr_bindings_index) / sizeof(halo_xr_bindings_index[0]));
+	suggest_pair("/interaction_profiles/valve/index_controller", halo_xr_bindings_index, sizeof(halo_xr_bindings_index) / sizeof(halo_xr_bindings_index[0]),
+		halo_xr_bindings_index_fingers, sizeof(halo_xr_bindings_index_fingers) / sizeof(halo_xr_bindings_index_fingers[0]));
 	if (xr.bd_controller)
 	{
 		suggest("/interaction_profiles/bytedance/pico4_controller", halo_xr_bindings_pico, sizeof(halo_xr_bindings_pico) / sizeof(halo_xr_bindings_pico[0]));
@@ -628,6 +668,8 @@ static int create_swapchain(int which, uint32_t width, uint32_t height)
 	swapchain->count = count;
 	swapchain->width = width;
 	swapchain->height = height;
+	/* (a new swapchain has no image of its own held: Test73) */
+	swapchain->held = 0;
 	host_logf(HOST_LOG_INFO, "[openxr] swapchain %d: %ux%u, %u images", which, width, height, count);
 	return 1;
 }
@@ -677,6 +719,10 @@ static int create_instance(struct halo_xr_info *out)
 	XrExtensionProperties *available = NULL;
 	const char *extensions[12];
 	uint32_t count = 0, index;
+	/* Test73: listed once; the Steam Frame's wait for its runtime asks again
+	each second (host_xr_init) */
+	static int attempts;
+	int quiet = attempts++ > 0;
 
 	/* as many as the runtime has (the Quest 3's are 80 and rising): asked
 	for their count first */
@@ -692,10 +738,12 @@ static int create_instance(struct halo_xr_info *out)
 	{
 		count = 0;
 	}
-	host_logf(HOST_LOG_INFO, "[openxr] %u extensions", count);
+	if (!quiet)
+		host_logf(HOST_LOG_INFO, "[openxr] %u extensions", count);
 	for (index = 0; index < count; index++)
 	{
-		host_logf(HOST_LOG_INFO, "[openxr] extension %s", available[index].extensionName);
+		if (!quiet)
+			host_logf(HOST_LOG_INFO, "[openxr] extension %s", available[index].extensionName);
 		if (!strcmp(available[index].extensionName, FRAME_CONTROLLER_EXTENSION))
 			xr.frame_controller = 1;
 		if (!strcmp(available[index].extensionName, REFRESH_RATE_EXTENSION))
@@ -741,7 +789,7 @@ static int create_instance(struct halo_xr_info *out)
 		extensions[count++] = BD_ULTRA_CONTROLLER_EXTENSION;
 	if (xr.hp_controller)
 		extensions[count++] = HP_CONTROLLER_EXTENSION;
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count && !quiet; index++)
 		host_logf(HOST_LOG_INFO, "[openxr] enabling %s", extensions[index]);
 #ifndef _WIN32
 	android.applicationVM = xr.vm;
@@ -757,6 +805,22 @@ static int create_instance(struct halo_xr_info *out)
 	if (!check(xrCreateInstance(&info, &xr.instance), "xrCreateInstance"))
 		return 0;
 	xrGetInstanceProperties(xr.instance, &properties);
+	xr.steamvr = strstr(properties.runtimeName, "SteamVR") != NULL;
+	{
+		/* Test73: the Steam Frame defers the releases (host_xr_release);
+		HALO_XR_DEFERRED 1 or 0 says otherwise, on any runtime */
+		const char *choice = getenv("HALO_XR_DEFERRED");
+#ifndef _WIN32
+		int lepton = host_lepton_running();
+#else
+		int lepton = 0;
+#endif
+
+		xr.defer_releases = choice && *choice ? atoi(choice) != 0 : xr.steamvr && lepton;
+		if (xr.defer_releases || (choice && *choice))
+			host_logf(HOST_LOG_INFO, "[openxr] images released %s", xr.defer_releases ?
+				"together as each frame ends" : "each as it is drawn");
+	}
 	system_info.formFactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
 	if (!check(xrGetSystem(xr.instance, &system_info, &xr.system), "xrGetSystem"))
 		return 0;
@@ -896,6 +960,22 @@ static int choose_format(void)
 	return xr.color_format != 0;
 }
 
+/* Test73: OpenXR could not be started. In the Steam Frame's Lepton the game
+ends, its log saying why: the flat screen it would fall back on is not shown
+there, and frames posted to it take the container down (host_xr_init) */
+static int xr_unavailable(void)
+{
+#ifndef _WIN32
+	if (host_lepton_running())
+	{
+		host_logf(HOST_LOG_ERROR, "[openxr] OpenXR could not be started: quitting, as Lepton has no flat screen to "
+			"play on");
+		_exit(1);
+	}
+#endif
+	return -1;
+}
+
 int host_xr_init(struct halo_xr_info *out, uint32_t quad_width, uint32_t quad_height)
 {
 	XrViewConfigurationView views[2] = { { XR_TYPE_VIEW_CONFIGURATION_VIEW }, { XR_TYPE_VIEW_CONFIGURATION_VIEW } };
@@ -908,17 +988,59 @@ int host_xr_init(struct halo_xr_info *out, uint32_t quad_width, uint32_t quad_he
 	if (xr.initialized)
 		goto describe;
 	xr.failed = 1;
-	if (!initialize_loader() || !create_instance(out) || !create_session() || !choose_format())
+	if (!initialize_loader())
+		return xr_unavailable();
+	if (!create_instance(out))
+	{
+#ifndef _WIN32
+		/* Test73 (astromaddie's HaloCE-VR, e92d54fa, CC0): in the Steam
+		Frame's Lepton, SteamVR may not be running yet, or be asleep with the
+		headset (it refuses the instance, XR_ERROR_RUNTIME_FAILURE): it is
+		waited for, a minute. There is no flat screen to fall back on there
+		(Lepton shows the app no window: the frames posted to it are refused
+		and its display composer aborts, taking the container down), so the
+		game ends instead, its log saying why; no message box, which nobody
+		could close. Elsewhere (Quest, PICO) the flat screen stays */
+		int attempt;
+		struct timespec second = { 1, 0 };
+
+		if (!host_lepton_running())
+			return -1;
+		for (attempt = 1;; attempt++)
+		{
+			/* (an instance made before its system failed, given back first) */
+			if (xr.instance != XR_NULL_HANDLE)
+			{
+				xrDestroyInstance(xr.instance);
+				xr.instance = XR_NULL_HANDLE;
+			}
+			if (attempt > 60)
+			{
+				host_logf(HOST_LOG_ERROR, "[openxr] no OpenXR runtime after a minute (is SteamVR running, the "
+					"headset awake?): quitting, as Lepton has no flat screen to play on");
+				_exit(1);
+			}
+			if (attempt % 10 == 1)
+				host_logf(HOST_LOG_WARN, "[openxr] no runtime yet (the headset asleep?): trying again for a minute");
+			nanosleep(&second, NULL);
+			if (create_instance(out))
+				break;
+		}
+#else
 		return -1;
+#endif
+	}
+	if (!create_session() || !choose_format())
+		return xr_unavailable();
 	if (!check(xrEnumerateViewConfigurationViews(xr.instance, xr.system, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
 		2, &view_count, views), "xrEnumerateViewConfigurationViews") || view_count != 2)
 	{
-		return -1;
+		return xr_unavailable();
 	}
 	for (index = 0; index < 2; index++)
 	{
 		if (!create_swapchain(index, views[index].recommendedImageRectWidth, views[index].recommendedImageRectHeight))
-			return -1;
+			return xr_unavailable();
 	}
 	xr.eye_max_width = views[0].maxImageRectWidth;
 	xr.eye_max_height = views[0].maxImageRectHeight;
@@ -928,7 +1050,7 @@ int host_xr_init(struct halo_xr_info *out, uint32_t quad_width, uint32_t quad_he
 		!create_swapchain(HALO_XR_SWAPCHAIN_SCOPE, 768, 768) ||
 		!create_swapchain(HALO_XR_SWAPCHAIN_WRIST, 512, 384))
 	{
-		return -1;
+		return xr_unavailable();
 	}
 	xr.actions_ready = create_actions();
 	if (!xr.actions_ready)
@@ -1191,11 +1313,20 @@ static void log_statistics(void)
 	{
 		if (xr.frames / seconds < xr.refresh_rate * 0.9f)
 		{
-			if (++xr.refresh_misses >= 2)
+			if (++xr.refresh_misses >= 2 && !xr.refresh_fallback_failed)
 			{
 				host_logf(HOST_LOG_WARN, "[openxr] %.0f Hz not held (%.1f frames/s): back to 72 Hz",
 					xr.refresh_rate, xr.frames / seconds);
-				host_xr_set_refresh_rate(72.0f);
+				/* (the Steam Frame's SteamVR offers only the rate its display
+				settings have: there is no going back from here, and the
+				runtime runs the game at half its rate. Said once, rather
+				than asked again every twenty seconds) */
+				if (host_xr_set_refresh_rate(72.0f) <= 0.0f || xr.refresh_rate > 72.5f)
+				{
+					host_logf(HOST_LOG_WARN, "[openxr] the runtime offers no rate at or below 72 Hz: set the "
+						"headset's display to 72 Hz for this game to run at a full rate");
+					xr.refresh_fallback_failed = 1;
+				}
 			}
 		}
 		else
@@ -1307,6 +1438,15 @@ int host_xr_begin_frame(struct halo_xr_frame *frame)
 }
 
 /* the index of the acquired image in info.images[which], or -1 */
+/* Test73: a swapchain's drawn image let go (host_xr_release) */
+static void release_image(struct swapchain *swapchain)
+{
+	XrSwapchainImageReleaseInfo release = { XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO };
+
+	swapchain->held = 0;
+	check(xrReleaseSwapchainImage(swapchain->handle, &release), "xrReleaseSwapchainImage");
+}
+
 int host_xr_acquire(uint32_t which)
 {
 	struct swapchain *swapchain;
@@ -1319,6 +1459,9 @@ int host_xr_acquire(uint32_t which)
 	swapchain = &xr.swapchains[which];
 	if (swapchain->acquired)
 		return -1;
+	/* (Test73: drawn again in the frame, its last image let go first) */
+	if (swapchain->held)
+		release_image(swapchain);
 	if (!check(xrAcquireSwapchainImage(swapchain->handle, &acquire, &index), "xrAcquireSwapchainImage"))
 		return -1;
 	wait.timeout = XR_INFINITE_DURATION;
@@ -1330,17 +1473,84 @@ int host_xr_acquire(uint32_t which)
 
 void host_xr_release(uint32_t which)
 {
-	XrSwapchainImageReleaseInfo release = { XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO };
+	struct swapchain *swapchain;
 
 	if (which >= HALO_XR_SWAPCHAIN_COUNT || !xr.swapchains[which].acquired)
 		return;
-	check(xrReleaseSwapchainImage(xr.swapchains[which].handle, &release), "xrReleaseSwapchainImage");
-	xr.swapchains[which].acquired = 0;
+	swapchain = &xr.swapchains[which];
+	swapchain->acquired = 0;
+	/* Test73, the Steam Frame (after ringfall-mjolnir-vr, CC0, field-tested
+	there): a release waits there for Mesa's GL thread (zink) or the GPU,
+	and the frame's second half came late. The images are released
+	together as the frame ends; the eyes' work, most of the frame's, goes
+	to the GPU as soon as both are drawn */
+	if (xr.defer_releases)
+	{
+		swapchain->held = 1;
+		if (which == HALO_XR_SWAPCHAIN_RIGHT)
+			glFlush();
+		return;
+	}
+	release_image(swapchain);
 }
 
 /* Ends the frame begun by host_xr_begin_frame with the layers the guest
 drew (their swapchains released); a projection layer uses this frame's
 views, so it needs them valid. */
+#ifndef _WIN32
+/* Test73, the Steam Frame (after ringfall-mjolnir-vr's xr_fast_cores, CC0): Android in Lepton, without
+XR_EXT_performance_settings to ask for the clocks, and the scheduler free to put the game's one busy thread, which
+simulates and draws each frame, on a slow core now and then: frames late to the compositor, shown twice. The thread
+that ends the frames is kept on the cores no slower than nine tenths of the fastest. */
+static void xr_fast_cores(void)
+{
+	cpu_set_t set;
+	long fastest = 0, speeds[64];
+	int cpu, count = 0;
+	char line[160] = "";
+
+	for (cpu = 0; cpu < 64 && cpu < CPU_SETSIZE; cpu++)
+	{
+		char path[96];
+		FILE *file;
+
+		speeds[cpu] = 0;
+		snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq", cpu);
+		file = fopen(path, "r");
+		if (!file)
+			continue;
+		if (fscanf(file, "%ld", &speeds[cpu]) != 1)
+			speeds[cpu] = 0;
+		fclose(file);
+		if (speeds[cpu] > fastest)
+			fastest = speeds[cpu];
+	}
+	if (!fastest)
+	{
+		host_logf(HOST_LOG_INFO, "[openxr] the cores' speeds are unknown: the frames' thread stays where it runs");
+		return;
+	}
+	CPU_ZERO(&set);
+	for (cpu = 0; cpu < 64 && cpu < CPU_SETSIZE; cpu++)
+	{
+		if (speeds[cpu] && speeds[cpu] * 10 >= fastest * 9)
+		{
+			char item[8];
+
+			CPU_SET(cpu, &set);
+			count++;
+			snprintf(item, sizeof(item), " %d", cpu);
+			if (strlen(line) + strlen(item) < sizeof(line))
+				strcat(line, item);
+		}
+	}
+	if (count && sched_setaffinity(0, sizeof(set), &set) == 0)
+		host_logf(HOST_LOG_INFO, "[openxr] the frames' thread on the fast cores:%s (fastest %ld MHz)", line, fastest / 1000);
+	else
+		host_logf(HOST_LOG_INFO, "[openxr] the frames' thread could not be kept on the fast cores");
+}
+#endif
+
 void host_xr_end_frame(const struct halo_xr_layers *layers)
 {
 	XrCompositionLayerProjectionView views[2];
@@ -1356,10 +1566,26 @@ void host_xr_end_frame(const struct halo_xr_layers *layers)
 	uint32_t count = 0;
 	int which;
 
+#ifndef _WIN32
+	/* (Test73: the Steam Frame's frames' thread on its fast cores, once; SteamVR in Lepton only) */
+	if (xr.steamvr && !xr.cores_pinned)
+	{
+		xr.cores_pinned = 1;
+		if (host_lepton_running() && !getenv("HALO_XR_ANY_CORE"))
+			xr_fast_cores();
+	}
+#endif
+
 	if (!xr.frame_begun)
 		return;
 	for (which = 0; which < HALO_XR_SWAPCHAIN_COUNT; which++)
 		host_xr_release((uint32_t)which);
+	/* (Test73: the images drawn, released together: xr.defer_releases) */
+	for (which = 0; which < HALO_XR_SWAPCHAIN_COUNT; which++)
+	{
+		if (xr.swapchains[which].held)
+			release_image(&xr.swapchains[which]);
+	}
 	if (layers && (layers->flags & HALO_XR_LAYER_PROJECTION) && xr.views_valid && xr.frame_state.shouldRender)
 	{
 		int eye;

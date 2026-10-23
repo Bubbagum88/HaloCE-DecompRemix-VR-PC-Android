@@ -65,7 +65,7 @@ class ProfileCheck {
   Files.writeString(new File(root,"config.toml").toPath(),"[vr]\nbody = 2\n[network]\nonline = true\n");
   check(!NetworkProfile.legacyCoop(root));
   NetworkProfile.setLegacyCoop(root,true);check(NetworkProfile.legacyCoop(root));
-  for(int v=0;v<=30;v++)check(NetworkProfile.campaignCompatible(v,true)==(v>=12&&v<=29)); // Test68: network 29
+  for(int v=0;v<=NetworkProfile.CURRENT+1;v++)check(NetworkProfile.campaignCompatible(v,true)==(v>=12&&v<=NetworkProfile.CURRENT));
   NetworkProfile.setLegacyCoop(root,false);check(!NetworkProfile.legacyCoop(root));
   check(NetworkProfile.selected(app)==0);
   NetworkProfile.prepare(app,root); check(NetworkProfile.configured(root)==0);
@@ -75,7 +75,7 @@ class ProfileCheck {
   check(ConfigSettings.read(root,"vr","body","").equals("2"));
   check(ConfigSettings.read(root,"network","online","").equals("true"));
   String before=ConfigSettings.contents(root);
-  for(int bad:new int[]{1,5,10,30,65535,-1}) { // Test68: 27, 28 and 29 are selectable
+  for(int bad:new int[]{1,5,10,NetworkProfile.CURRENT+1,65535,-1}) { // every one of 11 to CURRENT is selectable
    try {NetworkProfile.select(app,root,bad);throw new AssertionError();}catch(IOException expected){}
    check(ConfigSettings.contents(root).equals(before));
   }
@@ -133,7 +133,7 @@ class PopulationCheck {
   check(rows.size()==2 && rows.get(0).players==10 && rows.get(1).players==4);
   b.selectedNetworkVersion=0;check(b.filteredDirectory().size()==5);
   check(b.compatibleReportedPlayers()==44);
-  b.directory.add(new Entry(30,9));check(b.totalReportedPlayers()==53 && b.compatibleReportedPlayers()==44); // Test68: 30 is past this build's 29
+  b.directory.add(new Entry(NetworkProfile.CURRENT+1,9));check(b.totalReportedPlayers()==53 && b.compatibleReportedPlayers()==44); // past this build's newest
   b.directory.get(1).customEdition=true;check(b.compatibleReportedPlayers()==36);
   b.campaign=true;check(b.compatibleReportedPlayers()==28);
   b.directory.add(new Entry(14,7));check(b.compatibleReportedPlayers()==28);

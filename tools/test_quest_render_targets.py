@@ -6,7 +6,8 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "build/quest-target-checks"
 OUT.mkdir(parents=True, exist_ok=True)
 source = (ROOT / "port/linux/src/d3d8_gl.c").read_text()
-start = source.index("static struct render_target_entry *render_target_get(")
+# (OpenCE 244: the storage by the target's format, just above it)
+start = source.index("static void render_target_storage(const struct xgpu_render_target *target)")
 end = source.index("\nstruct xgpu_render_target *xgpu_render_target_find", start)
 test = r'''
 #include <assert.h>
@@ -18,24 +19,29 @@ typedef int BOOL;
 typedef int GLsizei;
 #define GL_TEXTURE_2D 0
 #define GL_TEXTURE_MAX_LEVEL 0
-#define GL_DEPTH24_STENCIL8 0
+#define GL_DEPTH24_STENCIL8 1
 #define GL_DEPTH_STENCIL 0
 #define GL_UNSIGNED_INT_24_8 0
-#define GL_RGBA8 0
+#define GL_RGBA8 2
+#define GL_RGBA16F 3
+#define GL_RGBA 0
+#define GL_HALF_FLOAT 0
 #define GL_BGRA 0
 #define GL_UNSIGNED_BYTE 0
 #define SCREEN_HEIGHT 480
 #define FALSE 0
 typedef struct { unsigned long Data; int depth; } D3DSurface;
+struct xgpu_render_target { unsigned long data, width, height, gl_width, gl_height; BOOL depth; float scale[2]; GLuint texture, multisample; int samples; BOOL unresolved; unsigned format; };
 struct render_target_entry {
     struct render_target_entry *next, *next_in_bucket;
-    struct { unsigned long data, width, height, gl_width, gl_height; BOOL depth; float scale[2]; GLuint texture, multisample; int samples; BOOL unresolved; } target;
+    struct xgpu_render_target target;
     unsigned long last_rendered;
     BOOL screen_buffer;
 };
 static struct render_target_entry *render_targets, *bucket;
 static struct { unsigned long frame; D3DSurface back_buffer,depth_buffer; } device;
 static float screen_scale[2] = {1, 1};
+static struct { BOOL active; } hdr; /* (display.hdr: off, as before) */
 static unsigned textures, allocations;
 static struct render_target_entry **render_target_bucket(unsigned long data) { (void)data; return &bucket; }
 static int halo_screen_width(void) { return 640; }

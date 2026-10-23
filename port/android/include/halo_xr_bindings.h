@@ -99,6 +99,29 @@ static const struct binding halo_xr_bindings_frame[] =
 	{ _action_hand_view, "/user/hand/left/input/view/click" },
 };
 
+/* Test73: where the fingers rest on the Steam Frame controllers (each
+button's touch in "Steam Frame Input"), for the hands' finger poses: the
+thumb on the stick or a face button, the index finger on the trigger.
+Suggested together with halo_xr_bindings_frame, which is suggested alone if
+the runtime refuses them (suggest_pair in host_xr.c) */
+static const struct binding halo_xr_bindings_frame_fingers[] =
+{
+	{ _action_hand_thumb_touch, "/user/hand/left/input/thumbstick/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/right/input/thumbstick/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/right/input/a/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/right/input/b/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/right/input/x/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/right/input/y/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/right/input/menu/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/left/input/dpad_up/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/left/input/dpad_down/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/left/input/dpad_left/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/left/input/dpad_right/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/left/input/view/touch" },
+	{ _action_hand_index_touch, "/user/hand/left/input/trigger/touch" },
+	{ _action_hand_index_touch, "/user/hand/right/input/trigger/touch" },
+};
+
 /* Touch: X/Y on the left, A/B on the right */
 static const struct binding halo_xr_bindings_touch[] =
 {
@@ -158,6 +181,22 @@ static const struct binding halo_xr_bindings_index[] =
 	{ _action_hand_stick, "/user/hand/left/input/thumbstick/click" },
 	{ _action_hand_stick, "/user/hand/right/input/thumbstick/click" },
 	{ _action_hand_menu, "/user/hand/left/input/system/click" },
+};
+
+/* Test73: the Index controllers' touches, for the finger poses, suggested
+with halo_xr_bindings_index as the Frame's are (suggest_pair) */
+static const struct binding halo_xr_bindings_index_fingers[] =
+{
+	{ _action_hand_thumb_touch, "/user/hand/left/input/thumbstick/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/right/input/thumbstick/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/left/input/a/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/left/input/b/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/right/input/a/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/right/input/b/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/left/input/trackpad/touch" },
+	{ _action_hand_thumb_touch, "/user/hand/right/input/trackpad/touch" },
+	{ _action_hand_index_touch, "/user/hand/left/input/trigger/touch" },
+	{ _action_hand_index_touch, "/user/hand/right/input/trigger/touch" },
 };
 
 /* Test72: PICO 4, Neo 3 and 4 Ultra controllers: Touch's layout (A/B

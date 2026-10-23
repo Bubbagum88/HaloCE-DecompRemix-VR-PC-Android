@@ -20,6 +20,9 @@ off.
 int vr_active(void);
 /* sets up the session; called once the GL context is current */
 void vr_initialize(void);
+/* Test73: the update's VR features on, once, as VR SETTINGS turns them on
+(port/linux/game/vr_menu.c; vr_initialize, vr.test73_features_applied) */
+void vr_menu_features_on(void);
 /* takes up the settings changed in play (the pause menu's VR settings),
 and counts the changes for those who keep settings (vr_settings_generation) */
 void vr_reload_settings(void);
@@ -55,6 +58,12 @@ Halo's axes: +x forward, +y left, +z up, in world units of 10 feet. */
 may draw it in stereo: the session shows it, the head is tracked and
 vr.stereo allows it. The answer holds until the frame is presented. */
 int vr_stereo_begin(void);
+/* Test72: this frame's images are being dumped (vr.dump_frame), for
+debug.gpu_trace_frame -2 */
+int vr_dumping_frame(void);
+/* the Screenshot key in VR: the next left eye's image saved as a PNG
+(desktop builds: xgpu_screenshot_png) */
+void vr_screenshot_request(void);
 /* eye 0 (left) or 1: its position, forward and up for a viewer at
 `position` facing `forward` (only its heading counts: the head gives the
 pitch and roll), and its frustum bounds (left, right, bottom, top) for a
@@ -206,6 +215,8 @@ int vr_impact_melee(void);
 int vr_physical_melee_hand_allowed(int hand);
 /* test21: physical melee is off in network games unless vr.melee_multiplayer */
 void vr_set_network_game(int network);
+/* Test73 (10d): whether the co-op host's VR INTERACTIONS allows physical melee */
+void vr_set_network_melee(int allowed);
 /* test21: seated, either stick click sounds a driver's horn (the crouch control) */
 int vr_horn_held(void);
 /* Voice chat's remappable Quest Push-to-Talk; false when XR input is unfocused. */

@@ -18,6 +18,7 @@ and stages both, with the SDL3 Java sources, for the Gradle project in
 port/android/app, which ``ninja android_apk`` then assembles.
 """
 
+import hashlib
 import os
 import shutil
 import subprocess
@@ -52,7 +53,11 @@ ZLIB_DEFINES = ("-DZ_PREFIX", "-Dz_errmsg=z_port_errmsg")
 MUSL_VERSION = "1.2.5"
 MUSL_DIR = THIRD_PARTY / f"musl-{MUSL_VERSION}"
 MUSL_URL = f"https://musl.libc.org/releases/musl-{MUSL_VERSION}.tar.gz"
+# (as tools/windows_build.py's and tools/linux_sysroot.py's SDL_VERSION)
+# (the download's SHA-256, and the tag's commit, when they were pinned)
+MUSL_SHA256 = "a9a118bbe84d8764da0ea0d28b3ab3fae8477fc7e4085d90102b8596fc7c75e4"
 SDL_TAG = "release-3.4.16"
+SDL_COMMIT = "fa2c02bb6e21974a89ea9824bc53c9932abe5f9c"
 SDL_DIR = THIRD_PARTY / "SDL3"
 SDL_URL = "https://github.com/libsdl-org/SDL.git"
 ANDROID_API = 28
@@ -141,6 +146,8 @@ MUSL_EXCLUDE = {
     "env/__reset_tls.c", "malloc/oldmalloc", "thread/pthread_create.c",
     # unused, and its compiler barrier is an inline assembly statement
     "string/explicit_bzero.c",
+    # eight bytes at a time (guest_string.c; OpenCE b34e56fa)
+    "string/memcmp.c",
 }
 # game files that call variadic functions without a prototype in scope, which
 # only works under x86's calling convention (tools/android_abi_check.py)
@@ -218,6 +225,15 @@ def _fetch_openxr() -> None:
     archive.unlink()
 
 
+def check_sdl_commit(directory: Path) -> None:
+    """SDL3's clone refused unless its tag is still the pinned commit."""
+    commit = subprocess.run(["git", "-C", str(directory), "rev-parse", "HEAD"], capture_output=True, text=True,
+                            check=True).stdout.strip()
+    if commit != SDL_COMMIT:
+        shutil.rmtree(directory)
+        raise SystemExit(f"SDL3 {SDL_TAG} is {commit}, not the pinned {SDL_COMMIT}")
+
+
 def fetch_third_party(vr: bool = False) -> None:
     """Download musl and SDL3, and for VR the OpenXR loader (configure time, once)."""
     THIRD_PARTY.mkdir(parents=True, exist_ok=True)
@@ -225,12 +241,17 @@ def fetch_third_party(vr: bool = False) -> None:
         print(f"Downloading {MUSL_URL}")
         archive = THIRD_PARTY / f"musl-{MUSL_VERSION}.tar.gz"
         subprocess.run(["curl", "-sSfL", "-o", str(archive), MUSL_URL], check=True)
+        digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+        if digest != MUSL_SHA256:
+            archive.unlink()
+            raise SystemExit(f"{MUSL_URL}: SHA-256 {digest}, not the pinned {MUSL_SHA256}")
         subprocess.run(["tar", "xzf", archive.name], cwd=THIRD_PARTY, check=True)
         archive.unlink()
     if not SDL_DIR.is_dir():
         print(f"Cloning SDL3 {SDL_TAG}")
         subprocess.run(["git", "clone", "-q", "--depth", "1", "--branch", SDL_TAG, SDL_URL, str(SDL_DIR)],
                        check=True)
+        check_sdl_commit(SDL_DIR)
     # Reviewed fixes against pinned SDL3. A changed baseline must not silently
     # skip a required Java/native compatibility patch.
     for patch in sorted((PORT_DIR / "patches").glob("sdl3-*.patch")):
@@ -690,6 +711,18 @@ def generate_android_build(n: Writer, sln: Any) -> None:
         staged_openxr = BUILD / "jniLibs-vr" / "arm64-v8a" / "libopenxr_loader.so"
         n.build(outputs=staged_openxr, rule="android_copy", inputs=OPENXR_DIR / "lib" / "libopenxr_loader.so")
         staged.append(staged_openxr)
+        # Test73: a do-nothing OpenXR layer under the Steam Frame's implicit
+        # layer's library name, without which the loader fails there
+        # (port/android/xr_layer/fdm_injection_stub.c, from ringfall-mjolnir-vr)
+        staged_fdm_stub = BUILD / "jniLibs-vr" / "arm64-v8a" / "libVkLayer_VALVE_fdm_injection.so"
+        n.rule(
+            name="android_xr_layer",
+            command=(f"$android_host_cc -O2 -fPIC -shared -fvisibility=hidden -I{OPENXR_DIR / 'include'} -o $out $in "
+                     "-Wl,-z,max-page-size=16384 -Wl,--no-undefined"),
+            description="ANDROID XR LAYER $out",
+        )
+        n.build(outputs=staged_fdm_stub, rule="android_xr_layer", inputs=PORT_DIR / "xr_layer" / "fdm_injection_stub.c")
+        staged.append(staged_fdm_stub)
     n.build(outputs="android", rule="phony", inputs=staged)
 
     # the VR build is the app's "vr" flavour (port/android/app/build.gradle)

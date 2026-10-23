@@ -35,8 +35,9 @@ npc = read("port/linux/game/vr_npc_interaction.c")
 
 # slide
 assert "vr_slide_update(biped_index, &physics.forward, &biped->unit.throttle," in bipeds
-assert 'config_boolean("vr.slide") && vr_active() && game_connection() == _game_connection_local' in slide
-assert '{ "vr.slide", _config_boolean, "false"' in config
+# (Test73, 10d: a local game, or a co-op game whose host's VR INTERACTIONS allows VR movement)
+assert 'config_boolean("vr.slide") && vr_active() && network_interaction_vr_allowed(NETWORK_VR_MOVEMENT)' in slide
+assert '{ "vr.slide", _config_boolean, "true"' in config  # Test73 (item 10h): on by default
 assert '{ "vr.slide", "vr.button_sprint", TRUE },' in menu
 assert 'return config_boolean("vr.button_sprint") || config_boolean("vr.arm_run");' in menu
 assert "vr_combat_knockable(target) && speed >= 6.0f" in slide and 'vr_slide_end("a heavy enemy")' in slide
@@ -45,7 +46,7 @@ assert "vr_bullet_time_frame();" in game_time and "vr_bullet_time_reset();" in g
 assert "game_connection() == _game_connection_local && !network_coop_active()" in bullet
 assert "!cinematic_in_progress()" in bullet and "!game_time_get_paused()" in bullet
 assert '"vr.button_bullet_time", _config_string, "\\"right_stick_up\\""' in config
-assert '{ "vr.bullet_time", _config_boolean, "false"' in config
+assert '{ "vr.bullet_time", _config_boolean, "true"' in config  # Test73 (item 10h): on by default
 assert "vr.turn_stick_up = !vr.seated" in frame and '"right_stick_up"' in frame
 assert "saved >= (1L << VR_BUTTON_ACTIONS)" in menu  # every action's bit (push-to-talk's was dropped)
 # fist combat and grabbing
@@ -62,7 +63,10 @@ assert '{ "FIST COMBAT", 8 }, { "FIST OPTIONS", 7 }' in menu  # Test72: COMBO DI
 assert "real r=radius*(attempt==0?1.0f:attempt==1?0.5f:0.25f);" in parkour
 assert "parkour_grab_rays(unit,&point,&palm,&look,&up,parkour_grab_radius(units),waist_z,&hit)" in parkour
 assert "real_vector3d from_wall=parkour.running&&parkour.wall_valid?parkour.wall_normal:wall.plane.n;" in parkour
-assert "vr_pk_wall_leap(look.n,from_wall.n,carried,stick," in parkour
+# Test73: in VR the head alone aims the leap (no stick bend), held against air control
+assert "vr_pk_wall_leap(look.n,from_wall.n,carried,NULL," in parkour
+assert "parkour.leap_ticks=vr_pk_leap_start(velocity->n,parkour.leap_direction,&parkour.leap_speed)?" in parkour
+assert "if(parkour.leap_ticks>0){vr_pk_leap_hold(parkour.leap_direction,parkour.leap_speed,velocity->n);" in parkour
 
 check = r'''
 #include <assert.h>
@@ -145,6 +149,26 @@ int main(void) {
         float stick[2] = { 0, -1 };
         vr_pk_wall_leap(look, n, v, stick, 5.0f, 2.0f, out);
         assert(out[1] > 0 && out[1] / len2(out) < 0.8f);
+        /* Test73: the leap held: air control's pull across it taken out, along it kept */
+        {
+            float leap[3] = { 3.0f, 4.0f, 2.0f }, way[2], speed, flying[3];
+            assert(vr_pk_leap_start(leap, way, &speed) && fabsf(speed - 5.0f) < 1e-4f);
+            /* the stick's air control pulled it back along the wall (+y) and toward it (-x) */
+            flying[0] = 2.0f; flying[1] = 5.0f; flying[2] = 1.0f;
+            vr_pk_leap_hold(way, speed, flying);
+            assert(fabsf(flying[0] / len2(flying) - 0.6f) < 1e-4f && fabsf(flying[1] / len2(flying) - 0.8f) < 1e-4f);
+            assert(len2(flying) >= 5.0f - 1e-4f && flying[2] == 1.0f);
+            /* faster along it (a slope's push): kept */
+            flying[0] = 6.0f; flying[1] = 8.0f;
+            vr_pk_leap_hold(way, speed, flying);
+            assert(fabsf(len2(flying) - 10.0f) < 1e-3f);
+            /* nothing to hold, and no number: left alone */
+            float still[3] = { 0, 0, 1 }, nan_way[2] = { NAN, 0 };
+            assert(!vr_pk_leap_start(still, way, &speed));
+            flying[0] = 1.0f; flying[1] = 2.0f;
+            vr_pk_leap_hold(nan_way, 5.0f, flying);
+            assert(flying[0] == 1.0f && flying[1] == 2.0f);
+        }
         /* no wall normal to speak of: the old leap */
         float flat_n[3] = { 0, 0, 1 };
         vr_pk_wall_leap(look, flat_n, v, none, 5.0f, 2.0f, out);

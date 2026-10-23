@@ -30,13 +30,19 @@ hires = read('port/linux/src/text_hires.c')
 platform = read('port/linux/src/sdl_platform.c')
 xinput = read('port/linux/src/xinput_sdl.c')
 xml = ET.fromstring(read('port/assets/menus/ce/main_menu.settings_select.player_setup.player_profile_edit.audio_settings.xml'))
-assert any('SOUND (RESTART)' in n.get('text', '') for n in xml.iter('string'))
-assert any('restarting' in n.get('text', '') for n in xml.iter('string'))
+# the sound switch takes at the next start, and says so (Test73: OpenCE 232's Audio layout, which fixed the
+# release's voice rows titled REVERB and SOUND (RESTART): its label SOUND, its help the restart)
+assert any(n.get('text', '') == 'SOUND:' for n in xml.iter('string'))
+assert any('from the next time the game\\nstarts' in n.get('text', '') for n in xml.iter('string'))
+assert not any('(RESTART)' in n.get('text', '') for n in xml.iter('string'))
 assert 'game_variant_options_valid' in game
 assert 'statistic_buffer_in_game_only && player->quit_out_of_game' in fn(game, 'populate_statistic_buffer')
 assert 'game_engine_scoreboard_closed();' in fn(game, 'game_engine_post_rasterize_in_game')
-assert 'memset(hires_text_fonts, 0, sizeof(hires_text_fonts));' in fn(text, 'hires_text_font_get')  # (Build 201's name for the cache)
-assert 'read_at != config_changes()' in fn(text, 'hires_text_font_get')
+# Test73: OpenCE 232/235's cache (GulchCE ddeb650d): the committed setting before the cache, so NONE is never
+# cached for being disabled, and no rebuild of every font on a setting change (Build 201 emptied it;
+# tools/test_hires_live_settings.py counts the rebuilds)
+assert 'if (font_index == NONE || !text_hires_enabled())' in fn(text, 'hires_text_font_get')
+assert 'config_changes()' not in fn(text, 'hires_text_font_get')
 pad = fn(xinput, 'XInputGetState')
 assert pad.index('platform_scoreboard_gamepad') > pad.index('vr_gamepad_state')
 assert pad.index('platform_scoreboard_gamepad') < pad.index('memcmp(&state->Gamepad')
@@ -150,6 +156,13 @@ static boolean network_voice_available(void){return FALSE;}
 static boolean network_voice_machine_speaking(long m){(void)m;return FALSE;}
 static boolean network_voice_machine_muted(long m){(void)m;return FALSE;}
 static void network_voice_mute_machine(long m,boolean b){(void)m;(void)b;}
+/* (Test73: OpenCE 232's scoreboard mutes a player's text chat with their voice: none muted here) */
+static short network_chat_host_mute_minutes(short p){(void)p;return 0;}
+/* (OpenCE 244's latency meter, off: the scoreboard's ping is distributed_player_ping's, uncoloured) */
+static boolean latency_meter_shown(void){return FALSE;}
+static long latency_meter_player_ping(short p){return distributed_player_ping(p);}
+static short latency_meter_color(long ms,real_argb_color *c){(void)ms;(void)c;assert(!"no meter here");return 0;}
+static void network_chat_host_mute(short p,boolean on){(void)p;(void)on;}
 static void network_voice_draw_icon(rectangle2d const *r,boolean muted,real alpha){(void)r;(void)muted;(void)alpha;assert(!"no voice in this game");}
 static void draw_string_set_draw_mode(long f,short s,short j,unsigned long fl,real_argb_color const *c){(void)f;(void)s;(void)j;(void)fl;(void)c;}
 static void draw_unicode_string_compute_bounds(rectangle2d const *b,wchar_t const *s,rectangle2d *t,rectangle2d *c){(void)s;*t=*b;*c=*b;}
@@ -165,7 +178,8 @@ header += '\n'.join(re.search(r'^#define ' + name + r' .*$', sdk, re.M).group()
 start = game.index('enum\n{', game.index('/* port: the scoreboard of a full-screen'))
 end = game.index('/* network_distributed.c', start)
 header += game[start:end]
-body = fn(hires, 'text_enabled') + fn(text, 'rasterizer_text_set_scale') + fn(text, 'rasterizer_text_draw_scaled_character')
+# (Test73: OpenCE 232 names it text_hires_enabled, the rasterizer's font cache asks it too)
+body = fn(hires, 'text_hires_enabled') + fn(text, 'rasterizer_text_set_scale') + fn(text, 'rasterizer_text_draw_scaled_character')
 body += fn(platform, 'platform_scoreboard_scroll') + fn(platform, 'platform_scoreboard_gamepad')
 body += fn(game, 'scoreboard_background_color') + fn(game, 'scoreboard_team_columns')
 # (Test66: Build 201's pointer menu of the scoreboard, its closing included)
@@ -175,8 +189,8 @@ body += game[menu_start:game.index('static void game_engine_rasterize_scoreboard
 body += fn(game, 'game_engine_rasterize_scoreboard')
 tests = r'''
 static void test_settings(void){
- assert(text_enabled()==1);int old=reads;assert(text_enabled()==1&&reads==old);
- enabled=0;generation++;assert(!text_enabled());enabled=1;generation++;assert(text_enabled());
+ assert(text_hires_enabled()==1);int old=reads;assert(text_hires_enabled()==1&&reads==old);
+ enabled=0;generation++;assert(!text_hires_enabled());enabled=1;generation++;assert(text_hires_enabled());
  assert(scoreboard_background_color()==0x96101010);
  color_string="999999999999999999999999999999999999999999999999, 1, 2, 255";generation++;
  assert(scoreboard_background_color()==0xffff0102);

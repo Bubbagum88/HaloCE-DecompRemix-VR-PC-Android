@@ -68,6 +68,8 @@ static void pthread_mutex_unlock(pthread_mutex_t *p){(void)p;assert(mutex_depth)
 static unsigned long config_changes(void){assert(!mutex_depth);return 0;}
 static double config_real(const char *p){assert(!mutex_depth);(void)p;return 1;}
 static int config_boolean(const char *p){assert(!mutex_depth);(void)p;return 0;}
+/* Test73: audio.resampler (OpenCE 232's Sound Processing page): our curve here, as the default */
+static const char *config_string(const char *p){assert(!mutex_depth);assert(!strcmp(p,"audio.resampler"));return "sinc";}
 static void platform_log(const char *p,...){(void)p;}
 /* The production audio callback now mixes optional voice after game reverb;
  * this harness has no voice stream, so keep that independent path silent. */
@@ -81,6 +83,11 @@ typedef const DSI3DL2BUFFER *LPCDSI3DL2BUFFER;
 
 # The entire production mixer, including real data structures and DSP.
 body = source[source.index('#define OUTPUT_RATE'):source.index('/* ---------- output */')]
+# (Test73: the limiter, after the dry mix, switched by the harness: off where the dry mix is compared with
+# cfd1ff6c's, whose soft clipper did nothing below 0.8; on for its own checks)
+assert body.count('\tlimit(output, frames);\n}') == 1
+body = 'static int test_limiter_on;\n' + body.replace('\tlimit(output, frames);\n}',
+                                                     '\tif (test_limiter_on)\n\t\tlimit(output, frames);\n}')
 body += fn(source, 'IDirectSound_SetI3DL2Listener')
 body += r'''
 #define STREAM_SETTER(body) struct sdl_stream *record=(struct sdl_stream *)stream; \
@@ -224,7 +231,27 @@ static void benchmark(void){
  clock_gettime(CLOCK_MONOTONIC,&b);double sec=b.tv_sec-a.tv_sec+(b.tv_nsec-a.tv_nsec)*1e-9;
  printf("BENCH: %.3f ms per 1024-frame (21.33 ms) room block; host CPU only, not Quest performance\n",sec*1000/1500);
 }
-int main(void){test_dry_identity();test_impulse_toggle();test_parameters();test_positioned_stereo();test_routing();benchmark();return 0;}
+static void test_limiter(void){
+ static float signal[4096*MAXIMUM_OUTPUT_CHANNELS],copy[4096*MAXIMUM_OUTPUT_CHANNELS];
+ unsigned long delay=LIMITER_LOOKAHEAD-1,frames=4096;float peak=0;
+ test_limiter_on=1;output_channels=2;memset(&limiter,0,sizeof(limiter));
+ /* below the ceiling: the input, delayed */
+ for(unsigned long i=0;i<frames*2;i++)signal[i]=copy[i]=0.8f*(float)sin(i*0.07);
+ limit(signal,frames);
+ for(unsigned long i=0;i<delay*2;i++)assert(signal[i]==0.0f);
+ for(unsigned long i=delay*2;i<frames*2;i++)assert(signal[i]==copy[i-delay*2]);
+ /* a burst past full scale: never past the ceiling, finite, and the gain back after it */
+ for(unsigned long i=0;i<frames*2;i++)signal[i]=(i/2>=1000&&i/2<1400?1.7f:0.3f)*(float)sin(i*0.05);
+ limit(signal,frames);
+ for(unsigned long i=0;i<frames*2;i++){assert(isfinite(signal[i]));if(fabsf(signal[i])>peak)peak=fabsf(signal[i]);}
+ assert(peak<=LIMITER_CEILING+1e-5f && peak>0.8f);
+ for(int block=0;block<8;block++){for(unsigned long i=0;i<frames*2;i++)signal[i]=0.3f*(float)sin(i*0.05);limit(signal,frames);}
+ for(unsigned long i=0;i<frames*2;i++)copy[i]=0.3f*(float)sin(i*0.05);
+ {double a=0,b=0;for(unsigned long i=delay*2;i<frames*2;i++){a+=fabs(signal[i]);b+=fabs(copy[i-delay*2]);}assert(a>0.99*b);}
+ test_limiter_on=0;memset(&limiter,0,sizeof(limiter));
+ puts("PASS: the limiter passes audio under its ceiling unchanged but for its look-ahead delay, holds a burst at -1 dBFS and recovers");
+}
+int main(void){test_dry_identity();test_limiter();test_impulse_toggle();test_parameters();test_positioned_stereo();test_routing();benchmark();return 0;}
 '''
 (OUT / 'reverb.c').write_text(header + body + tests)
 for flags, name in [(['-O1', '-fsanitize=address,undefined'], 'reverb-sanitized'), (['-O2'], 'reverb-optimized')]:

@@ -29,24 +29,25 @@ import re
 import subprocess
 import tempfile
 
+import network_expected as netv  # noqa: E402 (tools/: the versions this build hosts and joins)
 ROOT = Path(__file__).resolve().parents[1]
 read = lambda path: (ROOT / path).read_text(encoding="utf-8")
 
 limits = read("port/linux/include/halo_port_limits.h")
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 29$", limits, re.M)
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MINIMUM 11$", limits, re.M)
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MAXIMUM 29$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION %d$" % netv.CURRENT, limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MINIMUM %d$" % netv.MINIMUM, limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION_MAXIMUM %d$" % netv.MAXIMUM, limits, re.M)
 
 # the launcher: every network 11..28 selectable, 27 included; All compatible the default
 profile = read("port/android/app/src/main/java/com/halo/decomp/NetworkProfile.java")
-assert "static final int DEFAULT = 0;" in profile and "static final int CURRENT = 29;" in profile
+assert "static final int DEFAULT = 0;" in profile and "static final int CURRENT = %d;" % netv.CURRENT in profile
 supported = re.search(r"SUPPORTED = \{([^}]*)\}", profile).group(1)
-assert [int(v) for v in supported.split(",")] == list(range(29, 10, -1)), supported
+assert [int(v) for v in supported.split(",")] == netv.SUPPORTED, supported
 assert 'return version == 0 ? "All compatible networks"' in profile
 config = read("port/linux/src/port_config.c")
 assert '{ "network.protocol_version", _config_integer, "0",' in config
 browser = read("port/android/app/src/main/java/com/halo/decomp/ServerBrowser.java")
-assert '"All compatible networks (11–29) · "' in browser and "for (int version : NetworkProfile.SUPPORTED)" in browser
+assert '"All compatible networks (%s) · "' % netv.range_text() in browser and "for (int version : NetworkProfile.SUPPORTED)" in browser
 for name in ("ServerBrowser", "InGameNetworkGuide", "Updater", "NetworkProfile"):
     text = read("port/android/app/src/main/java/com/halo/decomp/%s.java" % name)
     assert "network 26" not in text and "11–26" not in text and "15–26" not in text, name
@@ -111,7 +112,9 @@ ready = ready[:ready.index("\n}\n")]
 assert "weapon_slot != current_slot &&" in ready and "if (!TEST_FLAG(unit->unit.control_flags, _unit_control_weapon_primary_trigger_bit))" not in ready
 # Build 201 without a wire change: the overshield's drain on a client
 hud = read("source/interface/hud_unit.c")
-assert "if (hud_state->last_shield_vitality > 1.0f && shield_drop <= 0.02f)" in hud
+# (OpenCE 242: the rule in a function of its own, for the flash and the sound)
+assert "return !(last_shield_vitality > 1.0f && last_shield_vitality - shield_vitality <= 0.02f);" in hud
+assert hud.count("hud_shield_drop_is_hit(") >= 3
 # e791cf9a: bodies the host moves, never one this app's VR code poses
 body = objects[objects.index("static struct biped_datum *distributed_body_get("):]
 body = body[:body.index("\n}\n")]

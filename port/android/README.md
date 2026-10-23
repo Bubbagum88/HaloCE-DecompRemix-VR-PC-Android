@@ -95,6 +95,7 @@ To install the data from a computer:
 | Item | Location in `/sdcard/Android/data/com.halo.decomp/files` |
 | --- | --- |
 | Saved games (`z:\` and `u:\`) | `save` |
+| Mods (`docs/mods.md`) | `mods`: `adb push <mod folder> /sdcard/Android/data/com.halo.decomp/files/mods/`; the main menu's Mods orders them and turns them off |
 | Log | `debug.txt` |
 | Settings | `config.toml` |
 
@@ -157,7 +158,7 @@ controller for player 1. With the default buttons of the profile:
 | Crouch, Zoom | left and right stick clicks |
 | Light, Gren. type | white, black |
 | Pause, Back | start, back |
-| Up, Down, Left, Right | D-pad |
+| Up, Down, Left, Right | D-pad (in a network game, Up opens the text chat's keyboard) |
 
 The names on the buttons follow the profile's "Button layout" (Settings >
 Gamepads): with "Swap triggers", the right trigger's button says "Grenade".
@@ -486,11 +487,19 @@ assembly of the port is necessary:
   page contents once a frame instead ("write tracking: page hashes" in the
   log). This is slower, and a write shows one frame later, so moving
   geometry can glitch briefly. `debug.memory_watch = false` does the same
-  on a device.
+  on a device. The translation also has no scalar conversion from floating
+  point to an integer in a SIMD register (`fcvtzs s0, s1`, an illegal
+  instruction there), so `tools/android_asm_convert.py` writes each as the
+  vector form, which leaves the register and the exception flags the same.
 
-### GulchCE updates
+### Updates
 
-The Android updater checks `chestahh/GulchCE` releases and compares GulchCE
-Build workflow numbers, just like the desktop updater. Release tags stay
-`build-<number>` and asset filenames stay unchanged. Successive Android
-releases must use the same signing key to install over each other.
+The launcher's updater checks this project's latest stable release
+(`moistman42069/HaloCE-Quest-VR`, `UpdatePolicy.java`). It offers the release
+only when its APK for this edition (Quest VR or flat Android) has a higher
+Android version code than the installed one, and the release's
+`compatibility.json` names this project and tag, the APK's SHA-256 and size,
+keeps saves and settings, and allows the installed version code
+(`Updater.java`). Before it installs, it backs up the installed app and its
+settings. Each release is signed with the same key, so it installs over the
+one before it.

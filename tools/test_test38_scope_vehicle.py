@@ -135,4 +135,4 @@ with tempfile.TemporaryDirectory() as d:
  subprocess.run(['clang','-std=gnu11','-fsanitize=address,undefined',str(p/'t.c'),'-o',str(p/'t')],check=True)
  subprocess.run([str(p/'t')],check=True)
 
-assert '{ "vr.npc_interaction", _config_boolean, "false"' in (ROOT / "port/linux/src/port_config.c").read_text()
+assert '{ "vr.npc_interaction", _config_boolean, "true"' in (ROOT / "port/linux/src/port_config.c").read_text()  # Test73 (item 10h): on by default

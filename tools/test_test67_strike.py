@@ -96,14 +96,23 @@ static void machine_try_to_open_with_damage(long target){(void)target;machines++
 static void object_cause_contact_damage(struct damage_data *damage,long target,short node,short region,short material,real_vector3d const *normal){assert(damage->owner_object_index==0);(void)node;(void)region;(void)material;(void)normal;contacts++;last_contact=target;}
 static void unit_melee_sound(long unit,short material,long effect){(void)unit;(void)material;(void)effect;sounds++;}
 static void object_cause_damage(struct damage_data *damage,long unit,short node,short region,short material,real_vector3d const *normal){(void)damage;(void)unit;(void)node;(void)region;(void)material;(void)normal;responses++;}
+/* Test73 (10d): a co-op client's blow goes to its host, with its shove */
+enum {_game_connection_local=0,_game_connection_network_client=1};
+static int connection,client_strikes,remote_shoves;
+static long sent_target;static real sent_scale,sent_multiplier;static real_vector3d sent_shove;
+static int game_connection(void){return connection;}
+static boolean vr_combat_take_remote_shove(real_vector3d *shove){if(!remote_shoves)return FALSE;remote_shoves--;*shove=(real_vector3d){.n={.5f,0,0}};return TRUE;}
+static void network_interaction_client_strike(long player,long unit,long target,real_point3d const *point,real_vector3d const *direction,real scale,real multiplier,real_vector3d const *shove){
+ assert(unit==0&&point&&direction&&shove);(void)player;client_strikes++;sent_target=target;sent_scale=scale;sent_multiplier=multiplier;sent_shove=*shove;}
 static void reset(void){
  memset(bodies,0,sizeof bodies);for(int i=0;i<8;i++){bodies[i].object.parent_object_index=NONE;bodies[i].object.type=_object_type_biped;bodies[i].object.bounding_sphere_radius=.3f;bodies[i].object.bounding_sphere_center=(real_point3d){.n={1,0,1}};bodies[i].unit.current_weapon_index=NONE;}
  biped_definition.unit.melee_damage.index=7;object_definition.object.acceleration_scale=1;
  contacts=combat_hits=sounds=vehicle_pushes=breaks=machines=responses=shares=ends=0;
+ connection=_game_connection_local;client_strikes=remote_shoves=0;sent_target=NONE;sent_scale=sent_multiplier=0;sent_shove=(real_vector3d){0};
  hit_type=_collision_result_object;hit_index=1;obstruction_type=0;obstruction_index=NONE;last_contact=NONE;
  global_current_collision_user_depth=1;units_per_metre=1;
 }
-static void untouched(void){assert(!contacts&&!combat_hits&&!sounds&&!vehicle_pushes&&!breaks&&!machines&&!responses&&!shares&&!ends);assert(global_current_collision_user_depth==1);}
+static void untouched(void){assert(!contacts&&!combat_hits&&!sounds&&!vehicle_pushes&&!breaks&&!machines&&!responses&&!shares&&!ends&&!client_strikes);assert(global_current_collision_user_depth==1);}
 '''
 
 checks = r'''
@@ -139,10 +148,23 @@ int main(void){
   reset();hit_index=3;bodies[3].object.type=_object_type_vehicle;assert(unit_vr_impact_melee(0,&from,&sweep,1,armed,.035f));assert(vehicle_pushes==1&&last_contact==3);
   reset();hit_type=_collision_result_structure;assert(unit_vr_impact_melee(0,&from,&sweep,1,armed,.035f));assert(breaks==1&&contacts==0);
  }
+ /* Test73 (10d): on a co-op client the blow is sent to the host with its
+  * strength, share and shove: nothing is dealt, pushed or broken here, while
+  * the sound and the combat's own bookkeeping stay this machine's. */
+ reset();connection=_game_connection_network_client;remote_shoves=1;assert(unit_vr_combat_strike(0,1,&direction,1));
+ assert(client_strikes==1&&sent_target==1&&sent_scale>0&&sent_multiplier==1&&sent_shove.i==.5f&&!remote_shoves);
+ assert(!contacts&&!vehicle_pushes&&!breaks&&!machines&&combat_hits==1&&shares==1&&ends==1&&sounds==1);
+ reset();connection=_game_connection_network_client;assert(unit_vr_combat_strike(0,1,&direction,1));
+ assert(client_strikes==1&&sent_shove.i==0&&sent_shove.j==0&&sent_shove.k==0&&!contacts); /* no shove given: none sent */
+ reset();connection=_game_connection_network_client;hit_index=3;bodies[3].object.type=_object_type_vehicle;
+ assert(unit_vr_impact_melee(0,&from,&sweep,1,0,.035f));assert(client_strikes==1&&sent_target==3&&!vehicle_pushes&&!contacts);
+ reset();connection=_game_connection_network_client;hit_type=_collision_result_structure;
+ assert(unit_vr_impact_melee(0,&from,&sweep,1,0,.035f));assert(!client_strikes&&!breaks&&!contacts&&ends==1); /* glass: the host's own melee */
+ reset();connection=_game_connection_network_client;assert(!unit_vr_combat_strike(0,NONE,&direction,1));untouched();
  reset();assert(!unit_vr_combat_strike(0,NONE,&direction,1));untouched();
  reset();assert(!unit_vr_combat_strike(0,1,NULL,1));untouched();
  reset();direction=(real_vector3d){0};assert(!unit_vr_combat_strike(0,1,&direction,1));untouched();
- puts("PASS: production carried strike targets only its acquired enemy; obstruction, parent, bystander, vehicle, wall and ordinary fist/weapon regressions");
+ puts("PASS: production carried strike targets only its acquired enemy; obstruction, parent, bystander, vehicle, wall and ordinary fist/weapon regressions; a co-op client's blow is sent to its host");
 }
 '''
 

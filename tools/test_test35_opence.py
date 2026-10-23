@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 import subprocess
 
+import network_expected as netv  # noqa: E402 (tools/: the versions this build hosts and joins)
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -23,9 +24,10 @@ def function(source, name):
 
 # Preserve the released Build 148 fixes while the candidate moves to Build 157.
 limits = read("port/linux/include/halo_port_limits.h")
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 29$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION %d$" % netv.CURRENT, limits, re.M)
 gradle = read("port/android/app/build.gradle")
-assert ("versionCode Math.max(84, buildNumber)" in gradle or
+assert ("versionCode Math.max(85, buildNumber)" in gradle or
+        "versionCode Math.max(84, buildNumber)" in gradle or
         "versionCode Math.max(83, buildNumber)" in gradle or
         "versionCode Math.max(82, buildNumber)" in gradle or
         "versionCode Math.max(81, buildNumber)" in gradle or
@@ -51,7 +53,8 @@ assert ("versionCode Math.max(84, buildNumber)" in gradle or
         "versionCode Math.max(61, buildNumber)" in gradle or
         "versionCode Math.max(60, buildNumber)" in gradle)
 frame = read("port/linux/src/vr_frame.c")
-assert ("HaloCE Quest test72 candidate 1.0.39-test72 code84" in frame or
+assert ("HaloCE Quest test73 candidate 1.0.40-test73 code85" in frame or
+        "HaloCE Quest test72 candidate 1.0.39-test72 code84" in frame or
         "HaloCE Quest test71 candidate 1.0.38-test71 code83" in frame or
         "HaloCE Quest test70 candidate 1.0.37-test70 code82" in frame or
         "HaloCE Quest test69 candidate 1.0.36-test69 code81" in frame or
@@ -76,21 +79,23 @@ assert ("HaloCE Quest test72 candidate 1.0.39-test72 code84" in frame or
         "HaloCE Quest test51 candidate 1.0.32-test51 code62" in frame or
         "HaloCE Quest test50 candidate 1.0.31-test50 code61" in frame or
         "HaloCE Quest test49 candidate 1.0.30-test49 code60" in frame)
-assert ("OpenCE Build208 merged / network29" in frame or "OpenCE Build206 merged / network29" in frame or
+assert ("OpenCE Build256 merged / network34" in frame or "OpenCE Build208 merged / network29" in frame or "OpenCE Build206 merged / network29" in frame or
         "OpenCE Build201 merged / network28" in frame or
         "OpenCE Build157 base / network28; selected fixes through Build201" in frame or
         "OpenCE Build157 base / network26; selected fixes through Build184" in frame or
         "OpenCE Build157 base / network24; selected fixes from Builds167,169,170,173,176" in frame or
         "OpenCE Build 157 base / network 24; selected Build167 compatibility fixes" in frame)
 updater = read('port/android/app/src/main/java/com/halo/decomp/Updater.java')
-assert ('Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 208' in updater or
+assert ('Engine: OpenCE Build 256 and its newer branches, merged with this project\'s VR, co-op and launcher; hosting network 34.' in updater or
+        'Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 208' in updater or
         'Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 206' in updater or
         'Engine base: OpenCE Build 157 / network 28. Selected fixes through Build 201' in updater or
         'Engine base: OpenCE Build 157 / network 26. Selected fixes through Build 184' in updater or
         'Engine base: OpenCE Build 157 / network 24. Selected fixes from Builds 167, 169, 170, 173, 176 and reticle assets from 177' in updater or
         'Engine base: OpenCE Build 157 / network 24, with selected compatibility fixes reviewed against Build 167' in updater)
 package_script = read("tools/package-quest.py")
-assert ('b"Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 208' in package_script or
+assert ('b"Engine: OpenCE Build 256 and its newer branches, merged with this project\'s VR, co-op and launcher; hosting network 34.' in package_script or
+        'b"Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 208' in package_script or
         'b"Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 206' in package_script or
         'b"Engine base: OpenCE Build 157 / network 28. Selected fixes through Build 201' in package_script or
         'b"Engine base: OpenCE Build 157 / network 26. Selected fixes through Build 184' in package_script or

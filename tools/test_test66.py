@@ -69,7 +69,14 @@ static char logged[256];
 void platform_log(char const *f, ...) { va_list a; va_start(a, f); vsnprintf(logged, sizeof logged, f, a); va_end(a); }
 static int config_boolean(char const *k) { return !strcmp(k, "vr.weapon_pull") ? enabled : !strcmp(k, "vr.weapon_pull_glow"); }
 static double config_real(char const *k) { (void)k; return reach; }
-static char const *config_string(char const *k) { (void)k; return style; }
+static char const *config_string(char const *k) { return !strcmp(k, "vr.diag_weapon") ? "" : style; }
+/* (Test73: vr.diag_weapon, a testing switch, empty in play: nothing is made) */
+enum { WEAPON_DEFINITION_TAG = 0x77656170 };
+struct object_placement_data { real_point3d position; };
+static long tag_loaded(long g, char const *n) { (void)g; (void)n; assert(0); return NONE; }
+static void object_placement_data_new(struct object_placement_data *d, long t, long o) { (void)d; (void)t; (void)o; assert(0); }
+static void object_get_origin(long o, real_point3d *p) { (void)o; (void)p; assert(0); }
+static long object_new(struct object_placement_data *d) { (void)d; assert(0); return NONE; }
 static int vr_active(void) { return 1; }
 static int game_connection(void) { return _game_connection_local; }
 static long local_player_get_player_index(short l) { (void)l; return 0; }
@@ -220,7 +227,9 @@ with tempfile.TemporaryDirectory(prefix="test66-") as directory:
 
 # pins
 render = read("port/linux/game/vr_render.c")
-assert "vr_vehicle_handles_steady())\n\t{\n\t\tstatic double strayed_logged;" in render
+# (Test73: a passenger's eyes held as well once seated: test_test72_passenger)
+assert ("(vr_vehicle_handles_steady() ||\n\t\t\t(passenger && now >= steady.entered && now - steady.entered > "
+        "VR_PASSENGER_SETTLE_SECONDS)))\n\t{\n\t\tstatic double strayed_logged;") in render
 assert "the head marker strayed %.0f cm" in render
 math = read("port/linux/game/vr_vehicle_controls_math.h")
 assert "#define VR_WHEEL_TURN_LIMIT 2.0943951f" in math and "static float vr_wheel_grip_follow(" in math
@@ -245,7 +254,7 @@ for key in ("display.fov", "display.viewmodel_fov", "display.viewmodel_visible",
             "display.first_person_legs", "display.shield_glow", "display.shield_glow_intensity", "display.shield_color"):
     assert f'{{ "{key}",' in config, key
 menu = read("port/linux/game/vr_menu.c")
-assert '{ "VEHICLES", 8 }, { "VEHICLE OPTIONS", 7 }, { "WARTHOG + GHOST", 8 }, { "TANK + BANSHEE", 8 }' in menu  # (Test72: + the vehicles' VIEW)
+assert '{ "VEHICLES", 8 }, { "VEHICLE OPTIONS", 8 }, { "WARTHOG + GHOST", 8 }, { "TANK + BANSHEE", 8 }' in menu  # (Test72: + the vehicles' VIEW; Test73: + HAND LOCK)
 assert '"LEFT-HAND MODE", "vr.left_handed"' in menu and '"SHIELD COLOR", "display.shield_color"' in menu
 view = read("port/linux/game/view_fov.c")
 assert view.count("if (vr_active())") >= 3

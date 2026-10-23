@@ -252,9 +252,9 @@ assert "vr_vehicle_lift_release(vehicle->object.translational_velocity.n" in rel
 assert "vehicle->object.translational_velocity = linear;" in release
 assert "vehicle->object.angular_velocity = angular;" in release
 assert re.search(
-    r'"vr\.vehicle_lift",\s*_config_boolean,\s*"false",\s*"HALO_VR_VEHICLE_LIFT",\s*_environment_value,\s*_platform_vr',
+    r'"vr\.vehicle_lift",\s*_config_boolean,\s*"true",\s*"HALO_VR_VEHICLE_LIFT",\s*_environment_value,\s*_platform_vr',
     config,
-), "vehicle lift must be a default-off VR setting"
+), "vehicle lift is a VR setting, on by default (Test73, item 10h)"
 assert "independent of world grab" in config.lower()
 assert '"vr.vehicle_lift", _vr_setting_boolean' in menu
 assert '"LIFT VEHICLES"' in menu

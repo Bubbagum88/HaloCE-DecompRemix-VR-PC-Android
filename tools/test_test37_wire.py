@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import subprocess
 
+import network_expected as netv  # noqa: E402 (tools/: the versions this build hosts and joins)
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "build/test37-wire"
 OUT.mkdir(parents=True, exist_ok=True)
@@ -42,7 +43,7 @@ limits = read("port/linux/include/halo_port_limits.h")
 assert "DEFINE_NETWORK_GAME_MESSAGE(message_server_game_advertise, 0x114);" in messages
 assert "DEFINE_NETWORK_GAME_MESSAGE(message_server_game_settings_update, 8 + HALO_PORT_NETWORK_GAME_SETTINGS_FRAGMENT_SIZE);" in messages
 assert "#define HALO_PORT_NETWORK_GAME_SETTINGS_FRAGMENT_SIZE 0xE00" in limits
-assert re.search(r"^#define HALO_PORT_NETWORK_VERSION 29$", limits, re.M)
+assert re.search(r"^#define HALO_PORT_NETWORK_VERSION %d$" % netv.CURRENT, limits, re.M)
 assert re.search(
     r"server_game_advertise_fields\[2\];.*?DATA_PACKET_FIELD\(_data_packet_field_raw, 276\)",
     messages,

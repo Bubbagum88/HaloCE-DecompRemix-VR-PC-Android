@@ -1,0 +1,12 @@
+[Desktop Entry]
+# HaloCE Quest VR's installer for the Steam Frame (tools/steam_frame/install.sh;
+# docs/VR_ARCHITECTURE.md): in the Steam Frame bundle (tools/steam_frame/bundle.py),
+# opened in Desktop Mode once the bundle is unpacked in Downloads. Adapted from
+# ringfall-mjolnir-vr's steam_frame_installer.desktop (AGPL-3.0 or later).
+# (no "$", "\" or "%" in Exec: the desktop entry format would need them escaped)
+Type=Application
+Name=Install HaloCE Quest VR
+Comment=Installs HaloCE Quest VR for the Steam Frame, or updates it
+Icon=steam
+Terminal=false
+Exec=sh -c "if [ -f ~/Downloads/HaloCEQuestVR-SteamFrame/install.sh ]; then exec bash ~/Downloads/HaloCEQuestVR-SteamFrame/install.sh; else zenity --error --width=460 --title='HaloCE Quest VR' --text='Unpack HaloCEQuestVR-SteamFrame.zip in Downloads (Extract here), then open this file again.'; fi"

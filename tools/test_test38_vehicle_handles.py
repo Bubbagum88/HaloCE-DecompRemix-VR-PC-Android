@@ -41,7 +41,7 @@ typedef union {struct {float i,j,k;};float n[3];} real_vector3d;
 typedef struct {real_vector3d forward,left,up;real_point3d position;}real_matrix4x3;
 #define VR_INTERACTION_VEHICLE 2
 #define PIN(x,l,h) ((x)<(l)?(l):((x)>(h)?(h):(x)))
-static struct {long unit;int kind,valid,log_pending,down[2],steering_logged;real_matrix4x3 root;real_point3d center,target[2];float radius,angle,pitch,grip_phase[2],push_start[2];struct vr_wheel_grip grip[2];
+static struct {long unit,vehicle;int kind,valid,log_pending,down[2],steering_logged,grips[2];real_matrix4x3 root;real_point3d center,target[2];float radius,angle,pitch,grip_phase[2],push_start[2];struct vr_wheel_grip grip[2];
  float anchor[3],scale;double steered;int at_limit[2];float felt[2];real_vector3d normal,plane_left,plane_up,simulated_forward,steer;int steer_valid;
  float side_start[2];int near[2],side[2],wheel_front,glow,steer_haptics,slide,far,far_logged,drive;float throttle;}vr_wheel;
 static double clock_now;static double vr_pose_time(void){return clock_now+=1.0/72.0;}
@@ -55,6 +55,8 @@ static int eligible=1,held[2],pressed[2],released[2],tracked[2]={1,1},owner[2],b
 static int vr_controller(unsigned int*b,float*t,float*s){(void)b;(void)t;(void)s;return input_valid;}
 static void vr_vehicle_handles_clear(void){for(int h=0;h<2;h++){vr_wheel.down[h]=1;vr_wheel.grip[h].held=0;owner[h]=0;}}
 static int vr_vehicle_handles_prepare(long u){(void)u;return eligible;}
+/* Test73: the vehicle's own wheel lock (vehicles.c): none here unless a case sets it */
+static float jeep_lock;static float vehicle_vr_steering_facing(long v,float c,float l){(void)v;return jeep_lock>0?PIN(c/l,-1,1)*jeep_lock:c;}
 static int vr_interaction_grip(int h,int*p,int*r){*p=pressed[h];*r=released[h];return held[h];}
 static int vr_hand_world(int h,float*a,float*b,float*c,float*d){(void)a;(void)c;(void)d;memcpy(b,pose[h].n,12);return tracked[h];}
 static int vr_interaction_owner(int h){return owner[h];}
@@ -106,6 +108,15 @@ int main(void){
  hands(0);vr_wheel.down[0]=0;vr_wheel.angle=0;vr_vehicle_handles_update(1,&f);pressed[0]=0;hands(2.0f);vr_vehicle_handles_update(1,&f);
  /* Test66: the Warthog's wheel turns on with the hand past full lock; the steering stays at full lock */
  assert(fabsf(vr_wheel.angle-2.0f)<1e-4&&fabsf(atan2f(f.j,f.i)-steered(1.04719755f))<1e-5);
+ /* Test73: a Warthog's own wheel lock (30 degrees, its tag): the controls' full lock is the wheels' (a facing 30
+  * degrees off), and half the controls' turn is half of it, not all (the owner: "over sensitive") */
+ jeep_lock=0.5235988f;vr_vehicle_handles_update(1,&f);
+ assert(fabsf(atan2f(f.j,f.i)-0.5f*steered(1.04719755f))<1e-5&&fabsf(atan2f(f.j,f.i)+0.5235988f)<1e-4);
+ hands(.5f);vr_vehicle_handles_update(1,&f);
+ assert(fabsf(vr_wheel.angle-.5f)<1e-3&&fabsf(atan2f(f.j,f.i)-0.5f*steered(vr_wheel.angle))<1e-4);
+ /* (a wider lock than the controls': their full lock is still the wheels') */
+ jeep_lock=1.3f;vr_vehicle_handles_update(1,&f);assert(fabsf(atan2f(f.j,f.i)-steered(vr_wheel.angle)*1.3f/1.04719755f)<1e-4);
+ hands(2.0f);vr_vehicle_handles_update(1,&f);jeep_lock=0;vr_vehicle_handles_update(1,&f);assert(fabsf(vr_wheel.angle-2.0f)<1e-3);
  /* turned on past half a circle from where it was taken: never the opposite lock (the owner's Test65 snap) */
  hands(2.9f);vr_vehicle_handles_update(1,&f);hands(3.5f);vr_vehicle_handles_update(1,&f);hands(4.2f);vr_vehicle_handles_update(1,&f);
  assert(fabsf(vr_wheel.angle-VR_WHEEL_TURN_LIMIT)<1e-4&&atan2f(f.j,f.i)<-1.0f&&owner[0]==2&&vr_wheel.grip[0].held);

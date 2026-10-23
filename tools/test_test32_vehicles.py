@@ -33,6 +33,7 @@ def main():
 #define FALSE 0
 #define csmemset memset
 #define HEAD_REACH .35f
+#define SEAT_PASSENGER_REACH .8f /* Test73: a passenger's reach */
 #define ROOM_STEP_LIMIT .5f
 #define HALO_XR_FRAME_SHOULD_RENDER 1
 #define HALO_XR_FRAME_VIEWS_VALID 2
@@ -46,7 +47,7 @@ struct halo_xr_pose {float position[3],orientation[4];};
 static struct {
  int active,seated,roomscale,room_held,heading_valid,stereo,stereo_enabled,force_render;
  int aiming,aiming_last_frame,hand_aiming,hand_aim,recentre_held,recentre_source;
- float heading,last_aim_yaw,head_yaw,aim_yaw,diag_yaw,diag_walk_speed,comfort_move,comfort_turn,run_push;
+ float heading,last_aim_yaw,head_yaw,aim_yaw,diag_yaw,diag_walk_speed,diag_pitch,diag_turn_speed,comfort_move,comfort_turn,run_push;
  float room_previous[2],room_now[2],units_per_metre;
  struct {int known,index,role,origin_valid,recentre_pending;long unit,vehicle;float origin[3];}vehicle_seat;
  struct {struct halo_xr_pose head,eye[2],aim[2];float fov[2][4],thumb[4];unsigned flags,buttons,hand_valid[2];long long predicted_display_period;}frame;
@@ -94,7 +95,7 @@ static int frame_begin(void){return 1;}
 static void synthesize_views(void){}
 static void update_aim_pose(void){}
 static int hand_forward(float f[3]){f[0]=1;f[1]=f[2]=0;return 1;}
-static void turn(void){}
+static void turn(int seated){(void)seated;}
 static float comfort_stick(float x,float y){(void)x;(void)y;return 0;}
 static void comfort_update(double s){(void)s;}
 static void aim_diagnostics(float g,int s,int h,const float *b,float p){(void)g;(void)s;(void)h;(void)b;(void)p;}
@@ -138,6 +139,16 @@ int main(void){
  vr.frame.head.position[0]+=.10f;vr.frame.head.position[1]+=.08f;vr.frame.head.position[2]-=.12f;
  for(int room=0;room<2;room++){vr.roomscale=room;head_offset(offset);near(offset[0],.1f);near(offset[1],.08f);near(offset[2],-.12f);check_lean();}
  for(int i=0;i<1000;i++)vr_update_seat(100);assert(requests==1);head_offset(offset);near(offset[0],.1f); /* never rebase each frame */
+ /* Test73 (the owner: passenger seats in full 6DOF): this passenger (role 0) leans 60 cm out, unclamped, and 1.2 m
+  * stops at SEAT_PASSENGER_REACH; a driver's or a gunner's head stays within HEAD_REACH */
+ {float keep[3];memcpy(keep,vr.frame.head.position,sizeof keep);
+  float origin_x=vr.vehicle_seat.origin[0];
+  vr.frame.head.position[0]=origin_x+.6f;vr.frame.head.position[1]=vr.vehicle_seat.origin[1];vr.frame.head.position[2]=vr.vehicle_seat.origin[2];
+  head_offset(offset);near(offset[0],.6f);near(offset[1],0);
+  vr.frame.head.position[0]=origin_x+1.2f;head_offset(offset);near(offset[0],SEAT_PASSENGER_REACH);
+  vr.vehicle_seat.role=1;head_offset(offset);near(offset[0],HEAD_REACH);
+  vr.vehicle_seat.role=2;head_offset(offset);near(offset[0],HEAD_REACH);
+  vr.vehicle_seat.role=0;memcpy(vr.frame.head.position,keep,sizeof keep);}
  vr.heading_valid=1;assert(!vr_room_step(step)); /* pending recenter cannot become walking */
  runtime_recenter();assert(!vr.vehicle_seat.recentre_pending&&vr.vehicle_seat.origin_valid);
  vr.frame.head.position[0]=.16f;vr.frame.head.position[1]=-.05f;head_offset(offset);near(offset[0],.16f);near(offset[1],-.05f);check_lean();

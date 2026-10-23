@@ -436,6 +436,37 @@ enum cache_file_status custom_edition_cache_convert(
 	uint32_t loaded_bytes,
 	struct custom_edition_conversion_report *report);
 
+/* A walk of the placements of a HUD definition (custom_edition_hud_placements_walk):
+`block_elements` gives the first of the `element_bytes`-byte elements of the
+tag block at `block`, their count in *count (NULL: none to walk), and
+`placement` is called for each placement: of an element drawing the bitmap
+the tag reference at `bitmap` names (NULL: none of its own), or (`items`)
+of an item of a crosshair or overlay drawing it. */
+struct custom_edition_hud_walk
+{
+	uint8_t *(*block_elements)(void *context, uint8_t const *block, uint32_t element_bytes, int32_t *count);
+	void (*placement)(void *context, uint8_t *placement, uint8_t const *bitmap, int items);
+	void *context;
+};
+
+/* the size of a HUD definition of group `group_tag` (unit, weapon and
+grenade HUD interfaces, the HUD globals), whose placements
+custom_edition_hud_placements_walk walks, or 0 for any other group */
+uint32_t custom_edition_hud_definition_bytes(
+	uint32_t group_tag);
+/* Walks every placement of the HUD definition at `definition` (of group
+`group_tag`, a Custom Edition map's or this build's: they lie alike). The
+Custom Edition maps' conversion halves those Halo PC halves; mods scale those
+of their larger bitmaps (port/linux/game/mod_bitmaps.c). */
+void custom_edition_hud_placements_walk(
+	uint8_t *definition,
+	uint32_t group_tag,
+	struct custom_edition_hud_walk const *walk);
+
+/* the name of a Halo PC behaviour, as Chimera's map list names it */
+char const *custom_edition_behaviour_name(
+	short behaviour);
+
 /* In a tag cache custom_edition_cache_load filled (`loaded_bytes` of it in
 use), the definition of the next tag of group `group_tag` after tag
 `*tag_index` (NONE, -1, to start from the first): `*tag_index` becomes its
@@ -483,6 +514,13 @@ void *custom_edition_cache_data_get(
 /* The path of tag `tag_index` of a tag cache custom_edition_cache_load
 filled, for messages. */
 char const *custom_edition_cache_tag_name(
+	uint8_t *tag_cache,
+	uint32_t loaded_bytes,
+	int32_t tag_index);
+
+/* Whether the tag of absolute index `tag_index` was read from a resource map
+(bitmaps.map and the like): Halo PC's own, as it shipped. */
+int custom_edition_cache_tag_in_resource_map(
 	uint8_t *tag_cache,
 	uint32_t loaded_bytes,
 	int32_t tag_index);

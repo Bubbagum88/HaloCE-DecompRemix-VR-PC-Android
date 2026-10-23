@@ -135,7 +135,14 @@ this list to generate the guest's entry points */
 	X(glGenQueries) \
 	X(glBeginQuery) \
 	X(glEndQuery) \
-	X(glGetQueryObjectuiv)
+	X(glGetQueryObjectuiv) \
+	X(glGetInternalformativ)
+/* entry points of extensions, which a driver may lack: loaded where the
+context has the extension, never required (gl_functions.c). On ES 3.0 and
+3.1 these stand in for glDrawElementsBaseVertex */
+#define GL_OPTIONAL_FUNCTIONS(X) \
+	X(glDrawElementsBaseVertexEXT) \
+	X(glDrawElementsBaseVertexOES)
 /* ANDROID_GL_FUNCTIONS_END */
 #else
 #define GL_FUNCTIONS(X) \
@@ -196,6 +203,7 @@ this list to generate the guest's entry points */
 	X(glBindFramebuffer) \
 	X(glFramebufferTexture2D) \
 	X(glCheckFramebufferStatus) \
+	X(glGetFramebufferAttachmentParameteriv) \
 	X(glBlitFramebuffer) \
 	X(glDrawBuffers) \
 	X(glGenRenderbuffers) \
@@ -217,6 +225,11 @@ this list to generate the guest's entry points */
 	X(glDisableVertexAttribArray) \
 	X(glVertexAttribPointer) \
 	X(glVertexAttribIPointer) \
+	X(glVertexAttribFormat) \
+	X(glVertexAttribIFormat) \
+	X(glVertexAttribBinding) \
+	X(glBindVertexBuffer) \
+	X(glBindTextures) \
 	X(glVertexAttrib4fv) \
 	X(glVertexAttribI4ui) \
 	X(glDrawArrays) \
@@ -247,11 +260,21 @@ this list to generate the guest's entry points */
 	X(glBeginQuery) \
 	X(glEndQuery) \
 	X(glGetQueryObjectuiv) \
+	X(glMemoryBarrier) \
+	X(glCreateQueries) \
+	X(glIsQuery) \
+	X(glGetQueryBufferObjectuiv) \
+	X(glFenceSync) \
+	X(glClientWaitSync) \
+	X(glDeleteSync) \
 	X(glDebugMessageCallback)
 #endif
 
 #define GL_DECLARE_FUNCTION(name) extern __typeof__(&name) halo_##name;
 GL_FUNCTIONS(GL_DECLARE_FUNCTION)
+#ifdef HALO_GLES
+GL_OPTIONAL_FUNCTIONS(GL_DECLARE_FUNCTION)
+#endif
 #undef GL_DECLARE_FUNCTION
 
 /* call sites use the ordinary names; gl_functions.c, which defines the
@@ -364,6 +387,7 @@ pointers, sees the declarations without these aliases */
 #define glBeginQuery halo_glBeginQuery
 #define glEndQuery halo_glEndQuery
 #define glGetQueryObjectuiv halo_glGetQueryObjectuiv
+#define glGetInternalformativ halo_glGetInternalformativ
 #else
 #define glGetString halo_glGetString
 #define glGetIntegerv halo_glGetIntegerv
@@ -422,6 +446,7 @@ pointers, sees the declarations without these aliases */
 #define glBindFramebuffer halo_glBindFramebuffer
 #define glFramebufferTexture2D halo_glFramebufferTexture2D
 #define glCheckFramebufferStatus halo_glCheckFramebufferStatus
+#define glGetFramebufferAttachmentParameteriv halo_glGetFramebufferAttachmentParameteriv
 #define glBlitFramebuffer halo_glBlitFramebuffer
 #define glDrawBuffers halo_glDrawBuffers
 #define glGenRenderbuffers halo_glGenRenderbuffers
@@ -443,6 +468,11 @@ pointers, sees the declarations without these aliases */
 #define glDisableVertexAttribArray halo_glDisableVertexAttribArray
 #define glVertexAttribPointer halo_glVertexAttribPointer
 #define glVertexAttribIPointer halo_glVertexAttribIPointer
+#define glVertexAttribFormat halo_glVertexAttribFormat
+#define glVertexAttribIFormat halo_glVertexAttribIFormat
+#define glVertexAttribBinding halo_glVertexAttribBinding
+#define glBindVertexBuffer halo_glBindVertexBuffer
+#define glBindTextures halo_glBindTextures
 #define glVertexAttrib4fv halo_glVertexAttrib4fv
 #define glVertexAttribI4ui halo_glVertexAttribI4ui
 #define glDrawArrays halo_glDrawArrays
@@ -473,6 +503,13 @@ pointers, sees the declarations without these aliases */
 #define glBeginQuery halo_glBeginQuery
 #define glEndQuery halo_glEndQuery
 #define glGetQueryObjectuiv halo_glGetQueryObjectuiv
+#define glMemoryBarrier halo_glMemoryBarrier
+#define glCreateQueries halo_glCreateQueries
+#define glIsQuery halo_glIsQuery
+#define glGetQueryBufferObjectuiv halo_glGetQueryBufferObjectuiv
+#define glFenceSync halo_glFenceSync
+#define glClientWaitSync halo_glClientWaitSync
+#define glDeleteSync halo_glDeleteSync
 #define glDebugMessageCallback halo_glDebugMessageCallback
 
 #endif

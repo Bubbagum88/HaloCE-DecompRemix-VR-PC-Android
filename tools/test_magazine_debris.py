@@ -100,7 +100,7 @@ before_load = state[state.index("static void game_state_call_before_load_procs")
 after_load = state[state.index("static void game_state_call_after_load_procs"):state.index("void game_state_dispose")]
 assert 'config_boolean("vr.dropped_magazines")' in spawn
 assert 'config_boolean("vr.manual_reload")' in spawn
-assert 'game_connection() != _game_connection_local' in spawn
+assert '!reload_session_allowed()' in spawn  # (Test73, 10d: a local game, or co-op whose host allows manual reload; the debris is drawn here, never a game object)
 assert 'reload.kind != RELOAD_MAGAZINE' in spawn
 assert "vr_mr_step" in reload and "previous_phase == VR_MR_OLD_HELD" in reload
 assert "debris_cancel_transaction();" in reload
@@ -108,7 +108,10 @@ assert "debris_commit_transaction();" in reload
 assert "vr_magazine_debris_transaction_record(&reload.debris_transaction, slot_index)" in spawn
 assert "slot->provisional = vr_magazine_debris_transaction_is_provisional" in spawn
 assert "collision_move_sphere" in tick and "global_gravity" in tick
-assert "game_connection() != _game_connection_local" in tick
+# (Test73, 10d: kept where manual reload is: a local game, or co-op whose host's VR INTERACTIONS allows it; cleared
+# elsewhere, as before in any network game)
+assert 'if (!config_boolean("vr.dropped_magazines") || !reload_session_allowed()) {\n        vr_manual_reload_debris_reset();' in tick
+assert "game_connection() != _game_connection_local" not in reload
 assert "render_model(" in render and "0x5A000000 + index, 0, 0" in render
 assert "_render_model_first_person_bit" not in render
 assert "vr_manual_reload_debris_tick();" in objects
@@ -134,7 +137,7 @@ assert "if (dropped_magazines_have_state)" in reset
 assert "dropped_magazines_have_state = FALSE;" in reset
 config = (ROOT / "port/linux/src/port_config.c").read_text()
 menu = (ROOT / "port/linux/game/vr_menu.c").read_text()
-assert re.search(r'"vr\.dropped_magazines",\s*_config_boolean,\s*"false"', config)
+assert re.search(r'"vr\.dropped_magazines",\s*_config_boolean,\s*"true"', config)  # Test73 (item 10h): on by default
 assert '"MAG DEBRIS", "vr.dropped_magazines"' in menu
 assert "VR_MAGAZINE_DEBRIS_CAPACITY = 32" in (ROOT / "port/linux/game/vr_magazine_debris_math.h").read_text()
 print("PASS: visual-only offline spawn, native swept collision, retention across same-map state restores, clear on map lifecycle/disable/online, 32-slot no-eviction cap and no ammo mutation")

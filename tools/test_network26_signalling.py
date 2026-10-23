@@ -19,6 +19,7 @@ import struct
 import subprocess
 import tempfile
 
+import network_expected as netv  # noqa: E402 (tools/: the versions this build hosts and joins)
 ROOT = Path(__file__).resolve().parents[1]
 source = (ROOT / "port/linux/src/p2p_signal.c").read_text(encoding="utf-8")
 limits = (ROOT / "port/linux/include/halo_port_limits.h").read_text(encoding="utf-8")
@@ -36,15 +37,19 @@ def function(name):
 
 
 # Test59: hosting moves to OpenCE network 28 (27: map sharing, 28: its rules); 26's signalling is unchanged
-assert "#define HALO_PORT_NETWORK_VERSION 29" in limits
-assert "#define HALO_PORT_NETWORK_VERSION_MAXIMUM 29" in limits
+assert "#define HALO_PORT_NETWORK_VERSION %d" % netv.CURRENT in limits
+assert "#define HALO_PORT_NETWORK_VERSION_MAXIMUM %d" % netv.MAXIMUM in limits
 assert "MESSAGE_VERSION_LEGACY = 3," in source and "MESSAGE_VERSION = 4," in source
-send = function("static void send_join(void)")
-assert "send_join_version(MESSAGE_VERSION);" in send and "send_join_version(MESSAGE_VERSION_LEGACY);" in send
-assert "!signalling.join_version ||" in send
+send = function("static void send_join(struct join *join)")
+assert "send_join_version(join, MESSAGE_VERSION);" in send and "send_join_version(join, MESSAGE_VERSION_LEGACY);" in send
+assert "!join->version ||" in send
 accept = function("static void accept_received(")
-assert "signalling.join_version = version;" in accept
-assert "if (signalling.join_version && version != signalling.join_version)" in accept
+assert "join->version = version;" in accept
+assert "if (join->version && version != join->version)" in accept
+# (Test73, OpenCE 2759fc6db: the request answered is found by its nonce, the join's or a probe's, and a probe's host
+# is offered as a probe, whose peer the game never sees: p2p.c)
+assert "if (asked->active && !memcmp(nonce, asked->nonce, NONCE_SIZE))" in accept
+assert "join == &signalling.join ? _p2p_offered_host : _p2p_offered_probe" in accept
 assert "!= \n\t\tsize - TAG_SIZE - fixed" in accept or "!=\n\t\tsize - TAG_SIZE - fixed" in accept
 join = function("static void join_received(")
 assert "webrtc_kind == SIGNAL_WEBRTC_BROWSER" in join and "proven = size - fixed - read;" in join
@@ -52,7 +57,15 @@ assert join.count(", version);") == 3, "every accept answers in the request's ow
 dispatch = source[source.index("if (signalling.hosting && !strcmp(topic, signalling.host_topic))"):]
 dispatch = dispatch[:dispatch.index("/* a CONNACK")]
 assert dispatch.count("message[1] == MESSAGE_VERSION || message[1] == MESSAGE_VERSION_LEGACY") == 2
-assert "signalling.join_version = 0;" in function("void p2p_signal_join(")
+# (a new request each join: its state cleared, the version unknown again)
+start = function("static void join_start(struct join *join, const unsigned char *host_hash, const unsigned char *token)\n{")
+assert "memset(join, 0, sizeof(*join));" in start and "posix_random_bytes(join->nonce, NONCE_SIZE);" in start
+assert "join_start(&signalling.join, host_hash, token);" in function("void p2p_signal_join(")
+# (the probes: a request of the listing's token each, answered on a topic of its own, at most P2P_MAXIMUM_PROBES)
+probe = function("int p2p_signal_probe(")
+assert "join_start(&signalling.probes[index], host_hash, token);" in probe
+assert "NUMBER_OF_TOPICS = _topic_probe + P2P_MAXIMUM_PROBES," in source
+assert "wanted[_topic_probe + index] = signalling.probes[index].active ? signalling.probes[index].topic : \"\";" in source
 
 enum = source[source.index("MESSAGE_VERSION_LEGACY = 3,"):]
 enum = enum[:enum.index("};")]
@@ -164,4 +177,4 @@ assert "TEST_FLAG(state->flags, _distributed_object_light_sent_bit) &&" in objec
 assert "!distributed_unit_driven_here(state->object_index)" in objects
 print("PASS: network 25 integrated-light state bits sent by this host and applied from 25/26 hosts")
 print("PASS: joins ask in versions 4 and 3 until answered, then keep the host's; hosts answer in the request's version "
-      "and turn browsers away; hosting is network 29 with clients 11-29")
+      "and turn browsers away; hosting is network %d with clients %s" % (netv.CURRENT, netv.range_text(dash="-")))

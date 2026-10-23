@@ -65,6 +65,9 @@ static void first_person_camera_update(void *a,void *b,void *c){(void)a;(void)b;
 static void following_camera_update(void *a,void *b,void *c){(void)a;(void)b;(void)c;}
 /* (Test67: the OpenCE fork's third-person camera, off here: the director as before) */
 static boolean third_person_camera_wanted(short i){(void)i;return FALSE;}
+/* (OpenCE 244: a passenger's camera that follows, off here) */
+#define MAXIMUM_NUMBER_OF_LOCAL_PLAYERS 4
+static boolean passenger_camera_enabled(short i){(void)i;return FALSE;}
 static void third_person_camera_update(void *a,void *b,void *c){(void)a;(void)b;(void)c;}
 static void first_person_camera_new(struct first_person_camera *p){(void)p;}
 static void following_camera_new(struct following_camera *p){(void)p;}

@@ -105,6 +105,9 @@ static int vr_active(void){return active;}
 static int game_connection(void){return connection;}
 static int network_coop_active(void){return coop;}
 static int network_interaction_host_ready(void){return peers;}
+/* (Test73, 10d: a client's grenades only; the parry is never a client's) */
+enum{NETWORK_VR_GRENADES=2,NETWORK_VR_MELEE=8};
+static int network_interaction_vr_allowed(unsigned long feature){(void)feature;return 1;}
 static int cinematic_in_progress(void){return cinematic;}
 static int game_time_get_paused(void){return paused;}
 static int director_inhibited_input(short local){(void)local;return inhibited;}
@@ -225,10 +228,13 @@ int main(void){
   stroke(0);assert(!attempt(1));unchanged(); /* fixed mode but no actual gun */
  }
  /* Real production authority: standalone local and explicitly compatible
-  * co-op host; no guests, PvP or unconsented hosts. */
+  * co-op host; no guests, PvP or unconsented hosts. Test73 (10d): the host's
+  * consent is VR INTERACTIONS alone (network_interaction_host_ready, which
+  * reads it; HOST VR ACTIONS, bit 2 here, is no longer read), and a guest
+  * still never parries (its grenades alone run there). */
  for(int mode=0;mode<3;mode++)for(int bits=0;bits<8;bits++){
   reset();connection=mode;coop=!!(bits&1);host_permission=!!(bits&2);peers=!!(bits&4);stroke(0);
-  int allowed=mode==0||(mode==1&&bits==7);assert(attempt(1)==allowed);if(!allowed)unchanged();
+  int allowed=mode==0||(mode==1&&(bits&1)&&(bits&4));assert(attempt(1)==allowed);if(!allowed)unchanged();
  }
  for(int disabled=0;disabled<10;disabled++){
   reset();stroke(0);
@@ -330,7 +336,8 @@ enums = ''.join(re.search(r'enum ' + name + r'\s*\{.*?\};', header, re.S)[0] + '
                 for name in ('projectile_datum_flags', 'projectile_action'))
 module = re.sub(r'^#include .*\n', '', read('port/linux/game/vr_projectile_parry.c'), flags=re.M)
 extra = read('port/linux/game/vr_extra_interaction.c')
-source = fixture + enums + function(extra, 'extra_player') + '\n'
+source = fixture + enums + function(extra, 'extra_session') + '\n' + function(extra, 'extra_unit') + '\n'
+source += function(extra, 'extra_player') + '\n'
 source += function(extra, 'vr_extra_action_owner') + '\n' + module + checks
 
 with tempfile.TemporaryDirectory(prefix='test67-projectiles-') as directory:

@@ -25,6 +25,9 @@ int vr_combat_control_opening(long unit);
 int vr_combat_punch(long unit,int hand,real_point3d const *point,real_vector3d const *sweep);
 real vr_combat_hit(long unit,long target,real_point3d const *point,real_vector3d const *direction,real scale,boolean armed);
 real vr_combat_damage_share(void);
+/* Test73 (10d): on a co-op client, the shove vr_combat_hit gave this tick's
+blow (its host gives it: unit_vr_remote_strike), once; FALSE: none */
+boolean vr_combat_take_remote_shove(real_vector3d *shove);
 int vr_combat_regular_blow(long owner,long target);
 void vr_combat_damage_end(void);
 void vr_combat_swing_hit(int hand);

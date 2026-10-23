@@ -145,6 +145,7 @@ symbols in this file:
 #include "vr_extra_interaction.h"
 #endif
 #include "blood.h" /* port: port/linux/game/blood.c */
+#include "mcc_damage.h" /* port: port/linux/game/mcc_damage.c */
 
 /* network_game_globals.c's */
 boolean network_game_distributed_client(void);
@@ -156,15 +157,20 @@ void network_damage_player_effect(long player_index, struct damage_data const *d
 void network_damage_aftermath(long object_index, struct damage_data const *damage, unsigned long being_damaged_flags,
 	real shield_damage, real body_damage, real body_damage_multiplier, short body_part, short node_index,
 	short region_index, short material_index, long victim_player_index);
+boolean network_damage_static_target(long object_index);
 
 /* set while a distributed client carries out a kill it does not decide (an
 act of god: the host's word, network_distributed.c, or the world's) */
 static boolean distributed_damage_authorized;
 
-/* whether this machine runs objects' shields (their stun, recharge and
+/* whether this machine runs the object's shields (their stun, recharge and
 overcharge): not a client of the distributed netcode, which has the host's
-(damage_set_network_state) */
-#define objects_update_shields() (!network_game_distributed_client())
+(damage_set_network_state), but for the map's scenery and devices that
+damage can break, whose damage every machine deals as the host did and of
+which the host sends no state (network_damage.c's static targets: a
+scenery's shield, broken, came back on no client) */
+#define objects_update_shields(object_index) \
+	(!network_game_distributed_client() || network_damage_static_target(object_index))
 
 /* ---------- constants */
 
@@ -1085,6 +1091,7 @@ static void object_damage_aftermath(
 		real_vector3d direction = damage->direction;
 		real_vector3d acceleration;
 		real acceleration_scale;
+		boolean mcc_accelerate_unit; /* port: MCC signed/vector damage impulses */
 
 		direction.k += 0.45f;
 		normalize3d(&direction);
@@ -1093,6 +1100,9 @@ static void object_damage_aftermath(
 			object_definition->object.acceleration_scale *
 			0.033333335f;
 		scale_vector3d(&direction, acceleration_scale, &acceleration);
+		/* port: MCC extension data cannot be represented by a scalar impulse. */
+		mcc_accelerate_unit = mcc_damage_acceleration(&damage_effect->damage,
+			object_definition->object.acceleration_scale, &acceleration);
 
 		switch (object->object.type)
 		{
@@ -1117,7 +1127,8 @@ static void object_damage_aftermath(
 			{
 				struct unit_datum const *unit = (struct unit_datum const *)object;
 
-				if (damage_effect->damage.instantaneous_acceleration > _real_epsilon &&
+				if ((damage_effect->damage.instantaneous_acceleration > _real_epsilon ||
+					mcc_accelerate_unit) && /* port: MCC also admits signed/vector impulses */
 					!TEST_FLAG(unit->unit.flags, _unit_impervious_bit))
 				{
 					if (object->object.type == _object_type_biped)
@@ -2103,10 +2114,10 @@ void object_damage_update(
 				FLAG(_object_die_act_of_god_no_statistics_bit));
 	}
 
-	if (objects_update_shields())
+	if (objects_update_shields(object_index))
 		SET_FLAG(object->object.damage_flags, _object_shield_charging_bit, FALSE);
 	damage_flags = object->object.damage_flags;
-	if (objects_update_shields() &&
+	if (objects_update_shields(object_index) &&
 		object->object.maximum_shield_vitality > 0.f &&
 		!TEST_FLAG(damage_flags, _object_dead_bit))
 	{

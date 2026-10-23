@@ -935,6 +935,15 @@ short cache_file_read(
 	request->blocking = blocking;
 	request->running = FALSE;
 	cache_file_windows_thread_wake();
+	/* port (Test73): debug.fixed_step, a game that plays the same every time:
+	the read done before the game goes on, so a texture or sound arrives at
+	the same frame whatever the disk's speed (its own flag read as volatile,
+	as cache_requests_flush reads: the I/O thread sets it) */
+	if (halo_fixed_step())
+	{
+		while (!*(volatile boolean *)completion_flag_reference)
+			SleepEx(0, TRUE);
+	}
 
 	return request_index;
 }

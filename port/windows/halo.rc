@@ -1,0 +1,4 @@
+/* halo.exe's and halo-vr.exe's resources (tools/windows_build.py): their icon (tools/desktop_icon.py), which
+Explorer and the taskbar show and SDL's windows take, as the first icon of the executable (OpenCE 244's halo.rc, with
+this port's artwork) */
+1 ICON "haloce-quest-vr.ico"

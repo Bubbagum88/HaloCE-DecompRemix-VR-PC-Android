@@ -88,8 +88,8 @@ struct text_hires_glyph
 	float advance;
 };
 
-unsigned long config_changes(void);
 #define TEXT_HIRES_FIT_LETTERS 52
+int text_hires_enabled(void); /* port: port/linux/src/text_hires.c */
 long text_hires_font(char const *tag_name, float cap_height, short const *letter_widths, float oversample);
 int text_hires_covers(long font, unsigned long code);
 int text_hires_glyph(long font, unsigned long code, struct text_hires_glyph *glyph);
@@ -542,6 +542,8 @@ rasterizer_draw_string(
 			parameters.map_scale[0].i = parameters.map_scale[0].j = 1.0f;
 			parameters.meter_parameters = NULL;
 			parameters.point_sampled = FALSE;
+			/* port: (rasterizer.h) */
+			parameters.alpha_weighted = FALSE;
 			parameters.framebuffer_blend_function = _shader_framebuffer_blend_function_alpha_blend;
 			parameters.map[0] = bitmap;
 
@@ -671,6 +673,8 @@ rasterizer_draw_unicode_string(
 			parameters.map_scale[0].i = parameters.map_scale[0].j = 1.0f;
 			parameters.meter_parameters = NULL;
 			parameters.point_sampled = FALSE;
+			/* port: (rasterizer.h) */
+			parameters.alpha_weighted = FALSE;
 			parameters.framebuffer_blend_function = _shader_framebuffer_blend_function_alpha_blend;
 			parameters.map[0] = bitmap;
 
@@ -814,17 +818,10 @@ static long hires_text_font_get(
 	short bottom = NONE;
 	short row;
 	long hires_font;
-	static unsigned long read_at = (unsigned long)-1;
 
-	/* Cached NONE while disabled must not survive re-enabling, and a cached
-	font must not bypass the current text setting. */
-	if (read_at != config_changes())
-	{
-		read_at = config_changes();
-		memset(hires_text_fonts, 0, sizeof(hires_text_fonts));
-		hires_text_next_font = 0;
-	}
-	if (font_index == NONE)
+	/* port: consult the committed setting before the font cache. In particular,
+	 * never cache NONE merely because high-res text was disabled. */
+	if (font_index == NONE || !text_hires_enabled())
 		return NONE;
 	font = font_definition_get(font_index);
 	for (font_slot = 0; font_slot < MAXIMUM_HIRES_TEXT_FONTS; font_slot++)

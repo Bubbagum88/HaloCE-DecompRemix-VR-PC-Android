@@ -256,6 +256,8 @@ static boolean cache_file_structure_bsp_reference_verify(
 /* ---------- globals */
 
 static struct cache_file_globals cache_file_globals = { 0 };
+/* port: the name the map loaded last was loaded by (scenario_tags_load) */
+static char cache_file_loaded_name[64];
 extern struct cache_file_tag_instance *global_tag_instances;
 /* In-memory menu/VR tags never alter the on-disk tag header count. */
 static long global_tag_count;
@@ -601,6 +603,16 @@ void scenario_tags_unload(
 	sound_cache_close();
 	texture_cache_close();
 	/* GulchCE: MCC's appended pause table unwinds before the native menu table. */
+	/* port: the mods' tags go, after the sound and texture caches that held
+	their sounds and bitmaps (port/linux/game/mods.c) */
+	{
+		extern void mods_tags_unloaded(void);
+
+		mods_tags_unloaded();
+	}
+	/* port: the menus' tags go, and the map's own table comes back
+	(port/linux/game/menu_tags.c): after the texture cache, which writes to
+	the bitmaps it has loaded as it closes, theirs among them */
 	{
 		extern void mcc_pause_runtime_unload(void);
 		mcc_pause_runtime_unload();
@@ -867,6 +879,14 @@ long tag_iterator_next(
 	}
 
 	return result;
+}
+
+/* port: the name the map loaded (or being loaded) was loaded by: its file's,
+<file>@ce and the like for the families past the Xbox's */
+char const *cache_file_loaded_map_name(
+	void)
+{
+	return cache_file_loaded_name;
 }
 
 boolean cache_file_header_verify(
@@ -1136,7 +1156,9 @@ boolean cache_files_map_present(
 				name);
 		}
 	}
-	platform_log("map missing: %s", message);
+	/* (Test73: the host's own name for it and its version, which decide
+	whether it is asked for: map sharing asks only for a custom_maps\ map) */
+	platform_log("map missing: %s (the host's '%.127s', version %08lx)", message, map_name, version);
 	for (index = 0; message[index] && index < NUMBEROF(error_text) - 1; index++)
 		error_text[index] = (wchar_t)(unsigned char)message[index];
 	error_text[index] = 0;
@@ -1208,6 +1230,9 @@ long scenario_tags_load(
 
 	stripped_scenario_name = tag_name_strip_path(scenario_name);
 	result = NONE;
+	/* port: the map being loaded, by its name (cache_file_loaded_map_name) */
+	csstrncpy(cache_file_loaded_name, stripped_scenario_name, sizeof(cache_file_loaded_name) - 1);
+	cache_file_loaded_name[sizeof(cache_file_loaded_name) - 1] = 0;
 	texture_cache_open();
 	sound_cache_open();
 	/* GulchCE: a Halo 1 MCC map (mcc_maps\[package\]<name>) is loaded by its
@@ -1255,10 +1280,21 @@ long scenario_tags_load(
 			global_tag_instances = cache_file_globals.tag_header->tag_instances;
 			global_tag_count = cache_file_globals.tag_header->tag_count;
 			cache_file_globals.tags_loaded = TRUE;
-			{ extern void menu_tags_loaded(char const *map_name); menu_tags_loaded(cache_file_globals.header.name); }
+			/* (the menus' tags, as for this build's maps below) */
+			{
+				extern void menu_tags_loaded(char const *map_name);
+
+				menu_tags_loaded(cache_file_globals.header.name);
+			}
 #ifdef HALO_VR
 			{ extern void vr_menu_tags_loaded(void); vr_menu_tags_loaded(); }
 #endif
+			/* (and the mods' tags, as below) */
+			{
+				extern void mods_tags_loaded(char const *map_name);
+
+				mods_tags_loaded(stripped_scenario_name);
+			}
 			result = cache_file_globals.tag_header->scenario_tag_index;
 		}
 
@@ -1342,9 +1378,9 @@ long scenario_tags_load(
 			}
 			/* port: the bitmaps the high-res HUD stands for (port/linux/game/hud_hires_tags.c) */
 			{
-				extern void hud_hires_tags_loaded(void);
+				extern void hud_hires_tags_loaded(long scenario_index);
 
-				hud_hires_tags_loaded();
+				hud_hires_tags_loaded(cache_file_globals.tag_header->scenario_tag_index);
 			}
 			/* port: the powerups' render spheres, grown to hold their meshes
 			(port/linux/game/powerup_render_bounds.c, OpenCE) */
@@ -1362,6 +1398,15 @@ long scenario_tags_load(
 				vr_menu_tags_loaded();
 			}
 #endif
+			/* port: the mods' sounds, bitmaps, text and models played over
+			the map's, last, over the menus' tags too, and with the high-res
+			HUD standing for the map's bitmaps, not a mod's (the main menu's
+			Mods: port/linux/game/mods.c) */
+			{
+				extern void mods_tags_loaded(char const *map_name);
+
+				mods_tags_loaded(stripped_scenario_name);
+			}
 			result = cache_file_globals.tag_header->scenario_tag_index;
 		}
 		/* port: a map refused is closed for the next to open */

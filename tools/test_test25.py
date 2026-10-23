@@ -123,9 +123,13 @@ assert r'"\tif (!(abs(position.w) > 0.0))\n"' in vsh and r'"\t\tposition = vec4(
 assert 'next_unit_index = NONE;' in (ROOT / 'source/camera/dead_camera.c').read_text(encoding='latin-1'), 'fb1abedd'
 d3d = (ROOT / 'port/linux/src/d3d8_gl.c').read_text(encoding='utf-8')
 bind = fn(d3d, 'bind_textures')
-final_binds = 'for (stage = 0; stage < D3DTSS_MAXSTAGES; stage++)\n\t\tstate_texture(stage, gl_targets[stage], gl_textures[stage]);\n}'
-assert bind.rstrip().endswith(final_binds), '61623e68: bound after the loop'
-assert bind.count('state_texture(') == 1, '61623e68: no bind inside the loop'
+# (Test73: OpenCE ef6ea26fd binds the desktop's changed units in one glBindTextures, a3277d94d leaves ES stages no
+# draw samples bound: both after the loop that resolves every stage, as 61623e68 wants)
+resolved = bind.index('gl_target == GL_TEXTURE_3D ? _xgpu_sampler_3d : _xgpu_sampler_2d;')
+assert bind.index('state_texture(stage, gl_targets[stage], gl_textures[stage]);') > resolved, '61623e68: ES binds after the loop'
+assert bind.index('glBindTextures((GLuint)first, (GLsizei)(last - first + 1), &gl_textures[first]);') > resolved, \
+    '61623e68: the desktop binds after the loop'
+assert bind.count('state_texture(') == 1 and bind.count('glBindTextures(') == 1, '61623e68: no bind inside the loop'
 import hashlib
 for name, digest in [('hud_unit_backgrounds__6.png', 'e5a41500712d3636'), ('hud_unit_backgrounds__7.png', '0844386b13d35c96')]:
     assert hashlib.sha256((ROOT / 'port/assets/hud' / name).read_bytes()).hexdigest().startswith(digest), '3ae09c3d ' + name

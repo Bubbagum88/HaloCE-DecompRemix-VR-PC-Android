@@ -47,6 +47,8 @@ symbols in this file:
 
 #include "camera/director.h"
 #include "camera/observer.h"
+#include "camera/first_person_camera.h" /* port: preserve the passenger's input aim basis */
+#include "passenger_camera.h" /* port: port/linux/game/passenger_camera.c */
 #include "game/game.h"
 #include "game/game_allegiance.h"
 #include "game/game_globals.h"
@@ -679,6 +681,14 @@ static long player_aim_projectile_internal(
 	return target_object_index;
 }
 
+/* port: OpenCE 244's preview (the passenger camera's reticle: weapons.c
+weapon_get_projectile_ray), the shot's direction without recording it as the
+player's last */
+long player_aim_projectile_preview(long player_index, real_point3d const *position, real_vector3d *direction)
+{
+	return player_aim_projectile_internal(player_index, position, direction, FALSE);
+}
+
 long player_aim_projectile(long player_index, real_point3d const *position, real_vector3d *direction)
 {
 	return player_aim_projectile_internal(player_index, position, direction, TRUE);
@@ -768,8 +778,12 @@ long local_player_aim_assist(
 		{
 			struct observer_result const *camera= observer_get_camera(local_player_index);
 			struct aim_assist_target target;
+			real_point3d aim_position = camera->position; /* port: the display camera never steers aim assist */
+			real_vector3d aim_forward = camera->forward;
 
-			if (aim_assist(&parameters, &camera->position, &camera->forward, aiming_unit_index, player->team_index, &target))
+			if (passenger_camera_enabled(local_player_index))
+				first_person_camera_deterministic(player->unit_index, &aim_position, &aim_forward);
+			if (aim_assist(&parameters, &aim_position, &aim_forward, aiming_unit_index, player->team_index, &target))
 			{
 				real_vector3d velocity, target_velocity, magnetism_velocity;
 

@@ -1,7 +1,10 @@
-"""Full production config: APK Safe defaults/migration, opt-out and I/O faults.
+"""Full production config: Safe geometry's default and one-time migration, opt-out and I/O faults, on every
+edition: the flat APK, the VR APK and (since the PC VR fixes, docs/HANDOFF-2026-10-18.md item 1: Normal's vertex
+mirror drew floating rectangles and lost muzzle flashes on PC) the desktop builds, flat and PC VR, each with its own
+revision key.
 
-SDL file/path boundaries are fixtures only for the desktop compatibility check.
-Android compiles the actual stdio persistence and atomic migration functions.
+SDL file/path boundaries are fixtures only for the desktop's config path.
+Every edition compiles the actual stdio persistence and atomic migration functions.
 """
 from pathlib import Path
 import os
@@ -51,6 +54,15 @@ static int fault_rename(const char *a,const char *b){
 #define rename fault_rename
 #ifndef HALO_ANDROID
 static const char *SDL_GetBasePath(void){return getenv("TEST_CONFIG_BASE");}
+/* (OpenCE 242: config_report_unread looks for config.toml files it does not
+read) */
+#include <sys/stat.h>
+#include <unistd.h>
+typedef struct {long long size,modify_time;} SDL_PathInfo;
+static int SDL_GetPathInfo(const char *path,SDL_PathInfo *info){
+ struct stat s;if(stat(path,&s))return 0;
+ if(info){info->size=s.st_size;info->modify_time=(long long)s.st_mtime;}return 1;
+}
 #endif
 /* (Test66: OpenCE Build 201 reads and writes config.toml through SDL off
 the ARM64 guest: the Android builds here use these too) */
@@ -78,7 +90,8 @@ int main(int argc,char **argv){
 
 def environment(folder,**overrides):
     env=dict(os.environ,HALO_DATA_ROOT=str(folder),TEST_CONFIG_BASE=str(folder)+'/')
-    for key in ('HALO_SAFE_GEOMETRY','HALO_VR_GEOMETRY_REVISION','HALO_ANDROID_GEOMETRY_REVISION','TEST_GEOMETRY_FAULT'):
+    for key in ('HALO_SAFE_GEOMETRY','HALO_VR_GEOMETRY_REVISION','HALO_ANDROID_GEOMETRY_REVISION',
+                'HALO_DESKTOP_GEOMETRY_REVISION','TEST_GEOMETRY_FAULT'):
         env.pop(key,None)
     env.update(overrides)
     return env
@@ -96,18 +109,12 @@ for edition,defines in (('flat','#define HALO_ANDROID 1\n'),('vr','#define HALO_
     subprocess.run(['clang','-std=gnu11','-g','-fsanitize=address,undefined','-fno-sanitize-recover=all',
                     '-I'+str(ROOT/'port/linux/src'),'-I'+str(ROOT/'port/third_party/tomlc17'),str(c),
                     str(ROOT/'port/third_party/tomlc17/tomlc17.c'),'-pthread','-lm','-o',str(exe)],check=True)
-    revision='vr_geometry_revision' if edition=='vr' else 'android_geometry_revision'
-    if edition=='desktop':
-        for initial,expected in ((None,False),('[renderer]\nsafe_geometry=false\n',False),('[renderer]\nsafe_geometry=true\n',True)):
-            with tempfile.TemporaryDirectory(dir=OUT) as folder:
-                path=Path(folder)/'config.toml'
-                if initial:path.write_text(initial)
-                run(exe,folder,expected,0)
-                assert not (Path(folder)/'config.toml.pre-safe-geometry').exists()
-                assert not re.search(r'^\s*(?:vr|android)_geometry_revision\s*=',path.read_text(),re.M)
-                run(exe,folder,not expected,0,HALO_SAFE_GEOMETRY='false' if expected else 'true')
-        print('PASS desktop: unchanged Normal default, stored Safe/Normal and environment precedence',flush=True)
-        continue
+    revision={'vr':'vr_geometry_revision','flat':'android_geometry_revision','desktop':'desktop_geometry_revision'}[edition]
+    # a new config: Safe, and nothing written that the player did not choose
+    with tempfile.TemporaryDirectory(dir=OUT) as folder:
+        run(exe,folder,True)
+        assert not (Path(folder)/'config.toml.pre-safe-geometry').exists()
+        run(exe,folder,False,HALO_SAFE_GEOMETRY='false')
     for rev in ('1','2','999'):
         with tempfile.TemporaryDirectory(dir=OUT) as folder:
             path=Path(folder)/'config.toml'
@@ -155,13 +162,14 @@ for edition,defines in (('flat','#define HALO_ANDROID 1\n'),('vr','#define HALO_
     # opt-out or incorrectly skip the edition's disk migration.
     with tempfile.TemporaryDirectory(dir=OUT) as folder:
         path=Path(folder)/'config.toml';path.write_text('[renderer]\nsafe_geometry=false\n')
-        run(exe,folder,False,HALO_SAFE_GEOMETRY='false',HALO_VR_GEOMETRY_REVISION='99',HALO_ANDROID_GEOMETRY_REVISION='99')
+        run(exe,folder,False,HALO_SAFE_GEOMETRY='false',HALO_VR_GEOMETRY_REVISION='99',HALO_ANDROID_GEOMETRY_REVISION='99',
+            HALO_DESKTOP_GEOMETRY_REVISION='99')
         assert re.search(r'^safe_geometry\s*=\s*true',path.read_text(),re.M)
         assert re.search(revision+r'\s*=\s*1\b',path.read_text())
         run(exe,folder,True)
     # The other edition's marker cannot bypass this edition's first migration.
     with tempfile.TemporaryDirectory(dir=OUT) as folder:
-        other='android_geometry_revision' if edition=='vr' else 'vr_geometry_revision'
+        other='android_geometry_revision' if edition in ('vr','desktop') else 'vr_geometry_revision'
         (Path(folder)/'config.toml').write_text(f'[renderer]\nsafe_geometry=false\n{other}=1\n')
         run(exe,folder,True)
     print('PASS '+edition+': migration revisions/atomic failures/retry/backup/opt-out/custom syntax/environment',flush=True)

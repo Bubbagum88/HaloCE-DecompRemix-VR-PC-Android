@@ -122,7 +122,10 @@ public class MenuTouchCheck {
     for label in ['SDL_EVENT_MOUSE_MOTION:', 'SDL_EVENT_MOUSE_BUTTON_UP:', 'SDL_EVENT_MOUSE_WHEEL:']:
         event=pump.split(label,1)[1].split('\n\t\tcase ',1)[0]
         assert 'input_state.ui_pointer' in event and '#ifndef HALO_ANDROID' not in event
-    assert '#ifndef HALO_ANDROID\n\tupdater_poll(platform_window);\n#endif' in pump
+    # (Test73: OpenCE 244's output device follow-up in the same desktop-only block)
+    assert '#ifndef HALO_ANDROID\n\tupdater_poll(platform_window);\n' in pump
+    desktop=pump.split('#ifndef HALO_ANDROID\n\tupdater_poll(platform_window);\n',1)[1].split('#endif',1)[0]
+    assert 'dsound_sdl_output_device_check();' in desktop and 'updater_poll' not in desktop
     import xml.etree.ElementTree as ET
     page=ET.parse(ROOT/'port/assets/menus/ce/main_menu.settings_select.player_setup.player_profile_edit.network_setup.xml').getroot()
     updates=[w for w in page.findall('widget') if w.get('name','').endswith('/auto_spinner')]

@@ -13,15 +13,19 @@
 	</widget>
 	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/options_menu" type="column_list" width="640" height="480" flags="pass_unhandled_to_focused_child up_down_tabs_children" description="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/help">
 		<data input="port settings help"/>
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_shield_glow" x="54" y="73"/>
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_shield_glow_intensity" x="54" y="103"/>
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_overshield_effect" x="54" y="133"/>
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_dynamic_blood" x="54" y="163"/>
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_vehicle_blood" x="54" y="193"/>
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_projectile_effects" x="54" y="223"/>
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_stencil_shadows" x="54" y="253"/>
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_item_physics" x="54" y="283"/>
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_decals_on_gpu" x="54" y="313"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_overshield_effect" x="54" y="73"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_shield_glow" x="54" y="103"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_shield_glow_intensity" x="54" y="133"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_hdr" x="54" y="163"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_hdr_output" x="54" y="193" platform="desktop"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_dynamic_blood" x="54" y="223" platform="desktop"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_dynamic_blood" x="54" y="193" platform="android web"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_vehicle_blood" x="54" y="253" platform="desktop"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_vehicle_blood" x="54" y="223" platform="android web"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_projectile_effects" x="54" y="283" platform="desktop"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_projectile_effects" x="54" y="253" platform="android web"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_stencil_shadows" x="54" y="313" platform="desktop"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_stencil_shadows" x="54" y="283" platform="android web"/>
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/button_bar" y="414"/>
 	</widget>
 	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/button_bar" type="column_list" width="640" height="28" flags="pass_unhandled_to_focused_child left_right_tabs_items">
@@ -29,11 +33,20 @@
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/button_ok" x="380" y="1"/>
 		<child widget="common_button_cancel" x="510" y="1"/>
 	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_overshield_effect" width="512" height="28" flags="pass_unhandled_to_focused_child" bitmap="bitmaps/option_bkds" color="#FF2896FF">
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/overshield_effect_label"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/overshield_effect_spinner" x="320" y="1"/>
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/overshield_effect_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="0" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/overshield_effect_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="ON|OFF" setting="display.overshield_effect" values="true|false" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
+		<on event="created" run="port setting load"/>
+	</widget>
 	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_shield_glow" width="512" height="28" flags="pass_unhandled_to_focused_child" bitmap="bitmaps/option_bkds" color="#FF2896FF">
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/shield_glow_label"/>
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/shield_glow_spinner" x="320" y="1"/>
 	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/shield_glow_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="0" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/shield_glow_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="1" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
 	</widget>
 	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/shield_glow_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="ON|OFF" setting="display.shield_glow" values="true|false" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
 		<on event="created" run="port setting load"/>
@@ -42,25 +55,34 @@
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/shield_glow_intensity_label"/>
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/shield_glow_intensity_spinner" x="320" y="1"/>
 	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/shield_glow_intensity_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="1" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/shield_glow_intensity_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="2" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
 	</widget>
 	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/shield_glow_intensity_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="DEFAULT|LIGHT SHOW" setting="display.shield_glow_intensity" values="default|light_show" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
 		<on event="created" run="port setting load"/>
 	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_overshield_effect" width="512" height="28" flags="pass_unhandled_to_focused_child" bitmap="bitmaps/option_bkds" color="#FF2896FF">
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/overshield_effect_label"/>
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/overshield_effect_spinner" x="320" y="1"/>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_hdr" width="512" height="28" flags="pass_unhandled_to_focused_child" bitmap="bitmaps/option_bkds" color="#FF2896FF">
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/hdr_label"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/hdr_spinner" x="320" y="1"/>
 	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/overshield_effect_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="2" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/hdr_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="3" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
 	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/overshield_effect_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="OFF|ON" setting="display.overshield_effect" values="false|true" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/hdr_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="ON|OFF" setting="display.hdr" values="true|false" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
+		<on event="created" run="port setting load"/>
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_hdr_output" width="512" height="28" flags="pass_unhandled_to_focused_child" bitmap="bitmaps/option_bkds" color="#FF2896FF" platform="desktop">
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/hdr_output_label"/>
+		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/hdr_output_spinner" x="320" y="1"/>
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/hdr_output_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="4" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
+	</widget>
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/hdr_output_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="ON|OFF" setting="display.hdr_output" values="true|false" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
 		<on event="created" run="port setting load"/>
 	</widget>
 	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_dynamic_blood" width="512" height="28" flags="pass_unhandled_to_focused_child" bitmap="bitmaps/option_bkds" color="#FF2896FF">
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/dynamic_blood_label"/>
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/dynamic_blood_spinner" x="320" y="1"/>
 	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/dynamic_blood_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="3" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/dynamic_blood_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="5" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
 	</widget>
 	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/dynamic_blood_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="OFF|ON" setting="game.dynamic_blood" values="false|true" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
 		<on event="created" run="port setting load"/>
@@ -69,7 +91,7 @@
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/vehicle_blood_label"/>
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/vehicle_blood_spinner" x="320" y="1"/>
 	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/vehicle_blood_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="4" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/vehicle_blood_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="6" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
 	</widget>
 	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/vehicle_blood_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="OFF|ON" setting="game.vehicle_blood" values="false|true" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
 		<on event="created" run="port setting load"/>
@@ -78,7 +100,7 @@
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/projectile_effects_label"/>
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/projectile_effects_spinner" x="320" y="1"/>
 	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/projectile_effects_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="5" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/projectile_effects_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="7" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
 	</widget>
 	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/projectile_effects_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="OFF|ON" setting="game.projectile_effects" values="false|true" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
 		<on event="created" run="port setting load"/>
@@ -87,27 +109,9 @@
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/stencil_shadows_label"/>
 		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/stencil_shadows_spinner" x="320" y="1"/>
 	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/stencil_shadows_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="6" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
+	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/stencil_shadows_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="8" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
 	</widget>
 	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/stencil_shadows_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="OFF|ON" setting="display.stencil_shadows" values="false|true" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
-		<on event="created" run="port setting load"/>
-	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_item_physics" width="512" height="28" flags="pass_unhandled_to_focused_child" bitmap="bitmaps/option_bkds" color="#FF2896FF">
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/item_physics_label"/>
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/item_physics_spinner" x="320" y="1"/>
-	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/item_physics_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="7" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
-	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/item_physics_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="CLASSIC|ENHANCED" setting="game.item_physics" values="classic|enhanced" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
-		<on event="created" run="port setting load"/>
-	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/op_decals_on_gpu" width="512" height="28" flags="pass_unhandled_to_focused_child" bitmap="bitmaps/option_bkds" color="#FF2896FF">
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/decals_on_gpu_label"/>
-		<child widget="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/decals_on_gpu_spinner" x="320" y="1"/>
-	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/decals_on_gpu_label" type="text" controller="1" width="300" height="22" string_list="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels" string_index="8" font="ui\large_ui" color="#FF2896FF" text_x="13" text_y="4">
-	</widget>
-	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/decals_on_gpu_spinner" type="spinner" left="3" top="2" width="147" height="20" flags="pass_unhandled_to_focused_child left_right_tabs_items" strings="ON|OFF" setting="display.decals_on_gpu" values="true|false" font="ui\large_ui" color="#FF2896FF" align="center" text_y="1" header_bitmap="bitmaps/arrow_sm_left" footer_bitmap="bitmaps/arrow_sm_right" header_bounds="7 -6 19 0" footer_bounds="7 150 19 156">
 		<on event="created" run="port setting load"/>
 	</widget>
 	<widget name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/button_defaults" type="text" width="128" height="24" bitmap="bitmaps/text_button_background" string_list="strings/common_button_captions" string_index="3" font="ui\small_ui" color="#FFFFFFFF" align="center" text_y="2">
@@ -121,26 +125,26 @@
 		<on event="left_mouse" run="mouse emit accept event"/>
 	</widget>
 	<strings name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/labels">
+		<string text="OVERSHIELD:"/>
 		<string text="SHIELD GLOW:"/>
 		<string text="GLOW INTENSITY:"/>
-		<string text="OVERSHIELD:"/>
+		<string text="HDR:"/>
+		<string text="HDR DISPLAY:"/>
 		<string text="DYNAMIC BLOOD:"/>
 		<string text="VEHICLE BLOOD:"/>
 		<string text="PROJECTILE EFFECTS:"/>
 		<string text="STENCIL SHADOWS:"/>
-		<string text="WEAPONS PHYSICS:"/>
-		<string text="FAST DECALS:"/>
 	</strings>
 	<strings name="main_menu/settings_select/player_setup/player_profile_edit/video_settings/extra_effects/help_strings">
 		<string text=""/>
+		<string text="The overshield rises up the body as it charges\nand stays lit, in its own color. Off: stock."/>
 		<string text="Shields light their surroundings as they flare,\nin the shield's own color."/>
 		<string text="Light Show: the shield glow three times as far,\nat full from a third of the flare."/>
-		<string text="The overshield rises up the body as it charges\nand stays lit, in its own color. Off: stock."/>
+		<string text="Keep the light of explosions, plasma and the sun\npast white, and roll it off instead of clipping."/>
+		<string text="With HDR, on an HDR display, show that light\nbrighter than white. From the next start."/>
 		<string text="Hits throw blood on the walls behind, and it\nruns down them. Off: the game's own blood."/>
 		<string text="Blood stains vehicles and objects, riding with\nthem and running down them."/>
 		<string text="Bullet holes and burns on vehicles and Spartans;\nplasma sparks, smoke and light. Off: stock."/>
 		<string text="Hard shadows from characters and vehicles, as\nF.E.A.R. and Doom 3 cast them. Costly on Quest."/>
-		<string text="Classic: dropped guns bounce, then lie flat.\nEnhanced: they tumble and roll (Jolt Physics)."/>
-		<string text="Decals drawn as the Xbox drew them: the same\npicture, far less work for the processor."/>
 	</strings>
 </menus>

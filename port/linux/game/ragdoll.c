@@ -89,7 +89,7 @@ char const *config_string(char const *name);
 int config_write(char const *name, char const *value);
 unsigned long config_changes(void);
 /* object_bounds_cache.c: the copy of the bounds collision reads */
-void object_bounds_cache_update(long object_index, real_point3d const *center, real radius);
+void object_bounds_cache_update(long object_index, short type, real_point3d const *center, real radius);
 /* Test66: port/linux/game/vr_npc_interaction.c */
 int vr_npc_interaction_has(long index);
 
@@ -1765,6 +1765,10 @@ static struct ragdoll *ragdoll_allocate(
 	}
 
 	csmemset(&ragdolls[free_index], 0, sizeof(ragdolls[free_index]));
+	/* Test73: no thud sound of its own yet (0 is a tag index: the map's
+	scenario, played as a sound: the owner's 10-18 log, "00000000 is not a
+	tag index", while the Scorpion woke bodies it drove into) */
+	ragdolls[free_index].thud_sound = NONE;
 	ragdolls[free_index].object_index = object_index;
 	ragdolls[free_index].start_time = game_time_get();
 	ragdolls[free_index].last_update_time = game_time_get();
@@ -2793,7 +2797,11 @@ static void ragdolls_vehicles(
 					if (ragdoll && !ragdoll_seed(ragdoll, iterator.index, NULL))
 						ragdoll_free(ragdoll);
 					else if (ragdoll)
+					{
+						/* Test73: its thud as the other woken bodies' (a body fall) */
+						ragdoll_thud_prepare(ragdoll, iterator.index, FALSE);
 						SET_FLAG(biped->object.flags, _object_at_rest_bit, FALSE);
+					}
 					break;
 					/* (the vehicle itself pushes it, a body of its own in Jolt) */
 				}
@@ -3342,7 +3350,7 @@ static void ragdoll_write(
 	biped->object.bounding_sphere_radius = MAX(
 		definition->object.bounding_radius,
 		ragdoll_length(&half) + 0.25f);
-	object_bounds_cache_update(biped_index, &biped->object.bounding_sphere_center, biped->object.bounding_sphere_radius);
+	object_bounds_cache_update(biped_index, biped->object.type, &biped->object.bounding_sphere_center, biped->object.bounding_sphere_radius);
 	object_reconnect_to_map(biped_index, NULL);
 
 	{
@@ -3492,7 +3500,7 @@ boolean ragdoll_object_set_position(
 	object_disconnect_from_map(object_index);
 	biped->object.position = *position;
 	ragdoll_add_scaled(&biped->object.bounding_sphere_center, &moved, 1.f);
-	object_bounds_cache_update(object_index, &biped->object.bounding_sphere_center, biped->object.bounding_sphere_radius);
+	object_bounds_cache_update(object_index, biped->object.type, &biped->object.bounding_sphere_center, biped->object.bounding_sphere_radius);
 	object_reconnect_to_map(object_index, NULL);
 
 	ragdoll = ragdoll_find(object_index);

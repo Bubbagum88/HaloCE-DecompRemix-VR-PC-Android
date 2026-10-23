@@ -29,7 +29,27 @@ assert 'binding_clear_pending();' in pump[pump.index('case SDL_EVENT_WINDOW_FOCU
 assert 'platform_quit_requested' in pump
 assert 'vr_initialize();' in fn('platform_video_initialize')
 assert 'SDL_GL_CreateContext' in fn('platform_video_initialize')
-assert not any(s in fn('platform_display_apply') for s in ('SDL_CreateWindow', 'SDL_GL_CreateContext', 'vr_initialize', 'SDL_SetWindowSize', 'SDL_SetWindowFullscreen'))
+apply = fn('platform_display_apply')
+assert not any(s in apply for s in ('SDL_CreateWindow', 'SDL_GL_CreateContext', 'vr_initialize'))
+# Test73 (OpenCE 244's display modes on flat PC): the window is resized or switched only outside the VR build
+vr_guarded = apply[apply.index('#ifndef HALO_VR'):apply.rindex('#endif')]
+assert all(s in vr_guarded for s in ('SDL_SetWindowSize', 'platform_window_set_fullscreen'))
+assert apply.index('#ifndef HALO_VR') < apply.index('SDL_SetWindowSize') and \
+    apply.index('#ifndef HALO_ANDROID') < apply.index('SDL_SetWindowSize')
+
+
+def region(start, end):
+    a = source.index(start)
+    return source[a:source.index(end, a) + len(end)]
+
+
+# the lists, real on the desktop and stubs on Android (and the helpers they read)
+lists = region('/* the size added to the list unless it has it already; the count */',
+               '#else\nint platform_display_resolutions(long *widths, long *heights, int maximum)\n{\n\t(void)widths;')
+lists = '#ifndef HALO_ANDROID\n' + \
+    source[source.index(lists):source.index('#endif', source.index(lists)) + len('#endif')]
+helpers = ''.join(fn(n) for n in ('platform_size_parse', 'platform_resolution_setting', 'platform_window_size_setting',
+                                  'platform_display_size'))
 
 shim = r'''
 #include <assert.h>
@@ -45,6 +65,9 @@ typedef uint64_t Uint64;
 typedef uint32_t SDL_AudioDeviceID;
 typedef int SDL_ThreadID;
 typedef void SDL_Window;
+typedef uint32_t SDL_DisplayID;
+typedef struct { int w, h; float pixel_density, refresh_rate; } SDL_DisplayMode;
+typedef struct { int x, y, w, h; } SDL_Rect;
 #define FALSE 0
 #define TRUE 1
 #define SDL_SCANCODE_COUNT 512
@@ -78,6 +101,30 @@ static char written_clipboard[100];
 static char *SDL_GetClipboardText(void){return clipboard?strdup(clipboard):NULL;}
 static void SDL_free(void *p){if(p)clipboard_frees++;free(p);}
 static void SDL_SetClipboardText(const char *p){snprintf(written_clipboard,sizeof(written_clipboard),"%s",p);}
+/* Test73: the display (1920x1080, its usable part 1920x1040 under a taskbar) and its fullscreen modes */
+static const char *resolution_setting="native",*window_size_setting="";
+static const char *config_string(const char *name){return !strcmp(name,"display.resolution")?resolution_setting:
+ !strcmp(name,"display.window_size")?window_size_setting:"";}
+static long config_integer(const char *name){(void)name;return 2;}
+static BOOL platform_sdl_initialize(void){return TRUE;}
+static SDL_DisplayID SDL_GetDisplayForWindow(void *w){return w?1:0;}
+static SDL_DisplayID SDL_GetPrimaryDisplay(void){return 1;}
+static const SDL_DisplayMode desktop_mode={1920,1080,1.0f,60.0f};
+static const SDL_DisplayMode *SDL_GetDesktopDisplayMode(SDL_DisplayID d){return d?&desktop_mode:NULL;}
+static SDL_DisplayMode **SDL_GetFullscreenDisplayModes(SDL_DisplayID d,int *count){
+ static const int sizes[][2]={{1920,1080},{1600,900},{1280,720},{1280,720},{800,600},{640,480},{320,240}};
+ SDL_DisplayMode **modes=malloc(sizeof(*modes)*7+sizeof(SDL_DisplayMode)*7);SDL_DisplayMode *m=(SDL_DisplayMode*)(modes+7);
+ (void)d;for(int i=0;i<7;i++){m[i].w=sizes[i][0];m[i].h=sizes[i][1];m[i].pixel_density=1.0f;m[i].refresh_rate=60.0f;modes[i]=&m[i];}
+ *count=7;return modes;}
+static bool SDL_GetDisplayUsableBounds(SDL_DisplayID d,SDL_Rect *r){(void)d;r->x=r->y=0;r->w=1920;r->h=1040;return true;}
+/* platform_display_apply's window: the mode set, F11's, the fullscreen kind's applies, resizes */
+enum { _display_mode_windowed = 0, _display_mode_borderless, _display_mode_fullscreen };
+static int mode_setting=_display_mode_borderless,kind_applies,fullscreen_switches,resizes,last_fullscreen=-1;
+static int platform_display_mode(void){return mode_setting;}
+static BOOL platform_fullscreen_setting(void){return mode_setting!=_display_mode_windowed;}
+static void platform_fullscreen_kind_apply(void){kind_applies++;}
+static void platform_window_set_fullscreen(BOOL f){fullscreen_switches++;last_fullscreen=f;}
+static void SDL_SetWindowSize(void *w,int x,int y){(void)w;(void)x;(void)y;resizes++;}
 '''
 
 globals_c = r'''
@@ -100,6 +147,10 @@ static unsigned mouse_buttons_down;
 #define BINDING_ABANDONED_MS 500
 #define BINDING_UNCLAIMED_MS 2000
 static unsigned long keystroke_head,keystroke_count;
+#ifndef HALO_ANDROID
+static long platform_window_width=1280,platform_window_height=960;
+static int platform_window_mode=_display_mode_borderless;
+#endif
 '''
 
 checks = r'''
@@ -112,18 +163,44 @@ static BOOL event(int type,int code,int repeat){
 }
 int main(void){
  struct platform_input_state snapshot;int input=-99;long w[2]={-1,-2},h[2]={-1,-2};char text[5];
- assert(platform_display_resolutions(w,h,2)==1&&w[0]==1920&&h[0]==1080&&w[1]==-2);
- assert(platform_window_sizes(w,h,2)==1);
- assert(!platform_display_resolutions(NULL,h,1));assert(!platform_display_resolutions(w,h,0));
- window_w=0;assert(!platform_display_resolutions(w,h,1));window_w=1920;
- platform_window=NULL;assert(!platform_display_resolutions(w,h,1));platform_display_apply();assert(!swap_calls);
+ (void)w;(void)h;
+#ifndef HALO_ANDROID
+ {
+  /* Test73: the display's modes below its own, largest first, each once, none under 640x480; a set one the
+  display lacks is shown too; the offered window sizes that fit the usable desktop, with the Xbox's */
+  long rw[16],rh[16];int n=platform_display_resolutions(rw,rh,16);
+  assert(n==4&&rw[0]==1600&&rh[0]==900&&rw[1]==1280&&rh[1]==720&&rw[2]==800&&rh[2]==600&&rw[3]==640&&rh[3]==480);
+  resolution_setting="1366x768";n=platform_display_resolutions(rw,rh,16);
+  assert(n==5&&rw[1]==1366&&rh[1]==768);resolution_setting="native";
+  assert(!platform_display_resolutions(rw,rh,0));
+  n=platform_window_sizes(rw,rh,16);
+  /* (640x480, 800x600, 1024x768, 1280x960, 1280x800, 1440x900, 1280x720, 1600x900: those that fit) */
+  assert(n==8&&rw[0]==640&&rh[0]==480&&rw[7]==1600&&rh[7]==900);
+  for(int i=0;i<n;i++)assert((rw[i]<=1920&&rh[i]<=1040)||(rw[i]==1280&&rh[i]==960));
+  window_size_setting="2560x1440";n=platform_window_sizes(rw,rh,16);
+  assert(rw[n-1]==2560&&rh[n-1]==1440);window_size_setting="";
+ }
+#else
+ {long rw[2],rh[2];assert(!platform_display_resolutions(rw,rh,2)&&!platform_window_sizes(rw,rh,2));}
+#endif
+ platform_window=NULL;platform_display_apply();assert(!swap_calls);
  platform_window=(void*)1;thread=8;platform_display_apply();assert(!swap_calls);thread=7;
  platform_display_apply();
 #ifdef HALO_VR
  assert(!swap_calls);
 #else
  assert(swap_calls==1&&last_interval==1);vsync=0;platform_display_apply();assert(last_interval==0);
+#ifndef HALO_ANDROID
+ /* nothing changed: no resize, no switch (F11's choice kept); a new window size resizes once; a new mode
+ switches once, to its kind */
+ assert(!resizes&&!fullscreen_switches&&kind_applies==2);
+ window_size_setting="1600x900";platform_display_apply();platform_display_apply();assert(resizes==1);
+ mode_setting=_display_mode_windowed;platform_display_apply();platform_display_apply();
+ assert(fullscreen_switches==1&&last_fullscreen==0);
+ thread=8;window_size_setting="800x600";platform_display_apply();assert(resizes==1);thread=7;window_size_setting="";
 #endif
+#endif
+ clipboard_frees=0;
  assert(halo_interpolation_enabled()==1);interpolation=0;generation++;assert(!halo_interpolation_enabled());
  assert(platform_clipboard_get(text,sizeof(text))&&!strcmp(text,"hell")&&clipboard_frees==1);
  assert(!platform_clipboard_get(NULL,2)&&!platform_clipboard_get(text,0));
@@ -173,8 +250,8 @@ int main(void){
 }
 '''
 
-functions = ''.join(fn(n) for n in (
-    'halo_interpolation_enabled','platform_display_resolutions','platform_window_sizes',
+functions = '#ifndef HALO_ANDROID\n' + helpers + '#endif\n' + lists + '\n' + ''.join(fn(n) for n in (
+    'halo_interpolation_enabled',
     'platform_display_apply','platform_clipboard_get','platform_clipboard_set','platform_request_quit',
     'binding_clear_pending','binding_take','binding_capture_event','platform_binding_capture_begin',
     'platform_binding_capture_poll','platform_menus_set_active','platform_input_read'))

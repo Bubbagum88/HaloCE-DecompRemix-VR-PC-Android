@@ -687,6 +687,13 @@ eased over a quarter second, then carried back with the vehicle, so the
 interior stays put against the view while the vehicle's own motion (its
 bounce, its turns) is kept whole. A new seat, a gap or a jump of half a
 metre takes the head's place at once */
+/* Test73: a passenger's eyes are held once the seat's enter animation has
+brought its head marker in (seconds after entering) */
+#define VR_PASSENGER_SETTLE_SECONDS 1.5
+/* Test73: how long the head marker must stay away from held eyes before
+they are taken there (vr_seat_steady_anchor) */
+#define VR_SEAT_STRAY_RETAKE_SECONDS 3.0
+
 static void vr_seat_steady_anchor(
 	real_point3d *anchor)
 {
@@ -696,8 +703,15 @@ static void vr_seat_steady_anchor(
 		short seat_index;
 		real local[3];
 		double time;
+		/* (when this seat was entered) */
+		double entered;
+		/* Test73: since when the head marker has been away from the held
+		place (0: it is not), and whether the eyes are being taken to it */
+		double strayed_since;
+		boolean retaking;
 		boolean valid;
 	} steady;
+	boolean passenger = !vr_render.seat.driver && !vr_render.seat.gunner;
 	struct object_datum *vehicle;
 	real_matrix4x3 *nodes, root;
 	real_vector3d relative;
@@ -734,9 +748,12 @@ static void vr_seat_steady_anchor(
 	was taken again whenever the head marker strayed half a metre (a pause,
 	a driver animation, a marker not found that frame), and held there,
 	never eased back, until the next stray. */
+	/* Test73: a passenger's too, once seated: only the head moves its eyes
+	(full 6DOF), not the seat's animations */
 	if (steady.valid && steady.vehicle_index == vr_render.seat.vehicle_index &&
 		steady.unit_index == vr_render.seat.unit_index && steady.seat_index == vr_render.seat.seat_index &&
-		vr_vehicle_handles_steady())
+		(vr_vehicle_handles_steady() ||
+			(passenger && now >= steady.entered && now - steady.entered > VR_PASSENGER_SETTLE_SECONDS)))
 	{
 		static double strayed_logged;
 		real stray = (real)sqrt((local[0] - steady.local[0]) * (local[0] - steady.local[0]) +
@@ -752,6 +769,38 @@ static void vr_seat_steady_anchor(
 				(double)((local[2] - steady.local[2]) / vr_units_per_metre() * 100.0f));
 			strayed_logged = now;
 		}
+		/* Test73: a stray that lasts is the seat's own place, not a moment's
+		lean: the Scorpion's driver climbs in through the hatch for longer than
+		the controls' three seconds of settling, and the eyes were held where
+		the climb had them (the owner's 10-18 log: 110 cm from the head marker,
+		every two seconds for minutes). Three seconds of it (Test66's dash dip
+		lasted a second and a half), and the eyes are eased there and held
+		again */
+		if (stray > 0.25f * vr_units_per_metre())
+		{
+			if (steady.strayed_since <= 0.0 || now < steady.strayed_since)
+				steady.strayed_since = now;
+			if (!steady.retaking && now - steady.strayed_since > VR_SEAT_STRAY_RETAKE_SECONDS)
+			{
+				steady.retaking = TRUE;
+				platform_log("vr: seat eyes taken to the head marker %.0f cm away: it stayed there %.0f s",
+					(double)(stray / vr_units_per_metre() * 100.0f), VR_SEAT_STRAY_RETAKE_SECONDS);
+			}
+		}
+		else if (!steady.retaking)
+			steady.strayed_since = 0.0;
+		if (steady.retaking)
+		{
+			real ease = now > steady.time ? 1.0f - (real)exp(-(now - steady.time) / 0.25) : 0.0f;
+
+			for (axis = 0; axis < 3; axis++)
+				steady.local[axis] += (local[axis] - steady.local[axis]) * ease;
+			if (stray < 0.02f * vr_units_per_metre())
+			{
+				steady.retaking = FALSE;
+				steady.strayed_since = 0.0;
+			}
+		}
 	}
 	else if (!steady.valid || steady.vehicle_index != vr_render.seat.vehicle_index ||
 		steady.unit_index != vr_render.seat.unit_index || steady.seat_index != vr_render.seat.seat_index ||
@@ -760,6 +809,13 @@ static void vr_seat_steady_anchor(
 		(local[1] - steady.local[1]) * (local[1] - steady.local[1]) +
 		(local[2] - steady.local[2]) * (local[2] - steady.local[2]) > snap * snap)
 	{
+		if (!steady.valid || steady.vehicle_index != vr_render.seat.vehicle_index ||
+			steady.unit_index != vr_render.seat.unit_index || steady.seat_index != vr_render.seat.seat_index)
+		{
+			steady.entered = now;
+		}
+		steady.strayed_since = 0.0;
+		steady.retaking = FALSE;
 		memcpy(steady.local, local, sizeof(local));
 		steady.vehicle_index = vr_render.seat.vehicle_index;
 		steady.unit_index = vr_render.seat.unit_index;
@@ -2215,11 +2271,18 @@ unsigned long vr_render_actions(
 	vr_set_physical_allowed(game_connection() == _game_connection_local ||
 		config_boolean("vr.physical_multiplayer"));
 	/* a hand's blows are damage this machine causes: not a network game's
-	client (whose host decides damage), which keeps the swing gesture */
-	vr_set_impact_melee_allowed(!network_game_distributed_client());
+	client (whose host decides damage), which keeps the swing gesture;
+	Test73 (10d): unless its co-op host's VR INTERACTIONS allows them, each
+	blow then sent for the host to deal (units.c unit_vr_impact_melee_apply) */
+	vr_set_impact_melee_allowed(!network_game_distributed_client() ||
+		network_interaction_vr_allowed(NETWORK_VR_MELEE));
 	/* test21: physical melee is off in any network game unless the player
 	turns it on (vr.melee_multiplayer); the melee button always works */
 	vr_set_network_game(game_connection() != _game_connection_local);
+	/* (Test73, 10d: or the co-op host's VR INTERACTIONS allows it for every
+	player) */
+	vr_set_network_melee(game_connection() != _game_connection_local &&
+		network_interaction_vr_allowed(NETWORK_VR_MELEE));
 	{
 		unsigned long actions = vr_take_actions() | vr_diag_zoom(local_player_index);
 		long holster_request = vr_take_holster_draw_request();
@@ -3810,6 +3873,58 @@ boolean vr_render_full_body(
 		object_get(object_index)->object.type == _object_type_biped;
 }
 
+/* Test73 (the owner: "hands, arms and body matching the character you
+play"): ARMS FROM (vr.character_arms). The body drawn in VR is the played
+biped; its arms were folded away and the first-person arms (the map's
+globals' hands model) reached the controllers, so a custom campaign's
+character (SPV1's Chief) had the stock first-person arms. With the
+character's own arms, the body keeps its upper arms and forearms, reached to
+the hands as shown (vr_body_arms_to_hands); its hands, which have no finger
+bones (the game's Spartan's nor SPV1's), fold into the wrists under the
+first-person gloves, whose fingers stay tracked; the first-person upper arms
+and forearms gather behind the wrists (vr_hide_forearms). "auto": when the
+played biped is not the game's own Spartan (characters\cyborg, and the
+multiplayer one), whose first-person arms are its own. Only with the body
+drawn (FULL, LEGS + ARMS) and the arms reached by IK. */
+static struct { long unit; double time; boolean on; } vr_character_arms_frame;
+
+static boolean vr_character_arms_wanted(long object_index)
+{
+    static int mode = -1, generation, logged = -1;
+    static long logged_definition = NONE;
+    long definition = object_get(object_index)->definition_index;
+    char const *name = tag_get_name(definition), *why = NULL;
+    boolean own;
+
+    if (mode < 0 || generation != vr_settings_generation()) {
+        char const *setting = config_string("vr.character_arms");
+        generation = vr_settings_generation();
+        mode = !strcmp(setting, "off") ? 0 : !strcmp(setting, "on") ? 1 : 2;
+    }
+    if (!mode) why = "ARMS FROM first person";
+    else if (vr_render_hands_only()) why = "hands only";
+    else if (strcmp(config_string("vr.arms"), "ik")) why = "arms not reached by IK";
+    else if (!vr_hand_aiming()) why = "not aiming by hand";
+    else if (mode == 2 && name && !_strnicmp(name, "characters\\cyborg", 17)) why = "the game's own Spartan";
+    own = why == NULL;
+    if (logged != own || logged_definition != definition) {
+        logged = own;
+        logged_definition = definition;
+        platform_log("vr: arms from %s (%s, %s)", own ? "the character" : "first person",
+            name ? name : "?", own ? (mode == 1 ? "ARMS FROM character" : "a custom character") : why);
+    }
+    return own;
+}
+
+/* the body keeps its own arms: the first-person arms show only their hands.
+(The body's last choice, of this frame or the one before: the first-person
+arms may be posed before the body is drawn.) */
+static boolean vr_render_character_arms(void)
+{
+    double age = vr_pose_time() - vr_character_arms_frame.time;
+    return vr_character_arms_frame.on && age >= 0.0 && age < 0.1;
+}
+
 /* Shared by the body and the first-person arms, once per predicted XR frame. */
 static struct {
     long unit;
@@ -4033,28 +4148,16 @@ int vr_render_palm_point(int hand, long unit, float point[3])
     return 1;
 }
 
-/* The observer palette keeps every body bone, before the local visibility
- * filter. The biped's own hierarchy/proportions are used, not FP bone indices. */
-static void vr_publish_body(long unit, struct animation_graph *graph,
-    real_matrix4x3 const *local, short count, real_vector3d heading)
+/* The body's own arms reached to the hands as they are shown: the
+ * first-person hands' wrists of the frame before, when fresh and near the
+ * controller, else 7.5 cm behind the tracked grip. Test73: for the observer
+ * palette (vr_publish_body, as since Test62) and, with the character's own
+ * arms (vr_character_arms_wanted), for the body drawn here. */
+static void vr_body_arms_to_hands(long unit, struct animation_graph *graph, real_matrix4x3 *m, short count,
+    real_vector3d heading)
 {
-    real_matrix4x3 m[MAXIMUM_NODES_PER_ANIMATION];
     real units = vr_units_per_metre();
     real_vector3d right = {heading.j, -heading.i, 0};
-    short head = vr_find_node(graph, "", "head");
-    if (!network_vr_pose_wanted()) return;
-    memcpy(m, local, count * sizeof(*m));
-    if (head >= 0 && head < count) {
-        real_vector3d f = vr_render.head_camera.forward, u = vr_render.head_camera.up, l;
-        real_vector3d original_left = {-heading.j, heading.i, 0};
-        real rotation[3][3];
-        cross_product3d(&u, &f, &l);
-        if (vr_unit_vector(&f) && vr_unit_vector(&u) && vr_unit_vector(&l)) {
-            for (int row = 0; row < 3; row++) for (int col = 0; col < 3; col++)
-                rotation[row][col] = f.n[row] * heading.n[col] + l.n[row] * original_left.n[col] + u.n[row] * (col == 2);
-            vr_turn_subtree(graph, m, head, rotation);
-        }
-    }
     for (int side = 0; side < 2; side++) {
         short chain[3];
         real_point3d hand; real_vector3d f, u, pole, old_axis, new_axis;
@@ -4108,6 +4211,31 @@ static void vr_publish_body(long unit, struct animation_graph *graph,
             vr_distribute_arm_twist(m, chain, &old_fore, &old_hand, &vr_arm_history[2 + side]);
         }
     }
+}
+
+/* The observer palette keeps every body bone, before the local visibility
+ * filter. The biped's own hierarchy/proportions are used, not FP bone indices.
+ * (arms_solved: `local`'s arms were reached to the hands already, Test73) */
+static void vr_publish_body(long unit, struct animation_graph *graph,
+    real_matrix4x3 const *local, short count, real_vector3d heading, boolean arms_solved)
+{
+    real_matrix4x3 m[MAXIMUM_NODES_PER_ANIMATION];
+    short head = vr_find_node(graph, "", "head");
+    if (!network_vr_pose_wanted()) return;
+    memcpy(m, local, count * sizeof(*m));
+    if (head >= 0 && head < count) {
+        real_vector3d f = vr_render.head_camera.forward, u = vr_render.head_camera.up, l;
+        real_vector3d original_left = {-heading.j, heading.i, 0};
+        real rotation[3][3];
+        cross_product3d(&u, &f, &l);
+        if (vr_unit_vector(&f) && vr_unit_vector(&u) && vr_unit_vector(&l)) {
+            for (int row = 0; row < 3; row++) for (int col = 0; col < 3; col++)
+                rotation[row][col] = f.n[row] * heading.n[col] + l.n[row] * original_left.n[col] + u.n[row] * (col == 2);
+            vr_turn_subtree(graph, m, head, rotation);
+        }
+    }
+    if (!arms_solved)
+        vr_body_arms_to_hands(unit, graph, m, count, heading);
     network_vr_pose_capture(unit, m, count);
 }
 
@@ -4149,7 +4277,15 @@ static void vr_hide_forearms(real_matrix4x3 *m, struct animation_graph *graph, s
 {
     short gun = vr_find_node(graph, "frame", "gun");
     real units = vr_units_per_metre();
-    if (!vr_render_hands_only() && vr_hand_tracking_mode() != 1) return;
+    static int logged = -1;
+    int character = vr_render_character_arms();
+    /* (Test73: and with the character's own arms, which reach these hands) */
+    if (logged != character) {
+        logged = character;
+        platform_log("vr: first-person arms %s", character ? "gathered behind the hands (the character's own arms show)" :
+            "as they are");
+    }
+    if (!vr_render_hands_only() && vr_hand_tracking_mode() != 1 && !character) return;
     for (int side = 0; side < 2; side++) {
         short *chain = side ? right : left;
         real_point3d centre = m[chain[2]].position;
@@ -4257,10 +4393,14 @@ real_matrix4x3 *vr_render_body_matrices(long object_index)
 	short count, graph_count, roots[3], i, r;
 	real_point3d collapse[3];
 	real_vector3d forward = object->object.forward;
+	boolean own_arms;
 	if (!source || definition->object.animation_graph.index == NONE || vr_render.cinematic_view)
 		return source;
 	if (cached_unit == object_index && cached_graph == definition->object.animation_graph.index &&
 		cached_time == vr_pose_time()) return matrices;
+	/* (Test73: this frame's choice, made below; the cached palette above, the
+	other eye's, keeps it) */
+	vr_character_arms_frame.on = FALSE;
 	vr_body_pose.shoulders_valid = FALSE;
 	count = (short)(object->object.node_matrices.size / sizeof(*matrices));
 	if (count <= 0 || count > MAXIMUM_NODES_PER_ANIMATION)
@@ -4427,10 +4567,19 @@ real_matrix4x3 *vr_render_body_matrices(long object_index)
             vr_body_pose.shoulders_valid = TRUE;
         }
     }
-    vr_publish_body(object_index, graph, matrices, count, forward);
+    /* Test73: ARMS FROM the character: its arms reached to the hands shown */
+    own_arms = vr_character_arms_wanted(object_index);
+    if (own_arms)
+        vr_body_arms_to_hands(object_index, graph, matrices, count, forward);
+    vr_publish_body(object_index, graph, matrices, count, forward, own_arms);
+    vr_character_arms_frame.unit = object_index;
+    vr_character_arms_frame.time = vr_pose_time();
+    vr_character_arms_frame.on = own_arms;
     roots[0] = vr_find_node(graph, "", "head");
-	roots[1] = vr_find_node(graph, " l ", "clavicle");
-	roots[2] = vr_find_node(graph, " r ", "clavicle");
+	/* (the character's own arms: only its fingerless hands folded, into the
+	wrists, under the first-person gloves) */
+	roots[1] = vr_find_node(graph, " l ", own_arms ? "hand" : "clavicle");
+	roots[2] = vr_find_node(graph, " r ", own_arms ? "hand" : "clavicle");
 	for (r = 0; r < 3; r++)
 		if (roots[r] >= 0 && roots[r] < graph_count)
 			collapse[r] = matrices[roots[r]].position;
@@ -4444,8 +4593,13 @@ real_matrix4x3 *vr_render_body_matrices(long object_index)
 			}
     if (!strcmp(config_string("vr.body"), "legs")) {
         short spine = vr_find_node(graph, "", "spine");
+        /* (Test73: the character's own arms stay, as the first-person arms do) */
+        short upper[2] = { vr_find_node(graph, " l ", "upperarm"), vr_find_node(graph, " r ", "upperarm") };
         for (i = 0; i < graph_count; i++)
-            if (vr_node_under(graph, i, spine)) matrices[i].scale = 0;
+            if (vr_node_under(graph, i, spine) &&
+                !(own_arms && ((upper[0] >= 0 && vr_node_under(graph, i, upper[0])) ||
+                    (upper[1] >= 0 && vr_node_under(graph, i, upper[1])))))
+                matrices[i].scale = 0;
     }
 	return matrices;
 }
@@ -5134,6 +5288,9 @@ void vr_render_first_person_ik(
 						controller) */
 						boolean vehicle_grip = !world_grip && !climbing_grip && !npc_grip && !reload_grip &&
 							vr_vehicle_handles_hand(controller, hand.n);
+						/* Test73: HAND LOCK: and held there, turned with the
+						control as it was when it took hold (vr_vehicle_handles_hand_turn) */
+						boolean vehicle_locked = vehicle_grip && vr_vehicle_handles_hand_turn(controller, &f, &u);
 						/* Test54: the controller stays the hand's authority. A held
 						 * prop, a climbing hold or a magazine draws the visible hand
 						 * onto its contact by at most 6 cm; beyond that the hand
@@ -5150,7 +5307,7 @@ void vr_render_first_person_ik(
                             last_time[controller]=now;
                             for(int k=0;k<3;k++)hand.n[k]+=blend[controller]*(npc_contact.n[k]-hand.n[k]);
                         }
-                        if (world_grip || climbing_grip || npc_grip || reload_grip || vehicle_grip)
+                        if (world_grip || climbing_grip || npc_grip || reload_grip || (vehicle_grip && !vehicle_locked))
 						{
 							real_vector3d pull;
 							real length, limit = (vehicle_grip ? 0.10f : 0.06f) * units;

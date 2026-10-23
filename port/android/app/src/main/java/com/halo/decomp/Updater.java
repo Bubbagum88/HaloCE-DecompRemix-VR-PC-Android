@@ -34,6 +34,8 @@ final class Updater {
     }
     static void resume(Activity a,File root,TextView status) {
         if(status==null)return;
+        // Test73: the Steam Frame (Lepton) puts its APK back at every start: an update is a new APK there
+        if(Lepton.running()){status.setText("Steam Frame: updates come as a new APK in the game's Steam folder.");return;}
         long now=System.currentTimeMillis(),last=prefs(a).getLong("last_check",0);
         if(prefs(a).getBoolean("automatic",true) && (last>now || now-last>=CHECK_INTERVAL))check(a,root,true,status);
         else if(!prefs(a).getBoolean("automatic",true))status.setText("Automatic update checks off. Tap to check now.");
@@ -41,8 +43,8 @@ final class Updater {
     static void show(Activity a,File gameRoot) {
         android.widget.LinearLayout box=new android.widget.LinearLayout(a);box.setOrientation(1);box.setPadding(28,16,28,16);
         TextView text=new TextView(a);text.setText(prefs(a).getString("status","No update check yet.")+"\n\nInstalled: "+BuildConfig.VERSION_NAME+" ("+BuildConfig.VERSION_CODE+")\n"+BuildConfig.APPLICATION_ID+
-            "\nJoin target: "+NetworkProfile.label(NetworkProfile.selected(a))+"; hosting: network 29. Xbox-map PvP supports 11–29; campaign co-op 15–29; Custom Edition 23–29."+
-            "\nCo-op: OpenCE's, up to 128 players, with OpenCE players too\n\nThe launcher checks compatible project releases and upstream network changes. A project update includes the integrated engine, VR, co-op and launcher together; upstream changes are reviewed before integration. Engine base: OpenCE Build 157; hosting network 29. Selected fixes through Build 208 are included, with OpenCE's network 25 (units' integrated lights), 26 (internet signalling), 27 (map sharing: this app's hosts answer that they share no maps), 28 (its gameplay rules) and 29 (Custom Edition maps keep their names; the map's version is its hash's), so current OpenCE servers can be joined and can join this app's hosts; OpenCE's browser players cannot join this app's hosts. This is not a full Build208 rebase. Build174's high-resolution button rendering and Build184's new display options are not integrated because they build on OpenCE renderer and menu code this port has customized.\n\nDownload verifies compatibility metadata, SHA-256, package, newer Android version and the current signing certificate. The current APK, active configuration and touch preferences are backed up privately before Android opens its installer. Game maps and saves are preserved. Android asks you to approve installation; rollback may require ADB. Test candidates are never offered as public updates.");box.addView(text);
+            "\nJoin target: "+NetworkProfile.label(NetworkProfile.selected(a))+"; hosting: network "+NetworkProfile.CURRENT+". Xbox-map PvP supports 11–"+NetworkProfile.CURRENT+"; campaign co-op 15–"+NetworkProfile.CURRENT+"; Custom Edition 23–"+NetworkProfile.CURRENT+"."+
+            "\nCo-op: OpenCE's, up to 128 players, with OpenCE players too\n\nThe launcher checks compatible project releases and upstream network changes. A project update includes the integrated engine, VR, co-op and launcher together; upstream changes are reviewed before integration. Engine: OpenCE Build 256 and its newer branches, merged with this project's VR, co-op and launcher; hosting network 34. OpenCE servers of networks 11 to 34 can be joined, OpenCE players join this app's hosts once their build is on network 34 too, and a host shares its Custom Edition maps with the players who lack them. This project keeps its own internet-play layer, so OpenCE's web-browser players cannot join this app's hosts; Halo 1 MCC maps are played solo.\n\nDownload verifies compatibility metadata, SHA-256, package, newer Android version and the current signing certificate. The current APK, active configuration and touch preferences are backed up privately before Android opens its installer. Game maps and saves are preserved. Android asks you to approve installation; rollback may require ADB. Test candidates are never offered as public updates.");box.addView(text);
         android.widget.CheckBox automatic=new android.widget.CheckBox(a);automatic.setText("Check automatically when the launcher opens (every 6 hours)");automatic.setChecked(prefs(a).getBoolean("automatic",true));box.addView(automatic);
         automatic.setOnCheckedChangeListener((b,v)->prefs(a).edit().putBoolean("automatic",v).apply());
         TextView privacy=new TextView(a);privacy.setText("Checks contact GitHub for release metadata and the upstream protocol header. No saves, logs, invites or configuration are uploaded. Offline play is always available.");box.addView(privacy);
@@ -87,6 +89,8 @@ final class Updater {
         } finally{c.disconnect();}
     }
     private static void check(Activity a,File gameRoot,boolean silent,TextView statusView) {
+        // (Test73: none on the Steam Frame, whose APK Lepton reinstalls at every start)
+        if(Lepton.running()){if(!silent)message(a,"On the Steam Frame the game is updated by replacing its APK in its Steam folder.");return;}
         if(!busy.compareAndSet(false,true)){if(!silent)message(a,"An update operation is already running.");return;}
         prefs(a).edit().putLong("last_check",System.currentTimeMillis()).apply();
         if(!silent)android.widget.Toast.makeText(a,"Checking compatible project and network updates...",android.widget.Toast.LENGTH_SHORT).show();

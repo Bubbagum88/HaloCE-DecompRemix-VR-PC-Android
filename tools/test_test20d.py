@@ -71,7 +71,8 @@ assert 'pullback->i = -forward->i * back;' in walls
 assert camera.index('vr_render.weapon_pullback = (real_vector3d){ 0.0f, 0.0f, 0.0f };') < camera.index('weapon_out_of_walls(')
 # test21 restored separate floating modes (test_test21 checks them)
 assert 'int tracking = vr_hand_tracking_mode();' in ik
-assert 'if (!vr_render_hands_only() && vr_hand_tracking_mode() != 1) return;' in fn(render, 'vr_hide_forearms')
+# Test73: also with the character's own arms (vr.character_arms), whose arms reach these hands
+assert 'if (!vr_render_hands_only() && vr_hand_tracking_mode() != 1 && !character) return;' in fn(render, 'vr_hide_forearms')
 begin = fn(frame, 'frame_begin')
 assert begin.index('if (vr.controls_mirrored)') < begin.index('layout_controls();'), 'sticks swap before anything reads them'
 assert 'vr.frame.thumb[0] = vr.frame.thumb[2];' in begin and 'vr.frame.thumb[2] = move[0];' in begin
@@ -81,8 +82,12 @@ assert 'vr.controls_mirrored = left_handed && strcmp(config_string("vr.mirror_co
 init = frame[frame.index('migrate_calibration_split();\n\tmigrate_handedness();'):]
 assert init.index('migrate_handedness();') < init.index('vr_reload_settings()'), 'migrations run before settings load'
 change = fn(menu, 'vr_menu_setting_change')
-assert 'case _vr_setting_handedness:' in change and 'config_write_string("vr.vehicle_steering", to)' in change \
-    and 'config_write_string("vr.move_relative", to)' in change
+# Test73 (item 10h): a row's write is vr_menu_apply, shared with the update's features migration; the menu's
+# change ends in it
+apply = fn(menu, 'vr_menu_apply')
+assert change.rstrip().rstrip('}').rstrip().endswith('return vr_menu_apply(setting, value);')
+assert 'case _vr_setting_handedness:' in apply and 'config_write_string("vr.vehicle_steering", to)' in apply \
+    and 'config_write_string("vr.move_relative", to)' in apply
 assert '"vr.gun_forward","vr.gun_up","vr.gun_out",' in change, 'RESET GUN covers the new gun position'
 assert '!strcmp(setting->key,"both")' in change
 for marker in ['b"HANDS + GUN"', 'b"MIRROR CONTROLS"', 'b"GUN GRIP"', 'b"anchored to the controller"']:
@@ -359,7 +364,9 @@ static struct { struct { uint32_t hand_buttons[2], buttons; float trigger[2], th
  /* test26: crouch on the turning stick held down, the reticle's toggle */
  int seated, turn_stick_down, reticle_hidden, reticle_press, reticle_cancelled, push_to_talk_held;
  /* test30: the menus' letters (0: in play, as these frames are) */
- int menus_active; } vr;
+ int menus_active;
+ /* the PC VR fixes' pulsed trigger (vr.diag_fire_frame with vr.force_render): off (0) in these frames */
+ int force_render; long diag_fire_frame; long stereo_frames; } vr;
 static int recentres, buzzes;
 static void platform_log(const char *f, ...){(void)f;}
 static int physical_weapons(void){return vr.physical;}

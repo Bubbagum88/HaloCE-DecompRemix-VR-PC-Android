@@ -39,7 +39,8 @@ for flag, macro in (("bd_controller", "BD_CONTROLLER_EXTENSION"), ("bd_ultra_con
 suggestions = host[host.index('suggest("/interaction_profiles/oculus/touch_controller"'):host.index("attach.countActionSets")]
 assert suggestions.index("if (xr.bd_controller)") < suggestions.index("pico4_controller")
 assert suggestions.index("if (xr.bd_ultra_controller)") < suggestions.index("pico_ultra_controller_bd")
-assert 'if (xr.frame_controller)\n\t\tsuggest("/interaction_profiles/valve/frame_controller_valve"' in host
+# (Test73: the Frame's with its fingers' touches, or alone if refused: suggest_pair)
+assert 'if (xr.frame_controller)\n\t\tsuggest_pair("/interaction_profiles/valve/frame_controller_valve", halo_xr_bindings_frame,' in host
 assert "const char *extensions[12];" in host  # room for every optional extension at once
 
 # the manifest: one APK for every headset

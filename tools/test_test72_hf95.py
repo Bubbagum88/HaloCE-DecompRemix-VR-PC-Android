@@ -43,7 +43,11 @@ extra = read("port/assets/menus/ce/main_menu.settings_select.player_setup.player
 
 # ---- the kept quad indices
 assert "\tGLuint quad_index_buffer;\n\tunsigned long quad_index_quads;\n" in gl
-assert "\tdevice.quad_index_buffer = 0;\n\tdevice.quad_index_quads = 0;\n#ifndef HALO_ANDROID\n\tglGenBuffers(1, &device.stream_buffer);" in gl
+# reset with each context, before the desktop's stream buffers (and, since the PC VR fixes, desktop's Safe
+# geometry choice read there too)
+reset = gl.index("\tdevice.quad_index_buffer = 0;\n\tdevice.quad_index_quads = 0;\n#ifndef HALO_ANDROID\n")
+assert reset < gl.index("\tsafe_geometry = config_boolean(\"renderer.safe_geometry\");", reset) < \
+    gl.index("\tglGenBuffers(1, &device.stream_buffer);", reset) < gl.index("#endif", reset)
 assert "#define QUAD_INDEX_QUADS_MAXIMUM (0x10000 / 4)" in gl
 bind = gl[gl.index("#ifdef HALO_WEB\nstatic BOOL quad_index_bind("):]
 bind = bind[:bind.index("#endif")]
@@ -90,10 +94,15 @@ android = android[:android.index("#endif")]
 assert re.search(r'\{ "display\.decals_on_gpu", _config_boolean, "false",', android.split("#else")[0])
 assert re.search(r'\{ "display\.decals_on_gpu", _config_boolean, "true",', android.split("#else")[1])
 assert '{ "FAST DECALS", "display.decals_on_gpu", _vr_setting_boolean, 2, { { "OFF", "false" }, { "ON", "true" } } },' in menu
-assert 'op_decals_on_gpu" x="54" y="313"' in extra and 'setting="display.decals_on_gpu" values="true|false"' in extra
-labels = extra[extra.index('extra_effects/labels">'):]
+# (Test73: on Video Setup's BODIES AND DECALS since OpenCE 244's rows filled Extra Effects; the desktop's DECALS
+# row above it)
+bodies = read("port/assets/menus/ce/main_menu.settings_select.player_setup.player_profile_edit.video_settings.bodies_decals.xml")
+assert 'op_decals_on_gpu" x="54" y="253" platform="desktop"' in bodies and \
+    'op_decals_on_gpu" x="54" y="223" platform="android web"' in bodies
+assert 'setting="display.decals_on_gpu" values="true|false"' in bodies
+labels = bodies[bodies.index('bodies_decals/labels">'):]
 labels = labels[:labels.index("</strings>")]
-assert re.findall(r'<string text="([^"]*)"', labels)[8] == "FAST DECALS:"
+assert re.findall(r'<string text="([^"]*)"', labels)[6] == "FAST DECALS:"
 
 # ---- blood layers
 effects_decals = read("source/effects/decals.c")
@@ -127,7 +136,12 @@ mouse = read("port/assets/menus/ce/main_menu.settings_select.player_setup.player
 assert "aiming by mouse, swipe or gyro, as a controller." in mouse
 assert "swipe and gyro aim (HaloFreak95's input.touch_aim_assist)." in config
 xinput = read("port/linux/src/xinput_sdl.c")
-assert "if (touch.yaw != 0.f || touch.pitch != 0.f) mouse_aimed_ms = SDL_GetTicks();" in xinput
+assert "if (touch.yaw != 0.f || touch.pitch != 0.f) mouse_aimed_ms = touch_aimed_ms = SDL_GetTicks();" in xinput
+# (OpenCE 244: the host's Block M+KB aim assist takes a mouse, not swipe or gyro)
+aim_device = xinput[xinput.index("static int mouse_is_aim_device("):]
+aim_device = aim_device[:aim_device.index("\n}\n")]
+assert "touch_aimed_ms >= mouse_aimed_ms" in aim_device and "aiming = FALSE;" in aim_device
+assert "if (network_aim_assist_block_mouse() && mouse_is_aim_device(gamepad_index))" in xinput
 
 # ---- shadows end at machines and scenery
 shadows = read("port/linux/game/stencil_shadows.c")

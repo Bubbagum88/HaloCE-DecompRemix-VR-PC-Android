@@ -67,6 +67,9 @@ static struct
 	int cockpit_valid, heading_from_seat;
 	float cockpit[3][3];
 	struct halo_xr_frame frame;
+	/* Test73: the display time of the frame the game clock last stepped to
+	(vr_frame_seconds); 0 none */
+	long long clock_display_time;
 	/* the eye render size (vr.resolution_scale) */
 	int eye_size;
 	/* the runtime's recommended eye image (the eye swapchains'
@@ -110,6 +113,9 @@ static struct
 	int heading_valid, aiming, aiming_last_frame;
 	/* vr.snap_turn (radians, 0 for smooth), vr.smooth_turn_speed (radians a second) */
 	float snap_turn, smooth_turn_speed;
+	/* Test73 (10i): VEHICLE TURN (vr.vehicle_smooth_turn), and whether the last turn() was a seat's
+	smooth turning for a snap turner */
+	int vehicle_smooth_turn, turn_seat_smooth;
 	/* test24b, comfort: the vignette's strength (vr.vignette, 0 off), what
 	shows it (vr.vignette_when), how much of it shows now (eased), and the
 	frame's own motion: moving (the stick, the arms' run), turning (smooth),
@@ -210,6 +216,11 @@ static struct
 	float finger_curl[2][4];
 	float finger_velocity[2][4];
 	float l_pose_held[2];
+	/* Test73: whether each hand's controller has reported a touch (with the
+	profile they came on): one without touch sensors (HP Reverb G2, or a
+	runtime that refused them) shows a hand at rest on it, never an "L" */
+	unsigned char touch_seen[2];
+	unsigned int touch_profile;
 	double x_held, grenade_pulse;
 	/* test23: the Quest's buttons, remappable (vr.button_*): which button
 	(VR_BUTTON_SOURCE_*) does each action (VR_BUTTON_ACTION_*) */
@@ -232,6 +243,9 @@ static struct
 	/* test21: a network game (vr_set_network_game) and whether physical
 	melee works in one (vr.melee_multiplayer, off by default) */
 	int network_game, melee_multiplayer;
+	/* Test73 (10d): a co-op game whose host's VR INTERACTIONS allows
+	physical melee (vr_set_network_melee) */
+	int network_melee;
 	/* test21: the held gun's kind (VR_GUN_*, -1 none: vr_set_gun_class) and
 	each kind's aim adjustment (vr.aim_<kind>_up/_right, degrees), turning
 	the shots, reticle and scope off the gun's own aim (never the gun);
@@ -319,10 +333,16 @@ static struct
 	float room_previous[2], room_now[2];
 	/* diagnostics (vr.force_render, vr.diag_yaw, vr.dump_frame) */
 	int force_render;
-	float diag_yaw, diag_hand_yaw, diag_walk_speed;
+	float diag_yaw, diag_hand_yaw, diag_walk_speed, diag_pitch;
 	double diag_walk_start;
+	/* Test73: vr.diag_turn_speed (radians a second) and when the turn began */
+	float diag_turn_speed;
+	double diag_turn_start;
 	int diag_two_handed;
+	long diag_fire_frame;
 	long dump_frame, dump_cinema_frame;
+	/* Test72: how many stereo frames from dump_frame on (vr.dump_frames) */
+	long dump_frames;
 	long stereo_frames, cinema_frames;
 	/* timing (vr.timing): milliseconds summed over `timed` frames */
 	int timing, gpu_finish;
@@ -773,6 +793,7 @@ void vr_reload_settings(void)
 	vr.cinema_enabled = config_boolean("vr.cinema_3d") && strcmp(config_string("vr.cutscenes"), "flat") != 0;
 	vr.snap_turn = (float)config_real("vr.snap_turn") * 0.017453293f;
 	vr.smooth_turn_speed = (float)config_real("vr.smooth_turn_speed") * 0.017453293f;
+	vr.vehicle_smooth_turn = config_boolean("vr.vehicle_smooth_turn");
 	vr.vehicle_tilt = (float)config_real("vr.vehicle_tilt");
 	if (!(vr.vehicle_tilt >= 0.0f))
 		vr.vehicle_tilt = 0.0f;
@@ -785,8 +806,9 @@ void vr_reload_settings(void)
 		vr.vignette_strength = 1.0f;
 	vr.vignette_when = !strcmp(config_string("vr.vignette_when"), "turn") ? VR_VIGNETTE_TURNING :
 		!strcmp(config_string("vr.vignette_when"), "always") ? VR_VIGNETTE_ALWAYS : VR_VIGNETTE_MOVING;
-	platform_log("vr: comfort: turning %s %.1f, vignette %.2f (%s)", vr.snap_turn > 0.0f ? "snap" : "smooth",
-		(vr.snap_turn > 0.0f ? vr.snap_turn : vr.smooth_turn_speed) * 57.29578f, vr.vignette_strength,
+	platform_log("vr: comfort: turning %s %.1f%s, vignette %.2f (%s)", vr.snap_turn > 0.0f ? "snap" : "smooth",
+		(vr.snap_turn > 0.0f ? vr.snap_turn : vr.smooth_turn_speed) * 57.29578f,
+		vr.snap_turn > 0.0f && vr.vehicle_smooth_turn ? ", smooth in vehicles" : "", vr.vignette_strength,
 		vr.vignette_when == VR_VIGNETTE_TURNING ? "turning" : vr.vignette_when == VR_VIGNETTE_ALWAYS ? "always" : "moving and turning");
 	vr.hand_aim = !strcmp(config_string("vr.aim"), "hand");
 	vr.crosshair_enabled = strcmp(config_string("vr.crosshair"), "off") != 0;
@@ -987,7 +1009,8 @@ void vr_reload_settings(void)
 				value = config_real(key);
 				if (!isfinite(value))
 					value = part == 3 ? 1.0 : 0.0;
-				vr.scope_adjust[kind][part] = part == 3 ? (float)fmin(2.0, fmax(0.5, value)) :
+				/* (Test73: SIZE up to 400%, the owner's) */
+				vr.scope_adjust[kind][part] = part == 3 ? (float)fmin(4.0, fmax(0.5, value)) :
 					(float)fmin(VR_SCOPE_ADJUST_LIMIT_METRES, fmax(-VR_SCOPE_ADJUST_LIMIT_METRES, value));
 			}
 		}
@@ -1066,7 +1089,7 @@ void vr_initialize(void)
 		return;
 	vr.initialized = 1;
 	config_vr_vehicle_defaults();
-	platform_log("vr: HaloCE Quest test72 candidate 1.0.39-test72 code84 (OpenCE Build208 merged / network29 (hosts 29, joins 11-29, All compatible by default); Custom Edition maps keep their names, the version by their hash (network 29; hosts before 29 by name and checksum); map sharing restart and validation hardening; map sharing (host-sent over the internet), votes to kick, Server Setup sub-screens, display options, dynamic ragdolls (Jolt in the host); voice unchanged; test66: Warthog eyes held per seat and the wheel turned past half a circle; IMMERSION VEHICLES; LEFT-HAND MODE; reload grip poses and mag-well assist; fist ENEMY HEALTH, block/parry, enemy kinds, airborne lunge; grab assist from the body surface; held bodies kept; wall runs on curved walls; OBJECT THROW; waist grenades; WEAPON PULL gravity gloves; custom campaigns SPV1 and The Altheros Experience; test67: stable authored AR/pistol/shell/tube grips; sniper grip preserved; 3x sprint range; skeletal surface grabs; deliberate fist strokes and difficulty-scaled melee; readable parry; empty-hand reticle hidden; verified campaign setup recipes; threat memory, COMBAT MOVES and shot deflection; Halo 1 MCC maps from GulchCE (solo only) with the launcher Steam Workshop browser, downloads and manager; every jcompto95-tech (HALOFREAK95) fork branch; community extras on kinds 87-92; test69: OpenSauce script functions and Halo PC's rasterizer_fps for The Altheros Experience; test70: MCC precache hooks restored, campaign status labels, Project Lumoria, What's New; remapping asks (cancel, swap, clear, use both); MIRROR BUTTONS; left-hand lettering; locked holstering; shake cooling and needler shake reload; rocket ready when seated; magazine holds fitted; SLIDE; BULLET TIME; HIT ASSIST and LUNGE HOP; grab assist 15 cm; tree climbing; wall jumps by the look; test71: every campaign mod in one tap (Lumoria from halomaps.org, Altheros from moddb.com through the launcher's browser, unpacked by libarchive; .rar import); manual reload for mods' guns by their own models (SPV1's protected names); test72: Pico and Steam Frame profiles in one VR APK, Windows flat and PC VR builds with one launcher and library, stereo 3D, flat sprint/slide/parkour; fist combat: leaping 12 m lunges, skeleton hit assist, held and seated enemies, freeflow combo display, the Shade shove fixed; passengers aim by hand; world-anchored menus; per-weapon SCOPES; BULLET TIME on LOCOMOTION; left-hand buttons by their letters; device acceptance pending)");
+	platform_log("vr: HaloCE Quest test73 candidate 1.0.40-test73 code85 (OpenCE Build256 merged / network34 (hosts 34, joins 11-34, All compatible by default); Custom Edition maps keep their names, the version by their hash (network 29; hosts before 29 by name and checksum); map sharing restart and validation hardening; map sharing (host-sent over the internet), votes to kick, Server Setup sub-screens, display options, dynamic ragdolls (Jolt in the host); voice unchanged; test66: Warthog eyes held per seat and the wheel turned past half a circle; IMMERSION VEHICLES; LEFT-HAND MODE; reload grip poses and mag-well assist; fist ENEMY HEALTH, block/parry, enemy kinds, airborne lunge; grab assist from the body surface; held bodies kept; wall runs on curved walls; OBJECT THROW; waist grenades; WEAPON PULL gravity gloves; custom campaigns SPV1 and The Altheros Experience; test67: stable authored AR/pistol/shell/tube grips; sniper grip preserved; 3x sprint range; skeletal surface grabs; deliberate fist strokes and difficulty-scaled melee; readable parry; empty-hand reticle hidden; verified campaign setup recipes; threat memory, COMBAT MOVES and shot deflection; Halo 1 MCC maps from GulchCE (solo only) with the launcher Steam Workshop browser, downloads and manager; every jcompto95-tech (HALOFREAK95) fork branch; community extras on kinds 87-92; test69: OpenSauce script functions and Halo PC's rasterizer_fps for The Altheros Experience; test70: MCC precache hooks restored, campaign status labels, Project Lumoria, What's New; remapping asks (cancel, swap, clear, use both); MIRROR BUTTONS; left-hand lettering; locked holstering; shake cooling and needler shake reload; rocket ready when seated; magazine holds fitted; SLIDE; BULLET TIME; HIT ASSIST and LUNGE HOP; grab assist 15 cm; tree climbing; wall jumps by the look; test71: every campaign mod in one tap (Lumoria from halomaps.org, Altheros from moddb.com through the launcher's browser, unpacked by libarchive; .rar import); manual reload for mods' guns by their own models (SPV1's protected names); test72: Pico and Steam Frame profiles in one VR APK, Windows flat and PC VR builds with one launcher and library, stereo 3D, flat sprint/slide/parkour; fist combat: leaping 12 m lunges, skeleton hit assist, held and seated enemies, freeflow combo display, the Shade shove fixed; passengers aim by hand; world-anchored menus; per-weapon SCOPES; BULLET TIME on LOCOMOTION; left-hand buttons by their letters; test73: OpenCE 232 to 256 and testing (text chat, HDR, match timer, server-browser pings, co-op extras and friendly fire, ALLY FRIENDLY FIRE, scenery shields and tripmines online, the menus' cursor on the desktop); one co-op VR INTERACTIONS for the host and every player (fists, waist grenades, manual reload, parkour, slides); every VR feature on once with the update; immersive driving in proportion for every vehicle; HAND LOCK; VEHICLE TURN (smooth in a seat for snap turners); passengers in full 6DOF; wall-run leaps by the head; grenades at true size in the hand; scopes up to 4x; the played character's arms; Steam Frame (Lepton); MENU POSITION in the launchers; PC launcher saves and GEOMETRY; levels unlocked for new profiles; device acceptance pending)");
 	platform_log("vr: retained baseline history: HaloCE Quest test30 candidate 1.0.12 (the menus' face buttons as the Xbox's of the same letter: X deletes a profile; the co-op host's server name; test29: OpenCE build 144 netcode, network 21; the HUD head tap held by the temple, HUD and head tap on the HUD page, wrist HUD on the wrist and movable, moving with a hand while holding the gun in both, glasses FOV and resolution to 200%% (PR #1); test28: co-op games entered in progress keep their camera upright, release checks as OpenCE ships, co-op hosted for 2 to 128 players as OpenCE's Server Setup offers, gyro aim on phones as an option; test27: OpenCE build 138 netcode, network 20, with its co-op for up to 16 players; test26: co-op: death screams no longer stop the second player, cutscene characters placed and animated as on the first; HUD head tap, reticle toggle on the left stick click with crouch on the turning stick held down (or crouch kept on the click: Controls), optional wrist HUD, adjustable head taps; impact melee along the gun with a follow-through; fingers bend smoothly against walls; test25: vehicle seat and recentre diagnostics, first-person horizon option and seat glass, settings rows that fit, vehicle offset reset; test24b: comfort vignette, smooth speed and snap angle, SPV1 compatibility note; test24: co-op cutscenes animate for the second player; test23: remappable Quest buttons with the grenade on X; test22: co-op campaign host crash fixed, steady first-person vehicle view, left-hand ammo display, adjustable scopes, shot diagnostics; test21b: floating hands restored, torso-following arms, neck-pivot full body, auto two-hand lock, horn, online melee off, two-hand gun roll, pistol shots from the hand, reticle converges as shots do, per-gun aim, horn from either stick)");
 	if (!config_boolean("vr.enabled"))
 	{
@@ -1162,6 +1185,15 @@ void vr_initialize(void)
 		}
 		config_write_boolean("vr.test72_combat_defaults_applied", 1);
 	}
+	/* Test73 (the owner, for the next release): every VR feature on, for
+	everyone, once: a choice of the player's before is overwritten this once,
+	and one made after it is kept (vr_menu_features_on). After the vehicle
+	defaults above, so the first-person seat IMMERSIVE VEHICLE needs stays */
+	if (!config_boolean("vr.test73_features_applied"))
+	{
+		vr_menu_features_on();
+		config_write_boolean("vr.test73_features_applied", 1);
+	}
 	vr_reload_settings();
 	vr.zoom_level = -1;
 	vr.flashlight_armed = 1;
@@ -1180,9 +1212,15 @@ void vr_initialize(void)
 	vr.diag_yaw = (float)config_real("vr.diag_yaw") * 0.017453293f;
 	vr.diag_hand_yaw = (float)config_real("vr.diag_hand_yaw") * 0.017453293f;
 	vr.diag_walk_speed = (float)config_real("vr.diag_walk_speed");
+	vr.diag_pitch = (float)config_real("vr.diag_pitch") * 0.017453293f;
+	vr.diag_turn_speed = (float)config_real("vr.diag_turn_speed") * 0.017453293f;
 	vr.room_held = 1;
 	vr.diag_two_handed = config_boolean("vr.diag_two_handed");
+	vr.diag_fire_frame = config_integer("vr.diag_fire_frame");
 	vr.dump_frame = config_integer("vr.dump_frame");
+	vr.dump_frames = config_integer("vr.dump_frames");
+	if (vr.dump_frames < 1)
+		vr.dump_frames = 1;
 	vr.dump_cinema_frame = config_integer("vr.dump_cinema_frame");
 	if (vr.units_per_metre <= 0.0f)
 		vr.units_per_metre = 1.0f / 3.048f;
@@ -1378,9 +1416,20 @@ void vr_set_network_game(int network)
 	vr.network_game = network;
 }
 
+/* Test73 (10d): VR INTERACTIONS (the co-op host's) allows physical melee for
+every player: a client's swing is the native melee its host deals */
+void vr_set_network_melee(int allowed)
+{
+	allowed = allowed != 0;
+	if (allowed != vr.network_melee)
+		platform_log("vr: physical melee in this network game %s", allowed ? "allowed by the host's VR INTERACTIONS" :
+			"as vr.melee_multiplayer is set");
+	vr.network_melee = allowed;
+}
+
 static int physical_melee_allowed(void)
 {
-	return vr.melee_speed > 0.0f && (!vr.network_game || vr.melee_multiplayer);
+	return vr.melee_speed > 0.0f && (!vr.network_game || vr.melee_multiplayer || vr.network_melee);
 }
 
 int vr_impact_melee(void)
@@ -1961,6 +2010,12 @@ static void layout_controls(void)
 	/* the trigger fires the gun in the hand, gripped or not; an empty hand
 (physical weapons: a gun put away or let fall) has nothing to fire */
 	vr.pad_trigger[1] = vr.frame.trigger[vr.weapon_hand];
+	/* Test72 (vr.diag_fire_frame, with vr.force_render): the trigger pulled
+	four frames in eight from that stereo frame on (a charging gun fires),
+	for muzzle flashes in a dumped frame */
+	if (vr.force_render && vr.diag_fire_frame > 0 && vr.stereo_frames >= vr.diag_fire_frame &&
+		!((vr.stereo_frames - vr.diag_fire_frame) & 4))
+		vr.pad_trigger[1] = 1.0f;
 	/* A vehicle weapon is independent of the holstered handheld weapon.
 	Seated triggers still pass through the native primary/secondary mapping. */
 	if (!vr.seated && vr_hand_empty())
@@ -2544,12 +2599,21 @@ static void update_gestures(void)
 	up); the index finger with the trigger, open off it (pointing); the
 	others with the grip. Pointing with the thumb up (an "L") held for a
 	second shows the middle finger instead - deliberately, never in passing */
+	if (vr.touch_profile != vr.frame.controller_profile)
+	{
+		vr.touch_profile = vr.frame.controller_profile;
+		vr.touch_seen[0] = vr.touch_seen[1] = 0;
+	}
 	for (hand = 0; hand < 2; hand++)
 	{
 		unsigned int touch = vr.frame.hand_buttons[hand];
 		float target[4];
 		int finger, l_pose;
 
+		if (touch & (HALO_XR_HAND_THUMB_TOUCH | HALO_XR_HAND_INDEX_TOUCH))
+			vr.touch_seen[hand] = 1;
+		else if (!vr.touch_seen[hand])
+			touch |= HALO_XR_HAND_THUMB_TOUCH | HALO_XR_HAND_INDEX_TOUCH;
 		target[0] = (touch & HALO_XR_HAND_THUMB_TOUCH) ? 0.75f : 0.0f;
 		target[1] = fmaxf(vr.frame.trigger[hand], (touch & HALO_XR_HAND_INDEX_TOUCH) ? 0.22f : 0.0f);
 		target[2] = target[3] = vr.frame.squeeze[hand];
@@ -3197,6 +3261,34 @@ static int frame_begin(void)
 	return 1;
 }
 
+/* Test73 (astromaddie's HaloCE-VR, 02887521, CC0): the game clock's step for
+this pass of the main loop (main_update_time_unthrottled). The runtime's
+frame is begun here, at the top of the loop, as the others begin it (whichever
+comes first: xrWaitFrame paces the loop from here, before the game ticks and
+draws), and the step is from the last frame's display time to this one's.
+The loop's own measure (the performance counter) also counts how long the
+tick and the drawing took, which wander by milliseconds from frame to frame,
+so what moves steadily (scripted cameras, flying vehicles) was drawn at
+uneven places between the ticks, and juddered (seen on the Steam Frame).
+Display times step by whole periods. 0 when there is no runtime frame, or a
+pass of the loop presented nothing (the same frame): the caller then times
+the loop itself */
+int vr_frame_seconds(double *seconds)
+{
+	long long previous = vr.clock_display_time;
+
+	if (!vr.active || !frame_begin())
+	{
+		vr.clock_display_time = 0;
+		return 0;
+	}
+	vr.clock_display_time = vr.frame.predicted_display_time;
+	if (!previous || vr.clock_display_time <= previous)
+		return 0;
+	*seconds = (double)(vr.clock_display_time - previous) * 1e-9;
+	return 1;
+}
+
 void vr_pass_mark(int pass, int end)
 {
 	double now;
@@ -3222,6 +3314,17 @@ static void frame_end(const struct halo_xr_layers *layers)
 }
 
 static void dump_image(unsigned int which, int index, const char *name);
+/* the Screenshot key's request (vr_screenshot_request), taken at the next left eye */
+static int screenshot_wanted;
+#ifndef HALO_GLES
+/* d3d8_gl.c (xgpu.h) */
+void xgpu_screenshot_png(GLuint source, unsigned long width, unsigned long height, int bottom_up);
+#endif
+
+void vr_screenshot_request(void)
+{
+	screenshot_wanted = 1;
+}
 /* Test72: MENU POSITION (defined with the menus' placement, below) */
 static int menu_world_pose(void);
 
@@ -3229,11 +3332,44 @@ static int menu_world_pose(void);
 vr.dump_cinema_frame of cutscenes) */
 static int dumping(void)
 {
-	return (vr.stereo && vr.dump_frame > 0 && vr.stereo_frames == vr.dump_frame) ||
+	return (vr.stereo && vr.dump_frame > 0 && vr.stereo_frames >= vr.dump_frame &&
+		vr.stereo_frames < vr.dump_frame + vr.dump_frames) ||
 		(vr.cinema && vr.dump_cinema_frame > 0 && vr.cinema_frames == vr.dump_cinema_frame);
 }
 
 static void draw_vignette(unsigned int which);
+
+int vr_dumping_frame(void)
+{
+	return dumping();
+}
+
+/* Test72 (vr.dump_frame): the average colour of a framebuffer's row, to
+tell which way up each step of a dumped frame holds the picture */
+static void dump_row_colour(GLuint framebuffer, int width, int row, float rgb[3])
+{
+	unsigned char *pixels = malloc((size_t)width * 4);
+	int x;
+
+	rgb[0] = rgb[1] = rgb[2] = 0.0f;
+	if (!pixels || width <= 0)
+	{
+		free(pixels);
+		return;
+	}
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
+	glReadPixels(0, row, width, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	for (x = 0; x < width; x++)
+	{
+		rgb[0] += pixels[x * 4];
+		rgb[1] += pixels[x * 4 + 1];
+		rgb[2] += pixels[x * 4 + 2];
+	}
+	rgb[0] /= (float)width;
+	rgb[1] /= (float)width;
+	rgb[2] /= (float)width;
+	free(pixels);
+}
 
 /* copies framebuffer `source` (row 0 at the top) into the acquired image
 of a swapchain, filling it */
@@ -3255,6 +3391,27 @@ static int copy_to_swapchain(unsigned int which, GLuint source, int width, int h
 	/* OpenXR images have row 0 at the bottom */
 	glBlitFramebuffer(0, 0, width, height, 0, (GLint)vr.info.height[which], (GLint)vr.info.width[which], 0,
 		GL_COLOR_BUFFER_BIT, GL_LINEAR);
+	/* Test72 (vr.dump_frame): which way up the source and the image are */
+	if (dumping() && which < 3)
+	{
+		float source_first[3], source_last[3], image_first[3], image_last[3];
+
+		dump_row_colour(source, width, 2, source_first);
+		dump_row_colour(source, width, height - 3, source_last);
+		dump_row_colour(vr.framebuffer, (int)vr.info.width[which], 2, image_first);
+		dump_row_colour(vr.framebuffer, (int)vr.info.width[which], (int)vr.info.height[which] - 3, image_last);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, source);
+		platform_log("vr: dump %u: source row 0 rgb %.0f %.0f %.0f, last row %.0f %.0f %.0f; image row 0 rgb %.0f %.0f %.0f, "
+			"last row %.0f %.0f %.0f", which,
+			source_first[0], source_first[1], source_first[2], source_last[0], source_last[1], source_last[2],
+			image_first[0], image_first[1], image_first[2], image_last[0], image_last[1], image_last[2]);
+		if (which < 2)
+			platform_log("vr: dump %u: eye orientation %.3f %.3f %.3f %.3f, head %.3f %.3f %.3f %.3f (x y z w)", which,
+				vr.frame.eye[which].orientation[0], vr.frame.eye[which].orientation[1],
+				vr.frame.eye[which].orientation[2], vr.frame.eye[which].orientation[3],
+				vr.frame.head.orientation[0], vr.frame.head.orientation[1],
+				vr.frame.head.orientation[2], vr.frame.head.orientation[3]);
+	}
 	/* test24b: the comfort vignette over a gameplay eye (the renderer takes
 	up its own GL state anew after an eye: xgpu_gl_state_invalidate) */
 	if (which < 2 && vr_vignette_shown())
@@ -3267,6 +3424,19 @@ static int copy_to_swapchain(unsigned int which, GLuint source, int width, int h
 	/* vr.dump_frame: the stereo frame's images, as they are shown */
 	if (dumping() && which < 3)
 		dump_image(which, index, names[which]);
+#ifndef HALO_GLES
+	/* the Screenshot key: the left eye, as it is shown */
+	if (which == 0 && screenshot_wanted)
+	{
+		screenshot_wanted = 0;
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, vr.framebuffer);
+		glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, vr.info.images[which][index], 0);
+		xgpu_screenshot_png(vr.framebuffer, vr.info.width[which], vr.info.height[which], 1);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, vr.framebuffer);
+		glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+	}
+#endif
 	host_xr_release(which);
 	return 1;
 }
@@ -3279,8 +3449,23 @@ tracks nothing) */
 static void synthesize_views(void)
 {
 	static const float fov[2][4] = { { -1.028f, 0.885f, 0.864f, -1.048f }, { -0.885f, 1.028f, 0.864f, -1.048f } };
-	float yaw[4] = { 0.0f, sinf(vr.diag_yaw * 0.5f), 0.0f, cosf(vr.diag_yaw * 0.5f) };
+	float head_yaw = vr.diag_yaw;
+	float yaw[4];
 	int eye;
+
+	/* Test73: vr.diag_turn_speed: the head turning on from its first
+	synthesized frame (MENU POSITION's check: a world-fixed menu stays put
+	while the head turns, a head-locked one turns with it) */
+	if (vr.diag_turn_speed != 0.0f)
+	{
+		if (vr.diag_turn_start <= 0.0)
+			vr.diag_turn_start = now_ms();
+		head_yaw += vr.diag_turn_speed * (float)((now_ms() - vr.diag_turn_start) * 0.001);
+	}
+	yaw[0] = 0.0f;
+	yaw[1] = sinf(head_yaw * 0.5f);
+	yaw[2] = 0.0f;
+	yaw[3] = cosf(head_yaw * 0.5f);
 
 	float walk[3] = { 0.0f, 0.0f, 0.0f };
 
@@ -3298,24 +3483,35 @@ static void synthesize_views(void)
 		walk[2] *= distance;
 		walk[1] = 0.0f;
 	}
+	/* vr.diag_pitch: the head looking down that far (about its own x axis:
+	the yaw's, then the pitch's) */
+	float look[4];
+	{
+		float x = sinf(-vr.diag_pitch * 0.5f), w = cosf(-vr.diag_pitch * 0.5f);
+
+		look[0] = yaw[3] * x + yaw[0] * w;
+		look[1] = yaw[1] * w + yaw[2] * x;
+		look[2] = yaw[2] * w - yaw[1] * x;
+		look[3] = yaw[3] * w - yaw[0] * x;
+	}
 	memset(&vr.frame.head, 0, sizeof(vr.frame.head));
-	memcpy(vr.frame.head.orientation, yaw, sizeof(yaw));
+	memcpy(vr.frame.head.orientation, look, sizeof(look));
 	memcpy(vr.frame.head.position, walk, sizeof(walk));
 	for (eye = 0; eye < 2; eye++)
 	{
 		float offset[3] = { eye ? 0.032f : -0.032f, 0.0f, 0.0f };
 		int axis;
 
-		rotate(yaw, offset, vr.frame.eye[eye].position);
+		rotate(look, offset, vr.frame.eye[eye].position);
 		for (axis = 0; axis < 3; axis++)
 			vr.frame.eye[eye].position[axis] += walk[axis];
-		memcpy(vr.frame.eye[eye].orientation, yaw, sizeof(yaw));
+		memcpy(vr.frame.eye[eye].orientation, look, sizeof(look));
 		memcpy(vr.frame.fov[eye], fov[eye], sizeof(fov[eye]));
 	}
 	/* hands held ahead at the hips' height, the right one turned by
 	vr.diag_hand_yaw from the head */
 	{
-		float hand_yaw = vr.diag_yaw + vr.diag_hand_yaw;
+		float hand_yaw = head_yaw + vr.diag_hand_yaw;
 		float turned[4] = { 0.0f, sinf(hand_yaw * 0.5f), 0.0f, cosf(hand_yaw * 0.5f) };
 		int hand;
 
@@ -3354,7 +3550,7 @@ int vr_stereo_begin(void)
 	if (!vr.active || !frame_begin())
 		return 0;
 	if (vr.force_render && ((vr.frame.flags & needed) != needed || vr.diag_yaw != 0.0f ||
-		vr.diag_walk_speed != 0.0f))
+		vr.diag_walk_speed != 0.0f || vr.diag_pitch != 0.0f || vr.diag_turn_speed != 0.0f))
 		synthesize_views();
 	vr.stereo = vr.stereo_enabled && (vr.frame.flags & needed) == needed;
 	return vr.stereo;
@@ -3411,6 +3607,10 @@ static void to_halo(const float v[3], float cosine, float sine, float out[3])
 about as far as the body could lean (the game keeps only its own camera
 out of walls) */
 #define HEAD_REACH 0.35f
+/* Test73 (the owner: passenger seats in full 6DOF): a passenger's head from
+the seat's origin, metres: nothing to steer or aim, the head free to lean out
+of a Warthog or look round a Pelican's bay */
+#define SEAT_PASSENGER_REACH 0.8f
 
 /* port/linux/game/render_interpolation.c: how far this frame is between
 the two ticks the game's camera is blended from */
@@ -3440,7 +3640,13 @@ static void head_offset(float out[3])
 		head[2] -= vr.room_previous[1] + (vr.room_now[1] - vr.room_previous[1]) * t;
 	}
 	length = sqrtf(head[0] * head[0] + head[1] * head[1] + head[2] * head[2]);
-	scale = length > HEAD_REACH ? HEAD_REACH / length : 1.0f;
+	{
+		/* (role 0 seated: a passenger) */
+		float reach = vr.seated && vr.vehicle_seat.origin_valid && vr.vehicle_seat.role == 0 ?
+			SEAT_PASSENGER_REACH : HEAD_REACH;
+
+		scale = length > reach ? reach / length : 1.0f;
+	}
 	out[0] = head[0] * scale;
 	out[1] = head[1] * scale;
 	out[2] = head[2] * scale;
@@ -3685,16 +3891,33 @@ static void comfort_update(double seconds)
 		vr.snap_pulse = 0.0f;
 }
 
-/* the right stick: snap turns, or smooth ones at vr.smooth_turn_speed */
-static void turn(void)
+/* the right stick: snap turns, or smooth ones at vr.smooth_turn_speed.
+Test73 (10i, a tester's request through the owner: "an option to enable
+smooth turn specifically when in a vehicle? Then it reverts back to snap
+once you exit the vehicle"): with VEHICLE TURN (vr.vehicle_smooth_turn,
+on) a seated player turns smoothly whatever TURNING is, and snaps again on
+foot once the stick is back in the middle (leaving a seat with it pushed
+is no snap) */
+static void turn(int seated)
 {
 	float x = vr.frame.thumb[2];
 	double seconds = vr.frame.predicted_display_period * 1e-9;
+	int smooth_seat = seated && vr.vehicle_smooth_turn;
+	int snap = vr.snap_turn > 0.0f && !smooth_seat;
+	float speed = vr.smooth_turn_speed;
 
 	if (!(vr.frame.flags & HALO_XR_FRAME_FOCUSED))
 		return;
-	vr.comfort_turn = vr.snap_turn > 0.0f ? 0.0f : comfort_stick(x, 0.0f);
-	if (vr.snap_turn > 0.0f)
+	/* (out of the seat with the stick pushed: no snap until it is let back) */
+	if (snap && vr.turn_seat_smooth && (x > 0.3f || x < -0.3f))
+		vr.snap_armed = 0;
+	vr.turn_seat_smooth = smooth_seat && vr.snap_turn > 0.0f;
+	/* (a seat's smooth turning for a snap turner: SMOOTH SPEED, 120 a
+	second if it has none) */
+	if (smooth_seat && vr.snap_turn > 0.0f && !(speed > 0.0f))
+		speed = 120.0f * 0.017453293f;
+	vr.comfort_turn = snap ? 0.0f : comfort_stick(x, 0.0f);
+	if (snap)
 	{
 		if (vr.snap_armed && (x > 0.7f || x < -0.7f))
 		{
@@ -3710,7 +3933,7 @@ static void turn(void)
 	}
 	else if (x > 0.15f || x < -0.15f)
 	{
-		vr.heading = wrap_angle(vr.heading - x * vr.smooth_turn_speed * (float)seconds);
+		vr.heading = wrap_angle(vr.heading - x * speed * (float)seconds);
 	}
 }
 
@@ -4024,7 +4247,7 @@ int vr_aim(float game_yaw, int seated, int hand_may_aim, const float *base_headi
 	if (!vr.active || !vr.stereo_enabled || !frame_begin())
 		return 0;
 	if (vr.force_render && ((vr.frame.flags & needed) != needed || vr.diag_yaw != 0.0f ||
-		vr.diag_walk_speed != 0.0f))
+		vr.diag_walk_speed != 0.0f || vr.diag_pitch != 0.0f || vr.diag_turn_speed != 0.0f))
 		synthesize_views();
 	if ((vr.frame.flags & needed) != needed)
 		return 0;
@@ -4092,7 +4315,7 @@ int vr_aim(float game_yaw, int seated, int hand_may_aim, const float *base_headi
 			vr.heading = wrap_angle(game_yaw - vr.head_yaw);
 			vr.heading_valid = 1;
 		}
-		if (hand_may_aim >= 0) turn();
+		if (hand_may_aim >= 0) turn(seated);
 	}
 	/* test24b: the frame's motion, for the vignette: the move stick (a
 	vehicle's throttle when seated), the arms' run on foot, and in a seat a
@@ -4536,7 +4759,12 @@ static void dump_image(unsigned int which, int index, const char *name)
 		if (which != HALO_XR_SWAPCHAIN_QUAD)
 			pixels[pixel * 4 + 3] = 0xff;
 	}
-	snprintf(path, sizeof(path), "%s/%s", directory ? directory : ".", name);
+	/* Test72: several frames (vr.dump_frames) numbered, vr-eye0-02007.bmp */
+	if (vr.dump_frames > 1 && vr.stereo && strlen(name) > 4)
+		snprintf(path, sizeof(path), "%s/%.*s-%05ld.bmp", directory ? directory : ".", (int)(strlen(name) - 4), name,
+			vr.stereo_frames);
+	else
+		snprintf(path, sizeof(path), "%s/%s", directory ? directory : ".", name);
 	file = fopen(path, "wb");
 	if (file)
 	{
@@ -4582,6 +4810,22 @@ static const char hud_fragment_source[] =
 	"	vec3 rgb = texture(hud, coordinate).rgb;\n"
 	"	colour = vec4(rgb, max(rgb.r, max(rgb.g, rgb.b)));\n"
 	"}\n";
+
+/* Test72 (PC VR: "UI/menus/etc are all upside down"): the helpers' quads
+(the HUD's and menus' layer, the crosshair, the scope, the vignette) drawn in
+GL's own clip origin, as ES (the Quest) always draws them. The renderer keeps
+desktop GL in D3D's (glClipControl(GL_UPPER_LEFT), d3d8_gl.c), which turned
+these upside down in the Windows PC VR build; ES has no clip control. */
+static void helper_draw_quad(void)
+{
+#ifndef HALO_ANDROID
+	glClipControl(GL_LOWER_LEFT, GL_NEGATIVE_ONE_TO_ONE);
+#endif
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+#ifndef HALO_ANDROID
+	glClipControl(GL_UPPER_LEFT, GL_ZERO_TO_ONE);
+#endif
+}
 
 static GLuint hud_program, scope_program, hud_vertex_array;
 static GLuint crosshair_program;
@@ -4683,6 +4927,29 @@ static GLuint link_program(const char *fragment_source, const char *name)
 	return program;
 }
 
+/* Test73: a uniform's location, asked of GL once per program: every glGet*
+waits for Mesa's GL thread to run all that is queued (the Steam Frame's
+zink), and these programs live as long as the game. (More names than the
+table holds are asked each time, as before) */
+static GLint uniform_location(GLuint program, const char *name)
+{
+	static struct { GLuint program; const char *name; GLint location; } known[24];
+	static int count;
+	int index;
+
+	for (index = 0; index < count; index++)
+	{
+		if (known[index].program == program && !strcmp(known[index].name, name))
+			return known[index].location;
+	}
+	if (count == (int)(sizeof(known) / sizeof(known[0])))
+		return glGetUniformLocation(program, name);
+	known[count].program = program;
+	known[count].name = name;
+	known[count].location = glGetUniformLocation(program, name);
+	return known[count++].location;
+}
+
 /* test24b: the comfort vignette: black, clear within `aperture` and
 whole past `aperture` + `feather`, both as tangents of the angle from the
 eye's straight ahead (so round however the eye's view is skewed) */
@@ -4731,11 +4998,11 @@ static void draw_vignette(unsigned int which)
 	glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
 	glUseProgram(vignette_program);
-	glUniform4fv(glGetUniformLocation(vignette_program, "tangents"), 1, tangents);
-	glUniform1f(glGetUniformLocation(vignette_program, "aperture"), aperture);
-	glUniform1f(glGetUniformLocation(vignette_program, "feather"), VR_VIGNETTE_FEATHER);
+	glUniform4fv(uniform_location(vignette_program, "tangents"), 1, tangents);
+	glUniform1f(uniform_location(vignette_program, "aperture"), aperture);
+	glUniform1f(uniform_location(vignette_program, "feather"), VR_VIGNETTE_FEATHER);
 	glBindVertexArray(hud_vertex_array);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	helper_draw_quad();
 	glBindVertexArray(0);
 	glUseProgram(0);
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -4778,19 +5045,19 @@ static int copy_hud(GLuint texture)
 	if (wrist_hud_active() && hud_masked_program)
 	{
 		glUseProgram(hud_masked_program);
-		glUniform1i(glGetUniformLocation(hud_masked_program, "hud"), 0);
-		glUniform4fv(glGetUniformLocation(hud_masked_program, "masks"), 3, wrist_crops[0]);
+		glUniform1i(uniform_location(hud_masked_program, "hud"), 0);
+		glUniform4fv(uniform_location(hud_masked_program, "masks"), 3, wrist_crops[0]);
 	}
 	else
 	{
 		glUseProgram(hud_program);
-		glUniform1i(glGetUniformLocation(hud_program, "hud"), 0);
+		glUniform1i(uniform_location(hud_program, "hud"), 0);
 	}
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glBindSampler(0, 0);
 	glBindVertexArray(hud_vertex_array);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	helper_draw_quad();
 	glBindVertexArray(0);
 	glUseProgram(0);
 	if (vr.srgb_write_control)
@@ -4855,8 +5122,8 @@ static int copy_wrist(GLuint texture)
 	glBlendEquation(GL_FUNC_ADD);
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 	glUseProgram(crosshair_program);
-	glUniform1i(glGetUniformLocation(crosshair_program, "hud"), 0);
-	glUniform1f(glGetUniformLocation(crosshair_program, "opacity"), 1.0f);
+	glUniform1i(uniform_location(crosshair_program, "hud"), 0);
+	glUniform1f(uniform_location(crosshair_program, "opacity"), 1.0f);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glBindSampler(0, 0);
@@ -4866,8 +5133,8 @@ static int copy_wrist(GLuint texture)
 		if (place[region][2] < 1 || place[region][3] < 1)
 			continue;
 		glViewport(place[region][0], height - place[region][1] - place[region][3], place[region][2], place[region][3]);
-		glUniform4fv(glGetUniformLocation(crosshair_program, "crop"), 1, wrist_crops[region]);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glUniform4fv(uniform_location(crosshair_program, "crop"), 1, wrist_crops[region]);
+		helper_draw_quad();
 	}
 	glBindVertexArray(0);
 	glUseProgram(0);
@@ -4948,14 +5215,14 @@ static int copy_crosshair(void)
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	if (vr.srgb_write_control) glDisable(GL_FRAMEBUFFER_SRGB_EXT);
 	glUseProgram(crosshair_program);
-	glUniform1i(glGetUniformLocation(crosshair_program, "hud"), 0);
-	glUniform4fv(glGetUniformLocation(crosshair_program, "crop"), 1, vr.crosshair_uv);
-	glUniform1f(glGetUniformLocation(crosshair_program, "opacity"), vr.crosshair_opacity);
+	glUniform1i(uniform_location(crosshair_program, "hud"), 0);
+	glUniform4fv(uniform_location(crosshair_program, "crop"), 1, vr.crosshair_uv);
+	glUniform1f(uniform_location(crosshair_program, "opacity"), vr.crosshair_opacity);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, vr.crosshair_texture);
 	glBindSampler(0, 0);
 	glBindVertexArray(hud_vertex_array);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	helper_draw_quad();
 	glBindVertexArray(0);
 	glUseProgram(0);
 	if (vr.srgb_write_control) glEnable(GL_FRAMEBUFFER_SRGB_EXT);
@@ -5265,19 +5532,19 @@ void vr_resolve_scope(unsigned int texture, int width, int height, int x, int y,
 	if (vr.srgb_write_control)
 		glDisable(GL_FRAMEBUFFER_SRGB_EXT);
 	glUseProgram(scope_program);
-	glUniform1i(glGetUniformLocation(scope_program, "view"), 0);
+	glUniform1i(uniform_location(scope_program, "view"), 0);
 	{
 		float rect[4] = { (float)x / (float)width, (float)y / (float)height,
 			(float)size / (float)width, (float)size / (float)height };
 
-		glUniform4fv(glGetUniformLocation(scope_program, "rect"), 1, rect);
+		glUniform4fv(uniform_location(scope_program, "rect"), 1, rect);
 	}
-	glUniform1i(glGetUniformLocation(scope_program, "shape"), shape == VR_SCOPE_SNIPER ? 2 : 1);
+	glUniform1i(uniform_location(scope_program, "shape"), shape == VR_SCOPE_SNIPER ? 2 : 1);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glBindSampler(0, 0);
 	glBindVertexArray(hud_vertex_array);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	helper_draw_quad();
 	glBindVertexArray(0);
 	glUseProgram(0);
 	if (vr.srgb_write_control)
@@ -5347,6 +5614,20 @@ static void place_scope(struct halo_xr_layers *layers)
 	memcpy(layers->scope_pose.orientation, vr.shot_pose.orientation, sizeof(layers->scope_pose.orientation));
 	layers->scope_size[0] = layers->scope_size[1] = vr.scope_size * (adjust ? adjust[3] : 1.0f);
 	layers->flags |= HALO_XR_LAYER_SCOPE;
+	/* Test73 (vr.dump_frame): the placement of each dumped frame, which the
+	change-only line below may not show (its first frame can come before the
+	drawn gun's wrist is published), for measuring each weapon's sight
+	against its eye dumps (_scratch/t72/proj_scope.py) */
+	if (dumping())
+	{
+		rotate(vr.shot_pose.orientation, xr_forward, shot_forward);
+		platform_log("vr: dump scope: weapon class %d shape %d zoom %d, origin %s %.3f/%.3f/%.3f m, center %.3f/%.3f/%.3f m, "
+			"local offset %.3f/%.3f/%.3f m, shot forward %.3f/%.3f/%.3f, layer size %.3f m", vr.gun_class, vr.scope_shape,
+			vr.zoom_level, config_boolean("vr.gun_anchor") && scope_wrist_time == vr_pose_time() ? "drawn wrist" :
+			"controller", origin[0], origin[1], origin[2], layers->scope_pose.position[0], layers->scope_pose.position[1],
+			layers->scope_pose.position[2], local[0], local[1], local[2], shot_forward[0], shot_forward[1], shot_forward[2],
+			layers->scope_size[0]);
+	}
 	if (logged_shape != vr.scope_shape || logged_zoom != vr.zoom_level || logged_weapon_hand != vr.weapon_hand ||
 		logged_two_handed != vr.two_handed || logged_gun_class != vr.gun_class ||
 		logged_settings_generation != vr.settings_generation)

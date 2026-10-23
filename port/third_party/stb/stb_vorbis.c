@@ -1410,7 +1410,11 @@ static int set_file_offset(stb_vorbis *f, unsigned int loc)
    #endif
    f->eof = 0;
    if (USE_MEMORY(f)) {
-      if (f->stream_start + loc >= f->stream_end || f->stream_start + loc < f->stream_start) {
+      /* HaloCE-Quest-VR (Test73): the offset against the stream's length, not
+         a pointer past it compared for wrapping, which is undefined and
+         which clang removed (-Wtautological-compare on the 32-bit Windows
+         build): a far offset then pointed outside the stream */
+      if ((size_t)loc >= (size_t)(f->stream_end - f->stream_start)) {
          f->stream = f->stream_end;
          f->eof = 1;
          return 0;

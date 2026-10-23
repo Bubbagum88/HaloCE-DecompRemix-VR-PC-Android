@@ -588,7 +588,7 @@ static void read_strings(struct reader *reader, const XML_Char **attributes)
 {
 	struct halo_menus *menus = &reader->menus;
 	struct halo_menu_strings strings;
-	struct attribute table[] = { { "name", &strings.name } };
+	struct attribute table[] = { { "name", &strings.name }, { "map", &strings.map } };
 
 	memset(&strings, 0, sizeof(strings));
 	strings.first = menus->string_count;
@@ -605,11 +605,16 @@ static void read_string(struct reader *reader, const XML_Char **attributes, long
 {
 	struct halo_menus *menus = &reader->menus;
 	const char *text = NULL;
-	struct attribute table[] = { { "text", &text } };
+	long map = HALO_MENU_NONE, map_given = 0;
+	struct attribute table[] = { { "text", &text }, { "map", NULL, &map, &map_given } };
 
 	read_attributes(reader, "string", attributes, table, sizeof(table) / sizeof(*table));
 	if (!reader->failed && !text)
 		reader_error(reader, "a <string> needs text");
+	if (!reader->failed && map_given && (map < 0 || !menus->string_lists[owner].map))
+		reader_error(reader, "a <string>'s map= is an index in its <strings>' map list");
+	GROW(reader, menus->string_maps, menus->string_count);
+	menus->string_maps[menus->string_count] = map_given ? map : HALO_MENU_NONE;
 	GROW(reader, menus->strings, menus->string_count);
 	menus->strings[menus->string_count++] = text ? text : "";
 	menus->string_lists[owner].count++;
@@ -1042,6 +1047,9 @@ static struct
 	int failed;
 } art[MAXIMUM_ART];
 static long art_count;
+/* changed whenever the art registered changes (menu_art_serial;
+halo-ce-universal b4282ad85) */
+static unsigned long art_serial = 1;
 
 void halo_menus_art_register(void const *texture, char const *png)
 {
@@ -1070,11 +1078,15 @@ void halo_menus_art_register(void const *texture, char const *png)
 	{
 		free(art[index].png);
 		if (art[index].texture)
+		{
+			xgpu_gl_texture_deleted(art[index].texture);
 			glDeleteTextures(1, &art[index].texture);
+		}
 	}
 	memset(&art[index], 0, sizeof(art[index]));
 	art[index].data = data;
 	art[index].png = strdup(png);
+	art_serial++;
 }
 
 void halo_menus_art_forget(void)
@@ -1085,9 +1097,18 @@ void halo_menus_art_forget(void)
 	{
 		free(art[index].png);
 		if (art[index].texture)
+		{
+			xgpu_gl_texture_deleted(art[index].texture);
 			glDeleteTextures(1, &art[index].texture);
+		}
 	}
 	art_count = 0;
+	art_serial++;
+}
+
+unsigned long menu_art_serial(void)
+{
+	return art_serial;
 }
 
 unsigned int menu_art_texture(unsigned long data, unsigned long *levels)

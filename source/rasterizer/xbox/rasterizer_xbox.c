@@ -407,6 +407,7 @@ symbols in this file:
 #include "rasterizer/xbox/rasterizer_xbox_draw_primitives.h"
 #include "render/render.h"
 #include "render/render_cameras.h"
+#include "models/model_definitions.h" /* port: MAXIMUM_NODES_PER_MODEL */
 
 /* The January object retains out-of-line copies of the D3D inline wrappers.
  * The stock XDK definition of D3DINLINE (static __forceinline) reproduces
@@ -1245,6 +1246,36 @@ unsigned long rasterizer_vr_capture_geometry_flags(unsigned long flags, boolean 
 }
 #endif
 
+/* port: a node's matrix as the vertex shader's three constants */
+static void node_matrix_constants(
+	real (*constants)[4],
+	real_matrix4x3 const *matrix)
+{
+	real scale = matrix->scale;
+
+	constants[0][0] = scale * matrix->forward.i;
+	constants[0][1] = scale * matrix->left.i;
+	constants[0][2] = scale * matrix->up.i;
+	constants[0][3] = matrix->position.x;
+	constants[1][0] = scale * matrix->forward.j;
+	constants[1][1] = scale * matrix->left.j;
+	constants[1][2] = scale * matrix->up.j;
+	constants[1][3] = matrix->position.y;
+	constants[2][0] = scale * matrix->forward.k;
+	constants[2][1] = scale * matrix->left.k;
+	constants[2][2] = scale * matrix->up.k;
+	constants[2][3] = matrix->position.z;
+
+	return;
+}
+
+/* port: the matrices of the model being drawn, when it has more nodes than
+the vertex shader's constants hold (RASTERIZER_MAXIMUM_NODES_PER_MODEL - 1):
+each of its parts is then given its own nodes' matrices alone as it is
+drawn (rasterizer_model_part_skinning; port/linux/game/custom_edition_geometry.c) */
+static real_matrix4x3 const *many_node_matrices = NULL;
+static short many_node_matrix_count = 0;
+
 void rasterizer_set_model_skinning(
 	struct render_skinning const *skinning)
 {
@@ -1261,26 +1292,7 @@ void rasterizer_set_model_skinning(
 	match_assert(
 		"c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
 		2751,
-		skinning->node_matrix_count>0 && skinning->node_matrix_count<RASTERIZER_MAXIMUM_NODES_PER_MODEL);
-	for (node_index = 0; node_index < skinning->node_matrix_count; node_index++)
-	{
-		real scale = skinning->node_matrices[node_index].scale;
-		real_matrix4x3 const *matrix = &skinning->node_matrices[node_index];
-		real (*constants)[4] = vsh_constants__nodematrices[node_index];
-
-		constants[0][0] = scale * matrix->forward.i;
-		constants[0][1] = scale * matrix->left.i;
-		constants[0][2] = scale * matrix->up.i;
-		constants[0][3] = matrix->position.x;
-		constants[1][0] = scale * matrix->forward.j;
-		constants[1][1] = scale * matrix->left.j;
-		constants[1][2] = scale * matrix->up.j;
-		constants[1][3] = matrix->position.y;
-		constants[2][0] = scale * matrix->forward.k;
-		constants[2][1] = scale * matrix->left.k;
-		constants[2][2] = scale * matrix->up.k;
-		constants[2][3] = matrix->position.z;
-	}
+		skinning->node_matrix_count>0 && skinning->node_matrix_count<=MAXIMUM_NODES_PER_MODEL);
 #ifdef HALO_VR
 	/* test22: the left hand's first-person model is mirrored but for its
 	ammo display (vr_render.c), whose triangles keep their winding */
@@ -1293,8 +1305,10 @@ void rasterizer_set_model_skinning(
 
 		halo_vr_skinning_mirrored(determinant < 0.0f);
 		vr_root_mirrored = determinant < 0.0f;
-		vr_node_winding_count = halo_vr_model_mirrored() ?
-			MIN(skinning->node_matrix_count, RASTERIZER_MAXIMUM_NODES_PER_MODEL) : 0;
+		/* (a model of many nodes keeps the root's: its parts' palettes
+		name other nodes than the slots, rasterizer_model_part_skinning) */
+		vr_node_winding_count = halo_vr_model_mirrored() &&
+			skinning->node_matrix_count < RASTERIZER_MAXIMUM_NODES_PER_MODEL ? skinning->node_matrix_count : 0;
 		for (node_index = 0; node_index < vr_node_winding_count; node_index++)
 		{
 			real_matrix4x3 const *n = &skinning->node_matrices[node_index];
@@ -1306,6 +1320,18 @@ void rasterizer_set_model_skinning(
 		}
 	}
 #endif
+	/* port: a model of more nodes than the constants hold is skinned a
+	part's own nodes at a time (rasterizer_model_part_skinning) */
+	if (skinning->node_matrix_count >= RASTERIZER_MAXIMUM_NODES_PER_MODEL)
+	{
+		many_node_matrices = skinning->node_matrices;
+		many_node_matrix_count = skinning->node_matrix_count;
+		return;
+	}
+	many_node_matrices = NULL;
+	many_node_matrix_count = 0;
+	for (node_index = 0; node_index < skinning->node_matrix_count; node_index++)
+		node_matrix_constants(vsh_constants__nodematrices[node_index], &skinning->node_matrices[node_index]);
 	D3DDevice_SetVertexShaderConstant(
 		-36,
 		vsh_constants__nodematrices,
@@ -1313,6 +1339,29 @@ void rasterizer_set_model_skinning(
 	if (rasterizer_debug_options.statistics_mode)
 		rasterizer_frame_statistics.vertex_shader_skinning_constant_bytes +=
 			skinning->node_matrix_count * sizeof(vsh_constants__nodematrices[0]);
+	return;
+}
+
+/* port: (rasterizer_xbox_draw_primitives.c, before static vertices are
+drawn) a part of a model of many nodes given its own nodes' matrices, in
+the order its vertices name them; nothing for any other vertices */
+void rasterizer_model_part_skinning(
+	struct vertex_buffer const *vertex_buffer)
+{
+	extern short custom_edition_part_palette(struct vertex_buffer const *vertex_buffer, byte const **nodes);
+	byte const *nodes;
+	short node_count, node_index;
+
+	if (!many_node_matrices)
+		return;
+	node_count = custom_edition_part_palette(vertex_buffer, &nodes);
+	for (node_index = 0; node_index < node_count && node_index < RASTERIZER_MAXIMUM_NODES_PER_MODEL - 1; node_index++)
+	{
+		node_matrix_constants(vsh_constants__nodematrices[node_index],
+			&many_node_matrices[MIN(nodes[node_index], many_node_matrix_count - 1)]);
+	}
+	if (node_index)
+		D3DDevice_SetVertexShaderConstant(-36, vsh_constants__nodematrices, node_index * 3);
 	return;
 }
 
@@ -1637,6 +1686,154 @@ void rasterizer_set_target_as_texture(
 		error(_error_silent, "### ERROR rasterizer_set_target_as_texture failed");
 	}
 	return;
+}
+
+/* port: the per-object shadow maps of the deferred object shadows
+(rasterizer_xbox_shadows.c): slot's own surface and texture put behind the
+shadow secondary target, which the convolution ends in and the projection
+samples, so that each object's map stays until its shadow is projected.
+Made the first time a slot is asked for, as the game makes its own map; NONE
+puts the game's own back. FALSE if the slot cannot be made. */
+static D3DTexture *rasterizer_port_shadow_slot_textures[RASTERIZER_PORT_SHADOW_SLOTS];
+static D3DSurface *rasterizer_port_shadow_slot_surfaces[RASTERIZER_PORT_SHADOW_SLOTS];
+static D3DTexture *rasterizer_port_shadow_own_texture;
+static D3DSurface *rasterizer_port_shadow_own_surface;
+static boolean rasterizer_port_shadow_slot_failed;
+
+boolean rasterizer_port_shadow_slot_select(
+	short slot)
+{
+	if (slot == NONE)
+	{
+		if (rasterizer_port_shadow_own_texture)
+		{
+			global_d3d_texture_shadow_secondary = rasterizer_port_shadow_own_texture;
+			global_d3d_surface_shadow_secondary = rasterizer_port_shadow_own_surface;
+			rasterizer_port_shadow_own_texture = NULL;
+			rasterizer_port_shadow_own_surface = NULL;
+		}
+		return TRUE;
+	}
+	if (slot < 0 || slot >= RASTERIZER_PORT_SHADOW_SLOTS || rasterizer_port_shadow_slot_failed)
+		return FALSE;
+	if (!rasterizer_port_shadow_slot_textures[slot])
+	{
+		D3DTexture *texture = NULL;
+		D3DSurface *surface = NULL;
+
+		if (IDirect3DDevice8_CreateTexture(global_d3d_device, RASTERIZER_TARGET_SHADOW_SECONDARY_SIZE,
+				RASTERIZER_TARGET_SHADOW_SECONDARY_SIZE, 1, D3DUSAGE_RENDERTARGET, D3DFMT_R5G6B5, D3DPOOL_DEFAULT,
+				&texture) < 0 || !texture ||
+			IDirect3DTexture8_GetSurfaceLevel(texture, 0, &surface) < 0 || !surface)
+		{
+			error(_error_silent, "### WARNING cannot make shadow map %d: object shadows are drawn one at a time", slot);
+			rasterizer_port_shadow_slot_failed = TRUE;
+			return FALSE;
+		}
+		rasterizer_port_shadow_slot_textures[slot] = texture;
+		rasterizer_port_shadow_slot_surfaces[slot] = surface;
+	}
+	if (!rasterizer_port_shadow_own_texture)
+	{
+		rasterizer_port_shadow_own_texture = global_d3d_texture_shadow_secondary;
+		rasterizer_port_shadow_own_surface = global_d3d_surface_shadow_secondary;
+	}
+	global_d3d_texture_shadow_secondary = rasterizer_port_shadow_slot_textures[slot];
+	global_d3d_surface_shadow_secondary = rasterizer_port_shadow_slot_surfaces[slot];
+	return TRUE;
+}
+
+/* port (halo-ce-universal 8e23d89d7 and 1b75787d2): a draw that changes
+nothing outside a box of the world - an object's shadow cast on the level, a
+dynamic light's pass, each of whole level triangles much bigger than what
+they change - is rasterized only inside that box's rectangle on the screen
+(halo_draw_scissor, d3d8_gl.c): the pixels outside were shaded for nothing.
+The points are a box's eight corners, corner i at the low or high end of
+each axis by its bits 0, 1 and 2: the rectangle is that of the box's part in
+front of the camera - the corners in front, and where its edges cross a
+plane just in front of the camera - as render_camera_view_to_screen puts
+points in the window, and a pixel more. count 0: the whole viewport. */
+#define RASTERIZER_PORT_SCISSOR_NEAR 0.01f
+
+static void rasterizer_port_scissor_add(
+	struct render_frustum const *frustum,
+	real_point3d const *view_point,
+	real bounds[4])
+{
+	real inverse_depth = -1.0f / view_point->z;
+	real x = (frustum->projection_matrix[0][0] * view_point->x + frustum->projection_matrix[2][0] * view_point->z) *
+		inverse_depth;
+	real y = -(frustum->projection_matrix[1][1] * view_point->y + frustum->projection_matrix[2][1] * view_point->z) *
+		inverse_depth;
+
+	bounds[0] = MIN(bounds[0], x);
+	bounds[1] = MIN(bounds[1], y);
+	bounds[2] = MAX(bounds[2], x);
+	bounds[3] = MAX(bounds[3], y);
+}
+
+void rasterizer_port_scissor_points(
+	real_point3d const *points,
+	short count)
+{
+	struct render_frustum const *frustum = &global_window_parameters.frustum;
+	struct render_camera const *camera = &global_window_parameters.camera;
+	real_point3d view_points[8];
+	real bounds[4] = { 1.0f, 1.0f, -1.0f, -1.0f };
+	real width, height;
+	short index;
+
+	if (count != 8 || !frustum->projection_valid)
+	{
+		halo_draw_scissor(FALSE, 0.0f, 0.0f, 0.0f, 0.0f);
+		return;
+	}
+	for (index = 0; index < 8; index++)
+	{
+		matrix4x3_transform_point(&frustum->world_to_view, &points[index], &view_points[index]);
+		if (view_points[index].z <= -RASTERIZER_PORT_SCISSOR_NEAR)
+			rasterizer_port_scissor_add(frustum, &view_points[index], bounds);
+	}
+	/* (each edge, corners a bit apart, that crosses the plane) */
+	for (index = 0; index < 8; index++)
+	{
+		short bit;
+
+		for (bit = 1; bit < 8; bit <<= 1)
+		{
+			real_point3d const *a = &view_points[index];
+			real_point3d const *b = &view_points[index | bit];
+
+			if ((index & bit) == 0 &&
+				(a->z <= -RASTERIZER_PORT_SCISSOR_NEAR) != (b->z <= -RASTERIZER_PORT_SCISSOR_NEAR))
+			{
+				real t = (-RASTERIZER_PORT_SCISSOR_NEAR - a->z) / (b->z - a->z);
+				real_point3d crossing;
+
+				crossing.x = a->x + (b->x - a->x) * t;
+				crossing.y = a->y + (b->y - a->y) * t;
+				crossing.z = -RASTERIZER_PORT_SCISSOR_NEAR;
+				rasterizer_port_scissor_add(frustum, &crossing, bounds);
+			}
+		}
+	}
+	width = (real)(camera->viewport_bounds.x1 - camera->viewport_bounds.x0);
+	height = (real)(camera->viewport_bounds.y1 - camera->viewport_bounds.y0);
+	/* (none of it in front: nothing of it on the screen) */
+	if (bounds[0] > bounds[2])
+	{
+		halo_draw_scissor(TRUE, 0.0f, 0.0f, 0.0f, 0.0f);
+		return;
+	}
+	bounds[0] = PIN(bounds[0], -1.0f, 1.0f);
+	bounds[1] = PIN(bounds[1], -1.0f, 1.0f);
+	bounds[2] = PIN(bounds[2], -1.0f, 1.0f);
+	bounds[3] = PIN(bounds[3], -1.0f, 1.0f);
+	halo_draw_scissor(TRUE,
+		(bounds[0] + 1.0f) * 0.5f * width + camera->viewport_bounds.x0 - 1.0f,
+		(bounds[1] + 1.0f) * 0.5f * height + camera->viewport_bounds.y0 - 1.0f,
+		(bounds[2] + 1.0f) * 0.5f * width + camera->viewport_bounds.x0 + 1.0f,
+		(bounds[3] + 1.0f) * 0.5f * height + camera->viewport_bounds.y0 + 1.0f);
 }
 
 void rasterizer_set_target(
@@ -2984,6 +3181,21 @@ void rasterizer_set_vertex_shader(
 		if (!success)
 			error(_error_silent, "### ERROR rasterizer_set_vertex_shader failed");
 	}
+	return;
+}
+
+/* port: the loading screen (progress_bar.c) sets the device's vertex shader
+(the fixed-function pipeline), render states and texture stage states
+itself, not through these caches: after it, the next draw sets its vertex
+shader again, and the smart states' shadows are the device's (on the Xbox
+only a map's load followed it; the screen of a map's download is drawn
+over the menus, every frame) */
+void rasterizer_forget_hardware_state(
+	void)
+{
+	rasterizer_state_cache.vertex_shader_index = INVALID_RASTERIZER_HARDWARE_STATE;
+	rasterizer_vertex_shader_runtime_forget();
+	SetupSmartStates();
 	return;
 }
 

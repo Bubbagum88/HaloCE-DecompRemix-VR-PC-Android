@@ -23,7 +23,7 @@ prepare=fn(d3d,'prepare_draw')
 assert 'program->lighting.lights && !program->lighting_failed && per_pixel_lighting()' in prepare
 assert 'key.per_pixel_lighting = 0;' in prepare and 'vertex_shader_get(program, immediate, FALSE)' in prepare
 assert prepare.index('bind_textures(')<prepare.index('bind_targets(')
-assert 'memcmp' in fn(d3d,'fragment_shader_get') and 'sizeof(*key)' in fn(d3d,'fragment_shader_get')
+assert 'words_equal' in fn(d3d,'fragment_shader_get') and 'sizeof(*key)' in fn(d3d,'fragment_shader_get')
 assert 'memset(&object->lighting, 0' in fn(d3d,'halo_vertex_shader_lighting')
 assert 'crosshair_capture.active' in fn(d3d,'bind_targets')
 assert 'target_samples = 1;' in fn(d3d,'bind_targets')
@@ -47,6 +47,9 @@ if not (headers/'GLES3/gl32.h').exists():
 xdk=(ROOT/'port/include/xdk/xdk_pdb.h').read_text()
 constants='\n'.join('#define '+name+' '+value for name,value in dict(re.findall(r'\b(D3D\w+)\s*=\s*(0x[0-9a-fA-F]+|[0-9]+)\b',xdk)).items())
 shared=h[h.index('struct xgpu_text\n'):h.index('/* ---------- textures */')]
+# (OpenCE 244: the tone mapping pass's settings, xgpu.h's)
+tone=h.index('struct xgpu_tone_mapping\n')
+shared+=h[tone:h.index('};',tone)+3]
 shim=r"""
 #ifndef TEST_GRAPHICS_H
 #define TEST_GRAPHICS_H
@@ -164,7 +167,7 @@ static void aa(void){
   int off=(y*64+x)*4;input[off]=input[off+1]=input[off+2]=(x>y?255:0);input[off+3]=77;
  }
  GLuint target=texture_new(GL_RGBA8,64,64,GL_RGBA,input),fbo=framebuffer_new(target);assert(glCheckFramebufferStatus(GL_FRAMEBUFFER)==GL_FRAMEBUFFER_COMPLETE);
- GLint corners[4]={0,0,32,64};assert(xgpu_post_anti_alias(FALSE,fbo,64,64,corners));
+ GLint corners[4]={0,0,32,64};assert(xgpu_post_anti_alias(FALSE,fbo,GL_RGBA8,64,64,corners));
  glReadPixels(0,0,64,64,GL_RGBA,GL_UNSIGNED_BYTE,output);assert(glGetError()==GL_NO_ERROR);
  int changed=0;
  for(int y=0;y<64;y++)for(int x=0;x<64;x++){
@@ -173,10 +176,10 @@ static void aa(void){
  }
  assert(changed>0); // real diagonal smoothing, outside viewport/alpha preserved
  GLuint cached[3];unsigned sizes[3]={64,96,128};
- for(int i=0;i<3;i++){textures_fit(FALSE,sizes[i],sizes[i]);cached[i]=post.color;assert(cached[i]);}
- for(int frame=0;frame<100;frame++)for(int i=0;i<3;i++){textures_fit(FALSE,sizes[i],sizes[i]);assert(post.color==cached[i]);}
- textures_fit(FALSE,144,144);assert(post.width==144&&post.height==144); // least recently used; GL names may recycle
- textures_fit(FALSE,96,96);assert(post.color==cached[1]);textures_fit(FALSE,128,128);assert(post.color==cached[2]);
+ for(int i=0;i<3;i++){textures_fit(FALSE,GL_RGBA8,sizes[i],sizes[i]);cached[i]=post.color;assert(cached[i]);}
+ for(int frame=0;frame<100;frame++)for(int i=0;i<3;i++){textures_fit(FALSE,GL_RGBA8,sizes[i],sizes[i]);assert(post.color==cached[i]);}
+ textures_fit(FALSE,GL_RGBA8,144,144);assert(post.width==144&&post.height==144); // least recently used; GL names may recycle
+ textures_fit(FALSE,GL_RGBA8,96,96);assert(post.color==cached[1]);textures_fit(FALSE,GL_RGBA8,128,128);assert(post.color==cached[2]);
  glDeleteFramebuffers(1,&fbo);glDeleteTextures(1,&target);assert(glGetError()==GL_NO_ERROR);
  puts("PASS: production FXAA GLES compile/link/draw, alpha and split-viewport preservation; three eye/scope scratch sizes reused without churn");
 }
@@ -196,6 +199,7 @@ static void multisample_checks(void){
  GLint maximum;glGetIntegerv(GL_MAX_SAMPLES,&maximum);assert(maximum>=4);
  for(int depth=0;depth<2;depth++){
   struct xgpu_render_target target={0};target.depth=depth;target.gl_width=target.gl_height=64;
+  target.format=depth?GL_DEPTH24_STENCIL8:GL_RGBA8;
   glGenTextures(1,&target.texture);glBindTexture(GL_TEXTURE_2D,target.texture);glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAX_LEVEL,0);
   glTexImage2D(GL_TEXTURE_2D,0,depth?GL_DEPTH24_STENCIL8:GL_RGBA8,64,64,0,depth?GL_DEPTH_STENCIL:GL_RGBA,depth?GL_UNSIGNED_INT_24_8:GL_UNSIGNED_BYTE,NULL);
   for(int samples=2;samples<=4;samples*=2){
@@ -237,7 +241,7 @@ struct render_target_entry {struct xgpu_render_target target;unsigned long last_
 static struct render_target_entry test_color,test_depth;
 static struct {D3DSurface *render_target,*depth_stencil;unsigned long frame;} device;
 static struct render_target_entry *render_target_get(const D3DSurface *s){return s?(s->depth?&test_depth:&test_color):NULL;}
-static float target_scale[2];static int target_samples=1;
+static float target_scale[2];static int target_samples=1;static unsigned long render_target_write_serial;
 static int anti_aliasing_samples=4;
 #define _anti_aliasing_msaa 4
 static int anti_aliasing(void){return _anti_aliasing_msaa;}
@@ -249,8 +253,8 @@ static void failure_checks(void){
  GLuint texture=texture_new(GL_RGBA8,32,32,GL_RGBA,input),fbo=framebuffer_new(texture);GLint corners[4]={0,0,32,32};
  for(int which=0;which<2;which++){
   post.failed[0]=FALSE;if(which)fail_texture=1;else fail_fbo=1;
-  assert(!xgpu_post_anti_alias(FALSE,fbo,80+which,80+which,corners));assert(post.failed[0]);
-  int uploads=texture_uploads;assert(!xgpu_post_anti_alias(FALSE,fbo,80+which,80+which,corners));assert(texture_uploads==uploads);
+  assert(!xgpu_post_anti_alias(FALSE,fbo,GL_RGBA8,80+which,80+which,corners));assert(post.failed[0]);
+  int uploads=texture_uploads;assert(!xgpu_post_anti_alias(FALSE,fbo,GL_RGBA8,80+which,80+which,corners));assert(texture_uploads==uploads);
   glBindFramebuffer(GL_FRAMEBUFFER,fbo);glReadPixels(0,0,32,32,GL_RGBA,GL_UNSIGNED_BYTE,after);assert(!memcmp(input,after,sizeof(input)));assert(glGetError()==GL_NO_ERROR);
  }
  // A failed optional multisample attachment pair must recover in the same
@@ -261,6 +265,7 @@ static void failure_checks(void){
   for(int d=0;d<2;d++){
    struct render_target_entry *entry=d?&test_depth:&test_color;entry->screen_buffer=TRUE;
    entry->target.depth=d;entry->target.gl_width=entry->target.gl_height=32;entry->target.scale[0]=entry->target.scale[1]=1;
+   entry->target.format=d?GL_DEPTH24_STENCIL8:GL_RGBA8;
    glGenTextures(1,&entry->target.texture);glBindTexture(GL_TEXTURE_2D,entry->target.texture);glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAX_LEVEL,0);
    glTexImage2D(GL_TEXTURE_2D,0,d?GL_DEPTH24_STENCIL8:GL_RGBA8,32,32,0,d?GL_DEPTH_STENCIL:GL_RGBA,d?GL_UNSIGNED_INT_24_8:GL_UNSIGNED_BYTE,NULL);
   }
@@ -269,7 +274,9 @@ static void failure_checks(void){
   assert(!test_color.target.unresolved&&!test_depth.target.unresolved);
   assert(!test_color.target.samples&&!test_depth.target.samples);
   assert(glCheckFramebufferStatus(GL_FRAMEBUFFER)==GL_FRAMEBUFFER_COMPLETE&&glGetError()==GL_NO_ERROR);
+  unsigned long written=test_color.target.written;
   GLuint buffer=test_color.target.multisample;assert(bind_targets(&has_depth));assert(test_color.target.multisample==buffer);
+  assert(test_color.target.written==render_target_write_serial&&test_color.target.written>written); /* Test73: f876a526d, a bind counts as a write */
  }
  puts("PASS: rejected FXAA texture/FBO leaves source untouched and stops retry; rejected MSAA storage/pair falls back to complete single-sample targets");
 }
@@ -297,8 +304,12 @@ static long config_integer(const char *k){(void)k;return resolution;}
 static unsigned long config_changes(void){return generation;}
 static void platform_log(const char *f,...){(void)f;}
 static void anti_aliasing_read(void){}
+static void hdr_read(void){}
 static long halo_screen_width(void){return 640;}
 static void screen_mode_choose(long *w,float s[2]){*w=640;s[0]=s[1]=1;}
+/* (Test73: OpenCE 7124534a4, a width change frees the old width's targets: none here) */
+static int evictions;
+static void render_targets_evict(void){evictions++;}
 """
 shadow_checks=r"""
 int main(void){
@@ -307,6 +318,7 @@ int main(void){
  const long expected[]={1,1,1,1,1,1,2,2,4,4,8,8};
  for(int i=0;i<12;i++){long old=halo_shadow_map_scale();resolution=values[i];generation++;
   assert(halo_shadow_map_scale()==old);halo_screen_commit();assert(halo_shadow_map_scale()==expected[i]);}
+ assert(evictions==0);
  puts("PASS: shadow power-of-two 128..1024 selection, invalid/range limits, frame-boundary-only acceptance");
 }
 """

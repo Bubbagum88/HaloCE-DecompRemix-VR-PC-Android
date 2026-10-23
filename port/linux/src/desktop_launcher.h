@@ -34,5 +34,10 @@ void desktop_launcher_run(void);
 /* while the launcher runs, a missing maps folder is its to offer
 (platform_offer_game_data leaves it) */
 int desktop_launcher_active(void);
+/* Test73: whether `file_name` in the maps folder of the data root `root` is
+a level an installed custom campaign put there (SPV1's a10.map, Lumoria's
+lumoria_a.map): Halo PC maps the game plays, not strays to warn of
+(xbox_files.c's maps folder check). 0 on builds without the launcher */
+int desktop_launcher_mod_map(const char *root, const char *file_name);
 
 #endif

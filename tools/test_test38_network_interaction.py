@@ -32,10 +32,25 @@ typedef struct{float q[4];}real_quaternion;
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #define TEST_FLAG(x,b) ((x)&(1u<<(b)))
-enum{_game_connection_network_server=1,_game_connection_network_client=2,_object_type_biped=1,_object_dead_bit=1,_distributed_message_vr_pose=37,_distributed_message_vr_capability=38,_distributed_to_host=1};
+enum{_game_connection_local=0,_game_connection_network_server=1,_game_connection_network_client=2,_object_type_biped=1,_object_dead_bit=1,_distributed_message_vr_pose=37,_distributed_message_vr_capability=38,_distributed_to_host=1};
+enum{_object_mask_unit=3};
 struct distributed_message_header{byte data[12];};
 struct player_datum{int32_t unit_index;};
-struct unit_datum{struct{int32_t player_index;}unit;struct{int type,parent_object_index,damage_flags;struct{int size;}node_matrices;real_point3d position;}object;};
+struct unit_datum{struct{int32_t player_index;short current_weapon_index;}unit;struct{int type,parent_object_index,damage_flags;struct{int size;}node_matrices;real_point3d position;}object;};
+/* (Test73, 10d: a client's reload is committed on the weapon its unit holds, by that weapon's tag) */
+struct weapon_datum{int32_t definition_index;};
+static struct weapon_datum weapons[4]={{70},{71},{72},{73}};
+static int32_t unit_inventory_get_weapon(int32_t u,short slot){(void)u;return slot>=0&&slot<4?slot:NONE;}
+static struct weapon_datum*weapon_try_and_get(int32_t w){return w>=0&&w<4?&weapons[w]:NULL;}
+static struct unit_datum units[128];
+static void*object_try_and_get_and_verify_type(int32_t o,uint32_t mask){assert(mask==_object_mask_unit);return o>=0&&o<128?&units[o]:NULL;}
+static int valid_real_point3d(real_point3d const*p){return isfinite(p->x)&&isfinite(p->y)&&isfinite(p->z);}
+static int valid_real_vector3d(real_vector3d const*v){return isfinite(v->i)&&isfinite(v->j)&&isfinite(v->k);}
+/* (Test73, 10d: a client's fist blow, dealt by the host on a body's sphere: test_test73_network_vr runs it) */
+struct object_datum{struct{real_point3d bounding_sphere_center;real bounding_sphere_radius;}object;};
+static struct object_datum bodies[128];
+static struct object_datum*object_try_and_get(int32_t o){return o>=0&&o<128?&bodies[o]:NULL;}
+static void scale_vector3d(real_vector3d const*v,float s,real_vector3d*out){for(int i=0;i<3;i++)out->n[i]=v->n[i]*s;}
 static int connection=1,permission=1,coop=1,clients=1,sent,world_calls,npc_calls,cancels,accepted=1;
 static uint32_t now=100;static struct player_datum players[128];static struct unit_datum units[128];
 static byte sent_body[128],sent_caps[4][128];static int cap_count;static byte sent_type;
@@ -81,6 +96,12 @@ void vr_interaction_client_result(int32_t u,byte h,byte f,uint32_t s,int32_t obj
 int vr_world_interaction_remote_contact(int32_t p,int hand,int32_t*object,float local[3]){return 0;}
 int vr_npc_interaction_remote_contact(int32_t p,int hand,int32_t*object,float world[3]){return 0;}
 void platform_log(char const*f,...){}
+/* (Test73, 10d: the host's halves of a client's reload and grenade, weapons.c's and units.c's) */
+static int reload_commits,grenade_throws;
+void weapon_vr_reload_commit(int32_t w){(void)w;reload_commits++;}
+boolean unit_vr_throw_player_grenade(int32_t u,short t,real_point3d const*p,real_vector3d const*v){(void)u;(void)t;(void)p;(void)v;grenade_throws++;return TRUE;}
+boolean unit_vr_remote_strike(int32_t u,int32_t t,real_point3d const*p,real_vector3d const*d,real scale,real share,real_vector3d const*shove){
+ (void)u;(void)t;(void)p;(void)d;(void)scale;(void)share;(void)shove;return TRUE;}
 """
 main=r"""
 static void handshake_machine(int machine){network_interaction_tick();struct ni_header ack;ni_header_init(&ack,NI_ACK,ni_peers[machine].nonce,0);network_interaction_receive(machine,38,&ack,1,sizeof(ack));}
@@ -98,15 +119,22 @@ int main(void){
  input(6,0);network_interaction_tick();input(7,1);network_interaction_tick();assert(ni_hands[0][0].active);
  clients=5;now+=2000;network_interaction_tick();for(int i=1;i<5;i++)handshake_machine(i);
  assert(network_interaction_host_ready());assert(!network_interaction_npc_ready());
- assert(sent_type==_distributed_message_vr_capability&&cap_count>=2);
- struct ni_header confirm,npc_confirm;
- memcpy(&confirm,sent_caps[(cap_count-2)%4],sizeof(confirm));
- memcpy(&npc_confirm,sent_caps[(cap_count-1)%4],sizeof(npc_confirm));
+ assert(sent_type==_distributed_message_vr_capability&&cap_count>=3);
+ /* (Test73, 10d: an ACK is answered with CONFIRM, NPC_CONFIRM and then FEATURES, what VR INTERACTIONS allows) */
+ struct ni_header confirm,npc_confirm,features;
+ memcpy(&confirm,sent_caps[(cap_count-3)%4],sizeof(confirm));
+ memcpy(&npc_confirm,sent_caps[(cap_count-2)%4],sizeof(npc_confirm));
+ memcpy(&features,sent_caps[(cap_count-1)%4],sizeof(features));
  assert(confirm.kind==NI_CONFIRM&&confirm.sequence==1&&npc_confirm.kind==NI_NPC_CONFIRM&&npc_confirm.sequence==0);
+ assert(features.kind==NI_FEATURES&&features.sequence==NETWORK_VR_FEATURES&&features.nonce==confirm.nonce);
  connection=_game_connection_network_client;ni_host_nonce=confirm.nonce;ni_host_ready=ni_host_npc_ready=FALSE;
  network_interaction_receive(NONE,_distributed_message_vr_capability,&confirm,1,sizeof(confirm));
  network_interaction_receive(NONE,_distributed_message_vr_capability,&npc_confirm,1,sizeof(npc_confirm));
- assert(ni_host_ready&&!ni_host_npc_ready&&!network_interaction_npc_ready());connection=_game_connection_network_server;
+ assert(ni_host_ready&&!ni_host_npc_ready&&!network_interaction_npc_ready());
+ assert(!network_interaction_vr_allowed(NETWORK_VR_RELOAD)); /* (no FEATURES yet: nothing allowed) */
+ network_interaction_receive(NONE,_distributed_message_vr_capability,&features,1,sizeof(features));
+ assert(ni_host_features==NETWORK_VR_FEATURES&&network_interaction_vr_allowed(NETWORK_VR_RELOAD|NETWORK_VR_GRENADES));
+ connection=_game_connection_network_server;
  int world_before=world_calls;input(8,0);network_interaction_tick();input(9,1);network_interaction_tick();
  assert(world_calls==world_before+2&&npc_calls>0&&ni_hands[0][0].active); /* NPC denied; world remains available above four peers */
  ni_peers[1].ready=FALSE;assert(!network_interaction_host_ready());ni_peers[1].ready=TRUE;
@@ -142,41 +170,57 @@ subprocess.run([str(O/'network')],check=True)
 import xml.etree.ElementTree as ET
 xml=ET.parse(R/'port/assets/menus/ce/main_menu.multiplayer_type_select.server_settings.xml').getroot()
 # Test66: OpenCE Build 201's Server Setup groups co-op's options on their own
-# CO-OP OPTIONS screen (shown only when hosting co-op); VR INTERACTIONS and
-# HOST VR ACTIONS are its last two rows, after Build 201's own five, so the
-# upstream rows keep their label and help indices.
+# CO-OP OPTIONS screen (shown only when hosting co-op); VR INTERACTIONS is its
+# last row, after the upstream rows, so those keep their label and help
+# indices. (Test73, 10d: HOST VR ACTIONS, the row after it before, is part of
+# VR INTERACTIONS now: one toggle for the host and every player.)
 strings={n.attrib['name'].rsplit('/',1)[-1]:n for n in xml.findall('strings')}
 widgets={n.attrib['name'].rsplit('/',1)[-1]:n for n in xml.findall('widget')}
 labels=strings['coop_options_labels']
-assert [n.attrib['text'] for n in labels][:5]==['FRIENDLY FIRE:','EXTRA ENEMIES:','PER PLAYER:','MULTIPLIER:','PLAYER COLLISIONS:']
-assert labels[5].attrib['text']=='VR INTERACTIONS:' and labels[6].attrib['text']=='HOST VR ACTIONS:'
+# (Test73: OpenCE 244's seven rows, its extra pickups and vehicles among them, then OpenCE testing's ALLY FRIENDLY
+# FIRE (1d38b3f93), then this port's VR INTERACTIONS)
+assert [n.attrib['text'] for n in labels][:7]==['FRIENDLY FIRE:','EXTRA ENEMIES:','EXTRA PICKUPS:','EXTRA VEHICLES:','MULTIPLIER:','PER PLAYER:','PLAYER COLLISIONS:']
+assert labels[7].attrib['text']=='ALLY FRIENDLY FIRE:' and labels[8].attrib['text']=='VR INTERACTIONS:' and len(labels)==9
 coop_menu=widgets['coop_options_menu']
 assert coop_menu.find('data').attrib['input']=='game settings lists text update'
 rows=[c.attrib['widget'].rsplit('/',1)[-1] for c in coop_menu.findall('child')]
-assert rows.index('op_coop_player_collisions')<rows.index('op_physical_interactions')<rows.index('op_host_vr_actions')<rows.index('coop_options_button_bar')
+assert rows.index('op_coop_player_collisions')<rows.index('op_coop_ally_friendly_fire')<rows.index('op_physical_interactions')<rows.index('coop_options_button_bar')
+assert 'op_host_vr_actions' not in rows and 'HOST VR ACTIONS' not in ET.tostring(xml,encoding='unicode')
 row=widgets['physical_interactions_spinner']
 assert row.attrib['setting']=='net.physical_interactions' and row.attrib['values']=='false|true'
-assert widgets['physical_interactions_label'].attrib['string_index']=='5'
+assert widgets['physical_interactions_label'].attrib['string_index']=='8'  # (Test73: after OpenCE's eight)
+assert '{ "net.physical_interactions", _config_boolean, "true",' in (R/'port/linux/src/port_config.c').read_text()  # (on by default: the owner)
 assert 'NI_MAGIC=0x56494e31' in s and 'VR_POSE_MAGIC = 0x56525031' in (R/'port/linux/game/network_vr_pose.c').read_text()
-assert '#ifdef HALO_VR' not in s
+# (the authority is common to flat and VR builds, so a flat host serves VR clients; Test73's one exception is what
+# this machine's own player uses, which a flat build's never does: ni_client_features)
+assert s.count('#ifdef HALO_VR')==1 and s.count('HALO_VR')==1
+vr_block=s[s.index('#ifdef HALO_VR'):s.index('#endif',s.index('#ifdef HALO_VR'))]
+assert s.index('static unsigned long ni_client_features(void)')<s.index('#ifdef HALO_VR')<s.index('static void ni_action_reload(')
+assert 'ni_peers' not in vr_block and 'ni_action' not in vr_block and 'config_boolean("vr.' in vr_block
 print('PASS: separate magic, common flat/VR authority and the host setting appended to CO-OP OPTIONS (upstream indices kept)')
 
-# Test62: the new permission is an appended native co-op setup row; preserve
+# Test62: the permission is an appended native co-op setup row; preserve
 # original indices, mouse navigation, persistence and PvP visibility.
-row=widgets['host_vr_actions_spinner']
-assert row.attrib['setting']=='net.host_vr_actions' and row.attrib['values']=='false|true'
-for name in ('physical_interactions_spinner','host_vr_actions_spinner'):
+# (Test73, 10d: the one row now; HOST VR ACTIONS' widgets are gone)
+assert 'host_vr_actions_spinner' not in widgets and 'host_vr_actions_label' not in widgets
+for name in ('physical_interactions_spinner',):
     assert {(n.attrib['event'],n.attrib['run']) for n in widgets[name].findall('on')} >= {
         ('created','port setting load'),('deleted','port setting save'),
         ('left_mouse','mouse spinner 1wide click')}, name
-assert widgets['host_vr_actions_label'].attrib['string_index']=='6'
-# (the screen's help is each row's values' helps in turn: Build 201's five
-# rows have 4+3+5+5+2 values, so VR INTERACTIONS' are 19-20, HOST's 21-22)
+# (the screen's help is each row's values' helps in turn: OpenCE's eight rows
+# have 4+3+3+3+5+5+2+2 values, so VR INTERACTIONS' are 27-28, the last)
 help_strings=strings['cap_coop_options']
-assert len(help_strings)==23
-assert 'physical co-op' in help_strings[19].attrib['text'].lower() and 'physical co-op' in help_strings[20].attrib['text'].lower()
-assert 'host' in help_strings[21].attrib['text'].lower() and 'host' in help_strings[22].attrib['text'].lower()
+assert len(help_strings)==29
+off,on=help_strings[27].attrib['text'],help_strings[28].attrib['text']
+assert 'vr interactions off' in off.lower() and 'local' in off
+for feature in ('grabs','fists','grenades','manual reload','parkour','slides'):
+    assert feature in on.replace('\\n',' '), feature
 assert 'VR interactions' in strings['help_strings'][12].attrib['text']
+# (the old switch's setting stays readable for old configs, but nothing reads it)
+config=(R/'port/linux/src/port_config.c').read_text()
+assert '{ "net.host_vr_actions", _config_boolean, "false"' in config
+assert not [f for f in (R/'port/linux/game').glob('*.c') if 'net.host_vr_actions' in f.read_text(encoding='utf-8',errors='replace')]
+assert not [f for f in (R/'source').rglob('*.c') if 'net.host_vr_actions' in f.read_text(encoding='utf-8',errors='replace')]
 menu=(R/'port/linux/game/menu_functions.c').read_text()
 assert 'visible_set(named(list, "op_coop_options", 0), cooperative);' in menu
 assert 'index += spinner->parameters.list.number_of_items;' in menu

@@ -52,6 +52,9 @@ for version, fixture in fixtures["versions"].items():
     old_input = canonical(fixture["input"])
     # v16 consumes one formerly zero padding byte, retaining every offset.
     old_input = old_input.replace("byte player_index; byte pad[3];", "byte player_index; byte structure_bsp_index; byte pad[2];")
+    # v30 (OpenCE 242) consumes one more: the co-op player's friendly fire choice, 0 from older peers.
+    old_input = old_input.replace("byte structure_bsp_index; byte pad[2];",
+                                  "byte structure_bsp_index; byte coop_no_friendly_fire; byte pad;")
     assert old_input == current_input, version
     old = fixture["presentation"].replace("distributed_coop_presentation", "historical_presentation")
     code = r'''#include <assert.h>

@@ -17,6 +17,10 @@ public class UpdateReceiver extends BroadcastReceiver {
         if (!Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction()))
             return;
         new File(new File(context.getCacheDir(), UpdateProvider.DIRECTORY), UpdateProvider.APK).delete();
+        // Test73 (astromaddie's HaloCE-VR, 6be73ed4, CC0): not in the Steam Frame's Lepton, which has no updater and
+        // starts the app itself; a reinstall there (adb's, a developer's) would start a second game beside it
+        if (Lepton.running())
+            return;
         try {
             Intent start = new Intent(context, LauncherActivity.class);
 

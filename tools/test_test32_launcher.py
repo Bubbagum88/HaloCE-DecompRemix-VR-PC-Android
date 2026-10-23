@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
 
+import network_expected as netv  # noqa: E402 (tools/: the versions this build hosts and joins)
 ROOT = Path(__file__).resolve().parents[1]
 JAVA = ROOT / 'port/android/app/src/main/java/com/halo/decomp'
 MENUS = ROOT / 'port/assets/menus/ce'
@@ -254,7 +255,8 @@ class GuideCheck { public static void main(String[] args) {
             assert text in pages[2], text
         for text in ['Direct Link', 'PASTE LINK', 'ENTER LINK', 'PASSWORDS', 'does not ask', 'Saved invites', 'not automatically imported']:
             assert text in pages[3], text
-        assert 'network 29' in pages[4] and '11–29' in pages[4] and 'original Xbox-map PvP only' in pages[4]
+        assert 'network %d' % netv.CURRENT in pages[4] and netv.range_text(15) in pages[4] and \
+            'original Xbox-map PvP only' in pages[4]
         for text in ['ISO/revision', 'Versions & updates', 'no relay', 'Download/HaloCE', 'discord.gg/S9uSCKxKx', '@MeWhenINameMyself']:
             assert text in pages[4], text
 

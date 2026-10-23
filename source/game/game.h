@@ -188,9 +188,18 @@ boolean game_map_loaded(void);
 boolean game_time_get_paused(void);
 /* whether a client's clock waits for the host's first game update */
 boolean game_time_held(void);
+/* port: whether the main menu's scene is what ticks (game_time.c) */
+boolean game_time_menu_scene(void);
 void game_time_set_paused(boolean paused);
 real game_time_get_speed(void);
 void game_time_set_speed(real speed);
+/* port (Test73): the game's own speed (what a checkpoint keeps), and BULLET
+TIME's slowing on top of it, kept out of the game state (game_time.c) */
+real game_time_get_own_speed(void);
+void game_time_set_local_scale(real scale);
+real game_time_get_local_scale(void);
+/* port (Test73): after a saved game is taken (game_state.c) */
+void game_time_after_load(void);
 void game_time_start(void);
 /* the game time set, before the first tick (a distributed game joined in
 progress: the host's) */

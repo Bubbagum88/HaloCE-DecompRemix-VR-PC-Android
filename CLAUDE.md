@@ -17,6 +17,46 @@ assets so they accurately cover the platforms actually supported then. Do not
 rename the current v1.0.37 release or claim a platform is supported before its
 build and validation are ready.
 
+## Private candidate: Test73 (1.0.40-test73 / code85), in progress
+
+Every VR feature on once with the update (each can be turned off and stays
+off); one co-op VR INTERACTIONS switch, on by default, for the host and every
+player (fists and the whole fist combat, each client blow dealt by the host;
+waist grenades; manual reload; parkour; slides); immersive driving in
+proportion for every vehicle, HAND LOCK, VEHICLE TURN; passengers in full
+6DOF; grenades at their true size in the hand; scopes to 400%; the played
+character's arms; MENU POSITION in both launchers; the PC launcher's saves
+import/export and GEOMETRY; levels unlocked for new profiles; STENCIL SHADOWS
+that take away only the light they block; a clock stepped by the headset's
+display times. OpenCE: Builds 232 to 256, its testing branch and its
+fix-scenery-shields-network branch (network 34: hosts 34, joins 11 to 34;
+older hosts keep their own rules); every harness test OpenCE ships now runs.
+Steam Frame: checked against Lepton 3.0.8's source and the other Halo CE Frame
+ports (HaloCE-VR, Mjolnir VR): SteamVR waited for, Lepton 3 detection, a
+no-computer installer and a Steam library launcher (`tools/steam_frame`). The
+licence is the AGPL 3.0 or later since OpenCE's change (THIRD-PARTY-NOTICES,
+CREDITS). Read docs/TEST73-CHECKLIST.md (each item's verification level),
+TEST73-FIELD-GUIDE.md, TEST73-DEVICE-CHECKLIST.md and the latest
+HANDOFF-2026-10-*.md. Not built as a whole yet (the owner: one build pass once
+everything is done); Test72 and Test71 (below) travel with it.
+
+## Private candidate: Test72 (1.0.39-test72 / code84)
+
+Multi-platform delivery: one VR APK for Quest, Pico and Steam Frame (button
+names by device); Windows flat `halo.exe` and PC VR `halo-vr.exe` with one
+launcher and one library (XISO import, verify, repair, custom campaigns,
+updates on request); flat stereo 3D and remap UX; flat sprint, slide and
+parkour. The owner's separate VR pass: fist combat (leaping 12 m lunges,
+intent from the fist's path, skeleton hit assist, held and seated enemies,
+the Shade death, freeflow combo display, durability by difficulty),
+world-anchored menus, Bullet Time on LOCOMOTION, IMMERSION toggles,
+per-weapon SCOPES, left-hand buttons by their letters with Back on B,
+passengers aiming by hand, SPV1 diagnostics, and the left eye's garbling
+(first eye begins from state set anew; DISPLAY > EYE ORDER; `[vr-eyes]`).
+Read docs/TEST72-CHECKLIST.md, TEST72-FIELD-GUIDE.md,
+TEST72-DEVICE-CHECKLIST.md and PLATFORMS-PLAN.md; never delivered on its own,
+it travels with Test73.
+
 ## Private candidate after it: Test71 (1.0.38-test71 / code83)
 
 Every campaign mod installs from the launcher in one tap, as SPV1 does (the

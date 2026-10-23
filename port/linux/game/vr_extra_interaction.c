@@ -88,8 +88,12 @@ static struct {
     long swing_at[2],damage_target,damage_tick,defence_until;
     int damage_regular,defence_parry;
     real_point3d defence_point;
+    /* Test73 (10d): a co-op client's shove for its host to give with this
+    tick's blow (vr_combat_take_remote_shove) */
+    real_vector3d remote_shove;
+    long remote_shove_tick;
 } extra={.unit=NONE,.tick=NONE,.target=NONE,.grenade_release_tick=NONE,.counter_enemy=NONE,.countered=NONE,.knock_target=NONE,
-    .damage_share=1,.share_tick=NONE,.answer_unit=NONE,.flurry_unit=NONE};
+    .damage_share=1,.share_tick=NONE,.answer_unit=NONE,.flurry_unit=NONE,.remote_shove_tick=NONE};
 /* Test67: freeflow keeps short reactions and threats on their own enemies.
  * Fixed storage, salted object handles, no heap work or new network state. */
 #define COMBAT_MEMORY_COUNT 16
@@ -155,7 +159,25 @@ static real extra_bound(char const *key,real fallback,real low,real high)
 {
     real v=(real)config_real(key);return isfinite(v)?PIN(v,low,high):fallback;
 }
-static long extra_player(boolean input)
+/* Test73 (10d, the owner's one co-op VR toggle): where these actions run: a
+local game; a co-op host whose clients have all negotiated VR INTERACTIONS
+(net.physical_interactions; HOST VR ACTIONS, its own switch before, is part
+of it now); a client when its host allows them: its fist combat (the owner:
+"make it so everyone can do advanced fist combat"; each blow the host deals,
+units.c unit_vr_impact_melee_apply sending it) and its physical grenades
+(the host throws them: network_interaction.c). Shot deflection stays the
+host's and local games' (vr_extra_action_owner: projectiles are the host's). */
+static boolean extra_session(boolean grenades)
+{
+    switch(game_connection()){
+    case _game_connection_local:return TRUE;
+    case _game_connection_network_server:return network_coop_active()&&network_interaction_host_ready();
+    case _game_connection_network_client:
+        return network_interaction_vr_allowed(grenades?NETWORK_VR_GRENADES:NETWORK_VR_MELEE);
+    default:return FALSE;
+    }
+}
+static long extra_unit(boolean input,boolean grenades)
 {
     unsigned int buttons;float triggers[2],thumbs[4];
     short local=local_player_get_next(NONE);
@@ -166,14 +188,32 @@ static long extra_player(boolean input)
     if(!vr_active()||!b||TEST_FLAG(b->biped.flags,_biped_no_collision_bit)||
         TEST_FLAG(u->unit.flags,_unit_suspended_bit)||u->object.parent_object_index!=NONE||
         TEST_FLAG(u->object.damage_flags,_object_dead_bit)||cinematic_in_progress()||
-        !(game_connection()==_game_connection_local||
-          (game_connection()==_game_connection_network_server&&network_coop_active()&&
-           config_boolean("net.host_vr_actions")&&network_interaction_host_ready())))return NONE;
+        !extra_session(grenades))return NONE;
     if(input&&(game_time_get_paused()||director_inhibited_input(local)||
         !vr_controller(&buttons,triggers,thumbs)))return NONE;
     return unit;
 }
-long vr_extra_action_owner(void) { return extra_player(TRUE); }
+static long extra_player(boolean input){return extra_unit(input,FALSE);}
+/* the physical grenades' player: extra_player's, or a client's */
+static long extra_grenade_player(boolean input){return extra_unit(input,TRUE);}
+/* a grenade let go: thrown here, or (a co-op client) sent to the host, the
+hand letting go as it would; FALSE: refused, the grenade kept */
+static boolean extra_throw(long unit,short type,real_point3d const *point,real_vector3d const *velocity)
+{
+    if(game_connection()==_game_connection_network_client){
+        struct unit_datum *u=unit_try_and_get(unit);
+        if(!u||u->unit.player_index==NONE||unit_get_grenade_count(unit,type)<=0)return FALSE;
+        network_interaction_client_action(NETWORK_VR_ACTION_GRENADE,u->unit.player_index,unit,type,point,velocity);
+        return TRUE;
+    }
+    return unit_vr_throw_grenade(unit,type,point,velocity);
+}
+/* (shot deflection's owner: never a client's, whose projectiles are its
+host's) */
+long vr_extra_action_owner(void)
+{
+    return game_connection()==_game_connection_network_client?NONE:extra_player(TRUE);
+}
 
 void vr_extra_projectile_feedback(int hand,real_point3d const *point,int block,int light)
 {
@@ -371,7 +411,7 @@ void vr_extra_reset(void)
     memset(&combat_reaction_direction,0,sizeof(combat_reaction_direction));
     memset(&extra,0,sizeof(extra));extra.unit=extra.tick=extra.target=extra.grenade_release_tick=NONE;
     extra.counter_enemy=extra.countered=extra.knock_target=NONE;
-    extra.damage_share=1;extra.share_tick=extra.answer_unit=extra.flurry_unit=NONE;
+    extra.damage_share=1;extra.share_tick=extra.answer_unit=extra.flurry_unit=extra.remote_shove_tick=NONE;
     extra.combo_last_target=NONE;
     extra.hand[0].down=extra.hand[1].down=1;
     memset(extra_feedback_start,0,sizeof(extra_feedback_start));
@@ -639,11 +679,15 @@ void vr_extra_tick(long unit)
         if(extra.deflect_echo_hand==2){extra_pulse(0,extra.deflect_echo_amplitude,.04f);extra_pulse(1,extra.deflect_echo_amplitude,.04f);}
         else extra_pulse(extra.deflect_echo_hand,extra.deflect_echo_amplitude,.04f);
     }
-    if(unit==NONE||unit!=extra_player(TRUE)||!(units>0&&units<10)||
-        (!config_boolean("vr.physical_grenades")&&!extra_combat_on()&&!config_boolean("vr.projectile_parry"))){vr_extra_reset();return;}
+    /* (Test73: a co-op client: the physical grenades alone, extra_session) */
+    boolean grenades_only=unit!=NONE&&unit!=extra_player(TRUE)&&unit==extra_grenade_player(TRUE);
+    if(unit==NONE||(unit!=extra_player(TRUE)&&!grenades_only)||!(units>0&&units<10)||
+        (!config_boolean("vr.physical_grenades")&&
+         (grenades_only||(!extra_combat_on()&&!config_boolean("vr.projectile_parry"))))){vr_extra_reset();return;}
     if(extra.unit!=unit||now<extra.tick||now>extra.tick+1)vr_extra_reset();
     if(extra.tick==now)return;
     extra.unit=unit;extra.tick=now;
+    if(!grenades_only){
     vr_combat_moves_tick(unit);
     struct vr_combat_move_event event;
     while(vr_combat_moves_poll_event(&event)){
@@ -654,10 +698,11 @@ void vr_extra_tick(long unit)
         }
         platform_log("VR combat move: event=%d target=%ld hand=%d (native contact/clip)",event.type,event.target,event.hand);
     }
+    }
     /* Test63: the camera the hands and slots are drawn from (manual reload's
      * walking fix); the tick's own camera when no frame is recent */
     if(!vr_render_drawn_camera(camera.n))unit_get_camera_position(unit,&camera);
-    if(extra.target!=NONE){
+    if(!grenades_only&&extra.target!=NONE){
         real_point3d head;real_vector3d gaze,up,delta;
         boolean keep=extra_combat_on()&&extra_enemy(unit,extra.target)&&now<=extra.lock_until;
         if(keep){
@@ -683,7 +728,7 @@ void vr_extra_tick(long unit)
             }
         }
     }
-    if(extra_combat_on()){
+    if(!grenades_only&&extra_combat_on()){
         combat_tick(unit);
         /* Test66: PARRY: a hand swiped hard (an open hand or the forearm;
          * a closed fist toward the attacker is a COUNTER) while an enemy's
@@ -701,7 +746,9 @@ void vr_extra_tick(long unit)
                 }
             }
     }
-    if(!config_boolean("vr.physical_grenades")||!chest_points(unit,&camera,slots)){
+    /* (Test73: a co-op client's fist combat may be allowed without its
+     * grenades: those need their own allowance, extra_grenade_player's) */
+    if(!config_boolean("vr.physical_grenades")||unit!=extra_grenade_player(TRUE)||!chest_points(unit,&camera,slots)){
         for(int h=0;h<2;h++){extra.hand[h].held=extra.hand[h].samples=0;extra.hand[h].down=1;vr_interaction_release(h,VR_INTERACTION_GRENADE);}return;
     }
     for(int h=0;h<2;h++){
@@ -749,7 +796,7 @@ void vr_extra_tick(long unit)
                 scale_vector3d(&velocity,extra_bound("vr.grenade_throw_scale",1,.5f,2),&velocity);
                 real speed=magnitude3d(&velocity),cap=15.0f*units/TICKS_PER_SECOND;
                 if(speed>cap)scale_vector3d(&velocity,cap/speed,&velocity);
-                if(unit_vr_throw_grenade(unit,(short)extra.hand[h].type,&point,&velocity)){
+                if(extra_throw(unit,(short)extra.hand[h].type,&point,&velocity)){
                     extra.grenade_release_tick=now;
                     extra_pulse(h,.7f,.065f);
                     platform_log("VR physical grenade: released hand=%d type=%d speed=%.2f m/s count=%d",h,extra.hand[h].type,
@@ -1119,7 +1166,16 @@ real vr_combat_hit(long unit,long target,real_point3d const *point,real_vector3d
             (kind->type==_actor_grunt&&extra.lunge_metres>=2.0f)?2.5f:0.0f;
         /* Test66: Elites only by a takedown or a counter; Hunters never */
         if(kind->type==_actor_hunter||(!kind->knocked&&!takedown&&!(extra.strike_counter&&target==extra.countered)))knock=0;
-        if(knock>0&&config_boolean("vr.active_ragdoll")){
+        if(game_connection()==_game_connection_network_client){
+            /* Test73 (10d): a co-op client's knockdown or shove is its
+             * host's to give with the blow (unit_vr_remote_strike): a
+             * knockdown there is a shove at its speed */
+            struct object_definition *definition=object_definition_get(unit_get(target)->definition_index);
+            real mobility=definition&&isfinite(definition->object.acceleration_scale)?PIN(definition->object.acceleration_scale,.2f,1.0f):.5f;
+            real speed=knock>0?MIN(knock,6.0f):PIN(scale,.5f,1.5f)*1.2f*mobility;
+            scale_vector3d(&along,speed*units/(real)TICKS_PER_SECOND,&extra.remote_shove);
+            extra.remote_shove.k=0;extra.remote_shove_tick=now;
+        }else if(knock>0&&config_boolean("vr.active_ragdoll")){
             extra.knock_pending=1;extra.knock_target=target;extra.knock_speed=knock;extra.knock_takedown=takedown;
             extra.knock_dir=along;extra.knock_point=*point;
         }else{
@@ -1136,6 +1192,13 @@ real vr_combat_hit(long unit,long target,real_point3d const *point,real_vector3d
     combat_reaction_direction=along;combat_remember_target();
     extra.lunge_metres=0;extra.strike_counter=0;
     return result;
+}
+boolean vr_combat_take_remote_shove(real_vector3d *shove)
+{
+    boolean current=extra.remote_shove_tick==game_time_get();
+    if(current&&shove)*shove=extra.remote_shove;
+    extra.remote_shove_tick=NONE;
+    return current;
 }
 /* Test66: the damage multiplier of this tick's fist blow (units.c), once */
 real vr_combat_damage_share(void)
@@ -1373,21 +1436,45 @@ static long extra_grenade_model(int type)
     if(grenade->projectile.index==NONE)return NONE;
     return object_definition_get(grenade->projectile.index)->object.model.index;
 }
+/* Test73: GRENADE SIZE, a share of the game's own grenade (1: as thrown) */
+static real extra_grenade_scale(void)
+{
+    return extra_bound("vr.grenade_scale",1.0f,.5f,1.5f);
+}
+/* Test73: how far a held grenade's centre is from the palm, toward the
+ * fingers closing on it: its own size (the projectile's bounding radius, at
+ * GRENADE SIZE), 2.5 to 5 cm. In the palm's middle it was inside the closed
+ * hand, which is drawn in the same depth: hidden (the owner: "visible in
+ * hand") */
+static real extra_grenade_palm_offset(int type)
+{
+    struct game_globals *globals=scenario_get_game_globals();
+    real units=vr_units_per_metre(),radius=.035f*units;
+    if(globals&&type>=0&&type<globals->grenades.count){
+        struct game_globals_grenade *grenade=TAG_BLOCK_GET_ELEMENT(&globals->grenades,type,struct game_globals_grenade);
+        if(grenade->projectile.index!=NONE){
+            real bound=object_definition_get(grenade->projectile.index)->object.bounding_radius;
+            if(isfinite(bound)&&bound>0)radius=bound;
+        }
+    }
+    return PIN(radius*extra_grenade_scale(),.025f*units,.05f*units);
+}
 static void extra_draw_grenade(long unit,int type,real_point3d const *at,real_vector3d const *forward,real_vector3d const *up,long id)
 {
     real_matrix4x3 matrices[MAXIMUM_NODES_PER_MODEL];
     long model_index=extra_grenade_model(type);
     struct model *model;struct render_lighting *lighting;
-    real radius=.06f*vr_units_per_metre(),pixels;
+    real radius=.06f*vr_units_per_metre(),pixels,size=extra_grenade_scale();
     if(model_index==NONE||!valid_real_point3d(at))return;
     model=model_definition_get(model_index);
     if(model->nodes.count<=0||model->nodes.count>MAXIMUM_NODES_PER_MODEL)return;
     model_get_node_matrices(model,matrices,at,forward,up);
     /* Test66: three quarters of the model's size (the owner: "a bit more of
-     * a smaller size"), about its place */
+     * a smaller size"); Test73: GRENADE SIZE, the game's own by default (the
+     * owner: "true size"), about its place */
     for(int n=0;n<model->nodes.count;n++){
-        matrices[n].scale*=.75f;
-        for(int k=0;k<3;k++)matrices[n].position.n[k]=at->n[k]+(matrices[n].position.n[k]-at->n[k])*.75f;
+        matrices[n].scale*=size;
+        for(int k=0;k<3;k++)matrices[n].position.n[k]=at->n[k]+(matrices[n].position.n[k]-at->n[k])*size;
     }
     lighting=object_get_cached_render_lighting(unit,100.0f);
     if(!lighting)return;
@@ -1409,19 +1496,34 @@ static void extra_draw_grenade(long unit,int type,real_point3d const *at,real_ve
  * the slots' grenades, and a held one in the palm, along the hand. */
 void vr_extra_models_render(void)
 {
-    long unit=extra_player(FALSE);real units=vr_units_per_metre();
+    long unit=extra_grenade_player(FALSE);real units=vr_units_per_metre();
     real_point3d camera,slots[2];real_vector3d forward,up;
     up.i=0;up.j=0;up.k=1;
-    if(unit==NONE||!(units>0&&units<10)||!config_boolean("vr.physical_grenades")||!VR_RENDER_EYE())return;
+    if(unit==NONE||!(units>0&&units<10)||!(config_boolean("vr.physical_grenades")||config_boolean("vr.diag_grenade_hand"))||
+        !VR_RENDER_EYE())return;
     if(!vr_render_drawn_camera(camera.n)||!chest_points(unit,&camera,slots)||!chest_forward(&camera,&forward))return;
     for(int type=0;type<2;type++){
         int reserved=(extra.hand[0].held&&extra.hand[0].type==type)+(extra.hand[1].held&&extra.hand[1].type==type);
         if(unit_get_grenade_count(unit,(short)type)>reserved)extra_draw_grenade(unit,type,&slots[type],&forward,&up,0x5B000000+type);
     }
-    for(int h=0;h<2;h++)if(extra.unit==unit&&extra.hand[h].held&&vr_interaction_owner(h)==VR_INTERACTION_GRENADE){
-        real_point3d point,grip;real_vector3d hf,hu;
-        if(extra_grenade_draw_point(unit,h,&camera,&point)&&vr_hand_pose(h,camera.n,grip.n,hf.n,hu.n))
-            extra_draw_grenade(unit,extra.hand[h].type,&point,&hf,&hu,0x5B000010+h);
+    for(int h=0;h<2;h++){
+        int held=extra.unit==unit&&extra.hand[h].held&&vr_interaction_owner(h)==VR_INTERACTION_GRENADE;
+        int type=held?extra.hand[h].type:0;
+        /* Test73: vr.diag_grenade_hand: a frag in the free hand, for the
+         * eye dumps (testing only) */
+        if(!held&&config_boolean("vr.diag_grenade_hand")&&h!=vr_weapon_hand())held=1;
+        if(held){
+            real_point3d point,grip;real_vector3d hf,hu,palm;
+            if(extra_grenade_draw_point(unit,h,&camera,&point)&&vr_hand_pose(h,camera.n,grip.n,hf.n,hu.n)){
+                /* Test73: off the palm toward the fingers closing on it, so
+                 * it is seen in the hand (vr_render.c's palm: forward x up,
+                 * the right hand's the other way) */
+                cross_product3d(&hf,&hu,&palm);
+                if(h==1)scale_vector3d(&palm,-1.0f,&palm);
+                if(normalize3d(&palm)>.5f)point_from_line3d(&point,&palm,extra_grenade_palm_offset(type),&point);
+                extra_draw_grenade(unit,type,&point,&hf,&hu,0x5B000010+h);
+            }
+        }
     }
 }
 /* Original Halo-themed visor glyphs: short solid strokes stay readable in
@@ -1552,7 +1654,7 @@ static int combat_combo_render(long unit,real_point3d const *camera)
 /* Called in the existing per-eye, depth-tested virtual-controls pass. */
 int vr_extra_render(float const camera_position[3])
 {
-    long unit=extra_player(FALSE);real units=vr_units_per_metre();int drawn=0;
+    long unit=extra_grenade_player(FALSE);real units=vr_units_per_metre();int drawn=0;
     real_point3d camera,slots[2];
     if(unit==NONE||!(units>0&&units<10))return 0;
     memcpy(camera.n,camera_position,sizeof(camera.n));

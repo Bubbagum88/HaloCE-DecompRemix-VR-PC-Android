@@ -51,6 +51,11 @@ static struct {
     real user[3]; int head_anchored, comfort, far, far_logged;
     /* Test59: TANK DRIVE: the drive stick's push (forward +) as throttle */
     int drive; float throttle;
+    /* Test73: HAND LOCK: each grip counted (a new one is measured anew); the
+     * holding hand's forward and up in the control's own axes as it took
+     * hold (vr_vehicle_handles_hand_turn), for which grip */
+    int hand_lock, grips[2], locked_grip[2];
+    real lock_forward[2][3], lock_up[2][3];
 } vr_wheel;
 static char const *const vr_wheel_keys[]={"warthog","ghost","scorpion","banshee"};
 /* Test57: each vehicle's own controls. The stock Warthog gets a drawn wheel
@@ -250,6 +255,7 @@ static void vr_wheel_read_user(int kind)
     vr_wheel.steer_haptics=config_boolean("vr.vehicle_steer_haptics");
     vr_wheel.slide=config_boolean("vr.vehicle_banshee_slide");
     vr_wheel.grip_guide=config_boolean("vr.vehicle_grip_guide");
+    vr_wheel.hand_lock=config_boolean("vr.vehicle_hand_lock");
 }
 /* while a frame is drawn: the vehicle as drawn, kept for the input after it */
 static void vr_wheel_drawn_refresh(void)
@@ -499,6 +505,7 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
             float start[2]={local[0],local[1]};
             if(vr_wheel.kind==2) {start[0]=1.0f;start[1]=0.0f;}
             vr_wheel_grip_start(&vr_wheel.grip[h],start,vr_wheel.angle);
+            vr_wheel.grips[h]++; /* Test73: HAND LOCK measures this grip anew */
             vr_wheel.grip_phase[h]=atan2f(local[1],local[0])-vr_wheel.angle;
             vr_wheel.push_start[h]=ahead;
             vr_wheel.side_start[h]=local[0];
@@ -593,6 +600,15 @@ static int vr_vehicle_handles_update(long unit,real_vector3d *forward)
      * degree and a half each side of centre is dead. */
     real steer=fabsf(steered)<=VR_WHEEL_DEAD_ZONE?0:
         (steered-copysignf(VR_WHEEL_DEAD_ZONE,steered))*VR_WHEEL_LOCK/(VR_WHEEL_LOCK-VR_WHEEL_DEAD_ZONE);
+    /* Test73 (the owner: "a bit over sensitive and doesnt really match
+     * where im turning"; "all vehicles should be as responsive and feel good
+     * to use as possible"): each vehicle answers the controls in proportion,
+     * all the way at full lock (vehicle_vr_steering_facing). The Warthog's
+     * wheels turn 30 degrees at most, and a facing 30 degrees off was already
+     * their full lock: the first half of the controls' 60 turned them all the
+     * way, the second half did nothing. The Scorpion never reached its full
+     * turn (90), and the Ghost and Wraith turned hard at the smallest twist */
+    steer=vehicle_vr_steering_facing(vr_wheel.vehicle,steer,VR_WHEEL_LOCK);
     real yaw=vr_yaw(&vr_wheel.simulated_forward)-steer;
     real pitch=vr_wheel.kind==3?vr_wheel.pitch:0;
     forward->i=cosf(yaw)*cosf(pitch);forward->j=sinf(yaw)*cosf(pitch);forward->k=sinf(pitch);
@@ -649,6 +665,72 @@ static int vr_vehicle_handles_hand(int hand,float point[3])
         at=vr_wheel_point(0,radius*cosf(phase),radius*sinf(phase));
     } else at=vr_wheel.target[hand];
     for(int i=0;i<3;i++) { if(!isfinite(at.n[i]))return 0; point[i]=at.n[i]; }
+    return 1;
+}
+/* Test73: the control's own axes as it is turned now: the Warthog's wheel,
+ * the Ghost's handlebar and the Banshee's bar turn about their axis toward
+ * the driver by the steering (vr_wheel_place's ends, the drawn rim); the
+ * drive stick leans about its pivot (along it, across it, and the third) */
+static int vr_wheel_control_axes(real_vector3d axes[3])
+{
+    if(vr_wheel.kind==2) {
+        real length=VR_STICK_LENGTH*vr_units_per_metre()*vr_wheel.scale,along;
+        real_point3d pivot=vr_wheel_point(0,0,-length);
+        vector_from_points3d(&pivot,&vr_wheel.target[0],&axes[2]);
+        if(!(normalize3d(&axes[2])>0.0f))return 0;
+        along=dot_product3d(&vr_wheel.plane_left,&axes[2]);
+        for(int i=0;i<3;i++)axes[0].n[i]=vr_wheel.plane_left.n[i]-axes[2].n[i]*along;
+        if(!(normalize3d(&axes[0])>0.0f))return 0;
+        cross_product3d(&axes[2],&axes[0],&axes[1]);
+    } else {
+        real c=cosf(vr_wheel.angle),s=sinf(vr_wheel.angle);
+        for(int i=0;i<3;i++) {
+            axes[0].n[i]=vr_wheel.plane_left.n[i]*c+vr_wheel.plane_up.n[i]*s;
+            axes[1].n[i]=vr_wheel.plane_up.n[i]*c-vr_wheel.plane_left.n[i]*s;
+            axes[2].n[i]=vr_wheel.normal.n[i];
+        }
+    }
+    for(int a=0;a<3;a++)for(int i=0;i<3;i++)if(!isfinite(axes[a].n[i]))return 0;
+    return 1;
+}
+/* Test73, HAND LOCK (a tester's request: "the hands locked onto the steering
+ * wheels when holding grip"): a hand holding the controls is drawn turned as
+ * it was when it took hold, in the control's own axes, so it turns with the
+ * wheel (and leans with the stick) instead of with the controller; with
+ * vr_vehicle_handles_hand's place, where it took hold, no longer drawn back
+ * toward the controller (vr_render.c). `forward` and `up` come in as the
+ * controller's (unit, at right angles) and go out locked; 0: as they were
+ * (HAND LOCK off, not held, or no axes). The local player's own hands only:
+ * nothing is sent. */
+static int vr_vehicle_handles_hand_turn(int hand,real_vector3d *forward,real_vector3d *up)
+{
+    real_vector3d axes[3],f,u;
+    if(hand<0||hand>1||!vr_wheel.valid||!vr_wheel.hand_lock||!vr_wheel.grip[hand].held||!forward||!up)return 0;
+    vr_wheel_drawn_refresh();
+    if(!vr_wheel_control_axes(axes))return 0;
+    /* the first frame drawn of a grip: how the hand was turned on the control */
+    if(vr_wheel.locked_grip[hand]!=vr_wheel.grips[hand]) {
+        for(int a=0;a<3;a++) {
+            vr_wheel.lock_forward[hand][a]=dot_product3d(forward,&axes[a]);
+            vr_wheel.lock_up[hand][a]=dot_product3d(up,&axes[a]);
+        }
+        vr_wheel.locked_grip[hand]=vr_wheel.grips[hand];
+    }
+    for(int i=0;i<3;i++) {
+        f.n[i]=u.n[i]=0;
+        for(int a=0;a<3;a++) {
+            f.n[i]+=axes[a].n[i]*vr_wheel.lock_forward[hand][a];
+            u.n[i]+=axes[a].n[i]*vr_wheel.lock_up[hand][a];
+        }
+    }
+    /* (kept unit and at right angles) */
+    if(!(normalize3d(&f)>0.5f))return 0;
+    {
+        real dot=dot_product3d(&f,&u);
+        for(int i=0;i<3;i++)u.n[i]-=f.n[i]*dot;
+    }
+    if(!(normalize3d(&u)>0.5f))return 0;
+    *forward=f;*up=u;
     return 1;
 }
 /* Low-poly, solid cockpit geometry, emitted through the engine's depth-tested

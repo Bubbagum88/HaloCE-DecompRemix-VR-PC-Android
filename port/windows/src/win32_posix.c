@@ -588,6 +588,23 @@ int munmap(void *address, size_t length)
 	return 0;
 }
 
+/* Test72: rename as POSIX defines it (halo_windows_file_names.h): a file
+replaces an existing file of the new name; a directory is renamed as the C
+runtime renames it (into a name not taken) */
+int halo_windows_rename_replacing(const char *old_path, const char *new_path)
+{
+	DWORD attributes = GetFileAttributesA(old_path);
+
+	if (attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY))
+	{
+		if (MoveFileExA(old_path, new_path, MOVEFILE_REPLACE_EXISTING))
+			return 0;
+		errno = errno_from_windows_error(GetLastError());
+		return -1;
+	}
+	return rename(old_path, new_path);
+}
+
 int mprotect(void *address, size_t length, int protection)
 {
 	DWORD previous;

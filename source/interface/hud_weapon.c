@@ -53,6 +53,7 @@ symbols in this file:
 /* ---------- headers */
 
 #include "cseries/cseries.h"
+#include "passenger_camera.h" /* port: port/linux/game/passenger_camera.c */
 #include "cseries/errors.h"
 #ifndef HALO_VR
 #include "flat_stereo.h" /* port: Test72, stereo 3D's reticle depth */
@@ -738,6 +739,11 @@ static void hud_update_weapon_local_player(
 		long render_flags = 0;
 		short definition_count = 1;
 		short crosshair_index;
+		/* port: a weapon of one magazine has no secondary ammunition to warn
+		of. Its second magazine (empty) set the secondary states off: "fired
+		secondary with no ammo" at every pull of the trigger, coldsnap's
+		master HUD's NO FUEL beside the weapon's own NO AMMO */
+		boolean const secondary_magazine = weapon_state->magazine_count > 1;
 
 		if (weapon_index != get_hud_state(local_player_index)->last_weapon_index &&
 			weapon_index == NONE)
@@ -780,8 +786,9 @@ static void hud_update_weapon_local_player(
 					result = weapon_state->magazines[0].can_fire;
 					break;
 
+				/* port: (secondary_magazine) */
 				case _crosshair_state_secondary_trigger_ready:
-					result = weapon_state->magazines[1].can_fire;
+					result = secondary_magazine && weapon_state->magazines[1].can_fire;
 					break;
 
 				case _crosshair_state_aim:
@@ -866,33 +873,42 @@ static void hud_update_weapon_local_player(
 						weapon_state->magazines[0].rounds_loaded <= root_definition->flash_cutoffs.loaded_ammo;
 					break;
 
+				/* port: (secondary_magazine) */
 				case _crosshair_state_flash_secondary_ammo:
-					result = (weapon_state->magazines[1].rounds_remaining || weapon_state->magazines[1].rounds_loaded) &&
+					result = secondary_magazine &&
+						(weapon_state->magazines[1].rounds_remaining || weapon_state->magazines[1].rounds_loaded) &&
 						weapon_state->magazines[1].rounds_remaining &&
 						weapon_state->magazines[1].rounds_loaded <= root_definition->flash_cutoffs.loaded_ammo;
 					break;
 
+				/* port: these two read a weapon of one magazine's missing second
+				as empty, flashing it and showing it fired empty at each pull */
 				case _crosshair_state_flash_secondary_total_ammo:
-					result = weapon_state->magazines[1].rounds_remaining <=
+					result = weapon_state->magazine_count > 1 &&
+						weapon_state->magazines[1].rounds_remaining <=
 							root_definition->flash_cutoffs.total_ammo &&
 						!weapon_state->magazines[1].reloading;
 					break;
 
+				/* port: (secondary_magazine) */
 				case _crosshair_state_secondary_reload:
-					result = weapon_state->magazines[1].reloading;
+					result = secondary_magazine && weapon_state->magazines[1].reloading;
 					break;
 
 				case _crosshair_state_fired_secondary_with_no_ammo:
 					/* January (T+0x3b7 shared tail `test ch,8`) and the later /Od build (0x638a07
 					   `and edx,0x800`) both test the primary trigger for this secondary state. */
-					result = (!weapon_state->magazines[1].rounds_loaded &&
+					result = weapon_state->magazine_count > 1 &&
+						((!weapon_state->magazines[1].rounds_loaded &&
 							!weapon_state->magazines[1].rounds_remaining &&
 							TEST_FLAG(unit->unit.control_flags, _unit_control_weapon_primary_trigger_bit)) ||
-						state->value.reference_data != NONE;
+						state->value.reference_data != NONE);
 					break;
 
+				/* port: (secondary_magazine) */
 				case _crosshair_state_flash_secondary_ammo_none_for_reload:
-					result = (weapon_state->magazines[1].rounds_remaining || weapon_state->magazines[1].rounds_loaded) &&
+					result = secondary_magazine &&
+						(weapon_state->magazines[1].rounds_remaining || weapon_state->magazines[1].rounds_loaded) &&
 						!weapon_state->magazines[1].rounds_remaining &&
 						weapon_state->magazines[1].rounds_loaded <= root_definition->flash_cutoffs.loaded_ammo;
 					break;
@@ -978,6 +994,9 @@ static void crosshairs_draw(
 	int vr_crosshair_capture = 0;
 #endif
 
+	/* port: project the passenger's shot once for all pieces of its reticle */
+	if (!passenger_camera_reticle_begin(player->local_player_index, weapon_index))
+		return;
 	csmemset(
 		stack_buffer,
 		0x62,
@@ -1348,6 +1367,8 @@ static void crosshairs_draw(
 	if (vr_crosshair_capture > 0)
 		halo_vr_crosshair_end();
 #endif
+	/* port: other HUD elements keep their ordinary anchors */
+	passenger_camera_reticle_end();
 	match_assert_stack_frame("c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x4E2);
 	return;
 }
@@ -1490,33 +1511,43 @@ static void render_weapon_hud(
 			local_player_count() > 1);
 		state_flags[3] = flags;
 
-		flags = state_flags[4];
-		SET_FLAG(
-			flags,
-			_hud_draw_flashing_bit,
-			weapon_state->magazines[1].rounds_remaining <= cutoffs->total_ammo);
-		SET_FLAG(
-			flags,
-			_hud_draw_disabled_bit,
-			weapon_state->magazines[1].rounds_remaining == 0);
-		SET_FLAG(
-			flags,
-			_hud_draw_in_multiplayer_bit,
-			local_player_count() > 1);
-		state_flags[4] = flags;
+		/* port: a weapon of one magazine has no secondary ammunition, so
+		nothing of it flashes or shows empty (the overlays below likewise) */
+		if (weapon_state->magazine_count > 1)
+		{
+			flags = state_flags[4];
+			SET_FLAG(
+				flags,
+				_hud_draw_flashing_bit,
+				weapon_state->magazines[1].rounds_remaining <= cutoffs->total_ammo);
+			SET_FLAG(
+				flags,
+				_hud_draw_disabled_bit,
+				weapon_state->magazines[1].rounds_remaining == 0);
+			SET_FLAG(
+				flags,
+				_hud_draw_in_multiplayer_bit,
+				local_player_count() > 1);
+			state_flags[4] = flags;
 
-		flags = state_flags[5];
-		SET_FLAG(
-			flags,
-			_hud_draw_flashing_bit,
-			weapon_state->magazines[1].rounds_loaded <= cutoffs->loaded_ammo &&
-				!weapon_state->magazines[1].reloading);
-		SET_FLAG(flags, _hud_draw_disabled_bit, FALSE);
-		SET_FLAG(
-			flags,
-			_hud_draw_in_multiplayer_bit,
-			local_player_count() > 1);
-		state_flags[5] = flags;
+			flags = state_flags[5];
+			SET_FLAG(
+				flags,
+				_hud_draw_flashing_bit,
+				weapon_state->magazines[1].rounds_loaded <= cutoffs->loaded_ammo &&
+					!weapon_state->magazines[1].reloading);
+			SET_FLAG(flags, _hud_draw_disabled_bit, FALSE);
+			SET_FLAG(
+				flags,
+				_hud_draw_in_multiplayer_bit,
+				local_player_count() > 1);
+			state_flags[5] = flags;
+		}
+		else
+		{
+			state_flags[4] = local_player_count() > 1 ? FLAG(_hud_draw_in_multiplayer_bit) : 0;
+			state_flags[5] = state_flags[4];
+		}
 
 		for (state_index = 0;
 			state_index < NUMBER_OF_WEAPON_HUD_FLASH_REFERENCES;
@@ -1624,7 +1655,9 @@ static void render_weapon_hud(
 		SET_FLAG(flags, _weapon_overlay_on_always_bit, TRUE);
 		overlay_flags[3] = flags;
 
-		flags = overlay_flags[0];
+		/* port: the secondary magazine's overlays are 4 and 5, as its states
+		and numbers are: these wrote over the primary's 0 and 1 */
+		flags = overlay_flags[4];
 		SET_FLAG(
 			flags,
 			_weapon_overlay_on_flashing_bit,
@@ -1643,9 +1676,9 @@ static void render_weapon_hud(
 			_weapon_overlay_on_default_bit,
 			flags == 0);
 		SET_FLAG(flags, _weapon_overlay_on_always_bit, TRUE);
-		overlay_flags[0] = flags;
+		overlay_flags[4] = flags;
 
-		flags = overlay_flags[1];
+		flags = overlay_flags[5];
 		SET_FLAG(
 			flags,
 			_weapon_overlay_on_flashing_bit,
@@ -1663,7 +1696,11 @@ static void render_weapon_hud(
 			_weapon_overlay_on_default_bit,
 			flags == 0);
 		SET_FLAG(flags, _weapon_overlay_on_always_bit, TRUE);
-		overlay_flags[1] = flags;
+		overlay_flags[5] = flags;
+		/* port: a weapon without a second magazine draws none of its overlays,
+		as the Xbox never set these (its states above none either) */
+		if (weapon_state->magazine_count < 2)
+			overlay_flags[4] = overlay_flags[5] = 0;
 
 		number_values[0] = weapon_state->magazines[0].rounds_remaining;
 		number_values[1] = weapon_state->magazines[0].rounds_loaded;

@@ -156,6 +156,10 @@ random_seed_debug_log(
 unsigned long get_number_suitable_for_initializing_random_seed(
 	void)
 {
+	/* port (Test73): debug.fixed_step, a game that plays the same every time,
+	its effects' and particles' (local) random numbers too */
+	if (halo_fixed_step())
+		return 0x5EED5EEDUL;
 	return system_seconds()^system_milliseconds()^rand();
 }
 

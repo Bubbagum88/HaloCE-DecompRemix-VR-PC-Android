@@ -66,7 +66,10 @@ tick = body(extra, "void vr_extra_tick(long unit)")
 assert "vr_render_palm_point(h,unit,palm.n)" in tick and "nearest<=.15f*units" in tick  # (Test72: 15 cm)
 assert 'not taken by hand %d: %.1f cm from the %s slot (reach 15 cm)%s' in tick
 models = body(extra, "void vr_extra_models_render(void)")
-assert "extra_draw_grenade(unit,type,&slots[type]" in models and "extra_draw_grenade(unit,extra.hand[h].type,&point,&hf,&hu" in models
+assert "extra_draw_grenade(unit,type,&slots[type]" in models and "extra_draw_grenade(unit,type,&point,&hf,&hu" in models
+# (Test73: the held one off the palm toward the fingers, by its own size: seen in the hand; GRENADE SIZE)
+assert "point_from_line3d(&point,&palm,extra_grenade_palm_offset(type),&point);" in models
+assert "int type=held?extra.hand[h].type:0;" in models
 assert "return object_definition_get(grenade->projectile.index)->object.model.index;" in extra
 assert "render_model(model_index,pixels,matrices,NULL,colors,functions,lighting,at,radius,NULL,id,0,0);" in extra
 assert render_objects.index("vr_manual_reload_debris_render();") < render_objects.index("vr_extra_models_render();")
@@ -106,7 +109,7 @@ assert "int vr_calibration_shown(int mask)" in frame
 
 # 7. ONE-HAND HEAVIES and the owner's defaults
 assert 'if(unit && config_boolean("vr.npc_one_hand_heavy")) *hands=1;' in npc
-assert '{ "vr.npc_one_hand_heavy", _config_boolean, "false",' in config
+assert '{ "vr.npc_one_hand_heavy", _config_boolean, "true",' in config  # Test73 (item 10h): on by default
 assert '{ "vr.npc_one_hand_heavy", "vr.npc_interaction", FALSE },' in menu
 for key, value in (("vr.wallrun_speed", "1.5"), ("vr.walljump_scale", "1.5"), ("vr.grenade_throw_scale", "1.5"),
                    ("vr.climb_launch_scale", "1.0"), ("vr.wallrun_duration", "2.0")):

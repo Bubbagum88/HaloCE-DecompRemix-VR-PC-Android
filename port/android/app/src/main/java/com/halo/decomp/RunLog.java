@@ -31,7 +31,17 @@ final class RunLog {
             .format(new Date()) + "_" + android.os.Process.myPid() + ".txt";
         String failure = null;
         try {
-            if (Build.VERSION.SDK_INT >= 29) {
+            // Test73: the Steam Frame (Lepton) empties the app's folders and has no
+            // Downloads provider: the logs go beside the game's data in the SteamOS
+            // user's Documents (Lepton.dataRoot), which stay
+            File lepton = Lepton.running() ? Lepton.dataRoot() : null;
+            if (lepton != null) {
+                File folder = new File(lepton, "logs");
+                folder.mkdirs();
+                publicFile = ParcelFileDescriptor.open(new File(folder, name),
+                    ParcelFileDescriptor.MODE_CREATE | ParcelFileDescriptor.MODE_APPEND | ParcelFileDescriptor.MODE_WRITE_ONLY);
+                destination = new File(folder, name).getAbsolutePath();
+            } else if (Build.VERSION.SDK_INT >= 29) {
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.Downloads.DISPLAY_NAME, name);
                 values.put(MediaStore.Downloads.MIME_TYPE, "text/plain");
@@ -53,7 +63,8 @@ final class RunLog {
                 publicFile = ParcelFileDescriptor.open(new File(folder, name),
                     ParcelFileDescriptor.MODE_CREATE | ParcelFileDescriptor.MODE_APPEND | ParcelFileDescriptor.MODE_WRITE_ONLY);
             }
-            destination = "Download/HaloCE/" + name;
+            if (lepton == null)
+                destination = "Download/HaloCE/" + name;
         } catch (Exception e) {
             failure = e.toString();
             try {

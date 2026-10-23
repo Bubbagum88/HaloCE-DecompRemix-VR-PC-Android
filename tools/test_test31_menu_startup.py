@@ -182,6 +182,11 @@ boolean rasterizer_bitmap_new(struct bitmap_data *bitmap){bitmap_count++;bitmap-
 void rasterizer_bitmap_delete(struct bitmap_data *bitmap){assert(bitmap->hardware_format);bitmap->hardware_format=NULL;bitmap_count--;}
 void halo_menus_art_register(void const *texture,char const *png){assert(texture&&png);}
 void halo_menus_art_forget(void){}
+/* (OpenCE 244: the menus' text from a Custom Edition loc.map, none here) */
+struct custom_edition_string_list;
+boolean custom_edition_locale_open(void){return FALSE;}
+void custom_edition_locale_close(void){}
+struct custom_edition_string_list *custom_edition_locale_strings(char const *name){(void)name;return NULL;}
 static void fixture(void){long i,j;assert(NUMBEROF(stock_description)<512);for(i=0;i<NUMBEROF(stock_description);i++){
  stock_instances[i].group_tag=stock_description[i].group;stock_instances[i].tag_index=(1L<<16)|i;
  stock_instances[i].parent_group_tags[0]=stock_instances[i].parent_group_tags[1]=NONE;

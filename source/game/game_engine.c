@@ -571,6 +571,7 @@ symbols in this file:
 #include "network_coop.h" /* port: port/linux/game/network_coop.c */
 #include "network_votekick.h" /* port: port/linux/game/network_votekick.c */
 #include "network_voice.h" /* port: port/linux/game/network_voice.c */
+#include "network_chat.h" /* port: port/linux/game/network_chat.c */
 /* (network_server_manager_internal.h's: the host's game record) */
 struct network_game *network_game_server_get_game(struct network_game_server *server);
 #include "objects.h"
@@ -593,6 +594,7 @@ struct network_game *network_game_server_get_game(struct network_game_server *se
 #include "units/bipeds.h"
 #include "units/units.h"
 #include "custom_edition_cache.h" /* port: port/linux/game/custom_edition_cache.c */
+#include "latency_meter.h" /* port: port/linux/game/latency_meter.c */
 #include "mcc_cache.h"
 #include "mcc_objects.h"
 #include "mcc_player.h"
@@ -1873,8 +1875,9 @@ static boolean scoreboard_team_columns(
 /* a network game's scoreboard picks players with the mouse
 (halo_scoreboard_pointer_update: a right click frees it): a player's name
 picked opens a menu of what may be done to them, the players' vote to kick
-them (network_votekick.c), muting their voice (network_voice.c), and the
-host's Kick and Ban, Ban picked twice */
+them (network_votekick.c), muting their voice and text chat on this
+machine (network_voice.c, network_chat.c), and the host's Mute for everyone
+(network_chat.c), Kick and Ban, Ban picked twice */
 enum
 {
 	_scoreboard_item_vote,
@@ -1882,6 +1885,7 @@ enum
 	game_engine_vote_reason) */
 	_scoreboard_item_vote_ban,
 	_scoreboard_item_mute,
+	_scoreboard_item_host_mute,
 	_scoreboard_item_kick,
 	_scoreboard_item_ban,
 	_scoreboard_item_cancel,
@@ -1949,20 +1953,26 @@ static void scoreboard_menu_items(
 		}
 #endif
 	}
-	/* (its machine's voice: this machine's own choice) */
+	/* (its machine's voice and text chat lines: this machine's own choice) */
 	{
 		struct player_datum *player = player_try_and_get(scoreboard_menu.player_index);
 
-		if (player && network_voice_available())
+		if (player)
 		{
 			offered[_scoreboard_item_mute] = TRUE;
 			usprintf(labels[_scoreboard_item_mute],
-				network_voice_machine_muted(player->network_player_data.machine_index) ? L"Unmute voice" :
-					L"Mute voice");
+				network_voice_machine_muted(player->network_player_data.machine_index) ? L"Unmute voice and chat" :
+					L"Mute voice and chat");
 		}
 	}
 	if (network_votekick_host())
 	{
+		/* (the host's mute of their voice and lines, for every machine:
+		network_chat.c) */
+		offered[_scoreboard_item_host_mute] = TRUE;
+		usprintf(labels[_scoreboard_item_host_mute],
+			network_chat_host_mute_minutes((short)DATUM_INDEX_TO_ABSOLUTE_INDEX(scoreboard_menu.player_index)) ?
+				L"Unmute for everyone" : L"Mute for everyone");
 		offered[_scoreboard_item_kick] = TRUE;
 		offered[_scoreboard_item_ban] = TRUE;
 		usprintf(labels[_scoreboard_item_kick], L"Kick");
@@ -2245,6 +2255,9 @@ static void scoreboard_menu_pick(
 		}
 		break;
 	}
+	case _scoreboard_item_host_mute:
+		network_chat_host_mute(player_index, !network_chat_host_mute_minutes(player_index));
+		break;
 	case _scoreboard_item_kick:
 		network_votekick_host_kick(player_index, FALSE);
 		break;
@@ -2539,6 +2552,8 @@ static void game_engine_rasterize_scoreboard(
 		struct player_datum *player;
 		wchar_t *status_string;
 		real_argb_color *row_color;
+		long ping = NONE;
+		boolean ping_colored;
 
 		if (row >= rows || position >= list_counts[list])
 			continue;
@@ -2561,7 +2576,9 @@ static void game_engine_rasterize_scoreboard(
 		ping_string[0] = 0;
 		if (network)
 		{
-			long ping = distributed_player_ping((short)DATUM_INDEX_TO_ABSOLUTE_INDEX(entry->player_index));
+			/* port: as this machine times it, with the latency meter on
+			(latency_meter.c); else the host's measure, as before */
+			ping = latency_meter_player_ping((short)DATUM_INDEX_TO_ABSOLUTE_INDEX(entry->player_index));
 
 			/* (three digits at most: its column's width) */
 			if (ping == NONE)
@@ -2571,6 +2588,9 @@ static void game_engine_rasterize_scoreboard(
 			else
 				usprintf(ping_string, L"%ld", ping);
 		}
+		/* port: with the latency meter on, a known ping is drawn on its own,
+		in the meter's colour for it (display.latency_meter) */
+		ping_colored = ping != NONE && latency_meter_shown();
 		usnprintf(
 			row_string,
 			NUMBEROF(row_string),
@@ -2578,7 +2598,7 @@ static void game_engine_rasterize_scoreboard(
 			campaign ? L"" : get_place_string(entry),
 			player->name,
 			status_string,
-			ping_string);
+			ping_colored ? L"" : ping_string);
 		row_string[NUMBEROF(row_string) - 1] = 0;
 		row_color = has_teams ? &team_colors[PIN(player->team_index, 0, 1)] : &color;
 		/* port: a player talking (or muted) in voice chat, its speaker just
@@ -2651,6 +2671,23 @@ static void game_engine_rasterize_scoreboard(
 			top,
 			(short)(left + column * (SCOREBOARD_COLUMN_WIDTH + SCOREBOARD_COLUMN_GAP)),
 			TRUE);
+		if (ping_colored)
+		{
+			real_argb_color ping_color;
+
+			latency_meter_color(ping, &ping_color);
+			ping_color.alpha = alpha;
+			usnprintf(row_string, NUMBEROF(row_string), L"\t\t\t\t%s", ping_string);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+			scoreboard_draw_row(
+				row_string,
+				FALSE,
+				&ping_color,
+				2 + row,
+				top,
+				(short)(left + column * (SCOREBOARD_COLUMN_WIDTH + SCOREBOARD_COLUMN_GAP)),
+				TRUE);
+		}
 	}
 	/* (where the scroll is, and how to move it) */
 	if (total > page)
@@ -4421,6 +4458,14 @@ boolean game_variant_options_valid(struct game_variant_options const *o)
     return TRUE;
 }
 
+/* port: whether a game is being played: one of no game engine's (the
+campaign, co-op), or its game not over (port/linux/game/latency_meter.c) */
+boolean game_engine_in_play(
+	void)
+{
+	return game_engine == NULL || game_engine_globals.postgame_state == game_engine_mode_active;
+}
+
 void game_variant_options_default(
 	struct game_variant const *variant,
 	struct game_variant_options *options)
@@ -5474,6 +5519,12 @@ void game_engine_player_killed(
 			message = _game_engine_message_double_kill;
 		else if (killing_player->statistics.kills_in_a_row == 5)
 			message = _game_engine_message_five_kills_in_row;
+		/* port: none in a row is no spree. A network client's copy of the
+		killer's statistics can have this kill credited to no one, or to
+		someone else, before the host's statistics come (the Xbox's credited
+		the killer here, so never had none): Running Riot was announced */
+		else if (killing_player->statistics.kills_in_a_row <= 0)
+			message = _game_engine_message_killed_enemy;
 		else
 		{
 			message = (killing_player->statistics.kills_in_a_row % 5)
@@ -5876,6 +5927,30 @@ void game_engine_clear_goal_position(
 	if (!VALID_INDEX(goal_index, NUMBEROF(global_goal)))
 		return;
 	csmemset(&global_goal[goal_index], 0, sizeof(struct netgame_goal));
+
+	return;
+}
+
+/* port: a flag or ball deleted on a client of the distributed netcode, on
+the host's word (port/linux/game/network_objects.c): the goals its game
+type's objective_weapon_update set at it each tick, which nothing else
+clears (ctf: its team's, and its carrier's goal; oddball: its team's) */
+void game_engine_objective_weapon_deleted(
+	long weapon_index)
+{
+	short team_index = weapon_get(weapon_index)->object.owner_team_index;
+
+	if (!game_engine || team_index == NONE)
+		return;
+	if (global_variant.game_engine_index == game_engine_ctf)
+	{
+		game_engine_clear_goal_position(team_index);
+		game_engine_clear_goal_position(team_index + 2);
+	}
+	else if (global_variant.game_engine_index == game_engine_oddball)
+	{
+		game_engine_clear_goal_position(team_index);
+	}
 
 	return;
 }
@@ -6599,7 +6674,9 @@ struct game_variant *build_game_variant_oddball(
 struct game_variant *build_game_variant_team_oddball(
 	struct game_variant *variant)
 {
-	struct game_variant result;
+	/* port: cleared, as every other builder's is: only some of its fields
+	are set below, and the rest were the stack's */
+	struct game_variant result = { 0 };
 
 	SET_FLAG(result.universal_variant.flags, _game_variant_draw_object_in_motion_sensor_bit, TRUE);
 	SET_FLAG(result.universal_variant.flags, _game_variant_allow_friendly_navpoints_bit, TRUE);
@@ -7950,15 +8027,26 @@ short game_engine_friendly_damage(
 
 	/* port: network co-op's friendly fire is Server Setup's FRIENDLY FIRE,
 	in the host's game settings (only the host deals damage), between its
-	players: their AI allies they always hurt, as in the campaign */
+	players. Each player also has a choice of their own
+	(network_coop_players_friendly_fire). Their AI allies they hurt as in the
+	campaign, or not at all with Server Setup's ALLY FRIENDLY FIRE off
+	(network_coop_ally_friendly_fire), so that no player can kill the allies
+	a level needs; the AI's own hits of its allies are the game's own */
 	if (network_coop_active())
 	{
 		struct network_game *game = network_game_get_game();
 		struct unit_datum *unit = (struct unit_datum *)object_try_and_get_and_verify_type(object_index,
 			_object_mask_unit);
 
-		if (!game || !unit || unit->unit.player_index == NONE)
+		if (!game || !unit)
 			return _friendly_damage_all;
+		if (unit->unit.player_index == NONE)
+		{
+			return attacker_player_index != NONE && !network_coop_ally_friendly_fire() ?
+				_friendly_damage_none : _friendly_damage_all;
+		}
+		if (!network_coop_players_friendly_fire(attacker_player_index, unit->unit.player_index))
+			return _friendly_damage_none;
 		friendly_fire = game->variant_options.friendly_fire;
 	}
 	else if (!game_engine || !global_variant.universal_variant.teams)

@@ -35,6 +35,7 @@ debug.memory_watch to choose page protection or page hashes.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/system_properties.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -270,6 +271,53 @@ void host_android_path(int which, char *buffer, uint32_t size)
 #define SHARED_DATA_ROOT "/sdcard/Documents/HaloCE"
 #endif
 
+/* Test73, the Steam Frame: whether this runs in Lepton, SteamOS's Android container (its launch's app id, its host
+user, its app container flag, or its build's model, or maker before Lepton 3: Lepton.java tells it the same way;
+Lepton 3's compat_tool/liblepton/properties.sh says model "Lepton", maker "Valve") */
+int host_lepton_running(void)
+{
+	char value[PROP_VALUE_MAX] = "";
+
+	if (__system_property_get("lepton.app_id", value) > 0 && value[0])
+		return 1;
+	if (__system_property_get("waydroid.host.user", value) > 0 && value[0])
+		return 1;
+	if (__system_property_get("ro.steam.running_in_app_container", value) > 0 && !strcmp(value, "true"))
+		return 1;
+	if (__system_property_get("ro.product.model", value) > 0 && !strcasecmp(value, "Lepton"))
+		return 1;
+	return __system_property_get("ro.product.manufacturer", value) > 0 && !strcasecmp(value, "Lepton");
+}
+
+/* ... and there, the game's data folder: Lepton empties the app's own storage whenever it starts again, and
+Android 11's scoped storage keeps an app out of /sdcard/Documents, so the SteamOS user's Documents, bind-mounted at
+its host path, holds the data, settings, saves and logs (Lepton.dataRoot, the same folder); NULL if it cannot be
+written. Not "HaloCE": ringfall-mjolnir-vr's installer takes ~/Documents/HaloCE over. */
+static const char *lepton_data_root(void)
+{
+	static char root[256];
+	char user[PROP_VALUE_MAX] = "";
+	size_t index;
+
+	if (__system_property_get("waydroid.host.user", user) <= 0 || !user[0])
+		snprintf(user, sizeof(user), "steamos");
+	for (index = 0; user[index]; index++)
+	{
+		char c = user[index];
+
+		/* (a plain name only, as Lepton.hostUser) */
+		if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' ||
+			(index > 0 && (c == '.' || c == '-'))) || index >= 32)
+		{
+			snprintf(user, sizeof(user), "steamos");
+			break;
+		}
+	}
+	snprintf(root, sizeof(root), "/home/%s/Documents/HaloCEQuestVR", user);
+	mkdir(root, 0775);
+	return access(root, W_OK) == 0 ? root : NULL;
+}
+
 static int directory_has_maps(const char *root)
 {
 	char path[600];
@@ -453,6 +501,14 @@ static void *game_main(void *unused)
 	if (directory_has_maps(SHARED_DATA_ROOT))
 		snprintf(data_root, sizeof(data_root), "%s", SHARED_DATA_ROOT);
 #endif
+	/* (Test73: the Steam Frame's, as the launcher chose it: LauncherActivity.baseRoot) */
+	if (host_lepton_running())
+	{
+		const char *lepton = lepton_data_root();
+
+		if (lepton)
+			snprintf(data_root, sizeof(data_root), "%s", lepton);
+	}
     {
         char selected[sizeof(data_root)];
         int profile=halo_game_data_profile(data_root,selected,sizeof(selected));

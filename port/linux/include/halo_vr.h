@@ -18,6 +18,10 @@ eye only.
 #define __HALO_VR_H
 
 #ifdef HALO_VR
+/* Test73: the game clock's step this pass of the main loop, from the
+headset's display times (main_update_time_unthrottled; vr_frame.c); 0 to time
+it as usual */
+int vr_frame_seconds(double *seconds);
 boolean vr_render_script_message(char const *message);
 void vr_render_reset_vehicle_view(void);
 void vr_render_reset_contacts(void);

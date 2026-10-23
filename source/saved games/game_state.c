@@ -100,6 +100,7 @@ symbols in this file:
 #include "real_math.h"
 #include "console.h"
 #include "game_state.h"
+#include "coop_vehicles.h" /* port: preserve replacement-vehicle homes across reverts */
 #include "game.h"
 #include "tag_files.h"
 #include "cache_files.h"
@@ -110,6 +111,7 @@ symbols in this file:
 #include "vr_world_interaction.h"
 #include "vr_interaction_impact.h"
 #include "vr_world_props.h"
+#include "vr_bullet_time.h" /* port (Test73): port/linux/game/vr_bullet_time.c */
 #ifdef HALO_VR
 #include "vr_manual_reload.h"
 #include "vr_npc_rescue.h"
@@ -201,6 +203,8 @@ typedef void (*game_state_before_save_proc)(void);
 static game_state_before_save_proc before_save_procs[] =
 {
 	dummy,
+	/* port: the host's vehicle home table follows the saved object handles. */
+	coop_vehicles_before_save,
 };
 
 static game_state_before_load_proc before_load_procs[] =
@@ -228,7 +232,9 @@ static game_state_after_load_proc after_load_procs[] =
 	game_state_set_revert_time,
 	player_control_fix_for_loaded_game_state,
 	director_initialize_for_saved_game,
-	scripted_hud_messages_clear
+	scripted_hud_messages_clear,
+	/* port: restore matching homes or forget an unrelated disk/core load. */
+	coop_vehicles_after_load
 };
 
 /* ---------- public code */
@@ -297,6 +303,11 @@ static void game_state_call_after_load_procs(
 {
 	game_state_after_load_proc *proc = after_load_procs;
 	long i;
+	/* port (Test73): a saved game taken starts with BULLET TIME off, at the
+	game's own speed; one an earlier build's BULLET TIME left slowed is put
+	back (game_time_after_load) */
+	vr_bullet_time_reset();
+	game_time_after_load();
 	vr_npc_interaction_reset();
 	vr_world_interaction_remote_reset();
 	vr_interaction_impact_reset();
@@ -591,8 +602,10 @@ static boolean game_state_header_valid(
 	{
 		valid = TRUE;
 	}
-	/* port: why a saved game is not loaded, for the log */
-	if (!valid)
+	/* port: why a saved game is not loaded, for the log (not at the main
+	menu, whose map checks the profile's saved game at every start and never
+	takes it: a line each time that said nothing) */
+	if (!valid && csstrcmp(tag_name_strip_path(tag_get_name(global_scenario_index)), "ui"))
 	{
 		error(_error_silent, "the saved game is not taken: its header is of map '%s' (this is '%s'), allocations %08lx (%08lx), %d players (%d), map checksum %08lx (%08lx)",
 			header->map_name, tag_get_name(global_scenario_index),

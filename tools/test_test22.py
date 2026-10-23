@@ -113,7 +113,7 @@ typedef union { real n[3]; struct { real i,j,k; }; } real_vector3d;
 typedef struct { real scale; real_vector3d forward, left, up; real_point3d position; } real_matrix4x3;
 struct object_header_block_reference { long size; long offset; };
 struct object_datum { struct { real_vector3d forward; struct object_header_block_reference node_matrices; } object; };
-static struct { struct { long vehicle_index, unit_index; short seat_index; real heading, offset; } seat; } vr_render;
+static struct { struct { long vehicle_index, unit_index; short seat_index; real heading, offset; boolean driver, gunner; } seat; } vr_render; /* (Test73: the role: a passenger's eyes are held too) */
 static struct object_datum vehicle; static real_matrix4x3 drawn[1], simulated[1]; static int interpolating = 1;
 static double now_time;
 static struct object_datum *object_try_and_get(long i){return i==5 ? &vehicle : NULL;}
@@ -125,8 +125,8 @@ static real vr_units_per_metre(void){return 3.2808f;}
 static real vr_yaw(real_vector3d const *v){return atan2f(v->j, v->i);}
 /* Test61: the immersive vehicle controls hold the seat's eyes still */
 static int steady_lock; static int vr_vehicle_handles_steady(void){return steady_lock;}
-static int strays_logged; static void platform_log(char const *f, ...){ if(strstr(f,"strayed")) strays_logged++; }
-''' + fn(render, 'vr_seat_frame_heading') + fn(render, 'vr_seat_steady_anchor') + r'''
+static int strays_logged, retakes_logged; static void platform_log(char const *f, ...){ if(strstr(f,"strayed")) strays_logged++; if(strstr(f,"taken to the head marker")) retakes_logged++; }
+''' + ''.join(re.search(r'^#define %s .*\n' % name, render, re.M)[0] for name in ('VR_PASSENGER_SETTLE_SECONDS', 'VR_SEAT_STRAY_RETAKE_SECONDS')) + fn(render, 'vr_seat_frame_heading') + fn(render, 'vr_seat_steady_anchor') + r'''
 static void pose(real_matrix4x3 *m, real yaw, real pitch, real x, real y, real z){
  real cy=cosf(yaw), sy=sinf(yaw), cp=cosf(pitch), sp=sinf(pitch);
  m->scale=1; m->forward.i=cy*cp; m->forward.j=sy*cp; m->forward.k=sp;
@@ -137,7 +137,7 @@ static real_point3d place(real_matrix4x3 const *m, real f, real l, real u){
  real_point3d p; for(int a=0;a<3;a++)p.n[a]=m->position.n[a]+m->forward.n[a]*f+m->left.n[a]*l+m->up.n[a]*u; return p;}
 int main(void){
  vehicle.object.node_matrices.size=(long)sizeof(real_matrix4x3);
- vr_render.seat.vehicle_index=5; vr_render.seat.unit_index=7; vr_render.seat.seat_index=0;
+ vr_render.seat.vehicle_index=5; vr_render.seat.unit_index=7; vr_render.seat.seat_index=0; vr_render.seat.driver=1; /* (a driver, as before Test73) */
  /* a seat held still in the vehicle: the anchor rides the drawn vehicle exactly, however it moves and turns */
  real worst=0;
  for(int n=0;n<2000;n++){
@@ -181,7 +181,42 @@ int main(void){
      static real first3[3]; if(n==0)memcpy(first3,l3,sizeof l3);
      for(int k=0;k<3;k++){real d=fabsf(l3[k]-first3[k]); if(d>drift)drift=d;} } }
   assert(drift<1e-3f && strays_logged==1);
+  /* Test73: the owner's 10-18 Scorpion: the controls' settling cap held the eyes mid-climb, and the head marker
+   * stayed 110 cm away (down 81, back 45, left 61 cm) for minutes. Away for three seconds, the eyes are eased
+   * there (logged once) and held again; a 1.5 s stray (above) still never is */
+  { real_point3d first, a; int n; retakes_logged=0;
+   for(n=0;n<72*8;n++){
+    now_time=400+n/72.0; pose(&drawn[0], 0.3f, 0, 10, 20, 1);
+    real moved=n>=36?1.0f:0.0f;
+    real_point3d head=place(&drawn[0],0.2f-0.45f*3.2808f*moved,0.1f-0.61f*3.2808f*moved,0.6f-0.81f*3.2808f*moved);
+    a=head; vr_seat_steady_anchor(&a);
+    if(n==0)first=a;
+    /* held for the first three seconds of it */
+    if(n>=36&&n<36+72*3-2) for(int k=0;k<3;k++)assert(fabsf(a.n[k]-first.n[k])<1e-3f);
+    /* at the seat's place by the end */
+    if(n==72*8-1) for(int k=0;k<3;k++)assert(fabsf(a.n[k]-head.n[k])<0.02f*3.2808f);
+   }
+   assert(retakes_logged==1);
+   /* and held there again: the marker leaning 8 cm with the steering moves them not */
+   real_point3d settled=a; real drift2=0;
+   for(n=0;n<144;n++){
+    now_time=400+8.0+n/72.0; pose(&drawn[0], 0.3f, 0, 10, 20, 1);
+    real b=0.08f*3.2808f*sinf(2*_pi*1.5f*n/72.0f);
+    real_point3d head=place(&drawn[0],0.2f-0.45f*3.2808f,0.1f-0.61f*3.2808f+b,0.6f-0.81f*3.2808f); a=head;
+    vr_seat_steady_anchor(&a); for(int k=0;k<3;k++){real d=fabsf(a.n[k]-settled.n[k]); if(d>drift2)drift2=d;} }
+   assert(drift2<0.03f*3.2808f && retakes_logged==1); }
   steady_lock=0; }
+ /* Test73: a passenger (no controls up): eased while the seat is entered, held after 1.5 s, so its animations
+  * move the eyes not (only the head does, in full 6DOF: vr_frame.c) */
+ { vr_render.seat.driver=0; vr_render.seat.seat_index=2; real_point3d first, a; real drift3=0;
+  for(int n=0;n<72*4;n++){
+   now_time=600+n/72.0; pose(&drawn[0], 0.3f, 0, 10, 20, 1);
+   real b=n>=72*2?0.08f*3.2808f*sinf(2*_pi*1.5f*n/72.0f):0.0f;
+   real_point3d head=place(&drawn[0],-0.3f,0.2f+b,0.5f); a=head; vr_seat_steady_anchor(&a);
+   if(n==72*2)first=a;
+   if(n>72*2) for(int k=0;k<3;k++){real d=fabsf(a.n[k]-first.n[k]); if(d>drift3)drift3=d;} }
+  assert(drift3<1e-4f);
+  vr_render.seat.driver=1; vr_render.seat.seat_index=0; }
  /* another seat: its head at once */
  vr_render.seat.seat_index=1; now_time+=1.0/72; { real_point3d head=place(&drawn[0],-0.5f,0.4f,0.7f), a=head;
   vr_seat_steady_anchor(&a); for(int k=0;k<3;k++)assert(fabsf(a.n[k]-head.n[k])<1e-4f); }
@@ -252,6 +287,8 @@ static struct { int weapon_hand, scope_shape, zoom_level, two_handed, gun_class,
  struct { struct halo_xr_pose head; unsigned hand_valid[2]; } frame; } vr;
 static void platform_log(const char *format,...){ (void)format; }
 static float scope_wrist_origin[3];static double scope_wrist_time=-1;static int scope_anchor_enabled;
+/* (Test73: place_scope logs each dumped frame's placement; none dumped here) */
+static int dumping(void){return 0;}
 static int config_boolean(char const*k){(void)k;return scope_anchor_enabled;}
 static double vr_pose_time(void){return 5;}
 ''' + fn(frame, 'rotate') + fn(frame, 'tracked_hand_origin') + fn(frame, 'place_scope') + r'''

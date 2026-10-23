@@ -70,13 +70,13 @@ final class GameDataManager {
     private void add(LinearLayout rows,String text,Runnable action){Button b=new Button(activity);b.setText(text);b.setOnClickListener(v->{if(!busy())action.run();});rows.addView(b);}
     private void pick(int request){Intent i=new Intent(request==PICK_ISO?Intent.ACTION_OPEN_DOCUMENT:Intent.ACTION_OPEN_DOCUMENT_TREE);
         i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        if(request==PICK_ISO){i.setType("*/*");i.addCategory(Intent.CATEGORY_OPENABLE);i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);}activity.startActivityForResult(i,request);}
+        if(request==PICK_ISO){i.setType("*/*");i.addCategory(Intent.CATEGORY_OPENABLE);i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);}try{activity.startActivityForResult(i,request);}catch(android.content.ActivityNotFoundException e){RunLog.line("No file picker on this device: "+e);LauncherHelp.page(activity,"No file picker here","This device has no file picker. Put the game's files in the game's data folder instead (on the Steam Frame: Documents/"+Lepton.FOLDER+" in Desktop Mode), then open the launcher again.");}}
     private void pickSaves(int request){Intent i;
         if(request==PICK_SAVES_FOLDER){i=new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);}
         else if(request==EXPORT_SAVES){i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/zip");
             i.putExtra(Intent.EXTRA_TITLE,"halo-saves-"+new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(new Date())+".zip");}
         else {i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");}
-        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);activity.startActivityForResult(i,request);}
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);try{activity.startActivityForResult(i,request);}catch(android.content.ActivityNotFoundException e){RunLog.line("No file picker on this device: "+e);LauncherHelp.page(activity,"No file picker here","This device has no file picker. Put the game's files in the game's data folder instead (on the Steam Frame: Documents/"+Lepton.FOLDER+" in Desktop Mode), then open the launcher again.");}}
     /** the active set's save folder, and where its backups go */
     private File saveRoot(){return new File(GameDataLibrary.activeRoot(base),"save");}
     private File saveBackups(){return new File(GameDataLibrary.activeRoot(base),"save-backups");}

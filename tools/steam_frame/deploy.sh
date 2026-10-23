@@ -3,8 +3,8 @@
 #
 #   tools/steam_frame/deploy.sh [--maps DIR] [--config KEY=VALUE ...] [--no-install] [--no-launch]
 #
-# The game's data, settings and saves live in the headset's Documents/HaloCE
-# (Android's /sdcard/Documents/HaloCE in Lepton), which a Lepton reset keeps;
+# The game's data, settings and saves live in the headset's Documents/HaloCEQuestVR
+# (in Lepton at its host path, /home/<user>/Documents/HaloCEQuestVR: Lepton.java), which a Lepton reset keeps;
 # --maps copies a maps folder there over SSH (tools/steam_frame/extract_maps.py
 # makes one from your disc image). --config sets a [section] key in its
 # config.toml, e.g. --config vr.dump_frame=200.
@@ -50,8 +50,10 @@ fi
 
 if [[ -n "$maps" ]]; then
     [[ -f "$maps/ui.map" ]] || { echo "$maps has no ui.map" >&2; exit 1; }
-    ssh "$frame_host" 'mkdir -p ~/Documents/HaloCE/maps'
-    rsync -a --partial "$maps/" "$frame_host:Documents/HaloCE/maps/"
+    ssh "$frame_host" 'mkdir -p ~/Documents/HaloCEQuestVR/maps'
+    rsync -a --partial "$maps/" "$frame_host:Documents/HaloCEQuestVR/maps/"
+    # (the app, a user of its own in Lepton, writes its settings and saves there too)
+    ssh "$frame_host" 'chmod -R a+rwX ~/Documents/HaloCEQuestVR'
 fi
 
 if ((${#settings[@]})); then
@@ -61,7 +63,7 @@ if ((${#settings[@]})); then
         value="${setting#*=}"
         section="${key%%.*}"
         name="${key#*.}"
-        ssh "$frame_host" "python3 - ~/Documents/HaloCE/config.toml '$section' '$name' '$value'" <<'PY'
+        ssh "$frame_host" "python3 - ~/Documents/HaloCEQuestVR/config.toml '$section' '$name' '$value'" <<'PY'
 import re, sys
 path, section, name, value = sys.argv[1:]
 text = open(path).read() if __import__("os").path.exists(path) else ""
