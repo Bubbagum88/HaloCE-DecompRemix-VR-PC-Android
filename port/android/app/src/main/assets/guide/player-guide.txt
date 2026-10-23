@@ -1,3 +1,127 @@
+# Test73b: the shadows, your body's shadow, B in the menus, sprint, CONTROLS, world scale
+
+Private 1.0.41-test73b / code86. Install the matching Quest VR or Android APK over
+Test73 (1.0.40), Test72 (1.0.39), Test70 (1.0.37) or Test69; the package IDs and
+signing certificate are unchanged. Keep your saved settings. No uninstall is
+needed. On Windows, put the new release's files beside the old ones: your maps,
+saves, campaigns and settings stay. On the Steam Frame, unpack the new bundle in
+Downloads and open its installer again. Test73's notes follow this section.
+
+**Stencil shadows as HALOFREAK95 made them**
+- Test73 drew STENCIL SHADOWS (Video Setup > EXTRA EFFECTS) earlier, before the
+  level's lights, so that a flashlight or a shield would still light the inside
+  of a shadow. On the Quest it made the shadows solid black and took the
+  ground's colour away. That change is undone: the shadows are drawn as in
+  HALOFREAK95's own fork (and as in Test72), darkening what lies behind them.
+  Test73's note about the light (below) no longer applies.
+- No other lighting change was made: none could be confirmed to look right
+  without a headset.
+
+**Your body's shadow in VR**
+- With BODY on LEGS (the default) or FULL, your body casts a shadow, with
+  STENCIL SHADOWS on and with the game's own shadows too. It is the body the
+  other players see: your head turned as yours is, your arms reaching where
+  your hands are.
+- The gun in your hand casts no stencil shadow, and the shadow does not fall
+  on your own first-person arms and gun.
+- In THIRD PERSON, and in a vehicle's seat (but while your hands are on the
+  Warthog's wheel), the shadow is the game's as before.
+
+**B in the menus, on every controller**
+- B goes back in the menus on every controller, whether you point at the
+  menus or not (a Steam Frame player found it did not). One press goes back
+  once.
+- In the menus A, B, X and Y are their own letters on every controller; on
+  the Steam Frame all four are on the right controller. On Index and Pico
+  controllers the left controller's upper button stays back.
+- The log says "vr: menu back on B" when B goes back with the menus not
+  pointed at.
+
+**Faster custom map downloads**
+- A host now sends a map to a player who joins without it at up to 20 MB/s,
+  and each player helping (HELP SEND MAPS) at up to 10 MB/s; they were 1 MB/s
+  and 256 KB/s. A download takes from all of them at once.
+- A setting you chose yourself is kept; the old defaults are raised once.
+- If your game lags while someone downloads a map, lower UPLOAD LIMIT: Server
+  Setup > MAP SHARING when you host, Settings > Network Setup > MAP SHARING
+  when you help.
+
+**Where the logs are**
+- Quest, Pico and Android: Download/HaloCE, each run's
+  halo_log_<date>_<time>.txt (the last ten kept).
+- Steam Frame: Documents/HaloCEQuestVR/logs (the last ten kept now; it kept
+  them all), with launcher.log, logcat.txt and install.log in
+  Documents/HaloCEQuestVR. The Frame's bundle, its installer and the note in
+  that folder say so.
+- Windows: halo.log (halo-vr.log for PC VR) beside the game is the last run's;
+  each start keeps the one before in the logs folder beside it (the last ten
+  of each). The game's own debug.txt is in the game data folder. The PC
+  launcher's new LOGS page (on its first page) says all this and opens the
+  folders.
+
+**Sprint in VR: TOGGLE**
+- SPRINT TOGGLE (VR SETTINGS > LOCOMOTION) is now TOGGLE: click the move
+  stick to sprint, click it again to stop (a vehicle's seat stops it too). It
+  was HOLD: a saved HOLD becomes TOGGLE once, and HOLD chosen again stays.
+- With BUTTON SPRINT on, the move stick's click on Index, Pico, Steam Frame
+  and HP controllers only sprints now (it crouched too): hold the turn stick
+  down to crouch. In a vehicle the click is the horn, as before. Playing
+  left-handed, the move stick's click sprints.
+- BULLET TIME (the right stick up) works on every controller, not just the
+  Quest's.
+
+**Sprint on a phone and on the PC**
+- Android: with SPRINT (Player Setup > MOVEMENT) on HOLD or TOGGLE, a SPRINT
+  circle appears on the touch screen: hold it (HOLD), or tap it to start and
+  again to stop (TOGGLE). The touch editor moves and resizes it.
+- PC: Left Shift sprints (Controls Setup changes the key).
+
+**CONTROLS: every button, for your controller**
+- The Quest and Android launcher: "Controls: every button, for your
+  controller". The PC launcher: CONTROLS on its first page.
+- Pick your controller (Quest, Pico, Steam Frame, Valve Index, HP Reverb G2,
+  other PC VR, touch screen, gamepad, keyboard and mouse): what each button
+  does, and the settings that change it.
+
+**A body held as a shield stays in sight**
+- A dead enemy held up in your hands could turn invisible: the game still
+  thought it was where you grabbed it. Where it is held now counts, for
+  drawing it and for shots that hit it.
+
+**WORLD SCALE**
+- VR SETTINGS > COMFORT > WORLD SCALE, 70% to 150%: above 100% the world is
+  bigger around you (you are smaller in it), below 100% smaller. As in other
+  VR games, depth, your movement and your reach change together, at once.
+  Menus and the HUD keep their size.
+
+**Reports we need more on**
+- Opening GRAPHICS settings breaking the PC game, the camera stuck after 343
+  Guilty Spark's Flood cutscene, a HUD small on the gun or disappearing:
+  nothing found yet. Send the log and say what you saw (a video helps).
+- A small HUD on your hand that shows only while you look at it is WRIST HUD
+  (VR SETTINGS > HUD; off by default). With both hands on the gun it hides.
+  Turn it off for the whole HUD ahead.
+- The Maw: the self-destruct count from the bridge cutscene stays on the
+  bridge's screen afterwards, stopped. The original game does the same.
+
+**Test73b checks**
+- STENCIL SHADOWS on, on the beach of The Silent Cartographer and in
+  The Pillar of Autumn: shadows darken the ground and keep its colour.
+- VR, BODY on LEGS: stand in the sun and look down. Your shadow moves with
+  your head and hands. Turn STENCIL SHADOWS off: the game's softer shadow
+  is yours too.
+- Steam Frame and every other controller: in any menu press B, with the
+  pointer on the menu and off it. Each press goes back once.
+- Host a game on a Custom Edition map and have a player join without it: it
+  downloads faster.
+- PC: the launcher's LOGS page opens the game's folder and the logs folder.
+- VR: click the move stick: you sprint until you click it again.
+- Android with SPRINT on HOLD or TOGGLE: the SPRINT circle sprints.
+- Open CONTROLS in the launcher: read your controller's page.
+- Hold a body up as a shield and look around it: it stays in sight.
+- WORLD SCALE 120%, then 80%, then back to 100%.
+- Send the logs.
+
 # Test73: every VR feature on, co-op VR for everyone, the newest OpenCE
 
 Private 1.0.40-test73 / code85. Install the matching Quest VR or Android APK over
@@ -661,7 +785,7 @@ choose otherwise. Most live in a new screen:
 | Dynamic Blood | Extra Effects | Hits throw blood on the wall behind, and it runs down. |
 | Vehicle Blood | Extra Effects | Blood stains vehicles and objects and rides with them. A vehicle that hits a body gets blood on it. |
 | Projectile Effects | Extra Effects | Bullet holes and burns on vehicles and armor; plasma sparks, smoke and light. |
-| Stencil Shadows | Extra Effects | Hard shadows from characters and vehicles. On a level they take away only the light they block: a flashlight's or a shield's light stays as bright inside them. Costly on the Quest. In VR your own body casts none (it follows the headset, not the game). |
+| Stencil Shadows | Extra Effects | Hard shadows from characters and vehicles, as HALOFREAK95 made them (Test73b). Costly on the Quest. In VR your body casts one: the body the other players see (BODY on LEGS or FULL). |
 | Weapons Physics | Extra Effects | Enhanced: dropped guns and grenades tumble and roll (the same physics as the ragdolls). A gun in your hand is never moved by it. |
 | Big Multiplayer Guns | Graphics | Classic: guns on the ground are oversized in multiplayer (the game's own). Enhanced: real size. Looks only. |
 | Corpse Duration, Corpse Limit | Graphics | Bodies stay longer, or many more of them. The host's setting decides online. |
@@ -2536,7 +2660,7 @@ Use **MOVE + swipe** to move and aim, or drag **FIRE** to move, aim and fire tog
 
 Open the pause menu and choose **VR Settings**. Use Next Page and Back to move between settings pages. Arrow controls decrease/increase values; A/right advances or confirms. **Legs + Arms**, **Safe geometry**, **Third Person vehicles** and **Right Hand steering** are defaults. First-person vehicle view remains experimental. Changes save; restart after changing geometry compatibility.
 
-Settings include body/hand modes, fingers, hand/gun calibration, weapon grip and support grip, controls, gestures, HUD/wrist HUD, scopes, vehicles/seats, comfort, graphics, display and controller tracking corrections. Optical finger tracking is not used; fingers follow controller sensors. See [controls and options](CONTROLS-AND-OPTIONS.md) for exact defaults and the full menu inventory.
+Settings include body/hand modes, fingers, hand/gun calibration, weapon grip and support grip, controls, gestures, HUD/wrist HUD, scopes, vehicles/seats, comfort (WORLD SCALE among it), graphics, display and controller tracking corrections. Optical finger tracking is not used; fingers follow controller sensors. See [controls and options](CONTROLS-AND-OPTIONS.md) for exact defaults and the full menu inventory. Every controller's buttons, and the settings that change them, are on the launchers' controls page: **Controls: every button, for your controller** on Android and the Steam Frame, **CONTROLS** on the PC launcher's first page.
 
 **HAPTICS** is the single vibration control for every controller effect,
 including shots, contact, reloads, movement and interaction feedback. Set it to
@@ -2547,4 +2671,4 @@ part of this same setting; it has no separate on/off toggle.
 
 The original Xbox Halo: Combat Evolved XISO remains the recommended baseline. The exact USA Original, Rev 1 and Rev 2 images compared for this project all import successfully and contain byte-identical copies of the same 24 maps; their other disc files differ. This does not cover other regions, repacks or modified images. The launcher detects supported cache builds and fingerprints map files, but a filename does not authenticate a disc label, and the server browser cannot determine a remote host's ISO from its listing. See [the full USA comparison](USA-IMAGE-COMPARISON.md). Custom campaigns (the launcher's CUSTOM CAMPAIGNS): SPV1 (the Custom Mapping Team's Single Player campaign) plays with OpenCE's Custom Edition support, and The Altheros Experience (an OpenSauce .yelo campaign mod, imported from its folder) installs the same way; one campaign plays at a time, and "Play the original campaign" puts the Xbox campaign back.
 
-Each launch writes a detailed log under **Download/HaloCE** when Android allows; app-private storage is used as fallback. For crashes, failed joins or desyncs, share logs from each peer and include device/model, OS, app/network version, game-data set, map/mission, network type and reproduction steps. Contact **@MeWhenINameMyself** or the [Halo CE Decomp Discord](https://discord.gg/S9uSCKxKx). Remove private invite/device details before sharing.
+Each launch writes a detailed log under **Download/HaloCE** when Android allows; app-private storage is used as fallback. On the Steam Frame the logs are in **Documents/HaloCEQuestVR/logs**, and on Windows **halo.log** (**halo-vr.log** for PC VR) is beside the game, the runs before it in **logs** (the PC launcher's LOGS page opens them). Each device keeps its last ten runs' logs. For crashes, failed joins or desyncs, share logs from each peer and include device/model, OS, app/network version, game-data set, map/mission, network type and reproduction steps. Contact **@MeWhenINameMyself** or the [Halo CE Decomp Discord](https://discord.gg/S9uSCKxKx). Remove private invite/device details before sharing.

@@ -214,7 +214,7 @@ public class TouchLifecycleCheck {
    r.input.clean();r.one(MotionEvent.ACTION_DOWN,910,380);r.menu(false);empty(r,"menu to campaign releases confirm");
    r.one(MotionEvent.ACTION_MOVE,910,380);r.one(MotionEvent.ACTION_UP,910,380);empty(r,"resume contact cannot become jump");
    check(r.draw().positions.equals(before.positions)&&r.draw().circleGeometry.equals(before.circleGeometry),"gameplay uses identical circle geometry after Resume");r.input.clean();r.tap(910,380);check((r.input.pressed&1)!=0,"new gameplay jump works");
-   r.menu(true);r.input.clean();r.button(19);check((Boolean)field(r.view,"editing"),"original HUD opens editor inside menu");r.tap(225,22);check(!(Boolean)field(r.view,"editing"),"menu HUD Cancel closes editor");check(r.input.clicks==0,"editor input does not reach menu below");
+   r.menu(true);r.input.clean();r.button(20);check((Boolean)field(r.view,"editing"),"original HUD opens editor inside menu");r.tap(225,22);check(!(Boolean)field(r.view,"editing"),"menu HUD Cancel closes editor");check(r.input.clicks==0,"editor input does not reach menu below");
    r.button(18);check("Touch visibility".equals(AlertDialog.last.title),"original Touch opens visibility dialog in menu");AlertDialog.last.choice.onClick(AlertDialog.last,GamepadPolicy.HIDE);
    check(r.draw().labels.equals(java.util.Arrays.asList("Touch","HUD")),"manual hide leaves original recovery controls only");r.input.clean();r.tap(910,380);check(r.input.clicks==1&&r.input.pressed==0,"hidden action area available for direct menu taps");
    r.button(18);AlertDialog.last.choice.onClick(AlertDialog.last,GamepadPolicy.SHOW);check(r.draw().positions.equals(before.positions),"Touch restores all saved positions");
@@ -291,6 +291,28 @@ public class TouchLifecycleCheck {
   check(((TouchLayout)get(reopened,"layout")).x[0]==TouchLayout.DEFAULT_X[0]&&((TouchLayout)get(reopened,"layout")).visible[3],"Cancel discards imported preview");
   editor(r);r.tap(375,22);importButton=findButton(AlertDialog.last.view,"Import touch layout");importButton.performClick();r.tap(75,22);
   reopened=new TouchControls(transferContext,new Input());check(((TouchLayout)get(reopened,"layout")).x[0]==.33f&&!((TouchLayout)get(reopened,"layout")).visible[3],"Save persists imported layout");
+  // Test73b: SPRINT, shown while the game's SPRINT is HOLD or TOGGLE (its supplier: HaloActivity's config read),
+  // never over the menus; held, it sends HALO_TOUCH_SPRINT (1<<16); asked again as the menus close
+  check(TouchControls.sprintMode("\"hold\"")==1&&TouchControls.sprintMode("\"toggle\"")==2&&TouchControls.sprintMode("\"auto\"")==0
+   &&TouchControls.sprintMode("\"off\"")==0&&TouchControls.sprintMode(null)==0&&TouchControls.sprintMode(" \"TOGGLE\" ")==2,"movement.sprint read as the button's mode");
+  final int[] sprint={0};
+  r=new Rig();check(!r.draw().labels.contains("Sprint"),"no SPRINT by default (the game's SPRINT is OFF)");
+  Object sprintControl=((Object[])field(r.view,"controls"))[TouchLayout.SPRINT];check("Sprint".equals(field(sprintControl,"label")),"SPRINT is the layout's last control");
+  float sprintX=(Float)field(sprintControl,"x"),sprintY=(Float)field(sprintControl,"y");
+  r.input.clean();r.tap(sprintX,sprintY);check((r.input.pressed&65536)==0,"a hidden SPRINT takes no touch");
+  r.view.setSprintSetting(()->sprint[0]);check(!r.draw().labels.contains("Sprint"),"OFF or AUTO: no SPRINT");
+  sprint[0]=1;r.view.setSprintSetting(()->sprint[0]);check(r.draw().labels.contains("Sprint"),"HOLD: SPRINT shown");
+  r.input.clean();r.one(MotionEvent.ACTION_DOWN,sprintX,sprintY);check(r.input.buttons==65536,"SPRINT held sends its own bit alone");
+  r.one(MotionEvent.ACTION_UP,sprintX,sprintY);empty(r,"SPRINT released");
+  r.one(MotionEvent.ACTION_DOWN,140,370);r.two(MotionEvent.ACTION_POINTER_DOWN,1,140,370,sprintX,sprintY);r.two(MotionEvent.ACTION_MOVE,0,195,370,sprintX,sprintY);
+  check(r.input.lx>0&&r.input.buttons==65536,"SPRINT held while MOVE moves");r.one(MotionEvent.ACTION_CANCEL,0,0);empty(r,"cancel releases SPRINT");
+  r.menu(true);check(!r.draw().labels.contains("Sprint"),"no SPRINT over the menus");r.input.clean();r.tap(sprintX,sprintY);check((r.input.pressed&65536)==0,"no SPRINT press in the menus");
+  editor(r);check(r.draw().labels.contains("Sprint"),"the editor shows SPRINT");r.tap(225,22);
+  sprint[0]=0;r.menu(false);check(!r.draw().labels.contains("Sprint"),"SPRINT turned OFF in the menus: gone as they close");
+  sprint[0]=2;r.menu(true);r.menu(false);check(r.draw().labels.contains("Sprint"),"TOGGLE: SPRINT shown as the menus close");
+  sprint[0]=0;r.view.setSprintSetting(()->sprint[0]);editor(r);check(!r.draw().labels.contains("Sprint"),"the editor hides SPRINT without the game's SPRINT");
+  r.one(MotionEvent.ACTION_DOWN,sprintX,sprintY);check((Integer)field(r.view,"selected")==-1,"a hidden SPRINT cannot be dragged");r.one(MotionEvent.ACTION_UP,sprintX,sprintY);r.tap(225,22);
+  r.view.setSprintSetting(()->{throw new IllegalStateException("unreadable");});check(!r.draw().labels.contains("Sprint"),"an unreadable setting shows no SPRINT");
   System.out.println("touch view lifecycle: "+checks+" checks passed (full production view, menus, controller, per-control hide/restore, preset transfer and persistence)");
  }
 }

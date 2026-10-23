@@ -52,7 +52,13 @@ final class TouchLayoutCodec {
         for(String key:new String[]{"format","version","scale","opacity","sensitivityX","sensitivityY","deadZone","swipe","lookAnywhere","floating","invert","color","gyroMode","gyroX","gyroY","gyroInvert"})allowed.add(key);
         for(String id:TouchLayout.CONTROL_IDS)for(String field:new String[]{"x","y","size","alpha","enabled"})allowed.add("control."+id+"."+field);
         for(String key:p.stringPropertyNames())if(!allowed.contains(key))throw new IllegalArgumentException("unknown layout field: "+key);
-        if(p.size()!=allowed.size())throw new IllegalArgumentException("layout file is incomplete");
+        // (Test73b: a preset made before SPRINT has none of its fields, and SPRINT keeps its defaults; one with
+        // only some of them is incomplete)
+        String sprint="control."+TouchLayout.CONTROL_IDS[TouchLayout.SPRINT]+".";
+        int sprintFields=0;
+        for(String field:new String[]{"x","y","size","alpha","enabled"})if(p.containsKey(sprint+field))sprintFields++;
+        if(sprintFields!=0&&sprintFields!=5)throw new IllegalArgumentException("layout file is incomplete");
+        if(p.size()!=allowed.size()-(sprintFields==0?5:0))throw new IllegalArgumentException("layout file is incomplete");
 
         TouchLayout result=new TouchLayout();
         result.scale=number(p,"scale",.65f,1.5f);result.opacity=number(p,"opacity",.15f,1f);
@@ -67,6 +73,7 @@ final class TouchLayoutCodec {
         if(result.gyroMode<0||result.gyroMode>=GyroPolicy.MODES.length)throw new IllegalArgumentException("invalid gyro mode");
         result.gyroX=number(p,"gyroX",.25f,4f);result.gyroY=number(p,"gyroY",.25f,4f);result.gyroInvert=bool(p,"gyroInvert");
         for(int i=0;i<TouchLayout.COUNT;i++) {
+            if(i==TouchLayout.SPRINT&&sprintFields==0)continue;
             String prefix="control."+TouchLayout.CONTROL_IDS[i]+".";
             result.x[i]=number(p,prefix+"x",0f,1f);result.y[i]=number(p,prefix+"y",0f,1f);
             result.size[i]=number(p,prefix+"size",.65f,1.6f);result.alpha[i]=number(p,prefix+"alpha",.15f,1f);

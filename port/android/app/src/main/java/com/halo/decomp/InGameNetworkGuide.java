@@ -123,6 +123,7 @@ final class InGameNetworkGuide {
         + "with arbitrary upstream binaries. If a newer protocol needs port changes, wait for a compatible build. "
         + "For crashes, desync or connection problems, send logs from both peers if possible, app/network versions, "
         + "device models, mission/map and game-set details, host/join roles, connection type, and reproduction steps. "
-        + "Logs are in Download/HaloCE (newest halo_log_<date>_<time>.txt). "
+        + "Logs are in Download/HaloCE (newest halo_log_<date>_<time>.txt; on the Steam Frame in "
+        + "Documents/HaloCEQuestVR/logs; on a PC, halo.log or halo-vr.log beside the game, the PC launcher's LOGS). "
         + "Report in https://discord.gg/S9uSCKxKx or DM @MeWhenINameMyself in the Flat2VR community.";
 }

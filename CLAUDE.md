@@ -17,7 +17,35 @@ assets so they accurately cover the platforms actually supported then. Do not
 rename the current v1.0.37 release or claim a platform is supported before its
 build and validation are ready.
 
-## Private candidate: Test73 (1.0.40-test73 / code85), in progress
+## Private candidate: Test73b (1.0.41-test73b / code86), in progress
+
+Fixes and additions on the delivered Test73 (the owner, on it: "basically
+everything works great, so regress nothing, BUT, stencil shadows is a bit
+fucked up"). STENCIL SHADOWS as HaloFreak95 made them: Test73's 10j change,
+which made shadows black and the ground grey on the Quest, undone, and no
+lighting change made. The VR player's body casts a shadow, with the stencil
+shadows and with the game's own (the body others see; the gun in the hand is
+not cast by the stencil pass). B goes back in the menus on every controller, a
+Steam Frame player's report, and A, B, X and Y are their letters there. Map
+sharing's upload limits at their most by default (hosting 20 MB/s, helping
+10 MB/s; a config saved at the old defaults raised once). Every launcher says
+where its logs are: the PC launcher's LOGS page; Windows keeps the last ten
+runs' logs in `logs\`; the Steam Frame's logs folder keeps its last ten.
+SPRINT TOGGLE on TOGGLE by default in VR (a saved HOLD switched once), with
+BUTTON SPRINT on the move stick's click, crouch on the turn stick held down on
+the non-Quest controllers while it is on, and BULLET TIME on every controller.
+A SPRINT circle on Android's touch screen (SPRINT HOLD or TOGGLE); Left Shift
+on PC. A CONTROLS page in every launcher: each controller's buttons and the
+settings that change them. A body held as a shield is drawn where it is held.
+WORLD SCALE (COMFORT, 70% to 150%). Four reports with no change, none with a
+log (the PC's GRAPHICS screen, a camera after 343 Guilty Spark's Flood
+cutscene, a HUD on the gun, which WRIST HUD fits, and The Maw's bridge
+countdown, the map's own screen as on the Xbox). Read
+docs/TEST73B-CHECKLIST.md (each item's verification level),
+TEST73B-FIELD-GUIDE.md, TEST73B-DEVICE-CHECKLIST.md and the latest
+HANDOFF-2026-10-*.md. Test73 (below) travels with it.
+
+## Private candidate: Test73 (1.0.40-test73 / code85), delivered 2026-10-22
 
 Every VR feature on once with the update (each can be turned off and stays
 off); one co-op VR INTERACTIONS switch, on by default, for the host and every
@@ -27,7 +55,8 @@ proportion for every vehicle, HAND LOCK, VEHICLE TURN; passengers in full
 6DOF; grenades at their true size in the hand; scopes to 400%; the played
 character's arms; MENU POSITION in both launchers; the PC launcher's saves
 import/export and GEOMETRY; levels unlocked for new profiles; STENCIL SHADOWS
-that take away only the light they block; a clock stepped by the headset's
+that took away only the light they blocked (undone in Test73b); a clock
+stepped by the headset's
 display times. OpenCE: Builds 232 to 256, its testing branch and its
 fix-scenery-shields-network branch (network 34: hosts 34, joins 11 to 34;
 older hosts keep their own rules); every harness test OpenCE ships now runs.
@@ -37,8 +66,9 @@ no-computer installer and a Steam library launcher (`tools/steam_frame`). The
 licence is the AGPL 3.0 or later since OpenCE's change (THIRD-PARTY-NOTICES,
 CREDITS). Read docs/TEST73-CHECKLIST.md (each item's verification level),
 TEST73-FIELD-GUIDE.md, TEST73-DEVICE-CHECKLIST.md and the latest
-HANDOFF-2026-10-*.md. Not built as a whole yet (the owner: one build pass once
-everything is done); Test72 and Test71 (below) travel with it.
+HANDOFF-2026-10-*.md. Delivered 2026-10-22 (TEST73-DELIVERY-STATUS.md); the
+owner on the Quest: "basically everything works great", but for the stencil
+shadows (Test73b). Test72 and Test71 (below) travel with it.
 
 ## Private candidate: Test72 (1.0.39-test72 / code84)
 

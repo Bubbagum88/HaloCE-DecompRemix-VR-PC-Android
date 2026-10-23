@@ -68,7 +68,9 @@ wrong type) and uses the rest; a `mod.toml` that is not TOML at all is
 logged, and the mod played without what it says.
 
 The game's log is its output: the terminal on Linux, `halo.log` beside
-`halo.exe` on Windows, logcat on Android, and the page's log on the web.
+`halo.exe` on Windows (`halo-vr.log` beside `halo-vr.exe`), logcat and each
+run's log in Download/HaloCE on Android (Documents/HaloCEQuestVR/logs on the
+Steam Frame), and the page's log on the web.
 
 Limits: 256 mods, folder names of 63 bytes at most, 262144 files in all, 24
 folders deep under `tags`, and 64 maps in a mod's `maps`.

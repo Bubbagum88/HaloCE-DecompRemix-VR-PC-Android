@@ -41,6 +41,8 @@ final class RunLog {
                 publicFile = ParcelFileDescriptor.open(new File(folder, name),
                     ParcelFileDescriptor.MODE_CREATE | ParcelFileDescriptor.MODE_APPEND | ParcelFileDescriptor.MODE_WRITE_ONLY);
                 destination = new File(folder, name).getAbsolutePath();
+                // Test73b: the last ten kept there too, as in Download/HaloCE (the folder kept every run's)
+                new Thread(() -> pruneFolder(folder, name), "halo-log-retention").start();
             } else if (Build.VERSION.SDK_INT >= 29) {
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.Downloads.DISPLAY_NAME, name);
@@ -138,6 +140,18 @@ final class RunLog {
                 if (++count > 10) context.getContentResolver().delete(
                     ContentUris.withAppendedId(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cursor.getLong(0)), null, null);
             }
+        } catch (Exception e) { line("Log retention skipped: " + e.getClass().getSimpleName()); }
+    }
+
+    /** the Steam Frame's logs folder (the game's own, in its data folder): its newest ten runs' logs kept (their names
+     * sort by when the run started; this run's never, whatever the clock did) */
+    static void pruneFolder(File folder, String current) {
+        try {
+            String[] names = folder.list((directory, name) -> name.startsWith("halo_log_") && name.endsWith(".txt"));
+            if (names == null) return;
+            java.util.Arrays.sort(names);
+            for (int index = 0; index < names.length - 10; index++)
+                if (!names[index].equals(current)) new File(folder, names[index]).delete();
         } catch (Exception e) { line("Log retention skipped: " + e.getClass().getSimpleName()); }
     }
 }

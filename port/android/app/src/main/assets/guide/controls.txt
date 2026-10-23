@@ -1,6 +1,6 @@
-Controls and gestures (Test73)
+Controls and gestures (Test73b)
 
-Every control and gesture of the VR game (Quest, Pico, Steam Frame and PC VR), what changes it, and the flat builds' keys. Open the pause menu (the Menu button) and choose VR SETTINGS to change any of it. Every VR feature is on after the Test73 update; anything you turn off stays off. The notes of earlier tests are in docs/CONTROLS-HISTORY.md.
+Every control and gesture of the VR game (Quest, Pico, Steam Frame and PC VR), what changes it, and the flat builds' keys. Open the pause menu (the Menu button) and choose VR SETTINGS to change any of it. Every VR feature is on after the Test73 update; anything you turn off stays off. The notes of earlier tests are in docs/CONTROLS-HISTORY.md. The buttons below are the Quest's (VR SETTINGS > BUTTONS changes them); the other controllers keep a fixed layout, and the launchers' CONTROLS page has each one's.
 
 BUTTONS (DEFAULTS)
 
@@ -12,7 +12,7 @@ BUTTONS (DEFAULTS)
 • Left stick: move. Its click: the reticle on or off.
 • Right stick: turn. Held down: crouch. Pushed up: BULLET TIME.
 • Grips: hold the gun, holster, grab, climb, take grenades and magazines, hold a vehicle's controls.
-• Menu button: pause. Recentre: both stick clicks together, or hold the left controller's upper face button (Y; View where a controller has one) for a second.
+• Menu button: pause. Recentre: both stick clicks together, or hold the left controller's upper face button for a second (not on the Quest, where it is Y: NEXT WEAPON; View on the Steam Frame).
 • PUSH TO TALK has no button until you give it one (VOICE CHAT > MICROPHONE: PUSH TO TALK or OPEN MIC).
 • Seated in a vehicle: the stick clicks sound the horn; R UP and R DOWN do nothing.
 
@@ -78,11 +78,12 @@ MOVING
 • TURNING: SMOOTH or SNAP (COMFORT: SMOOTH SPEED, SNAP ANGLE, VIGNETTE).
 • VEHICLE TURN (COMFORT, and VEHICLES > VEHICLE OPTIONS): SMOOTH (default): if you snap turn, a vehicle's seat turns you smoothly at SMOOTH SPEED, and you snap again once you are out; AS SET: a seat turns as TURNING says.
 • ROOM-SCALE: walk about your room. Duck to crouch (CROUCH DEPTH 35 cm below your height at the last recentre).
-• Sprint: BUTTON SPRINT (the left stick's click; SPRINT TOGGLE: a click starts and stops it) or ARM RUN (swing your arms as in running; ARM EFFORT is how hard). SPRINT SPEED 1.5x, offline.
+• Sprint: BUTTON SPRINT (the move stick's click; SPRINT TOGGLE: TOGGLE, the default since Test73b, a click starts it and another stops it; HOLD while held) or ARM RUN (swing your arms as in running; ARM EFFORT is how hard). SPRINT SPEED 1.5x, offline.
 • SLIDE: sprint, then crouch (the crouch button, or duck with CROUCH SLIDES); stand up to stop, jump to cancel (JUMP CANCELS). SLIDE DISTANCE, SLIDE FRICTION, SLIDE IMPACT.
 • WALLRUN: jump near a wall while moving along it. WALLJUMP: press jump again beside the wall and you leap where you look. WALL SPEED, WALL TIME, WALL LEAP.
 • GRIP CLIMB: touch a wall with a free hand, squeeze grip, pull yourself up, and let go to launch (CLIMB LAUNCH, CLIMB GRAB).
-• BULLET TIME: the right stick pushed up slows the world (BULLET TIME MODE: HOLD or TOGGLE; TIME SCALE 25% to 65%). Solo games only; not in a seat, a menu or a cutscene.
+• BULLET TIME: the right stick pushed up slows the world, on every controller (BULLET TIME MODE: HOLD or TOGGLE; TIME SCALE 25% to 65%). Solo games only; not in a seat, a menu or a cutscene.
+• WORLD SCALE (COMFORT): 70% to 150%. Above 100% the world is bigger around you, below it smaller: depth, your movement and your reach change together, at once. Menus and the HUD keep their size.
 
 HEAD GESTURES, HUD AND MENUS
 
@@ -112,7 +113,7 @@ SETTINGS THAT CHANGE THE CONTROLS
 • MIRROR CONTROLS (AUTO): left-handed, you move on the right stick and turn on the left, and the face buttons swap hands. OFF: the standard layout.
 • MIRROR BUTTONS (AUTO): left-handed, the face buttons are on the gun hand even when the sticks stay standard.
 • L STICK CLICK: RETICLE (default) or CROUCH (crouch moves to the click and R DOWN is left free).
-• BUTTON SPRINT takes the left stick's click; what was on it comes back when you turn it off.
+• BUTTON SPRINT takes the left stick's click (the move stick's: the right one's when MIRROR CONTROLS moves you on the right stick); what was on it comes back when you turn it off. On the other controllers crouch moves to the turn stick held down while it is on.
 • MELEE SPEED OFF moves zoom back to the other hand's trigger and gives the right stick's click back to melee.
 • WEAPONS PHYSICAL: the grip holds the gun, so a button on GRIP does nothing ("*").
 • GRENADE on GRIP: NEXT GRENADE cannot be HOLD.
@@ -134,3 +135,4 @@ PC (FLAT): KEYBOARD AND MOUSE
 ANDROID (FLAT)
 
 • Touch and gamepad: the Field guide's "Flat touch & gamepad".
+• SPRINT on HOLD or TOGGLE (Player profile > MOVEMENT) adds a SPRINT circle to the touch screen; with AUTO, push the move stick fully forward a moment.

@@ -62,8 +62,13 @@ for key in features:
 assert '{ "vr.test73_features_applied", _config_boolean, "false",' in config
 # ---------- once, after the vehicle defaults, before the settings are read
 init = fn(frame, 'vr_initialize')
-assert ('if (!config_boolean("vr.test73_features_applied"))\n\t{\n\t\tvr_menu_features_on();\n\t\t'
-        'config_write_boolean("vr.test73_features_applied", 1);\n\t}\n\tvr_reload_settings();') in init
+features_block = ('if (!config_boolean("vr.test73_features_applied"))\n\t{\n\t\tvr_menu_features_on();\n\t\t'
+                  'config_write_boolean("vr.test73_features_applied", 1);\n\t}\n\t')
+assert features_block in init
+# (Test73b: SPRINT TOGGLE's one-time TOGGLE next, tools/test_test73b_sprint.py; both before the settings are read)
+after_features = init[init.index(features_block) + len(features_block):]
+assert after_features.startswith('/* Test73b (the owner: "I want the sprint button to have it on toggle')
+assert after_features.index('vr.test73b_sprint_toggle_applied') < after_features.index('\tvr_reload_settings();')
 assert init.index('config_vr_vehicle_defaults();') < init.index('vr_menu_features_on();')
 assert 'void vr_menu_features_on(void);' in vr_h
 # ---------- the menu's apply is the one path (a player's choice, the update's)

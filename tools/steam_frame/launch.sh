@@ -6,7 +6,9 @@
 # starts an Android title of its own: Lepton runs the APK in a container of its
 # own and installs it anew whenever the APK is newer than the installed one.
 # The game's data, settings, saves and logs: ~/Documents/HaloCEQuestVR
-# (Lepton.java). Not yet run on a Frame.
+# (Lepton.java): each run's log in logs/ (RunLog.java), this script's in
+# launcher.log, the container's Android log in logcat.txt. Run on a Frame: a
+# player's Test73 log (2026-10-22), started from Steam, quit from the menu.
 #
 # (a container of its own, not the shortcut's id: with that, SteamVR's client
 # in the container waited on xrCreateInstance, ringfall's finding; not

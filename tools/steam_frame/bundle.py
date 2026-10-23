@@ -13,7 +13,7 @@ import zipfile
 
 HERE = Path(__file__).resolve().parent
 FOLDER = "HaloCEQuestVR-SteamFrame"
-README = """HaloCE Quest VR for the Steam Frame (not yet run on a Frame)
+README = """HaloCE Quest VR for the Steam Frame
 
 1. On the Frame, switch to Desktop Mode (Steam menu > Power > Switch to Desktop).
 2. Put this zip and your own disc image of Halo: Combat Evolved for the original Xbox (.iso or .xiso)
@@ -27,6 +27,11 @@ README = """HaloCE Quest VR for the Steam Frame (not yet run on a Frame)
 The game's data, settings, saves and logs: Documents/HaloCEQuestVR. To update, unpack a newer bundle
 and open its installer again; your settings and saves stay. To quit: the main menu's QUIT GAME,
 or Steam's Exit game.
+
+Something wrong? Each run's log is in Documents/HaloCEQuestVR/logs (halo_log_<date>_<time>.txt, the
+newest the last run; the last ten are kept). Beside that folder: launcher.log (each start from
+Steam), logcat.txt (the last run's Android log) and install.log (the installer's). Send the run's
+log with a few words on what happened.
 """
 
 

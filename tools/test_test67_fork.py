@@ -100,7 +100,8 @@ assert 'wanted = vr_third_person_engaged() && !cinematic_in_progress() && third_
 assert 'display.third_person' not in vr_branch and 'platform_third_person_key' not in vr_branch
 shadows = read('port/linux/game/stencil_shadows.c')
 assert '#define STENCIL_SHADOWS_ONE_FACE 1' in shadows and '#ifdef HALO_GLES' not in shadows
-assert '&& !vr_active()' in shadows[shadows.index('static short stencil_shadow_casters('):]
+# (Test73b: in the headset the player's body casts as drawn there, nothing it holds: tools/test_test73b_shadows.py)
+assert 'if (vr_render_body_shadow_matrices(own_unit, NULL))' in shadows[shadows.index('static short stencil_shadow_casters('):]
 items = read('port/linux/game/item_physics.c')
 assert 'item_physics_held(item_index)' in items and 'vr_world_interaction_remote_owned(item_index)' in items
 assert 'network_game_distributed_client()' in items

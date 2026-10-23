@@ -16,6 +16,7 @@ uses tracked controllers and has no flat touch overlay.
 | Y / Swap | Change weapon |
 | Crouch / Zoom | Left / right stick clicks |
 | Grenade | Throw selected grenade |
+| Sprint | Shown only while SPRINT (Player profile > MOVEMENT) is HOLD or TOGGLE, and not over the menus: held, it sprints as the keyboard's key does (HOLD); a tap starts or stops it (TOGGLE). Test73b |
 | Type / Light | Xbox black / white: grenade type / flashlight in default profile |
 | Menu / Back | Start / Back |
 | Arrows | D-pad and menu navigation |
@@ -41,7 +42,7 @@ held through Resume must lift before it can operate a gameplay control.
 
 ## Customize during play
 
-Tap **HUD** in the upper-left safe area. Held inputs are released. Drag any of the 19 controls. Selected controls turn amber. **Options** adjusts the selected control's horizontal/vertical position, size (65-160%) and opacity (15-100%). Its **Select a control** list can recover a control hidden under another control or the toolbar. Select a control in that list and turn off **Show and enable this touch control** to remove it from gameplay drawing and touch handling. Hidden controls remain faintly visible and selectable in the editor, and can be restored there. Existing installs default every control to visible.
+Tap **HUD** in the upper-left safe area. Held inputs are released. Drag any of the 20 controls (SPRINT among them while SPRINT is HOLD or TOGGLE). Selected controls turn amber. **Options** adjusts the selected control's horizontal/vertical position, size (65-160%) and opacity (15-100%). Its **Select a control** list can recover a control hidden under another control or the toolbar. Select a control in that list and turn off **Show and enable this touch control** to remove it from gameplay drawing and touch handling. Hidden controls remain faintly visible and selectable in the editor, and can be restored there. Existing installs default every control to visible.
 
 Global options include scale (65-150%), opacity, independent horizontal/vertical sensitivity (0.25-3), radial dead zone (0-30%), floating movement origin, invert vertical aim, swipe versus held-stick aiming, optional drag-anywhere camera look, and blue/cyan/white/amber/green colors. Individual and global opacity multiply. Labels retain a minimum readability level.
 

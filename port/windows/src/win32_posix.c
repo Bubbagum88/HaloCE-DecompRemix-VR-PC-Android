@@ -28,6 +28,99 @@ graphics) run a program on the integrated one unless it exports these */
 __declspec(dllexport) DWORD NvOptimusEnablement = 1;
 __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 
+/* Test73b (the owner: "where are logs generating for steam and pc? these
+things should be clarified"): the runs before this one, kept. The log there
+already (the last run's), if it has anything, is copied into logs\ beside the
+game as halo_<date>_<time>.log (halo-vr_... for PC VR; when that run last
+wrote, local time), and the newest LOGS_KEPT of this build's are kept, as the
+Android app keeps its last ten. A copy, not a move: the run before may still
+have the file open (the launcher, starting this build anew) */
+#define LOGS_KEPT 10
+
+static int compare_log_names(const void *a, const void *b)
+{
+	return strcmp((const char *)a, (const char *)b);
+}
+
+/* log: the log's whole path; directory: the length of its folder's part
+(through the separator); its name is <stem>.log */
+static void log_keep_previous(const char *log, size_t directory)
+{
+	static char buffer[65536];
+	static char names[64][MAX_PATH];
+	const char *name = log + directory;
+	int stem = (int)strlen(name) - (int)sizeof(".log") + 1;
+	char kept[MAX_PATH];
+	WIN32_FILE_ATTRIBUTE_DATA data;
+	WIN32_FIND_DATAA found;
+	FILETIME local;
+	SYSTEMTIME time;
+	HANDLE from, to, search;
+	DWORD got, put;
+	int count = 0, index, ok = 1;
+
+	if (stem <= 0 || !GetFileAttributesExA(log, GetFileExInfoStandard, &data) ||
+		(!data.nFileSizeHigh && !data.nFileSizeLow) ||
+		!FileTimeToLocalFileTime(&data.ftLastWriteTime, &local) || !FileTimeToSystemTime(&local, &time))
+		return;
+	if (snprintf(kept, sizeof(kept), "%.*slogs", (int)directory, log) >= (int)sizeof(kept))
+		return;
+	CreateDirectoryA(kept, NULL);
+	if (snprintf(kept, sizeof(kept), "%.*slogs\\%.*s_%04hu-%02hu-%02hu_%02hu-%02hu-%02hu-%03hu.log", (int)directory,
+		log, stem, name, time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond,
+		time.wMilliseconds) >= (int)sizeof(kept))
+		return;
+	from = CreateFileA(log, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL, NULL);
+	if (from == INVALID_HANDLE_VALUE)
+		return;
+	/* (one there already of that time is this one, kept by a run before) */
+	to = CreateFileA(kept, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (to != INVALID_HANDLE_VALUE)
+	{
+		for (;;)
+		{
+			if (!ReadFile(from, buffer, sizeof(buffer), &got, NULL) ||
+				(got && (!WriteFile(to, buffer, got, &put, NULL) || put != got)))
+			{
+				ok = 0;
+				break;
+			}
+			if (!got)
+				break;
+		}
+		/* (its time the run's, as its name says) */
+		SetFileTime(to, NULL, NULL, &data.ftLastWriteTime);
+		CloseHandle(to);
+		if (!ok)
+			DeleteFileA(kept);
+	}
+	CloseHandle(from);
+
+	/* the newest LOGS_KEPT of this build's (their names sort by their time) */
+	if (snprintf(kept, sizeof(kept), "%.*slogs\\%.*s_*.log", (int)directory, log, stem, name) >= (int)sizeof(kept))
+		return;
+	search = FindFirstFileA(kept, &found);
+	if (search == INVALID_HANDLE_VALUE)
+		return;
+	do
+	{
+		/* (names of this build's form only: halo_ is not halo-vr_, and the
+		short 8.3 names FindFirstFile also matches are not) */
+		if (!(found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && count < 64 &&
+			strlen(found.cFileName) == (size_t)stem + sizeof("_YYYY-MM-DD_HH-MM-SS-mmm.log") - 1 &&
+			!strncmp(found.cFileName, name, (size_t)stem) && found.cFileName[stem] == '_')
+			strcpy(names[count++], found.cFileName);
+	} while (FindNextFileA(search, &found));
+	FindClose(search);
+	qsort(names, (size_t)count, sizeof(names[0]), compare_log_names);
+	for (index = 0; index < count - LOGS_KEPT; index++)
+	{
+		if (snprintf(kept, sizeof(kept), "%.*slogs\\%s", (int)directory, log, names[index]) < (int)sizeof(kept))
+			DeleteFileA(kept);
+	}
+}
+
 __attribute__((constructor))
 static void windows_startup(void)
 {
@@ -40,7 +133,8 @@ static void windows_startup(void)
 	/* a release build has no console (/SUBSYSTEM:WINDOWS), so the platform
 	layer's log (platform_log's stderr: invite links, the data root, crash
 	reports) goes to halo.log next to halo.exe, unless stderr already goes
-	somewhere (a pipe or a file the game was started with) */
+	somewhere (a pipe or a file the game was started with); the last run's
+	kept in logs\ first (log_keep_previous) */
 	if (_fileno(stderr) < 0)
 	{
 		char path[MAX_PATH];
@@ -58,6 +152,7 @@ static void windows_startup(void)
 			(size_t)(slash + 1 - path) + sizeof(name) <= sizeof(path))
 		{
 			strcpy(slash + 1, name);
+			log_keep_previous(path, (size_t)(slash + 1 - path));
 			if (freopen(path, "w", stderr))
 				setvbuf(stderr, NULL, _IONBF, 0);
 		}

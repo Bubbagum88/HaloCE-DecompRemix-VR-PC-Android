@@ -1,0 +1,236 @@
+# Test73b: the launchers' CONTROLS (the Android launcher's ControlsGuide.java, the PC launcher's page_controls in
+# port/linux/src/desktop_launcher.c, which embeds this file): every button of each controller, and what changes it.
+# A line "== LABEL | KIND | WHERE" begins a controller's page: LABEL its button, KIND vr or flat, WHERE the launchers
+# that list it (quest: the VR app on a Quest, PICO or Steam Frame; phone: the Android app; pc: the PC launcher).
+# A page labelled * is shown under every page of its kind. A page's text is drawn as What's New is: its first line
+# the title, a line without small letters a heading, "• " a point. Lines beginning "#" are these notes.
+# Checked against the code by tools/test_test73b_controls.py.
+
+== QUEST (TOUCH) | vr | quest pc
+META QUEST TOUCH CONTROLLERS
+Quest 2, 3, 3S and Pro, in the headset or on a PC through Quest Link or Air Link. These are the right-handed defaults: LEFT-HAND MODE swaps the hands (below), and every button can be changed in VR SETTINGS > BUTTONS.
+
+BUTTONS
+• A (right, lower): JUMP.
+• B (right, upper): USE / RELOAD: take a weapon, get in a vehicle, reload. With MANUAL RELOAD it drops the magazine.
+• X (left, lower): GRENADE: a tap throws one, a hold of half a second switches grenades.
+• Y (left, upper): NEXT WEAPON.
+• Menu (left): pause.
+• Both stick clicks together: recentre (the way you face becomes forward).
+
+STICKS
+• Left stick: move. Its click: SPRINT (BUTTON SPRINT, on since the Test73 update: with SPRINT TOGGLE's TOGGLE a click starts it and another stops it; HOLD sprints while it is held).
+• With BUTTON SPRINT off the left stick's click shows or hides the reticle (L STICK CLICK: CROUCH puts crouch there instead).
+• Right stick: turn. Held down: CROUCH. Pushed up: BULLET TIME (offline).
+• Right stick's click: ZOOM while your hands do the melee; MELEE when they do not (MELEE SPEED OFF, or online without + ONLINE), and the left trigger zooms then.
+
+TRIGGERS AND GRIPS
+• Right trigger: fire the gun in your hand.
+• Left trigger: ZOOM when the right stick's click melees, and in a seat.
+• Grips: hold the gun, holster it, grab, climb, take grenades and magazines (EVERY VR CONTROLLER, below).
+
+IN THE MENUS
+• Point with your gun hand: its trigger chooses. A confirms, B goes back, X and Y do what the screen says.
+
+ON A PC
+• The Quest's layout comes with Meta's own runtime (Quest Link, Air Link). Through SteamVR the headset may not say it is a Quest: the controllers then have the layout of PICO and VALVE INDEX.
+
+== PICO | vr | quest pc
+PICO CONTROLLERS
+PICO 4, 4 Ultra and Neo 3, in the headset or on a PC through PICO Connect or SteamVR. They keep the game's own layout (VR SETTINGS > BUTTONS is the Quest's). These are the right-handed defaults: LEFT-HAND MODE swaps the hands (below).
+
+BUTTONS
+• A (right, lower): JUMP.
+• B (right, upper): USE / RELOAD. With MANUAL RELOAD it drops the magazine.
+• X (left, lower): GRENADE: a tap throws one, a hold of half a second switches grenades. With WEAPONS: LOCKED it switches grenades.
+• Y (left, upper): a press is BACK (the scoreboard; back, in a menu). Held a second, it recentres.
+• Menu (left): pause.
+• Both stick clicks together: recentre.
+• NEXT WEAPON: draw another from a holster (over a shoulder, at a hip). There is no button for it: with WEAPONS: LOCKED choose CONTROLS: XBOX (below), whose Y switches weapons.
+
+STICKS
+• Left stick: move. Its click: SPRINT (BUTTON SPRINT, on since the Test73 update: TOGGLE starts and stops it, HOLD while held); CROUCH with BUTTON SPRINT off.
+• Right stick: turn. Its click: MELEE (your hands melee too). Pushed up: BULLET TIME (offline).
+• Right stick held down: CROUCH, while BUTTON SPRINT has the left stick's click.
+
+TRIGGERS AND GRIPS
+• Gun hand's trigger: fire. The other hand's trigger: ZOOM.
+• Grips: hold the gun, holster it, grab, climb, take grenades and magazines (EVERY VR CONTROLLER, below).
+
+IN THE MENUS
+• Point with your gun hand: its trigger chooses. A confirms, B or Y goes back, X does what the screen says.
+
+== STEAM FRAME | vr | quest pc
+STEAM FRAME CONTROLLERS
+On the Frame itself, or on a PC through SteamVR. A split gamepad: A, B, X, Y, Menu and a bumper on the right; a d-pad, View and a bumper on the left. They keep the game's own layout (VR SETTINGS > BUTTONS is the Quest's).
+
+BUTTONS
+• A: JUMP.
+• B: USE / RELOAD. With MANUAL RELOAD it drops the magazine.
+• X: NEXT GRENADE.
+• Y: NEXT WEAPON.
+• Right bumper (the gun hand's): throw a GRENADE.
+• Left bumper (the other hand's): FLASHLIGHT.
+• View (left): a press is BACK (the scoreboard; back, in a menu). Held a second, it recentres.
+• Menu (right): pause.
+• Both stick clicks together: recentre.
+• The d-pad does nothing in this layout (CONTROLS: XBOX makes it the Xbox's d-pad).
+
+STICKS
+• Left stick: move. Its click: SPRINT (BUTTON SPRINT, on since the Test73 update: TOGGLE starts and stops it, HOLD while held); CROUCH with BUTTON SPRINT off.
+• Right stick: turn. Its click: MELEE (your hands melee too). Pushed up: BULLET TIME (offline).
+• Right stick held down: CROUCH, while BUTTON SPRINT has the left stick's click.
+
+TRIGGERS AND GRIPS
+• Right trigger: fire. Left trigger: ZOOM.
+• Grips: hold the gun, holster it, grab, climb, take grenades and magazines (EVERY VR CONTROLLER, below).
+
+IN THE MENUS
+• Point with your gun hand: its trigger chooses. A confirms, B goes back, X and Y do what the screen says.
+
+LEFT-HANDED
+• The left controller has no face buttons: with LEFT-HAND MODE set MIRROR CONTROLS: OFF and MIRROR BUTTONS: OFF (VR SETTINGS > CONTROLS), and A, B, X and Y stay on the right controller.
+
+== VALVE INDEX | vr | pc
+VALVE INDEX CONTROLLERS
+On a PC through SteamVR. They keep the game's own layout (VR SETTINGS > BUTTONS is the Quest's), and your fingers move the hands' fingers. These are the right-handed defaults: LEFT-HAND MODE swaps the hands (below).
+
+BUTTONS
+• A (right, lower): JUMP.
+• B (right, upper): USE / RELOAD. With MANUAL RELOAD it drops the magazine.
+• A (left, lower): GRENADE: a tap throws one, a hold of half a second switches grenades. With WEAPONS: LOCKED it switches grenades.
+• B (left, upper): a press is BACK (the scoreboard; back, in a menu). Held a second, it recentres.
+• System (left): pause.
+• Both stick clicks together: recentre.
+• NEXT WEAPON: draw another from a holster (over a shoulder, at a hip). There is no button for it: with WEAPONS: LOCKED choose CONTROLS: XBOX (below), whose Y (the left B) switches weapons.
+
+STICKS
+• Left stick: move. Its click: SPRINT (BUTTON SPRINT, on since the Test73 update: TOGGLE starts and stops it, HOLD while held); CROUCH with BUTTON SPRINT off.
+• Right stick: turn. Its click: MELEE (your hands melee too). Pushed up: BULLET TIME (offline).
+• Right stick held down: CROUCH, while BUTTON SPRINT has the left stick's click.
+
+TRIGGERS AND GRIPS
+• Gun hand's trigger: fire. The other hand's trigger: ZOOM.
+• Grips: hold the gun, holster it, grab, climb, take grenades and magazines (EVERY VR CONTROLLER, below).
+
+IN THE MENUS
+• Point with your gun hand: its trigger chooses. A confirms, either B goes back, the left A does the screen's X.
+
+== HP REVERB G2 | vr | pc
+HP REVERB G2 CONTROLLERS
+On a PC through Windows Mixed Reality's own runtime (through SteamVR, SteamVR maps them to another controller's buttons). They keep the game's own layout, as PICO's do: A and B on the right, X, Y and Menu on the left.
+
+BUTTONS
+• A (right, lower): JUMP.
+• B (right, upper): USE / RELOAD. With MANUAL RELOAD it drops the magazine.
+• X (left, lower): GRENADE: a tap throws one, a hold of half a second switches grenades. With WEAPONS: LOCKED it switches grenades.
+• Y (left, upper): a press is BACK (the scoreboard; back, in a menu). Held a second, it recentres.
+• Menu (left): pause.
+• Both stick clicks together: recentre.
+• NEXT WEAPON: draw another from a holster. There is no button for it: with WEAPONS: LOCKED choose CONTROLS: XBOX (below).
+
+STICKS
+• Left stick: move. Its click: SPRINT with BUTTON SPRINT (TOGGLE starts and stops it, HOLD while held); CROUCH without.
+• Right stick: turn. Its click: MELEE. Pushed up: BULLET TIME (offline). Held down: CROUCH, while BUTTON SPRINT has the left stick's click.
+
+TRIGGERS AND GRIPS
+• Gun hand's trigger: fire. The other hand's trigger: ZOOM.
+• Grips: as on every VR controller (below).
+
+IN THE MENUS
+• Point with your gun hand: its trigger chooses. A confirms, B or Y goes back, X does what the screen says.
+
+== OTHER PC VR | vr | pc
+OTHER PC VR CONTROLLERS
+HTC Vive and Vive Pro wands, Windows Mixed Reality through SteamVR, PlayStation VR2 Sense and others: SteamVR gives the game one of the layouts here (most often VALVE INDEX's or PICO's: two face buttons a hand), and SteamVR's own controller bindings can move them.
+
+WHAT TO EXPECT
+• Triggers, grips and both sticks are as on every VR controller (below): the gun hand's trigger fires, the other's zooms.
+• The right controller's lower and upper buttons: JUMP and USE / RELOAD. The left's lower: GRENADE (tap) and NEXT GRENADE (hold). The left's upper: BACK, and held a second, recentre.
+• Anything missing: VR SETTINGS > CONTROLS > XBOX lays the buttons out as an Xbox controller's (below), or change SteamVR's bindings for the game.
+
+== * | vr | quest pc
+EVERY VR CONTROLLER: HANDS AND GESTURES
+• Grips: your grip holds the gun (WEAPONS: PHYSICAL); let go and it falls. Over a shoulder or at a hip, a grip puts the gun away or draws one.
+• The other hand at the gun's front steadies it (TWO HANDS); palms together and that hand's grip passes the gun across.
+• Melee with your hands: a hand moving fast strikes (MELEE SPEED). FIST COMBAT: punch, block, parry; a punch at an enemy up to 12 m away carries you to it.
+• Grenades: a free hand's grip takes one at your waist; let go to throw it (PHYS GRENADES).
+• MANUAL RELOAD: B drops the magazine; a fresh one from a pouch at your hip or shoulder, pushed into the gun; pull the slide or handle if the chamber was empty.
+• Grab enemies, bodies and objects with a grip (NPC GRAB, WORLD GRAB); climb with a free hand on a wall (GRIP CLIMB); pull a weapon to you by pointing a free hand and flicking it back (WEAPON PULL).
+• Flashlight: bring the other hand to the middle of your head. HUD: hold the gun hand beside its temple a moment.
+• Duck to crouch (ROOM-SCALE); swing your arms as in running to sprint (ARM RUN, off by default). Jump near a wall moving along it to wall-run.
+
+SETTINGS THAT CHANGE THE BUTTONS (VR SETTINGS)
+• LEFT-HAND MODE: the gun in the left hand. MIRROR CONTROLS (AUTO): you move on the right stick and turn on the left, and the face buttons swap hands. MIRROR BUTTONS (AUTO): the face buttons on the gun hand even with the sticks standard.
+• BUTTON SPRINT: the move stick's click sprints (on with SLIDE since the Test73 update). SPRINT TOGGLE: TOGGLE (the default since Test73b: a click starts it, another stops it) or HOLD.
+• WEAPONS: PHYSICAL (default) or LOCKED (the gun always in your hand). With LOCKED the left lower button of the controllers other than the Quest's switches grenades rather than throwing one.
+• MELEE SPEED OFF: no melee by hand; the right stick's click melees and the other hand's trigger zooms.
+• BULLET TIME MODE: HOLD or TOGGLE (BULLET TIME is offline only).
+• CONTROLS: XBOX: the buttons as an Xbox controller's of the same letter: A jump, B melee, X use / reload, Y next weapon (the Index's left A and B are X and Y); the left trigger a grenade, the right trigger fire; the left stick's click crouch, the right stick's click zoom; Menu pause. The Steam Frame's bumpers are the flashlight and next grenade, its View back and its d-pad the d-pad. BUTTON SPRINT is the VR layout's only.
+• VOICE CHAT > MICROPHONE: PUSH TO TALK takes the button the Quest's BUTTONS page gives it; with the other controllers, use OPEN MIC.
+
+IN A VEHICLE
+• Get in with USE beside it. The left stick is the throttle; the stick clicks sound the horn.
+• IMMERSIVE VEHICLE: grip the vehicle's own controls (the Warthog's wheel, the Ghost's handlebar, the Scorpion's stick, the Banshee's bar) and turn them with your hands. Without it, STEERING: RIGHT HAND, LEFT HAND, HEAD or STICK.
+
+== TOUCH SCREEN | flat | phone
+TOUCH SCREEN (ANDROID)
+The circles on the screen, while no controller hides them. Tap HUD (top left) to move, resize or hide any of them.
+
+CIRCLES
+• MOVE: walk, strafe and back up. LOOK: swipe to turn (or hold it as a stick: HUD > OPTIONS). Dragging FIRE aims as it fires.
+• FIRE: shoot while held.
+• A / Jump: JUMP. B / Melee: MELEE. X / Use: reload; hold to use, pick up or get in. Y / Swap: NEXT WEAPON.
+• Crouch: CROUCH. Zoom: ZOOM. Grenade: throw. Type: NEXT GRENADE. Light: FLASHLIGHT.
+• Sprint: shown while SPRINT is HOLD or TOGGLE (Settings > Player profile > MOVEMENT): HOLD sprints while it is held, TOGGLE starts and stops with a tap. With AUTO, push MOVE fully forward a moment instead.
+• Menu: pause. Back: back, and the scoreboard. The arrows: the d-pad.
+• Touch: when the circles show (hidden by a controller, always shown, or always hidden). HUD: the layout editor.
+
+OPTIONS (HUD > OPTIONS)
+• Size, opacity and place of each circle, or hide one. Sensitivity, dead zone, invert, drag anywhere to look, floating MOVE.
+• Gyro aim: turn the phone to aim (always, or while a finger is on LOOK or FIRE).
+• Export and import a layout. SAVE keeps the changes; CANCEL restores them.
+
+IN THE MENUS
+• Tap a row to choose it; the circles still work as buttons there.
+
+== GAMEPAD | flat | phone pc
+GAMEPAD
+An Xbox controller, or any controller Android or SDL knows (PlayStation and Nintendo by their buttons' places). On the phone, a connected controller hides the touch circles (Auto).
+
+BUTTONS
+• A: JUMP. B: MELEE. X: reload; hold to use, pick up or get in. Y: NEXT WEAPON.
+• Left bumper: FLASHLIGHT. Right bumper: NEXT GRENADE.
+• Left trigger: throw a GRENADE. Right trigger: FIRE.
+• Left stick: move; its click: CROUCH. Right stick: look; its click: ZOOM.
+• The d-pad: move (and the menus).
+• Start: pause. Back (View): the scoreboard; hold it and page with the d-pad.
+• SPRINT: a gamepad has no free button for it: choose AUTO (Settings > Player profile > MOVEMENT, or the PC launcher's SETTINGS), and the left stick pushed fully forward a moment sprints.
+
+SETTINGS
+• Gamepad Setup (Settings > Player profile): sensitivity, invert and the controller's layout.
+• Android: the launcher's Controller & touch settings (dead zones, stick response, vibration, when touch hides).
+
+== KEYBOARD + MOUSE | flat | pc phone
+KEYBOARD AND MOUSE
+The PC's defaults (an Android phone with a keyboard and mouse too). Settings > Player profile > Controls Setup changes any of them, two keys each.
+
+MOVING
+• W, A, S, D: move. Mouse: look. Space: JUMP. Left Ctrl or C: CROUCH.
+• Left Shift: SPRINT, while SPRINT is HOLD (held) or TOGGLE (a press starts and stops it): Settings > Player profile > MOVEMENT, or the PC launcher's SETTINGS.
+
+FIGHTING
+• Left mouse: FIRE. Right mouse or G: throw a GRENADE. F or mouse 4: MELEE.
+• R: RELOAD. E: USE (pick up, get in). Z or the middle mouse: ZOOM.
+• Wheel or 1: NEXT WEAPON. X: NEXT GRENADE. Q: FLASHLIGHT.
+
+OTHER KEYS
+• Escape: pause. Tab: the scoreboard. F10: a screenshot.
+• T: chat. Y: team chat. V: push to talk.
+• Keypad Enter: the third-person camera (campaign and co-op, on foot); hold Alt to look around it.
+
+== * | flat | phone pc
+MOVEMENT SETTINGS (SETTINGS > PLAYER PROFILE > MOVEMENT)
+• SPRINT: OFF (default), HOLD, TOGGLE or AUTO. SPRINT SPEED: how much faster (offline only).
+• SLIDE: sprinting, a crouch slides on. WALL RUN and WALL JUMP: run along walls, and jump off them.
+• On the PC these are in the launcher's SETTINGS too.

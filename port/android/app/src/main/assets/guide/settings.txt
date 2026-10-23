@@ -509,9 +509,8 @@ Default: false
 Hard stencil shadows from characters and vehicles besides the game's
 own, as F.E.A.R. and Doom 3 cast them: on the level, on other objects
 and on themselves, your own body's and weapon's in first person too
-(not in VR, where your body follows the headset). On the level a
-shadow takes away only the light it blocks: a flashlight's or a
-shield's light falls into it at full strength. Costly on a Quest.
+(in VR the body others see, the gun in your hand not; Test73b).
+Costly on a Quest.
 
 game.shadow_objects_stop [boolean]
 Default: true
@@ -1020,10 +1019,11 @@ it needs that the player lacks (bitmaps.map, sounds.map, loc.map). The
 game's other players help (network.map_seed).
 
 network.map_share_upload [integer]
-Default: 1024
+Default: 20480
 Hosting: the most kilobytes a second the host sends of maps (16 to
-20480: 20 MB/s), so that the game's own traffic keeps the rest of the
-upload.
+20480: 20 MB/s, the default), so that the game's own traffic keeps the
+rest of the upload: lower it if the game lags while a player
+downloads a map.
 
 network.map_seed [boolean]
 Default: true
@@ -1032,9 +1032,9 @@ without it, as a torrent's peers do (the pieces this machine has, at
 most network.map_seed_upload).
 
 network.map_seed_upload [integer]
-Default: 256
+Default: 10240
 Playing in another's game: the most kilobytes a second this machine
-sends of maps to other players (16 to 10240: 10 MB/s).
+sends of maps to other players (16 to 10240: 10 MB/s, the default).
 
 network.map_download [boolean]
 Default: true
@@ -1043,6 +1043,12 @@ download it (and the resource maps it needs) from the game's players
 into the active game set's maps folder, if its host shares it
 (network.map_share); false leaves the game, saying which map is
 missing.
+
+network.map_share_revision [integer]
+Default: 1
+Internal one-time migration (Test73b): a config saved with the map
+upload limits at their defaults before (1024 and 256) has them at their
+most. Later saved choices are kept.
 
 network.coop_public [boolean]
 Default: false
@@ -1447,7 +1453,13 @@ vr.world_scale [real]
 Default: 0.328084
 Game units per metre of head movement and eye separation: the game's
 unit is 10 feet (0.328084 per metre). Larger makes the world feel
-smaller.
+smaller. WORLD SCALE (vr.world_size) divides it.
+
+vr.world_size [real]
+Default: 1.0
+Test73b: WORLD SCALE (VR Settings > COMFORT): how big the world is around you, 1.0 its
+true size; 1.2 makes it a fifth bigger (you a fifth smaller), 0.8 smaller (0.5 to 2.0).
+Your eyes' separation and your head's and hands' movement take it, at once.
 
 vr.hud_distance [real]
 Default: 15.0
@@ -1976,9 +1988,9 @@ Use left stick click for offline sprint. The VR menu temporarily frees
 that binding and restores it when this option is disabled.
 
 vr.button_sprint_toggle [boolean]
-Default: false
+Default: true
 When Button Sprint is enabled, click left stick once to start sprinting
-and click again to stop. Off keeps the hold-to-sprint behavior.
+and click again to stop (the default since Test73b). Off keeps the hold-to-sprint behavior.
 
 vr.sprint_speed [real]
 Default: 1.5
@@ -2323,6 +2335,11 @@ Default: false
 Internal one-time change (Test73, the owner's): every VR feature (manual reload, parkour, fist combat,
 immersive vehicles, NPC and world grabs, one-hand heavies, physical grenades, slide, bullet time, death
 ragdolls...) turned on once, as VR SETTINGS turns it on, with what it needs; turned off after, it stays off.
+
+vr.test73b_sprint_toggle_applied [boolean]
+Default: false
+Internal one-time change (Test73b, the owner's): SPRINT TOGGLE at HOLD, its old default, goes to
+TOGGLE once (BUTTON SPRINT comes with SLIDE since Test73); HOLD chosen after it is kept.
 
 vr.test72_combat_defaults_applied [boolean]
 Default: false

@@ -252,7 +252,11 @@ public class LauncherActivity extends Activity {
             return;
         try (OutputStream out = new FileOutputStream(new File(root, "STEAM-FRAME-README.txt"))) {
             out.write(("HaloCE Quest VR on the Steam Frame\n\n" + text + "\n\nThis folder (" + root
-                + ") holds the game's data, settings, saves and logs.\n").getBytes("UTF-8"));
+                + ") holds the game's data, settings, saves and logs.\n"
+                // Test73b: the logs by name
+                + "\nLogs, to send when something goes wrong: logs/halo_log_<date>_<time>.txt (each run's, the "
+                + "newest the last; the last ten are kept), launcher.log (each start from Steam), logcat.txt (the "
+                + "last run's Android log) and install.log (the installer's).\n").getBytes("UTF-8"));
         } catch (java.io.IOException e) {
             RunLog.line("Steam Frame: the note could not be written: " + e);
         }
@@ -462,6 +466,8 @@ public class LauncherActivity extends Activity {
         label(layout, "Browse and host games in Play > Multiplayer. Use the guide below for online co-op, public servers, LAN and invites.",
             13, Color.rgb(150, 160, 170));
         menuButton(layout, "Multiplayer & co-op guide").setOnClickListener(v -> LauncherHelp.network(this));
+        // Test73b: every button of each controller, and what changes it (ControlsGuide; the PC launcher's CONTROLS)
+        menuButton(layout, "Controls: every button, for your controller").setOnClickListener(v -> ControlsGuide.show(this));
         menuButton(layout, "Field guide • controls & help").setOnClickListener(v -> LauncherHelp.show(this));
         // Test70: this version's notes, shown once after an update (WhatsNew.maybeShow below)
         menuButton(layout, "What's new in this version").setOnClickListener(v -> WhatsNew.show(this));
@@ -575,10 +581,20 @@ public class LauncherActivity extends Activity {
             ? "Settings are changed in the game: pause, then VR SETTINGS."
             : "Controller & touch settings controls automatic HUD hiding, gamepad response and gyro aim (off by default). In-game Options retains layout, sensitivity, invert and gyro aim.",
             13, Color.rgb(150, 160, 170));
-        label(layout, "Something wrong? Each run's log is in this headset's Download folder, Download/HaloCE, "
-            + "named by when the game started (halo_log_<date>_<time>.txt; the newest is the last run; the "
-            + "last ten are kept). A copy of the last run's is in Android/data/" + BuildConfig.APPLICATION_ID
-            + "/files/halo_log.txt. Send it with a few words on what happened.", 13, Color.rgb(150, 160, 170));
+        // Test73b (the owner: "where are logs generating for steam and pc? these things should be clarified" / "do
+        // that for all launchers i guess. useful for log finding"): this device's folder (RunLog's), the Steam
+        // Frame's its own
+        label(layout, Lepton.running()
+            ? "Something wrong? Each run's log is on the Steam Frame in Documents/HaloCEQuestVR/logs (Desktop "
+                + "Mode's file manager shows it), named by when the game started (halo_log_<date>_<time>.txt; the "
+                + "newest is the last run; the last ten are kept), the game's own log (debug.txt) in it. Beside that "
+                + "folder: launcher.log (each start from Steam), logcat.txt (the last run's Android log) and "
+                + "install.log (the installer's). Send the run's log with a few words on what happened."
+            : "Something wrong? Each run's log is in this " + (BuildConfig.APPLICATION_ID.endsWith(".vr")
+                ? "headset" : "device") + "'s Download folder, Download/HaloCE, named by when the game started "
+                + "(halo_log_<date>_<time>.txt; the newest is the last run; the last ten are kept), the game's own "
+                + "log (debug.txt) in it. A copy of the last run's is in Android/data/" + BuildConfig.APPLICATION_ID
+                + "/files/halo_log.txt. Send it with a few words on what happened.", 13, Color.rgb(150, 160, 170));
 
         progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progress.setMax(1000);
@@ -1234,6 +1250,7 @@ public class LauncherActivity extends Activity {
         updateStatus = Updater.launcher(this, gameRoot(), layout);
         LauncherFont.keepNormal(updateStatus);
         menuButton(layout, "Getting started & controls").setOnClickListener(v -> LauncherHelp.show(this));
+        menuButton(layout, "Controls: every button, for your controller").setOnClickListener(v -> ControlsGuide.show(this));
         android.widget.ScrollView importScroll = new android.widget.ScrollView(this);
         importScroll.setFillViewport(true); importScroll.setBackground(new LauncherTheme());
         layout.setBackgroundColor(Color.TRANSPARENT); importScroll.addView(layout);

@@ -1,5 +1,21 @@
-NEW IN THIS UPDATE (TEST73)
-Your settings and saves are kept. Every VR feature is turned on once by this update; turn any of them off again in VR SETTINGS and it stays off.
+NEW IN THIS UPDATE (TEST73B)
+Your settings and saves are kept. Coming from Test72 or earlier, every VR feature is turned on once (Test73's notes, below); turn any of them off again in VR SETTINGS and it stays off.
+
+FIXES AND ADDITIONS (TEST73B)
+• STENCIL SHADOWS (Video Setup > EXTRA EFFECTS) are back as HALOFREAK95 made them: Test73's change, which made shadows black and the ground grey, is undone.
+• NEW: in VR your body casts a shadow, with STENCIL SHADOWS and with the game's own shadows: the body others see, your head turned with yours, your arms reaching your hands (BODY on LEGS or FULL).
+• FIX: B goes back in the menus on every controller, the Steam Frame's included, whether you point at the menus or not. In the menus A, B, X and Y are their own letters on every controller.
+• Custom map downloads are faster: a host sends up to 20 MB/s and each player helping up to 10 MB/s (before: 1 MB/s and 256 KB/s). Lower UPLOAD LIMIT (Server Setup > MAP SHARING) if your game lags while someone downloads.
+• Logs: every launcher says where its logs are. PC: the launcher's new LOGS page; each start keeps the run before's halo.log or halo-vr.log in a logs folder (the last ten). Steam Frame: Documents/HaloCEQuestVR/logs keeps its last ten.
+• VR sprint: SPRINT TOGGLE (VR SETTINGS > LOCOMOTION) is now TOGGLE, set once for everyone: click the stick to sprint, again to stop. HOLD is still there.
+• FIX: with BUTTON SPRINT on, the stick click on Index, PICO, Steam Frame and HP controllers no longer crouches too: hold the turn stick down to crouch. Left-handed, the move stick's click sprints.
+• BULLET TIME (the right stick up) works on every controller now, not just the Quest's.
+• NEW: a SPRINT button on Android's touch screen while SPRINT (Player Setup > MOVEMENT) is HOLD or TOGGLE; place it in the touch editor. On PC, Left Shift sprints.
+• NEW: CONTROLS in every launcher: every button for your controller (Quest, PICO, Steam Frame, Index, HP Reverb, other PC VR, touch, gamepad, keyboard and mouse) and the settings that change them.
+• FIX: a body you hold as a shield no longer turns invisible while you carry it.
+• NEW: WORLD SCALE (VR SETTINGS > COMFORT), 70% to 150%: above 100% the world is bigger around you, below it smaller. Menus and the HUD keep their size.
+
+Test73's changes, in this update too:
 
 EVERY VR FEATURE ON (QUEST AND PC VR)
 • On now: manual reload with MAG DEBRIS, fist combat, physical grenades, parkour, slides, grabbing, NPC grab, one-hand heavies, ragdolls, the immersive vehicle controls and more.
@@ -21,7 +37,6 @@ COMBAT, GRENADES AND SCOPES
 • Scopes: SIZE goes up to 400%.
 • FIX: an error with bodies near a moving vehicle (seen in the Scorpion).
 • FIX: in busy fights some effects could stop being drawn.
-• FIX: STENCIL SHADOWS (Video Setup > EXTRA EFFECTS) no longer dim a flashlight's or a shield's light: a shadow takes away only the light it blocks.
 
 MOVEMENT AND BODY
 • A wall run's leap now goes where you look.
@@ -35,7 +50,7 @@ MENUS AND LAUNCHERS
 • Co-op FRIENDLY FIRE is in the VR menu's GAMEPLAY page too.
 
 STEAM FRAME AND PC
-• Steam Frame support: its controllers and finger touches are recognised. Not yet confirmed on a Frame: tell us how it works.
+• Steam Frame support: its controllers and finger touches are recognised. Tell us how it works on yours.
 • Steam Frame: install it on the Frame itself, no computer needed (the Steam Frame bundle's installer), start it from your Steam library, and quit with Steam's Exit game too.
 • Steam Frame: the game waits for SteamVR to wake up instead of failing, and ends cleanly if it never does.
 • Index controllers: finger touches now move the fingers.

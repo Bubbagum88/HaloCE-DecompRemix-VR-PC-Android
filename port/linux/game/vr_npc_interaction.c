@@ -20,6 +20,7 @@
 #include "physics/collision_bsp.h"
 #include "physics/physics.h"
 #include "physics/collision_features.h" /* collision_test_sphere: a float radius needs its prototype */
+#include "scenario/scenario.h" /* Test73b: scenario_location_from_point (npc_bounds_about_pose) */
 #include "../src/vr.h"
 #include "../src/port_config.h"
 #include "vr_npc_interaction.h"
@@ -1265,6 +1266,39 @@ static void npc_keep_held(void)
         }
     }
 }
+/* Test73b (a tester: a corpse held as a shield went invisible, "the body point
+ * of origin doesn't come with you"): a corpse in the hands is drawn, lit, shot
+ * and found where the hands hold it, as OpenCE's ragdolls are where they lie
+ * (ragdoll.c: its bounds about the whole skeleton, at least its definition's
+ * radius, and its place in the map taken again). The engine takes the sphere
+ * from the native pose, which lies at the root (object_compute_node_matrices),
+ * and the hands' spring holds the root where the grab found it, a metre and
+ * more from the body hanging in the hands: out of the view, the body in it was
+ * culled. A middle outside the map leaves the sphere as it was */
+void object_bounds_cache_update(long object_index,short type,real_point3d const *center,real radius);
+static void npc_bounds_about_pose(long index,struct unit_datum *u,real_matrix4x3 const *posed,int count)
+{
+    real_point3d minimum,maximum,center;
+    real_vector3d half;
+    struct location location;
+    int n,k;
+    if(count<=0) return;
+    minimum=maximum=posed[0].position;
+    for(n=1;n<count;++n) for(k=0;k<3;++k) {
+        minimum.n[k]=MIN(minimum.n[k],posed[n].position.n[k]);
+        maximum.n[k]=MAX(maximum.n[k],posed[n].position.n[k]);
+    }
+    for(k=0;k<3;++k) {center.n[k]=(minimum.n[k]+maximum.n[k])*.5f;half.n[k]=maximum.n[k]-center.n[k];}
+    if(!valid_real_point3d(&center)) return;
+    scenario_location_from_point(&location,&center);
+    if(location.cluster_index==NONE) return;
+    object_disconnect_from_map(index);
+    u->object.bounding_sphere_center=center;
+    u->object.bounding_sphere_radius=MAX(biped_definition_get(u->definition_index)->object.bounding_radius,
+        magnitude3d(&half)+.25f);
+    object_bounds_cache_update(index,u->object.type,&u->object.bounding_sphere_center,u->object.bounding_sphere_radius);
+    object_reconnect_to_map(index,&location);
+}
 void vr_npc_interaction_tick(void)
 {
     short local=local_player_get_next(NONE);
@@ -1528,6 +1562,9 @@ void vr_npc_interaction_palette(long index)
         }
     }
     for(n=0;n<npc.rig.body.count;++n) native[n]=npc.rig.captured[n];
+    /* (Test73b: a held corpse's bounds about the pose drawn: npc_bounds_about_pose) */
+    if(npc.started&&(npc.held[0]||npc.held[1])&&TEST_FLAG(u->object.damage_flags,_object_dead_bit))
+        npc_bounds_about_pose(index,u,native,npc.rig.body.count);
 	/* Local hands get the same optional, rate-limited load feedback as held
 	 * props. Measure solver displacement/movement at the actually pinned limb;
 	 * remote-owned bodies never buzz this headset. */

@@ -70,7 +70,7 @@ The game finds the game data as on Linux. Refer to "Start the game" in
 | Settings | `config.toml` next to `halo.exe` |
 | Saved games | `%APPDATA%\halo`, or `paths.saves` in `config.toml` |
 | Log | `debug.txt` in the data root (the folder that contains `maps\`) |
-| Log of the port | The console. The release build has no console: `halo.log` next to `halo.exe` |
+| Log of the port | The console. The release build has no console: `halo.log` next to `halo.exe` (`halo-vr.log` next to `halo-vr.exe`), the last run's; each start keeps the one before in `logs\` next to them (`halo_<date>_<time>.log`, `halo-vr_<date>_<time>.log`, the ten newest of each). The launcher's LOGS page opens these folders |
 
 On Windows, the setting `debug.sample_seconds` (`HALO_SAMPLE`) writes the
 location of the main thread to the log at this interval, in seconds. Thus

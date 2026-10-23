@@ -25,10 +25,11 @@ launcher = (ROOT / 'port/linux/src/desktop_launcher.c').read_text(encoding='utf-
 java = (ROOT / 'port/android/app/src/main/java/com/halo/decomp/WhatsNew.java').read_text(encoding='utf-8')
 
 # ---------- the notes themselves
-assert '\r' not in notes and notes.startswith('NEW IN THIS UPDATE (TEST73)\n')
+assert '\r' not in notes and notes.startswith('NEW IN THIS UPDATE (TEST73B)\n')
 lines = notes.split('\n')
 headings = [l for l in lines[1:] if l.strip() and not l.startswith('\u2022 ') and not re.search('[a-z]', l)]
-assert headings == ['EVERY VR FEATURE ON (QUEST AND PC VR)', 'CO-OP: VR FOR EVERY PLAYER', 'VEHICLES',
+assert headings == ['FIXES AND ADDITIONS (TEST73B)',
+                    'EVERY VR FEATURE ON (QUEST AND PC VR)', 'CO-OP: VR FOR EVERY PLAYER', 'VEHICLES',
                     'COMBAT, GRENADES AND SCOPES', 'MOVEMENT AND BODY', 'MENUS AND LAUNCHERS', 'STEAM FRAME AND PC',
                     'FROM OPENCE (BUILDS 232 TO 256)', 'ALSO NEW SINCE 1.0.37 (TEST72)',
                     'ALSO NEW SINCE 1.0.37 (TEST71)'], headings
@@ -47,7 +48,16 @@ for feature in ('settings and saves are kept', 'turned on once', 'MAG DEBRIS', '
                 'middle finger', 'icon', 'TEXT CHAT', 'pings', 'MATCH TIMER', 'EXTRA PICKUPS', 'EXTRA VEHICLES',
                 'gravity lift', 'TEXTURE FILTERING', 'MODEL DETAIL', 'HDR', 'New Game', 'checkpoints', '5.1',
                 'AMD', 'Network 34', '11 to 34', 'once their build is on network 34', 'energy shields', 'tripmines',
-                'STENCIL SHADOWS', 'only the light it blocks',
+                # Test73b's (its own section, Test73's after it)
+                'STENCIL SHADOWS', 'back as HALOFREAK95 made them', 'is undone', 'your body casts a shadow',
+                "the game's own shadows", 'BODY on LEGS or FULL', 'B goes back in the menus',
+                "the Steam Frame's included", 'whether you point at the menus or not', '20 MB/s', '10 MB/s',
+                'UPLOAD LIMIT', 'LOGS page', 'logs folder', 'Documents/HaloCEQuestVR/logs',
+                'SPRINT TOGGLE', 'set once for everyone', 'hold the turn stick down to crouch',
+                "the move stick's click sprints", 'BULLET TIME (the right stick up) works on every controller',
+                "a SPRINT button on Android's touch screen", 'Left Shift sprints', 'CONTROLS in every launcher',
+                'a body you hold as a shield', 'WORLD SCALE', '70% to 150%',
+                "Test73's changes, in this update too:",
                 # the Steam Frame ports (tools/test_test73_frame_ports.py)
                 'Smoother motion', 'install it on the Frame itself', "Steam's Exit game", 'waits for SteamVR',
                 # OpenCE Build 249 to 256 and its testing branch
@@ -62,6 +72,9 @@ for feature in ('settings and saves are kept', 'turned on once', 'MAG DEBRIS', '
                 "MANUAL RELOAD now works with the mods' own guns", 'shaken to reload',
                 'Version 1.0.37 (Test70) and earlier: the full release notes on GitHub.'):
     assert feature in notes, feature
+# (Test73b: the stencil shadows' light change undone, so its line gone; the Frame started on one since)
+for gone in ('only the light it blocks', 'Not yet confirmed on a Frame'):
+    assert gone not in notes, gone
 
 # ---------- the PC launcher's layout, compiled
 start = launcher.index('enum news_line { NEWS_GAP')
@@ -198,8 +211,8 @@ with tempfile.TemporaryDirectory(prefix='test73-whats-new-') as folder:
     package.mkdir(parents=True)
     (package / 'WhatsNew.java').write_text(java, encoding='utf-8')
     (package / 'BuildConfig.java').write_text(
-        'package com.halo.decomp;\nfinal class BuildConfig { static final int VERSION_CODE = 85; '
-        'static final String VERSION_NAME = "1.0.40-test73"; }\n', encoding='utf-8')
+        'package com.halo.decomp;\nfinal class BuildConfig { static final int VERSION_CODE = 86; '
+        'static final String VERSION_NAME = "1.0.41-test73b"; }\n', encoding='utf-8')
     (package / 'UpdatePolicy.java').write_text(
         'package com.halo.decomp;\nfinal class UpdatePolicy { static final String REPOSITORY = '
         '"moistman42069/HaloCE-Quest-VR"; }\n', encoding='utf-8')

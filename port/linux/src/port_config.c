@@ -461,9 +461,8 @@ static const struct config_setting config_settings[] =
 		"Hard stencil shadows from characters and vehicles besides the game's\n"
 		"own, as F.E.A.R. and Doom 3 cast them: on the level, on other objects\n"
 		"and on themselves, your own body's and weapon's in first person too\n"
-		"(not in VR, where your body follows the headset). On the level a\n"
-		"shadow takes away only the light it blocks: a flashlight's or a\n"
-		"shield's light falls into it at full strength. Costly on a Quest." },
+		"(in VR the body others see, the gun in your hand not; Test73b).\n"
+		"Costly on a Quest." },
 	{ "game.shadow_objects_stop", _config_boolean, "true", "HALO_SHADOW_OBJECTS_STOP", _environment_value, _platform_all,
 		"(Test72, HaloFreak95's) Stencil shadows end at a machine or scenery behind what casts them\n"
 		"(a cryotube's wall, a crate), as at the level, not through it; false: the level's alone." },
@@ -857,25 +856,34 @@ static const struct config_setting config_settings[] =
 		"the map (from the active game set's maps folder), and the resource maps\n"
 		"it needs that the player lacks (bitmaps.map, sounds.map, loc.map). The\n"
 		"game's other players help (network.map_seed)." },
-	{ "network.map_share_upload", _config_integer, "1024", "HALO_NET_MAP_SHARE_UPLOAD", _environment_value,
+	/* (Test73b, the owner: "raise the download limit to max ... by default so
+	custom map downloads via the server are faster": both limits at their
+	most, OpenCE's 1024 and 256 before; network.map_share_revision) */
+	{ "network.map_share_upload", _config_integer, "20480", "HALO_NET_MAP_SHARE_UPLOAD", _environment_value,
 		_platform_all,
 		"Hosting: the most kilobytes a second the host sends of maps (16 to\n"
-		"20480: 20 MB/s), so that the game's own traffic keeps the rest of the\n"
-		"upload." },
+		"20480: 20 MB/s, the default), so that the game's own traffic keeps the\n"
+		"rest of the upload: lower it if the game lags while a player\n"
+		"downloads a map." },
 	{ "network.map_seed", _config_boolean, "true", "HALO_NET_MAP_SEED", _environment_value, _platform_all,
 		"Playing in another's game: help send its map to players who join\n"
 		"without it, as a torrent's peers do (the pieces this machine has, at\n"
 		"most network.map_seed_upload)." },
-	{ "network.map_seed_upload", _config_integer, "256", "HALO_NET_MAP_SEED_UPLOAD", _environment_value,
+	{ "network.map_seed_upload", _config_integer, "10240", "HALO_NET_MAP_SEED_UPLOAD", _environment_value,
 		_platform_all,
 		"Playing in another's game: the most kilobytes a second this machine\n"
-		"sends of maps to other players (16 to 10240: 10 MB/s)." },
+		"sends of maps to other players (16 to 10240: 10 MB/s, the default)." },
 	{ "network.map_download", _config_boolean, "true", "HALO_NET_MAP_DOWNLOAD", _environment_value, _platform_all,
 		"Joining a game on a Custom Edition map this machine does not have:\n"
 		"download it (and the resource maps it needs) from the game's players\n"
 		"into the active game set's maps folder, if its host shares it\n"
 		"(network.map_share); false leaves the game, saying which map is\n"
 		"missing." },
+	{ "network.map_share_revision", _config_integer, "1", "HALO_NET_MAP_SHARE_REVISION", _environment_value,
+		_platform_all,
+		"Internal one-time migration (Test73b): a config saved with the map\n"
+		"upload limits at their defaults before (1024 and 256) has them at their\n"
+		"most. Later saved choices are kept." },
 	{ "network.coop_public", _config_boolean, "false", "HALO_NET_COOP_PUBLIC", _environment_value, _platform_all,
 		"Whether an online co-op game (Create Game > Internet, a SINGLEPLAYER\n"
 		"map) starts as PUBLIC or, false, PRIVATE: Server Setup's LISTING in\n"
@@ -1152,7 +1160,11 @@ static const struct config_setting config_settings[] =
 	{ "vr.world_scale", _config_real, "0.328084", "HALO_VR_WORLD_SCALE", _environment_value, _platform_vr,
 		"Game units per metre of head movement and eye separation: the game's\n"
 		"unit is 10 feet (0.328084 per metre). Larger makes the world feel\n"
-		"smaller." },
+		"smaller. WORLD SCALE (vr.world_size) divides it." },
+	{ "vr.world_size", _config_real, "1.0", "HALO_VR_WORLD_SIZE", _environment_value, _platform_vr,
+		"Test73b: WORLD SCALE (VR Settings > COMFORT): how big the world is around you, 1.0 its\n"
+		"true size; 1.2 makes it a fifth bigger (you a fifth smaller), 0.8 smaller (0.5 to 2.0).\n"
+		"Your eyes' separation and your head's and hands' movement take it, at once." },
 	{ "vr.hud_distance", _config_real, "15.0", "HALO_VR_HUD_DISTANCE", _environment_value, _platform_vr,
 		"How far ahead of the eyes the HUD floats, in metres: far, so the eyes\n"
 		"need not refocus between it and the world." },
@@ -1475,9 +1487,9 @@ static const struct config_setting config_settings[] =
 	{ "vr.button_sprint", _config_boolean, "false", "HALO_VR_BUTTON_SPRINT", _environment_value, _platform_vr,
 		"Use left stick click for offline sprint. The VR menu temporarily frees\n"
 		"that binding and restores it when this option is disabled." },
-	{ "vr.button_sprint_toggle", _config_boolean, "false", "HALO_VR_BUTTON_SPRINT_TOGGLE", _environment_value, _platform_vr,
+	{ "vr.button_sprint_toggle", _config_boolean, "true", "HALO_VR_BUTTON_SPRINT_TOGGLE", _environment_value, _platform_vr,
 		"When Button Sprint is enabled, click left stick once to start sprinting\n"
-		"and click again to stop. Off keeps the hold-to-sprint behavior." },
+		"and click again to stop (the default since Test73b). Off keeps the hold-to-sprint behavior." },
 	{ "vr.sprint_speed", _config_real, "1.5", "HALO_VR_SPRINT_SPEED", _environment_value, _platform_vr,
 		"Maximum offline sprint movement multiplier, bounded from 1.0x to 3.0x; default 1.5x." },
 	{ "vr.slide", _config_boolean, "true", "HALO_VR_SLIDE", _environment_value, _platform_vr,
@@ -1665,6 +1677,9 @@ static const struct config_setting config_settings[] =
 		"Internal one-time change (Test73, the owner's): every VR feature (manual reload, parkour, fist combat,\n"
 		"immersive vehicles, NPC and world grabs, one-hand heavies, physical grenades, slide, bullet time, death\n"
 		"ragdolls...) turned on once, as VR SETTINGS turns it on, with what it needs; turned off after, it stays off." },
+	{ "vr.test73b_sprint_toggle_applied", _config_boolean, "false", "HALO_VR_TEST73B_SPRINT_TOGGLE_APPLIED", _environment_value, _platform_vr,
+		"Internal one-time change (Test73b, the owner's): SPRINT TOGGLE at HOLD, its old default, goes to\n"
+		"TOGGLE once (BUTTON SPRINT comes with SLIDE since Test73); HOLD chosen after it is kept." },
 	{ "vr.test72_combat_defaults_applied", _config_boolean, "false", "HALO_VR_TEST72_COMBAT_DEFAULTS_APPLIED", _environment_value, _platform_vr,
 		"Internal one-time move (Test72): FIST COMBAT's LUNGE, HIT ASSIST and LUNGE HOP and GRAB ASSIST still\n"
 		"at their old defaults (8 m, 30 cm, 15 cm, 15 cm) go to the new ones (12 m, 50 cm, 30 cm, 30 cm),\n"
@@ -3124,6 +3139,58 @@ static void config_load(void)
                     free(changed);
                     platform_log("settings: Custom Edition maps on by default (OpenCE's)%s",
                         applied ? "; the saved setting turned on once, later choices kept" : "");
+                }
+            }
+
+            /* Test73b: the map upload limits at their most by default (the
+            owner's: "raise the download limit to max ... by default"); a
+            config saved with one at its default before (OpenCE's 1024 and
+            256) has it raised once, a value chosen otherwise kept; the
+            revision, written as a missing setting, keeps later choices */
+            {
+                toml_datum_t share_revision = toml_seek(result.toptab, "network.map_share_revision");
+
+                if (share_revision.type != TOML_INT64 || share_revision.u.int64 < 1)
+                {
+                    static const struct { const char *key; long before; const char *now; } limits[] =
+                    {
+                        { "map_share_upload", 1024, "20480" },
+                        { "map_seed_upload", 256, "10240" },
+                    };
+                    int limit, applied = 0;
+
+                    for (limit = 0; limit < (int)(sizeof(limits) / sizeof(limits[0])); limit++)
+                    {
+                        char name[64];
+                        toml_datum_t saved;
+                        int found = 0;
+                        char *changed;
+
+                        snprintf(name, sizeof(name), "network.%s", limits[limit].key);
+                        saved = toml_seek(result.toptab, name);
+                        if (saved.type != TOML_INT64 || saved.u.int64 != limits[limit].before)
+                            continue;
+                        changed = config_replace_section_line(text, "network", limits[limit].key, limits[limit].now,
+                            &found);
+                        if (changed && found)
+                        {
+                            toml_result_t verified = toml_parse(changed, (int)strlen(changed));
+
+                            if (verified.ok)
+                            {
+                                free(text); text = changed; changed = NULL;
+                                toml_free(result); result = verified;
+                                applied++;
+                            }
+                            else
+                            {
+                                toml_free(verified);
+                            }
+                        }
+                        free(changed);
+                    }
+                    platform_log("settings: map upload limits at their most by default (hosting 20 MB/s, helping "
+                        "10 MB/s)%s", applied ? "; the saved defaults raised once, later choices kept" : "");
                 }
             }
 #endif

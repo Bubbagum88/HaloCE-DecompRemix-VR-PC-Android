@@ -365,6 +365,9 @@ static struct { struct { uint32_t hand_buttons[2], buttons; float trigger[2], th
  int seated, turn_stick_down, reticle_hidden, reticle_press, reticle_cancelled, push_to_talk_held;
  /* test30: the menus' letters (0: in play, as these frames are) */
  int menus_active;
+ /* Test73b: the menus' B press and the pointer on them (vr.menu_back_press, vr.pointer_age); BUTTON SPRINT's
+ move stick click (0 in these frames: the click crouches as before) */
+ int menu_back_press, pointer_age, button_sprint_enabled;
  /* the PC VR fixes' pulsed trigger (vr.diag_fire_frame with vr.force_render): off (0) in these frames */
  int force_render; long diag_fire_frame; long stereo_frames; } vr;
 static int recentres, buzzes;

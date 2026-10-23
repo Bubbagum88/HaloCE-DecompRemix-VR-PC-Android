@@ -37,6 +37,20 @@ public final class TouchLayoutCodecCheck {
   rejects(exported.substring(0,exported.length()-8),"truncated file rejected");
   rejects("x".repeat(TouchLayoutCodec.MAX_BYTES+1),"oversized file rejected");
   rejects(exported.replace("format=halo-ce-touch-layout","format=not-a-touch-layout"),"wrong file type rejected");
+  // Test73b: SPRINT, the last stable ID; a preset made before it (none of its fields) imports with SPRINT at its
+  // defaults and its own controls as saved; one with only some of SPRINT's fields is incomplete
+  check(TouchLayout.COUNT==20&&TouchLayout.CONTROL_IDS[TouchLayout.SPRINT].equals("sprint")&&TouchLayout.SPRINT==TouchLayout.COUNT-1,"SPRINT is the last stable ID");
+  check(exported.contains("control.sprint.x=")&&exported.contains("control.sprint.enabled="),"a new preset has SPRINT");
+  String older=exported.replaceAll("(?m)^control\\.sprint\\..*\\n","");
+  check(!older.contains("control.sprint."),"a preset made before SPRINT");
+  TouchLayout imported=TouchLayoutCodec.decode(older);
+  same(imported.x[TouchLayout.SPRINT],TouchLayout.DEFAULT_X[TouchLayout.SPRINT],"SPRINT at its default x");
+  same(imported.y[TouchLayout.SPRINT],TouchLayout.DEFAULT_Y[TouchLayout.SPRINT],"SPRINT at its default y");
+  check(imported.visible[TouchLayout.SPRINT]&&imported.size[TouchLayout.SPRINT]==1f&&imported.alpha[TouchLayout.SPRINT]==1f,"SPRINT enabled at its default size");
+  for(int i=0;i<TouchLayout.SPRINT;i++){same(imported.x[i],original.x[i],"older preset keeps "+TouchLayout.CONTROL_IDS[i]);check(imported.visible[i]==original.visible[i],"older preset keeps "+TouchLayout.CONTROL_IDS[i]+"'s visibility");}
+  same(imported.scale,original.scale,"older preset keeps its options");
+  rejects(exported.replaceFirst("(?m)^control\\.sprint\\.x=.*\\n",""),"a preset with only some of SPRINT's fields rejected");
+  rejects(older.replaceFirst("(?m)^control\\.move\\.x=.*\\n",""),"a pre-SPRINT preset missing another field still rejected");
   System.out.println("Touch layout codec: "+checks+" checks passed (round-trip, defaults, stable IDs, validation, no gamepad settings)");
  }
 }'''

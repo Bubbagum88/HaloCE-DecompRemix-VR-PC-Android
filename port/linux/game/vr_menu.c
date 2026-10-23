@@ -780,6 +780,10 @@ static struct vr_menu_setting const vr_menu_comfort[] =
 	{ "VIGNETTE ON", "vr.vignette_when", _vr_setting_string, 3, { { "MOVING", "move_turn" }, { "TURNING", "turn" }, { "ALWAYS", "always" } } },
 	/* Test73 (10i): smooth in a seat whatever TURNING is */
 	VR_COMFORT_VEHICLE_TURN,
+	/* Test73b (a request, relayed: "a world scale slider/option in the menu"):
+	how big the world is around you, 100% its true size (vr.world_size;
+	vr_reload_settings) */
+	{ "WORLD SCALE", "vr.world_size", _vr_setting_real, 12, { { "70%", "0.7" }, { "80%", "0.8" }, { "85%", "0.85" }, { "90%", "0.9" }, { "95%", "0.95" }, { "100%", "1.0" }, { "105%", "1.05" }, { "110%", "1.1" }, { "115%", "1.15" }, { "120%", "1.2" }, { "130%", "1.3" }, { "150%", "1.5" } } },
 };
 
 /* test22: the scopes' places and sizes, the pistol's and the sniper

@@ -55,7 +55,7 @@ assert '"https://api.github.com/repos/" HALO_PORT_REPOSITORY "/releases/latest"'
 assert launcher.count("job_start(JOB_UPDATES") == 1
 assert '#define HALO_PORT_REPOSITORY "moistman42069/HaloCE-Quest-VR"' in version
 assert 'REPOSITORY="moistman42069/HaloCE-Quest-VR"' in read("port/android/app/src/main/java/com/halo/decomp/UpdatePolicy.java")
-assert re.search(r'#define HALO_PORT_VERSION "\d+\.\d+\.\d+-test\d+"', version)
+assert re.search(r'#define HALO_PORT_VERSION "\d+\.\d+\.\d+-test\d+[a-z]?"', version)
 
 # ---- one library: the maps beside the game; the other build started with it
 assert '#define LAUNCHER_FLAT_EXE "halo.exe"' in launcher and '#define LAUNCHER_VR_EXE "halo-vr.exe"' in launcher

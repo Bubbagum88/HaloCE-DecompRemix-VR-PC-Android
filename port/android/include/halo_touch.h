@@ -36,5 +36,9 @@ struct halo_touch_pointer
 #define HALO_TOUCH_RIGHT    (1u << 13)
 #define HALO_TOUCH_GRENADE  (1u << 14)
 #define HALO_TOUCH_FIRE     (1u << 15)
+/* Test73b: SPRINT, shown while movement.sprint is "hold" or "toggle": not a
+ * pad button, held as the sprint key is (xinput_sdl.c, platform_sprint_held) */
+#define HALO_TOUCH_SPRINT   (1u << 16)
+#define HALO_TOUCH_BUTTONS  0x1ffffu
 
 #endif

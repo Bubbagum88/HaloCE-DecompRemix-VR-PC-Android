@@ -4213,15 +4213,81 @@ static void vr_body_arms_to_hands(long unit, struct animation_graph *graph, real
     }
 }
 
+/* Test73b (the owner: "i do want a vr player body shadow", "should also work
+with the games normal shadows"): the observer palette is also the body the
+shadows cast, the game's (render_objects.c) and the stencil shadows
+(stencil_shadows.c): the whole body as it is drawn in the headset, the head
+turned as the headset is and the arms reaching the hands shown, not the
+game's pose under it. Kept for the frame it was posed in. */
+unsigned long config_changes(void);
+int config_boolean(const char *name);
+extern boolean render_shadows;
+static struct
+{
+    long unit;
+    double time;
+    short count;
+    real_matrix4x3 m[MAXIMUM_NODES_PER_ANIMATION];
+} vr_body_observer = { NONE, -1.0, 0 };
+
+/* whether a shadow may take the observer palette: the game's object shadows
+or the stencil shadows on */
+static boolean vr_body_shadows_wanted(void)
+{
+    static unsigned long changes = (unsigned long)-1;
+    static boolean stencil = FALSE;
+
+    if (changes != config_changes()) {
+        changes = config_changes();
+        stencil = config_boolean("display.stencil_shadows") != 0;
+    }
+    return stencil || render_shadows;
+}
+
+real_matrix4x3 const *vr_render_body_shadow_matrices(long object_index, short *count)
+{
+    if (!vr_render_full_body(object_index))
+        return NULL;
+    vr_render_body_matrices(object_index); /* (posed once a frame: the drawn body's) */
+    if (vr_body_observer.unit != object_index || vr_body_observer.time != vr_pose_time() ||
+        vr_body_observer.count <= 0)
+        return NULL;
+    if (count)
+        *count = vr_body_observer.count;
+    return vr_body_observer.m;
+}
+
+/* the game's shadow of that body (render_objects.c): its map wide enough for
+the hands where the controllers are and the body after the head, which the
+game's sphere for the biped does not reach; any other object's radius as it
+is */
+float vr_render_body_shadow_radius(long object_index, float const center[3], float radius)
+{
+    short count = 0;
+    real_matrix4x3 const *m = vr_render_body_shadow_matrices(object_index, &count);
+    /* (a joint's mesh reaches past the joint: a hand, the head) */
+    real margin = 0.25f * vr_units_per_metre();
+
+    for (short i = 0; m && i < count; i++) {
+        real_vector3d d = {{m[i].position.x - center[0], m[i].position.y - center[1], m[i].position.z - center[2]}};
+        real reach = vr_length(&d) + margin;
+        if (reach > radius) radius = reach;
+    }
+    return radius;
+}
+
 /* The observer palette keeps every body bone, before the local visibility
  * filter. The biped's own hierarchy/proportions are used, not FP bone indices.
- * (arms_solved: `local`'s arms were reached to the hands already, Test73) */
+ * (arms_solved: `local`'s arms were reached to the hands already, Test73)
+ * Made when a peer takes it or a shadow may (vr_render_body_shadow_matrices). */
 static void vr_publish_body(long unit, struct animation_graph *graph,
     real_matrix4x3 const *local, short count, real_vector3d heading, boolean arms_solved)
 {
-    real_matrix4x3 m[MAXIMUM_NODES_PER_ANIMATION];
+    real_matrix4x3 *m = vr_body_observer.m;
     short head = vr_find_node(graph, "", "head");
-    if (!network_vr_pose_wanted()) return;
+    boolean published = network_vr_pose_wanted();
+    vr_body_observer.unit = NONE;
+    if (!published && !vr_body_shadows_wanted()) return;
     memcpy(m, local, count * sizeof(*m));
     if (head >= 0 && head < count) {
         real_vector3d f = vr_render.head_camera.forward, u = vr_render.head_camera.up, l;
@@ -4236,7 +4302,11 @@ static void vr_publish_body(long unit, struct animation_graph *graph,
     }
     if (!arms_solved)
         vr_body_arms_to_hands(unit, graph, m, count, heading);
-    network_vr_pose_capture(unit, m, count);
+    vr_body_observer.unit = unit;
+    vr_body_observer.time = vr_pose_time();
+    vr_body_observer.count = count;
+    if (published)
+        network_vr_pose_capture(unit, m, count);
 }
 
 boolean vr_render_hands_only(void)

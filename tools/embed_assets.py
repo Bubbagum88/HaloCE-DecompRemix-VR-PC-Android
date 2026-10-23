@@ -51,8 +51,9 @@ SMAA_FILES = (("SMAA.hlsl", "xgpu_smaa_shader"), ("area_tex.zlib", "xgpu_smaa_ar
 # Test72: the desktop launcher's files (port/linux/src/desktop_launcher.c): the
 # Android app's What's New and campaign setup recipes, the same files
 LAUNCHER_ASSETS = Path("port/android/app/src/main/assets")
+# (Test73b: and the CONTROLS pages, page_controls)
 LAUNCHER_FILES = ("whats_new.txt", "campaigns/spv1.properties", "campaigns/lumoria.properties",
-                  "campaigns/altheros.properties")
+                  "campaigns/altheros.properties", "controls/controllers.txt")
 # the desktop windows' icon (tools/app_icon.py; port/linux/src/sdl_platform.c)
 # (this port's own: tools/desktop_icon.py makes it from the launcher's artwork)
 WINDOW_ICON = Path("port/assets/icon/haloce-quest-vr-256.png")

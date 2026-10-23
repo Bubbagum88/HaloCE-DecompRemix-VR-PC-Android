@@ -55,7 +55,8 @@ run('menu_letters', r'''
 #include <stdio.h>
 #include "port/android/include/halo_android_abi.h"
 static struct { struct halo_xr_frame frame; int menus_active, touch_layout, controls_mirrored, buttons_mirrored, x_hold_switched;
- double grenade_pulse, x_held; } vr;
+ double grenade_pulse, x_held; int menu_back_press, pointer_age; } vr;
+static void platform_log(const char *format, ...) { (void)format; }
 static unsigned int run(unsigned int buttons, unsigned int right, unsigned int left, int *grenade){
  int grenade_down = *grenade;
  vr.frame.hand_buttons[1]=right; vr.frame.hand_buttons[0]=left;
@@ -65,7 +66,7 @@ int main(void){
  const unsigned int A=HALO_XR_BUTTON_A, B=HALO_XR_BUTTON_B, X=HALO_XR_BUTTON_X, Y=HALO_XR_BUTTON_Y, BLACK=HALO_XR_BUTTON_BLACK;
  const unsigned int S=HALO_XR_HAND_SOUTH, E=HALO_XR_HAND_EAST;
  int g;
- vr.touch_layout=1; vr.menus_active=1;
+ vr.touch_layout=1; vr.menus_active=1; vr.pointer_age=1; /* (the pointer on the menus: B its back) */
  /* the report: the Quest's X in a menu (the gameplay table: a grenade, no Xbox button) is the Xbox's X */
  g=1; vr.grenade_pulse=0.1; assert(run(0, 0, S, &g)==X && g==0 && vr.grenade_pulse==0.0 && vr.x_hold_switched==1);
  /* A is A; Y is Y; B (the pointer's back) is nothing else: one back, and no X from the table's use/reload */
@@ -78,9 +79,11 @@ int main(void){
  vr.controls_mirrored=vr.buttons_mirrored=0;
  /* in play (no menu), or another controller's layout: the table's buttons and the grenade as before */
  vr.menus_active=0; g=1; vr.grenade_pulse=0.1; assert(run(X|BLACK, 0, S, &g)==(X|BLACK) && g==1 && vr.grenade_pulse==0.1);
- vr.menus_active=1; vr.touch_layout=0; g=1; assert(run(X|BLACK, 0, S, &g)==(X|BLACK) && g==1);
+ /* Test73b (the Steam Frame's B report): another controller's menus take the same letters, no grenade */
+ vr.menus_active=1; vr.touch_layout=0; g=1; assert(run(X|BLACK, 0, S, &g)==X && g==0);
  puts("PASS: in the menus the Quest's X is the Xbox's X (a profile deleted), A A, Y Y, B the pointer's back alone "
-      "(left-handed too: B back, Y the Xbox's Y); no grenade from a menu; in play and on other controllers as before");
+      "(left-handed too: B back, Y the Xbox's Y); no grenade from a menu; in play as before; Test73b: other "
+      "controllers' menus by the same letters");
 }
 ''')
 pointer = fn(frame, 'vr_ui_pointer')

@@ -42,7 +42,13 @@ The tested USA Original, Rev 1 and Rev 2 images contain identical copies of thei
 
 ## Support and project
 
-Please report both failures and successful tests, especially for fist combat/deflection, sliding, ragdolls, campaigns, vehicle options, and co-op. Include device and OS, app and network version, selected game-data set, map/mission, relevant settings, steps to reproduce, and the launch log under **Download/HaloCE** when available. For co-op, logs from both players help. Remove private invites/device details before public posting.
+Please report both failures and successful tests, especially for fist combat/deflection, sliding, ragdolls, campaigns, vehicle options, and co-op. Include device and OS, app and network version, selected game-data set, map/mission, relevant settings, steps to reproduce, and the log of the run it happened in (where each device keeps it, below). For co-op, logs from both players help. Remove private invites/device details before public posting.
+
+| Device | Each run's log |
+| --- | --- |
+| Quest, PICO, Android | **Download/HaloCE**: `halo_log_<date>_<time>.txt`, the newest the last run, the last ten kept (the game's own `debug.txt` lines are in it). A copy of the last run's: `Android/data/<package>/files/halo_log.txt`. |
+| Steam Frame | **Documents/HaloCEQuestVR/logs** (Desktop Mode's file manager): `halo_log_<date>_<time>.txt`, the last ten kept. Beside that folder: `launcher.log` (each start from Steam), `logcat.txt` (the last run's Android log), `install.log` (the installer's). |
+| Windows | Beside the game: `halo.log` (`halo.exe`) and `halo-vr.log` (`halo-vr.exe`, PC VR), the last run's; the ten runs before each in **logs** (`halo_<date>_<time>.log`, `halo-vr_<date>_<time>.log`). The game's own `debug.txt` is in the game data folder. The PC launcher's **LOGS** page opens these folders. |
 
 Contact **@MeWhenINameMyself** by Discord DM, use the [Halo CE Decomp Discord](https://discord.gg/S9uSCKxKx), or report in the [Flat2VR Halo CE discussion](https://discord.com/channels/747967102895390741/1555959498349215774). This build is intended to collect real-device feedback for the next refinement pass.
 

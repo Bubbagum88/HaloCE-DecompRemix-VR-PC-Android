@@ -24,9 +24,10 @@ export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Djava.io.tmpdir=$TMPDIR"
 # fallback. Derive the TestNN cover from the checked-in default versionName;
 # callers can still explicitly select another candidate/release cover.
 if [[ -z "${HALO_CANDIDATE_GUIDE:-}" && -z "${HALO_RELEASE_GUIDE:-}" ]]; then
-  candidate_guide="$(sed -nE 's/.*"[^"]+-test([0-9]+)[a-z]?".*/\1/p' port/android/app/build.gradle | head -n 1)"
+  # (Test73b: a lettered candidate's cover is its own, TEST73B-FIELD-GUIDE.md)
+  candidate_guide="$(sed -nE 's/.*"[^"]+-test([0-9]+[a-z]?)".*/\1/p' port/android/app/build.gradle | head -n 1)"
   if [[ -n "$candidate_guide" ]]; then
-    export HALO_CANDIDATE_GUIDE="$candidate_guide"
+    export HALO_CANDIDATE_GUIDE="${candidate_guide^^}"
   fi
 fi
 python3 tools/generate-field-guide.py

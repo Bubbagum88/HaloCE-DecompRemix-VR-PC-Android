@@ -102,6 +102,10 @@ static float mouse_pending_x, mouse_pending_y;
 #if defined(HALO_ANDROID) && !defined(HALO_VR)
 static float touch_pending_yaw, touch_pending_pitch;
 static unsigned int touch_generation;
+/* Test73b: the touch screen's SPRINT (HALO_TOUCH_SPRINT) held, and pressed
+since the game last asked (a tap shorter than a tick still counts once:
+platform_sprint_held) */
+static int touch_sprint_held, touch_sprint_pressed;
 #endif
 static unsigned long mouse_polls_unconsumed = 0;
 static float mouse_wheel_accumulated = 0.0f;
@@ -786,7 +790,19 @@ int platform_free_look_held(void)
 
 int platform_sprint_held(void)
 {
+#if defined(HALO_ANDROID) && !defined(HALO_VR)
+	/* (Test73b: or the touch screen's SPRINT, shown while movement.sprint is
+	"hold" or "toggle"; a tap between two of the game's ticks is a press, once) */
+	int touched;
+
+	pthread_mutex_lock(&mouse_lock);
+	touched = touch_sprint_held || touch_sprint_pressed;
+	touch_sprint_pressed = 0;
+	pthread_mutex_unlock(&mouse_lock);
+	return sprint_key_held || touched;
+#else
 	return sprint_key_held;
+#endif
 }
 
 /* controls.third_person pressed (in play), and controls.free_look held */
@@ -1228,10 +1244,14 @@ static void touch_gamepad_state(XINPUT_GAMEPAD *pad)
     pthread_mutex_lock(&mouse_lock);
     if (touch_generation != touch.generation) {
         touch_generation = touch.generation; touch_pending_yaw = touch_pending_pitch = 0.f;
+        touch_sprint_pressed = 0; /* (Test73b: a cancelled SPRINT is no press) */
     }
     touch_pending_yaw = fmaxf(-1.5708f, fminf(1.5708f, touch_pending_yaw + touch.yaw));
     touch_pending_pitch = fmaxf(-1.5708f, fminf(1.5708f, touch_pending_pitch + touch.pitch));
     if (touch.yaw != 0.f || touch.pitch != 0.f) mouse_aimed_ms = touch_aimed_ms = SDL_GetTicks();
+    /* (Test73b: SPRINT, the sprint key's, not a pad button) */
+    touch_sprint_held = (touch.buttons & HALO_TOUCH_SPRINT) != 0;
+    if (touch_sprint_held) touch_sprint_pressed = 1;
     pthread_mutex_unlock(&mouse_lock);
 	merge_button(pad, XINPUT_GAMEPAD_A, touch.buttons & HALO_TOUCH_A);
 	merge_button(pad, XINPUT_GAMEPAD_B, touch.buttons & HALO_TOUCH_B);

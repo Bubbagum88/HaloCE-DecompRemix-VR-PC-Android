@@ -138,7 +138,8 @@ JNIEXPORT void JNICALL Java_com_halo_decomp_TouchControls_nativeState(
 	}
 	else
 	{
-		unsigned int held = (unsigned int)buttons & 0xffffu;
+		/* (Test73b: SPRINT, bit 16, too) */
+		unsigned int held = (unsigned int)buttons & HALO_TOUCH_BUTTONS;
 		touch_pressed |= held & ~touch_state.buttons;
 		touch_state.lx = touch_axis(lx);
 		touch_state.ly = touch_axis(ly);

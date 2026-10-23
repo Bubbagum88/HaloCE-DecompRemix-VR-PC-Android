@@ -11,8 +11,9 @@ nothing back.
 
 Run here with the real code (clang, ASan/UBSan): game_time.c's speed functions
 and vr_bullet_time.c, with the input, settings and clock as stand-ins.
-1. The report's sequence (toggle and hold), today's code against HEAD's:
-   HEAD's reproduces every symptom (the negative control); today's keeps the
+1. The report's sequence (toggle and hold), today's code against Test72's
+   (f77f6a11, the code of the report; HEAD's until Test73 was committed):
+   Test72's reproduces every symptom (the negative control); today's keeps the
    checkpoint at the game's own speed, starts the revert at full speed, never
    slows twice, and the setting gives the speed back.
 2. A checkpoint an earlier build saved slowed is healed after it is taken, but
@@ -29,7 +30,9 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 read = lambda path: (ROOT / path).read_text(encoding='utf-8', errors='replace')
-head = lambda path: subprocess.run(['git', 'show', 'HEAD:' + path], cwd=ROOT, capture_output=True, text=True,
+# (the code before the fix: Test72's; Test73b: not HEAD's, which has had the fix since Test73 was committed)
+BEFORE = 'f77f6a11'
+head = lambda path: subprocess.run(['git', 'show', BEFORE + ':' + path], cwd=ROOT, capture_output=True, text=True,
                                    check=True).stdout
 OUT = ROOT / 'build/test73-bullet-time'
 OUT.mkdir(parents=True, exist_ok=True)
@@ -241,7 +244,7 @@ for new in (False, True):
 old, now = results['head'], results['new']
 for mode in ('0', '1'):
     key = lambda what: 'mode %s %s' % (mode, what)
-    # HEAD reproduces the report: the checkpoint keeps the slow motion, the
+    # Test72's reproduces the report: the checkpoint keeps the slow motion, the
     # revert brings it back, the button doubles it, the setting gives nothing
     assert abs(float(old[key('checkpoint keeps')]) - 0.4) < 0.01, old
     assert abs(float(old[key('after the revert')]) - 0.4) < 0.01, old
@@ -254,7 +257,7 @@ for mode in ('0', '1'):
     assert abs(float(now[key('button off')]) - 1.0) < 0.001, now
     assert abs(float(now[key('setting off')]) - 1.0) < 0.001, now
 assert now['ran']
-print('PASS: the report reproduced with HEAD\'s code (checkpoint keeps 0.4, the revert stuck at 0.4, the button '
+print('PASS: the report reproduced with Test72\'s code (checkpoint keeps 0.4, the revert stuck at 0.4, the button '
       'doubles it to 0.16, the setting gives nothing back; toggle and hold); today\'s keeps the checkpoint at 1, '
       'starts the revert at 1, slows to 0.4 once and gives 1 back, and the setting gives 1 back')
 print('PASS: an earlier build\'s slowed checkpoint healed only in a local game, on a map that never calls '

@@ -314,6 +314,9 @@ static struct
 	int pointer_age;
 	short pointer_x, pointer_y;
 	int pointer_trigger, pointer_back;
+	/* Test73b: the menus' B press under way: 0 none, 1 the pointer's back (begun
+	with the pointer on the menus), 2 the game's B (begun off them) */
+	int menu_back_press;
 	/* the scope (vr.scope, vr.scope_size): its image this frame, and its
 	sight's shape (VR_SCOPE_*) */
 	int scope_enabled, scope_resolved, scope_shape;
@@ -723,6 +726,28 @@ void vr_reload_settings(void)
 {
 	static int left_handed = -1;
 
+	/* Test73b (the owner, relaying a request: "a world scale slider/option in
+	the menu. make it proper and work accordingly like most other world scale
+	options in vr games"): WORLD SCALE (vr.world_size, COMFORT), at once. The
+	game units a metre of the eyes' separation and of the head's and hands'
+	movement make are vr.world_scale's divided by it: at 120% the world is a
+	fifth bigger around you (you a fifth smaller), at 80% smaller. Everything
+	measured in metres takes it with them (reach, holsters, melee speed); the
+	menus' and the HUD's panels, the compositor's, keep their size */
+	{
+		double base = config_real("vr.world_scale"), size = config_real("vr.world_size");
+		float units;
+
+		if (!isfinite(base) || !(base > 0.0) || base >= 100.0)
+			base = 1.0 / 3.048;
+		if (!isfinite(size) || !(size > 0.0))
+			size = 1.0;
+		size = size < 0.5 ? 0.5 : size > 2.0 ? 2.0 : size;
+		units = (float)(base / size);
+		if (units != vr.units_per_metre)
+			platform_log("vr: world scale %.0f%% (%.4f game units a metre)", size * 100.0, units);
+		vr.units_per_metre = units;
+	}
 	{
 		static const char *const sides[] = {"left", "right"}, *const axes[] = {"pitch", "yaw", "roll"};
 		static const char *const tracking[] = {"ik", "floating", "floating_arms"};
@@ -1089,7 +1114,7 @@ void vr_initialize(void)
 		return;
 	vr.initialized = 1;
 	config_vr_vehicle_defaults();
-	platform_log("vr: HaloCE Quest test73 candidate 1.0.40-test73 code85 (OpenCE Build256 merged / network34 (hosts 34, joins 11-34, All compatible by default); Custom Edition maps keep their names, the version by their hash (network 29; hosts before 29 by name and checksum); map sharing restart and validation hardening; map sharing (host-sent over the internet), votes to kick, Server Setup sub-screens, display options, dynamic ragdolls (Jolt in the host); voice unchanged; test66: Warthog eyes held per seat and the wheel turned past half a circle; IMMERSION VEHICLES; LEFT-HAND MODE; reload grip poses and mag-well assist; fist ENEMY HEALTH, block/parry, enemy kinds, airborne lunge; grab assist from the body surface; held bodies kept; wall runs on curved walls; OBJECT THROW; waist grenades; WEAPON PULL gravity gloves; custom campaigns SPV1 and The Altheros Experience; test67: stable authored AR/pistol/shell/tube grips; sniper grip preserved; 3x sprint range; skeletal surface grabs; deliberate fist strokes and difficulty-scaled melee; readable parry; empty-hand reticle hidden; verified campaign setup recipes; threat memory, COMBAT MOVES and shot deflection; Halo 1 MCC maps from GulchCE (solo only) with the launcher Steam Workshop browser, downloads and manager; every jcompto95-tech (HALOFREAK95) fork branch; community extras on kinds 87-92; test69: OpenSauce script functions and Halo PC's rasterizer_fps for The Altheros Experience; test70: MCC precache hooks restored, campaign status labels, Project Lumoria, What's New; remapping asks (cancel, swap, clear, use both); MIRROR BUTTONS; left-hand lettering; locked holstering; shake cooling and needler shake reload; rocket ready when seated; magazine holds fitted; SLIDE; BULLET TIME; HIT ASSIST and LUNGE HOP; grab assist 15 cm; tree climbing; wall jumps by the look; test71: every campaign mod in one tap (Lumoria from halomaps.org, Altheros from moddb.com through the launcher's browser, unpacked by libarchive; .rar import); manual reload for mods' guns by their own models (SPV1's protected names); test72: Pico and Steam Frame profiles in one VR APK, Windows flat and PC VR builds with one launcher and library, stereo 3D, flat sprint/slide/parkour; fist combat: leaping 12 m lunges, skeleton hit assist, held and seated enemies, freeflow combo display, the Shade shove fixed; passengers aim by hand; world-anchored menus; per-weapon SCOPES; BULLET TIME on LOCOMOTION; left-hand buttons by their letters; test73: OpenCE 232 to 256 and testing (text chat, HDR, match timer, server-browser pings, co-op extras and friendly fire, ALLY FRIENDLY FIRE, scenery shields and tripmines online, the menus' cursor on the desktop); one co-op VR INTERACTIONS for the host and every player (fists, waist grenades, manual reload, parkour, slides); every VR feature on once with the update; immersive driving in proportion for every vehicle; HAND LOCK; VEHICLE TURN (smooth in a seat for snap turners); passengers in full 6DOF; wall-run leaps by the head; grenades at true size in the hand; scopes up to 4x; the played character's arms; Steam Frame (Lepton); MENU POSITION in the launchers; PC launcher saves and GEOMETRY; levels unlocked for new profiles; device acceptance pending)");
+	platform_log("vr: HaloCE Quest test73b candidate 1.0.41-test73b code86 (OpenCE Build256 merged / network34 (hosts 34, joins 11-34, All compatible by default); Custom Edition maps keep their names, the version by their hash (network 29; hosts before 29 by name and checksum); map sharing restart and validation hardening; map sharing (host-sent over the internet), votes to kick, Server Setup sub-screens, display options, dynamic ragdolls (Jolt in the host); voice unchanged; test66: Warthog eyes held per seat and the wheel turned past half a circle; IMMERSION VEHICLES; LEFT-HAND MODE; reload grip poses and mag-well assist; fist ENEMY HEALTH, block/parry, enemy kinds, airborne lunge; grab assist from the body surface; held bodies kept; wall runs on curved walls; OBJECT THROW; waist grenades; WEAPON PULL gravity gloves; custom campaigns SPV1 and The Altheros Experience; test67: stable authored AR/pistol/shell/tube grips; sniper grip preserved; 3x sprint range; skeletal surface grabs; deliberate fist strokes and difficulty-scaled melee; readable parry; empty-hand reticle hidden; verified campaign setup recipes; threat memory, COMBAT MOVES and shot deflection; Halo 1 MCC maps from GulchCE (solo only) with the launcher Steam Workshop browser, downloads and manager; every jcompto95-tech (HALOFREAK95) fork branch; community extras on kinds 87-92; test69: OpenSauce script functions and Halo PC's rasterizer_fps for The Altheros Experience; test70: MCC precache hooks restored, campaign status labels, Project Lumoria, What's New; remapping asks (cancel, swap, clear, use both); MIRROR BUTTONS; left-hand lettering; locked holstering; shake cooling and needler shake reload; rocket ready when seated; magazine holds fitted; SLIDE; BULLET TIME; HIT ASSIST and LUNGE HOP; grab assist 15 cm; tree climbing; wall jumps by the look; test71: every campaign mod in one tap (Lumoria from halomaps.org, Altheros from moddb.com through the launcher's browser, unpacked by libarchive; .rar import); manual reload for mods' guns by their own models (SPV1's protected names); test72: Pico and Steam Frame profiles in one VR APK, Windows flat and PC VR builds with one launcher and library, stereo 3D, flat sprint/slide/parkour; fist combat: leaping 12 m lunges, skeleton hit assist, held and seated enemies, freeflow combo display, the Shade shove fixed; passengers aim by hand; world-anchored menus; per-weapon SCOPES; BULLET TIME on LOCOMOTION; left-hand buttons by their letters; test73: OpenCE 232 to 256 and testing (text chat, HDR, match timer, server-browser pings, co-op extras and friendly fire, ALLY FRIENDLY FIRE, scenery shields and tripmines online, the menus' cursor on the desktop); one co-op VR INTERACTIONS for the host and every player (fists, waist grenades, manual reload, parkour, slides); every VR feature on once with the update; immersive driving in proportion for every vehicle; HAND LOCK; VEHICLE TURN (smooth in a seat for snap turners); passengers in full 6DOF; wall-run leaps by the head; grenades at true size in the hand; scopes up to 4x; the played character's arms; Steam Frame (Lepton); MENU POSITION in the launchers; PC launcher saves and GEOMETRY; levels unlocked for new profiles; test73b: stencil shadows as HALOFREAK95 made them; the VR body's shadow, stencil and the game's; B back in the menus on every controller; map sharing at 20 and 10 MB/s; every launcher's logs; SPRINT TOGGLE by default, crouch beside BUTTON SPRINT, BULLET TIME on every controller; the touch screen's SPRINT; CONTROLS in every launcher; held bodies drawn where held; WORLD SCALE; device acceptance pending)");
 	platform_log("vr: retained baseline history: HaloCE Quest test30 candidate 1.0.12 (the menus' face buttons as the Xbox's of the same letter: X deletes a profile; the co-op host's server name; test29: OpenCE build 144 netcode, network 21; the HUD head tap held by the temple, HUD and head tap on the HUD page, wrist HUD on the wrist and movable, moving with a hand while holding the gun in both, glasses FOV and resolution to 200%% (PR #1); test28: co-op games entered in progress keep their camera upright, release checks as OpenCE ships, co-op hosted for 2 to 128 players as OpenCE's Server Setup offers, gyro aim on phones as an option; test27: OpenCE build 138 netcode, network 20, with its co-op for up to 16 players; test26: co-op: death screams no longer stop the second player, cutscene characters placed and animated as on the first; HUD head tap, reticle toggle on the left stick click with crouch on the turning stick held down (or crouch kept on the click: Controls), optional wrist HUD, adjustable head taps; impact melee along the gun with a follow-through; fingers bend smoothly against walls; test25: vehicle seat and recentre diagnostics, first-person horizon option and seat glass, settings rows that fit, vehicle offset reset; test24b: comfort vignette, smooth speed and snap angle, SPV1 compatibility note; test24: co-op cutscenes animate for the second player; test23: remappable Quest buttons with the grenade on X; test22: co-op campaign host crash fixed, steady first-person vehicle view, left-hand ammo display, adjustable scopes, shot diagnostics; test21b: floating hands restored, torso-following arms, neck-pivot full body, auto two-hand lock, horn, online melee off, two-hand gun roll, pistol shots from the hand, reticle converges as shots do, per-gun aim, horn from either stick)");
 	if (!config_boolean("vr.enabled"))
 	{
@@ -1193,6 +1218,19 @@ void vr_initialize(void)
 	{
 		vr_menu_features_on();
 		config_write_boolean("vr.test73_features_applied", 1);
+	}
+	/* Test73b (the owner: "I want the sprint button to have it on toggle, not
+	hold"): SPRINT TOGGLE's TOGGLE, its default since, for everyone, once
+	(BUTTON SPRINT comes with Test73's SLIDE): HOLD, the old default, goes to
+	TOGGLE; HOLD chosen after it is kept */
+	if (!config_boolean("vr.test73b_sprint_toggle_applied"))
+	{
+		if (!config_boolean("vr.button_sprint_toggle"))
+		{
+			config_write_boolean("vr.button_sprint_toggle", 1);
+			platform_log("vr: SPRINT TOGGLE at HOLD, its old default, goes to TOGGLE, once; HOLD chosen again is kept");
+		}
+		config_write_boolean("vr.test73b_sprint_toggle_applied", 1);
 	}
 	vr_reload_settings();
 	vr.zoom_level = -1;
@@ -1852,8 +1890,11 @@ static void layout_controls(void)
 		int source = vr.button_source[VR_BUTTON_ACTION_BULLET_TIME];
 		vr.bullet_stick_up = fabsf(vr.frame.thumb[2]) < 0.6f &&
 			vr.frame.thumb[3] > (vr.bullet_stick_up ? 0.55f : 0.75f);
-		vr.bullet_time_held = vr.touch_layout && !vr.menus_active &&
-			(source == VR_BUTTON_SOURCE_RIGHT_STICK_UP ? vr.bullet_stick_up : touch_source_down(source, right, left));
+		/* (Test73b: every controller's turning stick pushed up, as Test73
+		turned BULLET TIME on for everyone; the Quest's alone before. Only the
+		Quest's BUTTONS page moves it) */
+		vr.bullet_time_held = !vr.menus_active && (!vr.touch_layout ? vr.bullet_stick_up :
+			source == VR_BUTTON_SOURCE_RIGHT_STICK_UP ? vr.bullet_stick_up : touch_source_down(source, right, left));
 	}
 	if (vr.frame.hand_buttons[1 - vr.weapon_hand] & HALO_XR_HAND_BUMPER)
 		buttons |= HALO_XR_BUTTON_WHITE;                                    /* flashlight, the off hand's */
@@ -1874,7 +1915,17 @@ static void layout_controls(void)
 	/* (the sticks' clicks with their sticks, Test70: vr.controls_mirrored) */
 	if (vr.frame.hand_buttons[vr.controls_mirrored ? 0 : 1] & HALO_XR_HAND_STICK)
 		buttons |= HALO_XR_BUTTON_B;                                        /* melee (and the swing) */
-	if (vr.frame.hand_buttons[vr.controls_mirrored ? 1 : 0] & HALO_XR_HAND_STICK)
+	/* Test73b: with BUTTON SPRINT (on with SLIDE since Test73) the move
+	stick's click is sprint's alone, as the Quest's buttons give it up
+	(vr_reload_settings): it sprinted and crouched at once, so a toggled
+	sprint slid as it stopped. Crouch is then the turning stick held down, as
+	the Quest's (never in a seat, where the click is the horn as before) */
+	if (vr.button_sprint_enabled && !vr.seated)
+	{
+		if (vr.turn_stick_down)
+			buttons |= HALO_XR_BUTTON_LEFT_THUMB;                           /* crouch */
+	}
+	else if (vr.frame.hand_buttons[vr.controls_mirrored ? 1 : 0] & HALO_XR_HAND_STICK)
 		buttons |= HALO_XR_BUTTON_LEFT_THUMB;                               /* crouch */
 	/* controllers with two face buttons a hand (Touch, Index): the left's
 	lower switches grenades, its upper goes back (the Quest's: switches
@@ -1912,8 +1963,18 @@ static void layout_controls(void)
 	reload, is on B, which in the menus is the pointer's back), so a
 	profile could not be deleted (the profile list's X). The button that
 	is the pointer's back (vr_ui_pointer: the major hand's upper, right B)
-	gives nothing else, so one press goes back once. No grenade in menus */
-	if (vr.menus_active && vr.touch_layout)
+	gives nothing else, so one press goes back once. No grenade in menus.
+	Test73b (the Steam Frame report: "the b button didnt seem to work in
+	menus"): every controller's, not the Quest's alone. Other controllers
+	kept their game layout in the menus, where the right controller's B is the
+	game's X (use and reload), and B went back only through the pointer, on
+	the menus. The Steam Frame's X and Y are the right controller's (its left
+	has a d-pad and View); the left's upper button stays back (View) on the
+	controllers whose layout makes it so (Index, Pico). And B goes back with
+	the menus pointed at or not: a press begun with the pointer on them is the
+	pointer's back (vr_ui_pointer), any other the game's B, one back a press
+	(vr.menu_back_press) */
+	if (vr.menus_active)
 	{
 		unsigned int physical_right = vr.frame.hand_buttons[1], physical_left = vr.frame.hand_buttons[0];
 		/* Test72: the right controller's B, left-handed too (Discord: LEFT-HAND
@@ -1923,9 +1984,20 @@ static void layout_controls(void)
 		buttons &= ~(HALO_XR_BUTTON_A | HALO_XR_BUTTON_B | HALO_XR_BUTTON_X | HALO_XR_BUTTON_Y | HALO_XR_BUTTON_BLACK);
 		if (physical_right & HALO_XR_HAND_SOUTH) buttons |= HALO_XR_BUTTON_A;
 		if (physical_right & HALO_XR_HAND_EAST) buttons |= HALO_XR_BUTTON_B;
+		if (physical_right & HALO_XR_HAND_WEST) buttons |= HALO_XR_BUTTON_X;
+		if (physical_right & HALO_XR_HAND_NORTH) buttons |= HALO_XR_BUTTON_Y;
 		if (physical_left & HALO_XR_HAND_SOUTH) buttons |= HALO_XR_BUTTON_X;
-		if (physical_left & HALO_XR_HAND_EAST) buttons |= HALO_XR_BUTTON_Y;
-		buttons &= ~back;
+		if (vr.touch_layout && (physical_left & HALO_XR_HAND_EAST)) buttons |= HALO_XR_BUTTON_Y;
+		if (!(physical_right & HALO_XR_HAND_EAST))
+			vr.menu_back_press = 0;
+		else if (!vr.menu_back_press)
+		{
+			vr.menu_back_press = vr.pointer_age ? 1 : 2;
+			if (vr.menu_back_press == 2)
+				platform_log("vr: menu back on B (the menus not pointed at)");
+		}
+		if (vr.menu_back_press != 2)
+			buttons &= ~back;
 		grenade_down = 0;
 		vr.grenade_pulse = 0.0;
 		vr.x_held = 0.0;
@@ -2543,9 +2615,13 @@ static void update_gestures(void)
 	}
 	{
 		unsigned int both_sticks = HALO_XR_BUTTON_LEFT_THUMB | HALO_XR_BUTTON_RIGHT_THUMB;
-		int active = vr_button_sprint_input_mode(vr.button_sprint_enabled,
+		/* (Test73b: the move stick's click, the one VR SETTINGS gives BUTTON
+		SPRINT (VR_BUTTON_SOURCE_LEFT_STICK): the right controller's with the
+		sticks mirrored, vr.controls_mirrored, where the left's was the turning
+		stick's. The VR layout's: CONTROLS XBOX keeps the Xbox's crouch there) */
+		int active = vr_button_sprint_input_mode(vr.button_sprint_enabled && vr.layout_vr,
 			vr.button_sprint_toggle,
-			(vr.frame.buttons & HALO_XR_BUTTON_LEFT_THUMB) != 0,
+			(vr.frame.hand_buttons[vr.controls_mirrored ? 1 : 0] & HALO_XR_HAND_STICK) != 0,
 			(vr.frame.buttons & both_sticks) == both_sticks,
 			(vr.frame.flags & HALO_XR_FRAME_FOCUSED) != 0,
 			vr.aiming_last_frame, vr.seated,
@@ -5362,7 +5438,11 @@ int vr_ui_pointer(int menus_active, struct halo_ui_pointer *pointer)
 	}
 	/* Test72: back is the right controller's B, whatever the handedness */
 	back_down = (vr.frame.hand_buttons[1] & HALO_XR_HAND_EAST) != 0;
-	if (back_down && !vr.pointer_back)
+	/* (Test73b: a press begun here is the pointer's; one begun off the menus
+	is the game's B, and goes back once, there: vr.menu_back_press) */
+	if (back_down && !vr.menu_back_press)
+		vr.menu_back_press = 1;
+	if (back_down && !vr.pointer_back && vr.menu_back_press == 1)
 		pointer->right_clicks = 1;
 	if (!vr.pointer_age || pointer->left_clicks || pointer->right_clicks)
 	{

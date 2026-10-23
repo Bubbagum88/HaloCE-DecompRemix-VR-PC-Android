@@ -56,7 +56,7 @@ assert len(notes) > 400 and "GitHub" not in notes[:40]
 # the owner: the pop-up must not miss anything: every Test70 change is named
 # (Test73: Test70 was published as 1.0.37, so from Test73's notes on its changes are 1.0.37's release notes, which
 # the notes point to; what is new since is checked in tools/test_test73_whats_new.py)
-if notes.startswith("NEW IN THIS UPDATE (TEST73)"):
+if notes.startswith(("NEW IN THIS UPDATE (TEST73)", "NEW IN THIS UPDATE (TEST73B)")):
     assert "Version 1.0.37 (Test70) and earlier: the full release notes on GitHub." in notes
 else:
     for feature in ("settings and saves are kept", "What's new in this version", "Supported", "Experimental",

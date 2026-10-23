@@ -546,8 +546,16 @@ static void render_object_list(
 		biped drawn in first person too, posed to the headset, without what it
 		carries */
 		boolean vr_body = !data->shadow && vr_render_full_body(object_index);
+		/* port (Test73b, the owner: "i do want a vr player body shadow"): and
+		in the shadow pass that body casts the game's shadow, whole and posed
+		as it is drawn in the headset (vr_render_body_shadow_matrices: the
+		head as the headset turns, the arms reaching the hands shown), without
+		what it carries, which the game holds elsewhere than the hands shown */
+		real_matrix4x3 const *vr_shadow_body = data->shadow ?
+			(real_matrix4x3 const *)vr_render_body_shadow_matrices(object_index, NULL) : NULL;
 #else
 		boolean vr_body = FALSE;
+		real_matrix4x3 const *vr_shadow_body = NULL;
 #endif
 		/* port (OpenCE Build 201): the player's own legs, seen looking down in
 		first person (port/linux/game/first_person_legs.c): its body drawn from
@@ -560,7 +568,8 @@ static void render_object_list(
 
 		if (!legs_matrices)
 			legs = FALSE;
-		if (!object_is_first_person_camera(object_index) || render.camera.mirrored || vr_body || legs)
+		if (!object_is_first_person_camera(object_index) || render.camera.mirrored || vr_body || legs ||
+			vr_shadow_body)
 		{
 			struct render_model_effect model_effect;
 
@@ -751,6 +760,7 @@ static void render_object_list(
 					render_model(
 						definition->object.model.index,
 						level_of_detail_pixels * 0.3f,
+						vr_shadow_body ? (real_matrix4x3 *)vr_shadow_body :
 						network_vr_pose_render(object_index, ITEM_NODE_MATRICES(object_index)),
 						object->object.region_permutations,
 						/* port: a Spartan's armor in the color chosen
@@ -776,7 +786,7 @@ static void render_object_list(
 				widgets_render(object_index, data->lighting, &animation);
 			}
 
-			if (object->object.first_child_object_index != NONE && !vr_body && !legs)
+			if (object->object.first_child_object_index != NONE && !vr_body && !legs && !vr_shadow_body)
 			{
 				render_object_list(
 					data,
@@ -879,6 +889,11 @@ static boolean render_object_shadow_begin(
 	real shadow_intensity = level_of_detail;
 
 	object_get_bounding_sphere(data->object_index, &center, &radius);
+#ifdef HALO_VR
+	/* port (Test73b): the headset's body reaches past the game's sphere for
+	it, its hands where the controllers are (vr_render_body_shadow_radius) */
+	radius = vr_render_body_shadow_radius(data->object_index, center.n, radius);
+#endif
 
 	perpendicular3d(&data->lighting->shadow_vector, &shadow_right);
 	normalize3d(&shadow_right);
@@ -1248,7 +1263,13 @@ static void render_object(
 	{
 		struct object_datum *object = object_get(data->object_index);
 
-		if (!object_is_first_person_camera(data->object_index) &&
+		/* port (Test73b): the player's own body casts the game's shadow in
+		the headset, as it is drawn there (render_object_list) */
+		if ((!object_is_first_person_camera(data->object_index)
+#ifdef HALO_VR
+				|| vr_render_body_shadow_matrices(data->object_index, NULL)
+#endif
+				) &&
 			!TEST_FLAG(object->object.flags, _object_shadowless_bit) &&
 			(!TEST_FLAG(object->object.flags, _object_invisible_bit) ||
 				object->object.first_child_object_index != NONE))

@@ -64,6 +64,11 @@ public class HaloActivity extends SDLActivity implements TouchControls.LayoutTra
             gamepads = new GamepadSupport(this,touchControls);
             gyro = new GyroAim(this,touchControls);
             touchControls.setGyro(gyro);
+            // Test73b: the touch screen's SPRINT while the game's SPRINT is HOLD or TOGGLE (movement.sprint, which
+            // Player profile > MOVEMENT writes to this game set's config.toml)
+            final java.io.File configRoot = gameRoot;
+            touchControls.setSprintSetting(() ->
+                TouchControls.sprintMode(ConfigSettings.read(configRoot, "movement", "sprint", "\"off\"")));
             RunLog.line("Phone touch controls initialized: player-one merge; multi-touch; hold fire and drag to aim");
         }
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

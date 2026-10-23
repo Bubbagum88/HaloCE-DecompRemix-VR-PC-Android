@@ -92,10 +92,12 @@ notes = read("port/android/app/src/main/assets/whats_new.txt")
 # Test70's are 1.0.37's own release notes)
 assert notes.startswith("NEW IN THIS UPDATE (TEST71)") or (
     notes.startswith("NEW IN THIS UPDATE (TEST72)") and "EARLIER (TEST71), ALSO IN THIS UPDATE" in notes) or (
-    notes.startswith("NEW IN THIS UPDATE (TEST73)") and "ALSO NEW SINCE 1.0.37 (TEST71)" in notes)
+    notes.startswith(("NEW IN THIS UPDATE (TEST73)", "NEW IN THIS UPDATE (TEST73B)")) and
+    "ALSO NEW SINCE 1.0.37 (TEST71)" in notes)
 for feature in ("Download and install", "halomaps.org", "moddb.com", "launcher's own browser", "SHA-256", ".rar",
                 "5 GB free", "resumes", "experimental", "SPV1 included") + (
-                () if notes.startswith("NEW IN THIS UPDATE (TEST73)") else ("EARLIER (TEST70)",)):
+                () if notes.startswith(("NEW IN THIS UPDATE (TEST73)", "NEW IN THIS UPDATE (TEST73B)")) else
+                ("EARLIER (TEST70)",)):
     assert feature in notes or feature.capitalize() in notes, feature
 
 check = r'''

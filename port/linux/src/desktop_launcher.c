@@ -1184,7 +1184,8 @@ static struct
 	int dialog_kind;
 } ui;
 
-enum { PAGE_HOME, PAGE_DATA, PAGE_MODS, PAGE_MOD, PAGE_SETTINGS, PAGE_VR, PAGE_NEWS, PAGE_UPDATES };
+enum { PAGE_HOME, PAGE_DATA, PAGE_MODS, PAGE_MOD, PAGE_SETTINGS, PAGE_VR, PAGE_NEWS, PAGE_UPDATES, PAGE_LOGS,
+	PAGE_CONTROLS };
 
 static const unsigned char *launcher_font_data(const char *file)
 {
@@ -1567,12 +1568,16 @@ static void page_home(void)
 #else
 	if (button(460.0f, y, 360.0f, 56.0f, "PC VR", 1)) { ui.page = PAGE_VR; ui.focus = 0; }
 #endif
+	/* Test73b: every button of each controller (page_controls) */
+	if (button(840.0f, y, 360.0f, 56.0f, "CONTROLS", 1)) { ui.page = PAGE_CONTROLS; ui.focus = 0; ui.scroll = 0.0f; }
 	y += 72.0f;
 	if (button(80.0f, y, 360.0f, 56.0f, "WHAT'S NEW", 1)) { ui.page = PAGE_NEWS; ui.focus = 0; ui.scroll = 0.0f; }
 	if (button(460.0f, y, 360.0f, 56.0f, "UPDATES", 1)) { ui.page = PAGE_UPDATES; ui.focus = 0; }
 	y += 72.0f;
 	if (button(80.0f, y, 360.0f, 56.0f, "QUIT", 1) || ui.back)
 		ui.quit = 1;
+	/* Test73b: where the logs are (page_logs) */
+	if (button(460.0f, y, 360.0f, 56.0f, "LOGS", 1)) { ui.page = PAGE_LOGS; ui.focus = 0; }
 }
 
 static void page_data(void)
@@ -1753,17 +1758,33 @@ static void page_settings(void)
 		}
 		y += 58.0f;
 	}
-	text_wrapped(&ui.small, 760.0f, 110.0f, LAUNCHER_WIDTH - 840.0f,
-		"Every other setting is in the game: SETTINGS, then your player profile: Video Setup (graphics, field "
-		"of view, extra effects, STEREO 3D), Controls Setup (keyboard and mouse, with remapping), Gamepad Setup, "
-		"Audio, MOVEMENT. They are saved in config.toml beside the game.",
-		COLOR_DIM, 1, 0.0f, (float)LAUNCHER_HEIGHT);
-	text_wrapped(&ui.small, 760.0f, 330.0f, LAUNCHER_WIDTH - 840.0f,
-		"GEOMETRY: Safe is the default on every build (PC, PC VR, Quest VR, Android). It keeps scenery from "
-		"stretching into triangles or strips by not caching static geometry, not streaming it persistently and "
-		"not rebasing vertices on the GPU, and can cost frame rate. Normal turns those back on. It is a renderer "
-		"option, not a game version. It applies from the game's start (PLAY).",
-		COLOR_DIM, 1, 0.0f, (float)LAUNCHER_HEIGHT);
+	{
+		/* (each note below the one before) */
+		float note = 110.0f;
+
+		note += text_wrapped(&ui.small, 760.0f, note, LAUNCHER_WIDTH - 840.0f,
+			"Every other setting is in the game: SETTINGS, then your player profile: Video Setup (graphics, field "
+			"of view, extra effects, STEREO 3D), Controls Setup (keyboard and mouse, with remapping), Gamepad Setup, "
+			"Audio, MOVEMENT. They are saved in config.toml beside the game.",
+			COLOR_DIM, 1, 0.0f, (float)LAUNCHER_HEIGHT) + 18.0f;
+		note += text_wrapped(&ui.small, 760.0f, note, LAUNCHER_WIDTH - 840.0f,
+			"GEOMETRY: Safe is the default on every build (PC, PC VR, Quest VR, Android). It keeps scenery from "
+			"stretching into triangles or strips by not caching static geometry, not streaming it persistently and "
+			"not rebasing vertices on the GPU, and can cost frame rate. Normal turns those back on. It is a renderer "
+			"option, not a game version. It applies from the game's start (PLAY).",
+			COLOR_DIM, 1, 0.0f, (float)LAUNCHER_HEIGHT) + 18.0f;
+#ifndef HALO_VR
+		/* Test73b (the owner: for the flat builds "make sure ... there's an actual button mapping for it.
+		Shift maybe"): SPRINT's key, said where SPRINT is chosen */
+		text_wrapped(&ui.small, 760.0f, note, LAUNCHER_WIDTH - 840.0f,
+			"SPRINT: HOLD sprints while Left Shift is held, TOGGLE starts and stops it with a press (Controls "
+			"Setup in the game changes the key). A gamepad has no free button for it: choose AUTO, and the left "
+			"stick pushed fully forward for a moment sprints. CONTROLS, on the first page, shows every button.",
+			COLOR_DIM, 1, 0.0f, (float)LAUNCHER_HEIGHT);
+#else
+		(void)note;
+#endif
+	}
 	if (back_button()) { ui.page = PAGE_HOME; ui.focus = 0; }
 }
 
@@ -1783,7 +1804,8 @@ static void page_vr(void)
 		"Link, Virtual Desktop, Pico Connect, or Windows Mixed Reality where it is still installed. Set the one "
 		"you use as the active OpenXR runtime, start it, then play. Valve Index, HTC Vive, Meta Touch, Pico, "
 		"HP Reverb G2 and PlayStation VR2 (through SteamVR) controllers are known; others SteamVR maps to them. "
-		"If the headset does not start, halo-vr.log beside the game says why.",
+		"If the headset does not start, halo-vr.log beside the game says why (LOGS, on the first page, opens its "
+		"folder).",
 		COLOR_TEXT, 1, 0.0f, (float)LAUNCHER_HEIGHT);
 	text_wrapped(&ui.small, 80.0f, 420.0f, LAUNCHER_WIDTH - 160.0f,
 		"VR settings (hands, buttons, IMMERSION, scopes, menus) are in the headset: pause, VR SETTINGS. They are "
@@ -1808,6 +1830,126 @@ static void page_vr(void)
 #else
 	(void)has;
 #endif
+	if (back_button()) { ui.page = PAGE_HOME; ui.focus = 0; }
+}
+
+/* a folder as the player finds it: a relative one (the data root "." when
+the game was started in its folder) made whole from the current folder */
+static void folder_whole(char *out, size_t size, const char *folder)
+{
+	int whole = folder[0] == '/' || folder[0] == '\\' || (folder[0] && folder[1] == ':');
+	char *current = whole ? NULL : SDL_GetCurrentDirectory();
+
+	if (current && !strcmp(folder, "."))
+		snprintf(out, size, "%s", current);
+	else if (current)
+		path_join(out, size, current, folder);
+	else
+		snprintf(out, size, "%s", folder);
+	SDL_free(current);
+}
+
+/* whether two whole folders are one (a separator at the end or not; on
+Windows either separator, and letters in either case) */
+static int same_folder(const char *a, const char *b)
+{
+	char x[LAUNCHER_PATH], y[LAUNCHER_PATH];
+	char *both[2] = { x, y };
+	int index;
+
+	snprintf(x, sizeof(x), "%s", a);
+	snprintf(y, sizeof(y), "%s", b);
+	for (index = 0; index < 2; index++)
+	{
+		char *path = both[index], *letter;
+		size_t length;
+#ifdef _WIN32
+		for (letter = path; *letter; letter++)
+			if (*letter == '/')
+				*letter = '\\';
+#else
+		(void)letter;
+#endif
+		while ((length = strlen(path)) > 1 && (path[length - 1] == '/' || path[length - 1] == '\\'))
+			path[length - 1] = '\0';
+	}
+#ifdef _WIN32
+	return lower_equals(x, y);
+#else
+	return !strcmp(x, y);
+#endif
+}
+
+/* Test73b (the owner: "where are logs generating for steam and pc? these
+things should be clarified" / "do that for all launchers i guess. useful for
+log finding"): where this build's logs are, each folder opened in a press
+(the Android launcher's and the Steam Frame's say theirs) */
+static void page_logs(void)
+{
+	char root[LAUNCHER_PATH], data[LAUNCHER_PATH], game[LAUNCHER_PATH], logs[LAUNCHER_PATH];
+	char line[LAUNCHER_PATH * 2 + 400], url[LAUNCHER_PATH + 16];
+	const char *base = SDL_GetBasePath();
+	float y = 110.0f, width = LAUNCHER_WIDTH - 160.0f;
+	int separate;
+
+	data_root_maps(root, sizeof(root), NULL);
+	folder_whole(data, sizeof(data), root);
+	folder_whole(game, sizeof(game), base ? base : ".");
+	path_join(logs, sizeof(logs), game, "logs");
+	separate = !same_folder(data, game);
+	page_heading("LOGS");
+	y += text_wrapped(&ui.body, 80.0f, y, width,
+		"Something wrong? Send the log of the run it happened in, with a few words on what happened, this "
+		"version (" HALO_PORT_VERSION ") and, for PC VR, your headset and its PC software.",
+		COLOR_TEXT, 1, 0.0f, (float)LAUNCHER_HEIGHT) + 14.0f;
+#ifdef _WIN32
+	text_draw(&ui.body, 80.0f, y, "halo.log and halo-vr.log", COLOR_BLUE);
+	y += ui.body.size * 1.25f;
+	snprintf(line, sizeof(line),
+		"Beside the game, in %s: the last run of halo.exe (on the screen) and of halo-vr.exe (PC VR), or this "
+		"one's while it runs: the start, the game data folder, invites, the headset's start and a crash's report.",
+		game);
+	y += text_wrapped(&ui.small, 80.0f, y, width, line, COLOR_DIM, 1, 0.0f, (float)LAUNCHER_HEIGHT) + 10.0f;
+	text_draw(&ui.body, 80.0f, y, "logs", COLOR_BLUE);
+	y += ui.body.size * 1.25f;
+	y += text_wrapped(&ui.small, 80.0f, y, width,
+		"Beside them, the ten runs before of each build: halo_<date>_<time>.log and halo-vr_<date>_<time>.log, "
+		"named by when that run last wrote (each start keeps its build's last log there first).",
+		COLOR_DIM, 1, 0.0f, (float)LAUNCHER_HEIGHT) + 10.0f;
+#else
+	text_draw(&ui.body, 80.0f, y, "The terminal", COLOR_BLUE);
+	y += ui.body.size * 1.25f;
+	y += text_wrapped(&ui.small, 80.0f, y, width,
+		"The start, the game data folder, invites, the headset's start and a crash's report go to the terminal "
+		"the game is started from: start it from one (./halo 2> halo.log keeps them in a file).",
+		COLOR_DIM, 1, 0.0f, (float)LAUNCHER_HEIGHT) + 10.0f;
+#endif
+	text_draw(&ui.body, 80.0f, y, "debug.txt", COLOR_BLUE);
+	y += ui.body.size * 1.25f;
+	snprintf(line, sizeof(line),
+		"In the game data folder, %s: the game's own log, each run after the one before (at 64 MB it becomes "
+		"debug.old.txt and begins again).", data);
+	y += text_wrapped(&ui.small, 80.0f, y, width, line, COLOR_DIM, 1, 0.0f, (float)LAUNCHER_HEIGHT) + 24.0f;
+
+	if (button(80.0f, y, 360.0f, 56.0f, "OPEN THE GAME'S FOLDER", 1))
+	{
+		snprintf(url, sizeof(url), "file:///%s", game);
+		SDL_OpenURL(url);
+	}
+#ifdef _WIN32
+	if (button(460.0f, y, 300.0f, 56.0f, "OPEN THE LOGS FOLDER", path_type(logs, NULL) == SDL_PATHTYPE_DIRECTORY))
+	{
+		snprintf(url, sizeof(url), "file:///%s", logs);
+		SDL_OpenURL(url);
+	}
+	if (path_type(logs, NULL) != SDL_PATHTYPE_DIRECTORY)
+		text_draw(&ui.small, 460.0f, y + 64.0f, "(made at the game's next start)", COLOR_DIM);
+#endif
+	if (separate && button(780.0f, y, 300.0f, 56.0f, "OPEN THE DATA FOLDER", 1))
+	{
+		snprintf(url, sizeof(url), "file:///%s", data);
+		SDL_OpenURL(url);
+	}
 	if (back_button()) { ui.page = PAGE_HOME; ui.focus = 0; }
 }
 
@@ -1903,6 +2045,206 @@ static void page_news(void)
 	}
 	if (button(300.0f, LAUNCHER_HEIGHT - 90.0f, 400.0f, 50.0f, "FULL RELEASE NOTES (GITHUB)", 1))
 		SDL_OpenURL("https://github.com/" HALO_PORT_REPOSITORY "/releases");
+	if (back_button()) { ui.page = PAGE_HOME; ui.focus = 0; }
+}
+
+/* Test73b (the owner: "a controls section, one where you can click, it'll give you the actual proper mappings. For
+each controller type ... what can change certain mappings ... You can select like what controller type you're
+using"): every button of each controller and what changes it, from controls/controllers.txt, which the Android
+launcher's ControlsGuide shows too. A line "== LABEL | KIND | WHERE" begins a controller's page: KIND vr or flat,
+WHERE the launchers that list it ("pc", this one); a page labelled * is shown under every page of its kind; lines
+beginning "#" are the file's notes */
+#define CONTROLS_PAGES 16
+
+struct controls_page
+{
+	char label[32];
+	int vr;
+	const char *body;
+	size_t length;
+};
+
+/* a header's field, its spaces at either end dropped (in place) */
+static char *controls_field(char *text)
+{
+	size_t length;
+
+	while (*text == ' ')
+		text++;
+	length = strlen(text);
+	while (length && (text[length - 1] == ' ' || text[length - 1] == '\r'))
+		text[--length] = '\0';
+	return text;
+}
+
+/* the pages of `file` that `where` lists, in their order (at most `maximum`), and each kind's shared page
+(common[0] the flat pages', common[1] the headsets'; a NULL body where there is none): how many pages */
+static int controls_pages(const char *file, const char *where, struct controls_page *pages, int maximum,
+	struct controls_page common[2])
+{
+	const char *line = file;
+	struct controls_page *open = NULL;
+	int count = 0;
+
+	memset(common, 0, 2 * sizeof(*common));
+	while (line && *line)
+	{
+		const char *end = strchr(line, '\n');
+		size_t length = end ? (size_t)(end - line) : strlen(line);
+
+		if (length >= 3 && !memcmp(line, "== ", 3))
+		{
+			char header[256], *label, *kind, *places;
+			int listed = 0;
+
+			if (open)
+				open->length = (size_t)(line - open->body);
+			open = NULL;
+			snprintf(header, sizeof(header), "%.*s", (int)(length - 3), line + 3);
+			kind = strchr(header, '|');
+			places = kind ? strchr(kind + 1, '|') : NULL;
+			if (kind && places)
+			{
+				*kind++ = '\0';
+				*places++ = '\0';
+				label = controls_field(header);
+				kind = controls_field(kind);
+				/* (its places, a word each) */
+				while (*places)
+				{
+					size_t word;
+
+					places += strspn(places, " \r");
+					word = strcspn(places, " \r");
+					if (word && word == strlen(where) && !strncmp(places, where, word))
+						listed = 1;
+					places += word;
+				}
+				if (listed && (!strcmp(kind, "vr") || !strcmp(kind, "flat")))
+				{
+					int vr = !strcmp(kind, "vr");
+
+					if (!strcmp(label, "*"))
+						open = &common[vr];
+					else if (count < maximum)
+						open = &pages[count++];
+					if (open)
+					{
+						snprintf(open->label, sizeof(open->label), "%s", label);
+						open->vr = vr;
+						open->body = end ? end + 1 : line + length;
+					}
+				}
+			}
+		}
+		line = end ? end + 1 : NULL;
+	}
+	if (open)
+		open->length = strlen(open->body);
+	return count;
+}
+
+/* a page's text without the file's notes, and the shared page of its kind after it, a blank line between
+(allocated; NULL when there is no memory) */
+static char *controls_compose(const struct controls_page *page, const struct controls_page common[2])
+{
+	const struct controls_page *shared = &common[page->vr ? 1 : 0];
+	size_t size = page->length + (shared->body ? shared->length : 0) + 4;
+	char *text = malloc(size), *out = text;
+	int part;
+
+	if (!text)
+		return NULL;
+	for (part = 0; part < 2; part++)
+	{
+		const struct controls_page *from = part ? shared : page;
+		const char *line = from->body, *stop;
+
+		if (!line)
+			continue;
+		stop = line + from->length;
+		if (part && out > text)
+			*out++ = '\n';
+		while (line < stop)
+		{
+			const char *end = memchr(line, '\n', (size_t)(stop - line));
+			size_t length = end ? (size_t)(end - line) : (size_t)(stop - line);
+
+			if (!length || line[0] != '#')
+			{
+				memcpy(out, line, length);
+				out += length;
+				*out++ = '\n';
+			}
+			line = end ? end + 1 : stop;
+		}
+		/* (its blank lines at the end dropped) */
+		while (out - text >= 2 && out[-1] == '\n' && out[-2] == '\n')
+			out--;
+	}
+	*out = '\0';
+	return text;
+}
+
+static void page_controls(void)
+{
+	static char *file, *text;
+	static struct controls_page pages[CONTROLS_PAGES], common[2];
+	static int count = -1, chosen = -1, shown = -1;
+	int index;
+
+	if (count < 0)
+	{
+		file = launcher_file_text("controls/controllers.txt");
+		count = file ? controls_pages(file, "pc", pages, CONTROLS_PAGES, common) : 0;
+		/* (the build's own first: the headset's controllers, or the keyboard) */
+		for (index = 0; index < count && chosen < 0; index++)
+#ifdef HALO_VR
+			if (!strcmp(pages[index].label, "QUEST (TOUCH)"))
+#else
+			if (!strcmp(pages[index].label, "KEYBOARD + MOUSE"))
+#endif
+				chosen = index;
+		if (chosen < 0)
+			chosen = 0;
+	}
+	page_heading("CONTROLS");
+	if (!count)
+	{
+		text_draw(&ui.body, 80.0f, 110.0f, "The controls could not be read.", COLOR_GOLD);
+		if (back_button()) { ui.page = PAGE_HOME; ui.focus = 0; }
+		return;
+	}
+	/* the controllers, four a row, the one shown marked */
+	for (index = 0; index < count; index++)
+	{
+		char label[48];
+
+		snprintf(label, sizeof(label), index == chosen ? "\xE2\x80\xA2 %s" : "%s", pages[index].label);
+		if (button(80.0f + (float)(index % 4) * 285.0f, 104.0f + (float)(index / 4) * 52.0f, 270.0f, 44.0f, label, 1))
+		{
+			chosen = index;
+			ui.scroll = 0.0f;
+		}
+	}
+	if (chosen != shown)
+	{
+		free(text);
+		text = controls_compose(&pages[chosen], common);
+		shown = chosen;
+	}
+	if (text)
+	{
+		float top = 104.0f + (float)((count + 3) / 4) * 52.0f + 12.0f, bottom = (float)(LAUNCHER_HEIGHT - 110);
+		float height = news_layout(text, 0.0f, 0, 0.0f, 0.0f);
+		SDL_Rect clip = { 0, (int)top, LAUNCHER_WIDTH, (int)(bottom - top) };
+
+		if (ui.scroll > height - (bottom - top)) ui.scroll = height - (bottom - top);
+		if (ui.scroll < 0.0f) ui.scroll = 0.0f;
+		SDL_SetRenderClipRect(ui.renderer, &clip);
+		news_layout(text, top - ui.scroll, 1, top, bottom);
+		SDL_SetRenderClipRect(ui.renderer, NULL);
+	}
 	if (back_button()) { ui.page = PAGE_HOME; ui.focus = 0; }
 }
 
@@ -2061,6 +2403,8 @@ void desktop_launcher_run(void)
 			case PAGE_VR: page_vr(); break;
 			case PAGE_NEWS: page_news(); break;
 			case PAGE_UPDATES: page_updates(); break;
+			case PAGE_LOGS: page_logs(); break;
+			case PAGE_CONTROLS: page_controls(); break;
 			default: page_home(); break;
 			}
 			/* a page's result line is that page's: another page starts

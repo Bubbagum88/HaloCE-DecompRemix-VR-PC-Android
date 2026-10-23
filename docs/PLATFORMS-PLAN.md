@@ -22,24 +22,35 @@ asked for. PC VR runtime validation waits on the owner's OK for SteamVR's
 null driver. Nothing is hardware-tested yet. Per item:
 `docs/TEST72-CHECKLIST.md`; per platform: `docs/TEST72-DELIVERY-STATUS.md`.
 
-**Since then (2026-10-22, Test73, 1.0.40-test73 / code85, in progress):** PC VR
+**Since then (2026-10-22, Test73, 1.0.40-test73 / code85, delivered):** PC VR
 is runtime-validated on SteamVR's null driver (eye dumps: the menus' world and
 follow modes, grenades in the hand, the played character's arms). The Steam
 Frame was checked against Lepton 3.0.8's own source and the other Halo CE
 Frame ports (§5), and gained a no-computer installer and a Steam library
 launcher (`tools/steam_frame`). OpenCE is merged to Build 256, its testing
-branch and its fix-scenery-shields-network branch: network 34 (§10). Not
-built as a whole yet: one build pass once everything is done. Per item:
-`docs/TEST73-CHECKLIST.md`.
+branch and its fix-scenery-shields-network branch: network 34 (§10). Per item:
+`docs/TEST73-CHECKLIST.md`; per platform: `docs/TEST73-DELIVERY-STATUS.md`.
+The owner on the Quest: "basically everything works great", but for the
+stencil shadows. A player has started it on a Steam Frame (from Steam, the
+menus, quit from the menu: their log), where B did not go back in the menus.
+
+**Then (2026-10-22, Test73b, 1.0.41-test73b / code86, in progress):** the
+stencil shadows as HaloFreak95 made them, the VR body's shadow, B back in the
+menus on every controller (the Frame's report), map sharing at its most by
+default, and every launcher's log locations (the PC launcher's LOGS page);
+then (10-23) SPRINT TOGGLE by default with BUTTON SPRINT's fixes and BULLET
+TIME on every controller, the flat builds' sprint (a touch button on Android,
+Left Shift on PC), a CONTROLS page in every launcher, held bodies drawn where
+they are held, and WORLD SCALE. Per item: `docs/TEST73B-CHECKLIST.md`.
 
 ## 1. Baseline (authoritative)
 
 | Item | State |
 |---|---|
 | Branch | `test39-interaction-completion` (local; `origin/main` is behind it) |
-| Newest commits | `f77f6a11` Test72's delivery record; Test73's work is uncommitted on top of it (a local commit at its build pass, with the owner's OK) |
-| Newest candidate | Test73, **1.0.40-test73 / code85** (Test72, 1.0.39 / code84, and Test71, 1.0.38 / code83, travel with it) |
-| Newest packaged APKs | Test70, 1.0.37-test70 / code82 (`D:\HaloQuest\builds\test70-20261015-v1.0.37-test70`), also published as v1.0.37; Test72's private packages (`docs/TEST72-DELIVERY-STATUS.md`) |
+| Newest commits | `fcaa04e3` Test73 and `cde43a78` its delivery record (local); Test73b's work is uncommitted on top of them (a local commit at its build pass, as Test73's) |
+| Newest candidate | Test73b, **1.0.41-test73b / code86** (Test73, 1.0.40 / code85, Test72, 1.0.39 / code84, and Test71, 1.0.38 / code83, travel with it) |
+| Newest packaged APKs | Test70, 1.0.37-test70 / code82 (`D:\HaloQuest\builds\test70-20261015-v1.0.37-test70`), also published as v1.0.37; Test72's and Test73's private packages (`docs/TEST72-DELIVERY-STATUS.md`, `docs/TEST73-DELIVERY-STATUS.md`) |
 | Handoff docs | `docs/CURRENT-STATE.md`, `CLAUDE.md`, `docs/HANDOFF-2026-10-*.md`, `docs/TEST73-*.md`, `docs/TEST72-*.md` |
 | Public release | v1.0.37 (= Test70). History only; never the base |
 

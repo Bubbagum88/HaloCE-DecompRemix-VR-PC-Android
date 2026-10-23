@@ -170,6 +170,15 @@ void vr_vehicle_handles_throttle(long unit_index, float throttle[3]);
 boolean vr_render_full_body(long object_index);
 boolean vr_render_hands_only(void);
 struct real_matrix4x3 *vr_render_body_matrices(long object_index);
+/* Test73b: the player's body as drawn in the headset, whole (the head turned
+as the headset is, the arms reaching the hands shown), for the shadows it
+casts (render_objects.c, stencil_shadows.c); NULL when this frame's body is
+not drawn so (not the player's, in a seat, the body off, a cinematic).
+count: its nodes */
+struct real_matrix4x3 const *vr_render_body_shadow_matrices(long object_index, short *count);
+/* (the radius of the game's shadow of that body, from the center of its
+sphere: wide enough for its hands; another object's as it is) */
+float vr_render_body_shadow_radius(long object_index, float const center[3], float radius);
 /* player_control.c, each tick: the hands' blows (vr.melee "impact") */
 void vr_render_impact_melee(short local_player_index);
 real vr_player_collision_radius(long unit_index, real stock);

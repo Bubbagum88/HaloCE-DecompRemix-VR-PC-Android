@@ -49,6 +49,10 @@ port/android/app/src/main/assets/*
 !port/android/app/src/main/assets/guide/
 port/android/app/src/main/assets/guide/*
 !port/android/app/src/main/assets/guide/*.txt
+# (Test73b: the launchers' CONTROLS pages, text only)
+!port/android/app/src/main/assets/controls/
+port/android/app/src/main/assets/controls/*
+!port/android/app/src/main/assets/controls/*.txt
 !port/android/app/src/main/assets/fonts/
 port/android/app/src/main/assets/fonts/*
 !port/android/app/src/main/assets/fonts/Orbitron-Regular.ttf

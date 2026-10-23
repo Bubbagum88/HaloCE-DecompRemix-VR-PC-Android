@@ -26,7 +26,7 @@ frame = (ROOT / 'port/linux/src/vr_frame.c').read_text(encoding='utf-8')
 config = (ROOT / 'port/linux/src/port_config.c').read_text(encoding='utf-8')
 generator = (ROOT / 'tools/generate-field-guide.py').read_text(encoding='utf-8')
 help_java = (ROOT / 'port/android/app/src/main/java/com/halo/decomp/LauncherHelp.java').read_text(encoding='utf-8')
-assert '\r' not in doc and doc.startswith('# Controls and gestures (Test73)\n')
+assert '\r' not in doc and doc.startswith('# Controls and gestures (Test73b)\n')
 
 # ---------- the menu's rows, from its real tables (as tools/test_test73_features.py compiles them)
 tables = menu[menu.index('enum\n{'):menu.index('/* a page of settings, opened')]
@@ -197,7 +197,7 @@ for marker in ('left trigger for right-handed play', 'reload and other haptics s
     assert ('b"%s"' % marker) in (ROOT / 'tools/package-quest.py').read_text(encoding='utf-8'), marker
 assert '**' not in text and '`' not in text and '\n## ' not in text and '\n- ' not in text
 lines = text.split('\n')
-assert lines[0] == 'Controls and gestures (Test73)'
+assert lines[0] == 'Controls and gestures (Test73b)'
 headings = [l for l in lines[1:] if l and not l.startswith('• ') and not re.search('[a-z]', l)]
 assert headings == [h[3:].upper() for h in re.findall(r'^## .*$', doc, re.M)], headings
 points = [l for l in lines if l.startswith('• ')]

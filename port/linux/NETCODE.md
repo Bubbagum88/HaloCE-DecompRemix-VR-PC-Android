@@ -574,7 +574,7 @@ its name alone beside it, has its name given back as the map lists find it.
   is not asked again. A machine
   sends of the game's files (its map, the resource maps the map needs, a
   download's pieces) no faster than `network.map_share_upload` (the host,
-  1024 KB/s) or `network.map_seed_upload` (a player, 256 KB/s), round all
+  20 MB/s by default) or `network.map_seed_upload` (a player, 10 MB/s), round all
   its connections a 16 KiB block at a time, so that the game's own traffic
   keeps the rest of the upload; `network.map_seed = false` sends none. A
   player that has downloaded the map sends it on at once.

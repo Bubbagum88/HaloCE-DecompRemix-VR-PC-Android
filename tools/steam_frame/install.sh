@@ -168,10 +168,11 @@ else
 fi
 
 if unattended; then
-    echo "info: installed in $GAME_DIR"
+    echo "info: installed in $GAME_DIR (each run's log in $GAME_DIR/logs)"
     exit 0
 fi
-if ask "$NAME is installed.${image_note:-}\n\nSwitch to Gaming Mode now? Start $NAME from your library there (under Non-Steam). To quit, use the main menu's QUIT GAME, or Steam's Exit game." yes; then
+# (Test73b: where the logs are, said where the player looks once)
+if ask "$NAME is installed.${image_note:-}\n\nSwitch to Gaming Mode now? Start $NAME from your library there (under Non-Steam). To quit, use the main menu's QUIT GAME, or Steam's Exit game.\n\nIf something goes wrong, each run's log is in\n$GAME_DIR/logs\n(the newest is the last run)." yes; then
     steamos-session-select gamescope >/dev/null 2>&1 ||
         info "Switch to Gaming Mode yourself (the \"Return to Gaming Mode\" icon or the power menu)."
 fi

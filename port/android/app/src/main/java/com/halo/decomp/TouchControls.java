@@ -22,6 +22,8 @@ final class TouchControls extends View {
     private static final int CROUCH=1<<6, ZOOM=1<<7, START=1<<8, BACK=1<<9;
     private static final int UP=1<<10, DOWN=1<<11, LEFT=1<<12, RIGHT=1<<13;
     private static final int GRENADE=1<<14, FIRE=1<<15;
+    // Test73b: SPRINT (HALO_TOUCH_SPRINT), shown while the game's SPRINT is HOLD or TOGGLE
+    private static final int SPRINT=1<<16;
     private static final int BUTTON=0, MOVE=1, LOOK=2, FIRE_LOOK=3, TOGGLE=4, EDIT=5, FREE_LOOK=6;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final SparseArray<Contact> contacts = new SparseArray<>();
@@ -35,6 +37,14 @@ final class TouchControls extends View {
     private int touchMode=GamepadPolicy.AUTO, connectedPads;
     private final MenuTouchGesture menuGesture=new MenuTouchGesture();
     private boolean menuControlStream;
+    /** Test73b (the owner: "whenever sprint is enabled in the settings ... there's an actual button they can do for
+     * it. That shows up on the screen"): the game's SPRINT (movement.sprint) as this overlay shows it: 0 no button
+     * (OFF, or AUTO's full push of MOVE), 1 HOLD, 2 TOGGLE. Its supplier (HaloActivity) reads the game's config; it
+     * is asked as the overlay opens and each time the menus close, where SPRINT is changed (Player profile >
+     * MOVEMENT). The game makes HOLD or TOGGLE of the press (flat_movement.c). */
+    interface SprintSetting { int mode(); }
+    private SprintSetting sprintSetting=()->0;
+    private int sprintMode;
     private final Control freeLook=new Control("",0,0,0,0,FREE_LOOK);
     /** The production view is exercised with a recording input endpoint in tests. */
     interface Input {
@@ -200,6 +210,7 @@ final class TouchControls extends View {
             new Control("<", left+w*.34f, top+h*.72f, r*.8f, LEFT, BUTTON),
             new Control(">", left+w*.46f, top+h*.72f, r*.8f, RIGHT, BUTTON),
             new Control("Touch", left+w*.94f, top+h*.10f, r, 0, TOGGLE),
+            new Control("Sprint", left+w*.22f, top+h*.56f, r, SPRINT, BUTTON),
             new Control("HUD", left+32*unit, top+32*unit, 27*unit, 0, EDIT)
         };
         for(int i=0;i<controls.length;i++) {
@@ -239,9 +250,30 @@ final class TouchControls extends View {
         if(active!=menus) {
             releaseAll();menus=active;applyVisibility();gyroUpdate();invalidate();
             RunLog.line("Touch mode: "+(menus?"menu (original controls + direct taps)":"gameplay")+" policy="+touchMode+" controllers="+connectedPads);
+            if(!menus) refreshSprint(); // (Test73b: SPRINT is set in the menus)
         }
     }
+    /** Test73b: the game's SPRINT supplier (HaloActivity), asked now and as the menus close */
+    void setSprintSetting(SprintSetting setting) { sprintSetting=setting==null?()->0:setting; refreshSprint(); }
+    private void refreshSprint() {
+        int mode;
+        try { mode=sprintSetting.mode(); } catch(RuntimeException unreadable) { mode=0; }
+        if(mode<0||mode>2) mode=0;
+        if(mode!=sprintMode) {
+            releaseAll();sprintMode=mode;invalidate();
+            RunLog.line("Touch SPRINT button: "+(mode==0?"hidden (SPRINT is OFF or AUTO)":mode==1?"shown (SPRINT HOLD)":"shown (SPRINT TOGGLE)"));
+        }
+    }
+    /** movement.sprint as config.toml writes it ("hold", in its quotes) as the overlay's SPRINT: 0 none, 1 HOLD, 2
+     * TOGGLE */
+    static int sprintMode(String configured) {
+        String mode=configured==null?"":configured.replace("\"","").trim().toLowerCase(java.util.Locale.ROOT);
+        return mode.equals("hold")?1:mode.equals("toggle")?2:0;
+    }
     private boolean controlVisible(Control c) {
+        // (Test73b: SPRINT only while the game's SPRINT is HOLD or TOGGLE, and not over the menus; the editor shows it
+        // then too)
+        if(c.bit==SPRINT && (sprintMode==0 || (menus && !editing)))return false;
         if(c.kind==EDIT || editing)return true;
         if(c.id>=0 && c.id<TouchLayout.COUNT && !layout.visible[c.id])return false;
         return (controlsShown || c.kind==TOGGLE) && !(layout.lookAnywhere && c.kind==LOOK);
@@ -454,7 +486,8 @@ final class TouchControls extends View {
                     .setPositiveButton("Reset",(d,w)->{layout=new TouchLayout();selected=-1;layoutControls();}).setNegativeButton("Back",null).show();
                 invalidate();return true;
             }
-            for(int i=TouchLayout.COUNT-1;i>=0;i--) if(controls[i].contains(x,y)) {
+            // (Test73b: a control the editor does not show, SPRINT without the game's SPRINT, is not picked up)
+            for(int i=TouchLayout.COUNT-1;i>=0;i--) if(controlVisible(controls[i])&&controls[i].contains(x,y)) {
                 selected=i;dragPointer=event.getPointerId(0);dragOffsetX=x-controls[i].x;dragOffsetY=y-controls[i].y;break;
             }
         }

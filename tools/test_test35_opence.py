@@ -26,7 +26,8 @@ def function(source, name):
 limits = read("port/linux/include/halo_port_limits.h")
 assert re.search(r"^#define HALO_PORT_NETWORK_VERSION %d$" % netv.CURRENT, limits, re.M)
 gradle = read("port/android/app/build.gradle")
-assert ("versionCode Math.max(85, buildNumber)" in gradle or
+assert ("versionCode Math.max(86, buildNumber)" in gradle or
+        "versionCode Math.max(85, buildNumber)" in gradle or
         "versionCode Math.max(84, buildNumber)" in gradle or
         "versionCode Math.max(83, buildNumber)" in gradle or
         "versionCode Math.max(82, buildNumber)" in gradle or
@@ -53,7 +54,8 @@ assert ("versionCode Math.max(85, buildNumber)" in gradle or
         "versionCode Math.max(61, buildNumber)" in gradle or
         "versionCode Math.max(60, buildNumber)" in gradle)
 frame = read("port/linux/src/vr_frame.c")
-assert ("HaloCE Quest test73 candidate 1.0.40-test73 code85" in frame or
+assert ("HaloCE Quest test73b candidate 1.0.41-test73b code86" in frame or
+        "HaloCE Quest test73 candidate 1.0.40-test73 code85" in frame or
         "HaloCE Quest test72 candidate 1.0.39-test72 code84" in frame or
         "HaloCE Quest test71 candidate 1.0.38-test71 code83" in frame or
         "HaloCE Quest test70 candidate 1.0.37-test70 code82" in frame or

@@ -396,10 +396,6 @@ static void render_window(
 		structure_render_lightmaps();
 		rasterizer_lens_flares_submit_occlusion_tests();
 		render_object_shadows();
-		/* port: port/linux/game/stencil_shadows.c (display.stencil_shadows):
-		the level's light darkened in a shadow before the dynamic lights are
-		added (Test73: a flashlight's falls into a shadow at full strength) */
-		stencil_shadows_render();
 		lights_render_diffuse();
 
 #if BLOOD_EFFECTS
@@ -469,6 +465,7 @@ static void render_window(
 		structure_render_detail_objects();
 		rasterizer_transparent_geometry_draw(FALSE);
 		rasterizer_transparent_geometry_stop();
+		stencil_shadows_render(); /* port: port/linux/game/stencil_shadows.c (display.stencil_shadows) */
 		/* the fog's screen layers assume a symmetric frustum facing the
 		game's camera: not for the headset's eyes or scope */
 		if (!VR_RENDER_VIEW())
