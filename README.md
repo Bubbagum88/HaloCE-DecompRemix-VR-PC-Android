@@ -16,9 +16,9 @@
 | Meta Quest — standalone VR | [HaloCE-Quest-1.0.41.apk](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/releases/download/v1.0.41/HaloCE-Quest-1.0.41.apk) |
 | PICO — standalone VR | [Universal VR APK](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/releases/download/v1.0.41/HaloCE-Quest-1.0.41.apk) |
 | Windows — flat PC and PC VR | [HaloCE-Windows-1.0.41.zip](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/releases/download/v1.0.41/HaloCE-Windows-1.0.41.zip) |
-| Steam Frame — installer bundle | [HaloCE-SteamFrame-1.0.41.zip](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/releases/download/v1.0.41/HaloCE-SteamFrame-1.0.41.zip) |
+| Steam Frame — standalone APK or optional installer bundle | [Use the Quest VR APK](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/releases/download/v1.0.41/HaloCE-Quest-1.0.41.apk) directly, or use the [Steam Frame convenience bundle](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/releases/download/v1.0.41/HaloCE-SteamFrame-1.0.41.zip) for Steam Library integration |
 
-See the [complete release notes](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/blob/main/docs/RELEASE-1.0.41.md) for separate install instructions. Existing Android/VR users should install over the old app; **do not uninstall or clear app data** to preserve saves, settings and imported files. APK identity is 1.0.41-test73b / code 86. The app contains no Halo game data. The original Xbox XISO remains the recommended baseline.
+**Steam Frame can install and run the regular Quest VR APK directly**; it is the same universal VR build. The separate Steam Frame ZIP is optional and adds a Steam Library installer/shortcut. See the [complete release notes](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/blob/main/docs/RELEASE-1.0.41.md) for install instructions. Existing Android/VR users should install over the old app; **do not uninstall or clear app data** to preserve saves, settings and imported files. APK identity is 1.0.41-test73b / code 86. The app contains no Halo game data. The original Xbox XISO remains the recommended baseline.
 
 ## Highlights and compatibility
 
@@ -42,7 +42,7 @@ Fist combat/deflection, sliding, parkour, manual reload, physical grenades, ragd
 - **PICO:** sideload the same universal VR APK through ADB or a compatible utility. This exact build has not been tested on PICO hardware.
 - **Windows flat:** extract the Windows ZIP with its DLLs together, start halo.exe, import your ISO/XISO under GAME DATA and choose PLAY.
 - **Windows PC VR:** configure an **OpenXR runtime (recommended)** such as SteamVR, Quest Link, Virtual Desktop or PICO Connect, then start halo.exe and choose PLAY IN VR.
-- **Steam Frame:** in Desktop Mode download and extract its ZIP in Downloads, run Install HaloCE Quest VR.desktop, then return to Gaming Mode and launch from Steam.
+- **Steam Frame:** install the regular Quest VR APK with an Android APK installer if you prefer. The optional Steam Frame ZIP installs that same APK and adds a Steam Library shortcut; in Desktop Mode extract it, run Install HaloCE Quest VR.desktop, then return to Gaming Mode.
 
 The Test73b candidate passed 203/203 automated suites and its Android/Windows build checks. It was not launched in a game or headset during packaging; device/runtime testing is requested. See the [Test73b field guide](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/blob/main/docs/TEST73B-FIELD-GUIDE.md), [controls](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/blob/main/docs/CONTROLS-AND-OPTIONS.md), [Android touch guide](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/blob/main/docs/ANDROID-TOUCH-CONTROLS.md), and [full release notes](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/blob/main/docs/RELEASE-1.0.41.md).
 
