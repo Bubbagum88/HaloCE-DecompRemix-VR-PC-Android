@@ -1,21 +1,15 @@
-## Latest release: v1.0.37 (Test70), 2026-10-15
+## Latest release: v1.0.41 (Test73b), 2026-10-23
 
-Published: `https://github.com/moistman42069/HaloCE-Quest-VR/releases/tag/v1.0.37`.
-The APKs retain their Test70 identity (`1.0.37-test70`, code 82); stable asset
-names are used for launcher updates. See `docs/RELEASE-1.0.37.md`,
-`docs/RELEASE-PROVENANCE-1.0.37.md`, and `docs/TEST70-DELIVERY-STATUS.md`.
-Automated checks passed; device acceptance remains pending. Keep experimental
-and WIP features labeled as such.
+Release page: https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/releases/tag/v1.0.41
+The APKs retain identity 1.0.41-test73b / code 86; updater asset names are stable v1.0.41 filenames.
+Runtime source: a29762e0480412ebf7f550e30beb6a047965e801; package/source record: d8b8319820188ae10658258c2fbb26c983fb286b.
+Platforms: Android flat, standalone VR (Quest/PICO/Steam Frame), Windows flat/PC VR, and Steam Frame installer bundle.
+Automated checks passed (203/203, Android ABI/build/Gradle, Windows flat/VR). This exact Test73b build was not run in a game or headset; hardware/runtime acceptance is pending. Keep that distinction visible.
+See docs/RELEASE-1.0.41.md, docs/TEST73B-DELIVERY-STATUS.md and docs/TEST73B-DEVICE-CHECKLIST.md.
 
-## Owner direction for the next release
+## Owner direction for subsequent work
 
-The project is expanding beyond Quest/Android: the owner plans PCVR, flat PC,
-Steam Frame, and Pico adaptations. For the next release, revisit the project and
-repository title/description, README/About wording, platform support matrix,
-build/install instructions, controls, compatibility notes, credits, and release
-assets so they accurately cover the platforms actually supported then. Do not
-rename the current v1.0.37 release or claim a platform is supported before its
-build and validation are ready.
+Collect the Test73b device reports and logs, especially for VR third person, stencil/body shadows, controller menu navigation, platform runtime setup and the open graphics/camera/HUD/bridge reports. Do not infer headset acceptance from automated tests.
 
 ## Private candidate: Test73b (1.0.41-test73b / code86), delivered 2026-10-23
 
