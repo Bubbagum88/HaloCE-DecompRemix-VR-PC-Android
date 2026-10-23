@@ -83,9 +83,10 @@ Legend:
 
 ## The build pass (last)
 
-- [ ] Full suite (on 2026-10-22 before the Steam Frame work: 192 of 195, the 3 stale pins then fixed); VR and flat
-  Android guests and their ABI lint; windows_vr and the flat halo.exe (0 warnings).
-- [ ] The runtime checks moved there: scopes per weapon, the 10d two-instance run, a fresh profile, a PC VR smoke
-  run, the desktop cursor, 10j's frames (a flashlight, a Jackal's shield).
-- [ ] APKs, the Steam Frame bundle (`tools/steam_frame/bundle.py`), the Windows zip, the build and source zips;
-  TEST73-DELIVERY-STATUS.md with their hashes.
+- [x] Full suite 196 of 196; the VR and flat Android builds with their guest ABI lint (799 + 923 units) and
+  Opus tables check; windows_vr and the flat halo.exe, full rebuilds: no warnings anywhere. The VR build found
+  one error (a declaration only the flat build saw), fixed before the commit.
+- [?] The runtime checks moved there (scopes per weapon, the 10d two-instance run, a fresh profile, a PC VR smoke
+  run, the desktop cursor, 10j's frames): not run, the owner's call ("just skip the running checks and provide the
+  builds if possible. i will test it all myself").
+- [x] The APKs, the Steam Frame bundle, the Windows zip, the build and source zips: TEST73-DELIVERY-STATUS.md.
