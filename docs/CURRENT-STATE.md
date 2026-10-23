@@ -17,7 +17,7 @@ assets so they accurately cover the platforms actually supported then. Do not
 rename the current v1.0.37 release or claim a platform is supported before its
 build and validation are ready.
 
-## Private candidate: Test73b (1.0.41-test73b / code86), in progress
+## Private candidate: Test73b (1.0.41-test73b / code86), delivered 2026-10-23
 
 Fixes and additions on the delivered Test73 (the owner, on it: "basically
 everything works great, so regress nothing, BUT, stencil shadows is a bit

@@ -34,7 +34,7 @@ The owner on the Quest: "basically everything works great", but for the
 stencil shadows. A player has started it on a Steam Frame (from Steam, the
 menus, quit from the menu: their log), where B did not go back in the menus.
 
-**Then (2026-10-22, Test73b, 1.0.41-test73b / code86, in progress):** the
+**Then (2026-10-22, Test73b, 1.0.41-test73b / code86, delivered 2026-10-23):** the
 stencil shadows as HaloFreak95 made them, the VR body's shadow, B back in the
 menus on every controller (the Frame's report), map sharing at its most by
 default, and every launcher's log locations (the PC launcher's LOGS page);
@@ -48,7 +48,7 @@ they are held, and WORLD SCALE. Per item: `docs/TEST73B-CHECKLIST.md`.
 | Item | State |
 |---|---|
 | Branch | `test39-interaction-completion` (local; `origin/main` is behind it) |
-| Newest commits | `fcaa04e3` Test73 and `cde43a78` its delivery record (local); Test73b's work is uncommitted on top of them (a local commit at its build pass, as Test73's) |
+| Newest commits | `a29762e0` Test73b and its delivery record after it (local), on `fcaa04e3` Test73 and `cde43a78` its record |
 | Newest candidate | Test73b, **1.0.41-test73b / code86** (Test73, 1.0.40 / code85, Test72, 1.0.39 / code84, and Test71, 1.0.38 / code83, travel with it) |
 | Newest packaged APKs | Test70, 1.0.37-test70 / code82 (`D:\HaloQuest\builds\test70-20261015-v1.0.37-test70`), also published as v1.0.37; Test72's and Test73's private packages (`docs/TEST72-DELIVERY-STATUS.md`, `docs/TEST73-DELIVERY-STATUS.md`) |
 | Handoff docs | `docs/CURRENT-STATE.md`, `CLAUDE.md`, `docs/HANDOFF-2026-10-*.md`, `docs/TEST73-*.md`, `docs/TEST72-*.md` |

@@ -169,4 +169,20 @@ Legend:
   markers), What's New (its Test73b section first, then Test73's without its stencil light line), the pins.
 - [s] CURRENT-STATE and CLAUDE.md (Test73 delivered, Test73b in progress), PLATFORMS-PLAN, this checklist, the
   device checklist, the field guide, the in-APK guide.
-- [ ] The full suite, the build pass (VR, flat, `windows_vr`, `windows`), the local commit and the packages.
+- [x] The full suite, the build pass (VR, flat, `windows_vr`, `windows`), the local commit and the packages
+  (below).
+
+## The build pass (last)
+
+- [x] Full suite 203 of 203 on the built tree; the VR and flat Android builds (1762 and 1760 steps) with their
+  guest ABI lint (799 + 923 units) and Opus tables check, then Gradle; `windows_vr` (842 steps) and the flat
+  `halo.exe` (839), full rebuilds: no errors and no warnings anywhere (the Android host's files compiled again
+  on their own to show it, as the build log can lose its first steps' lines). Every [s] item above is compiled.
+- [x] Before the commit: `.gitignore` kept `assets/controls/controllers.txt` (the CONTROLS pages) out of the
+  repository, as it keeps everything in `assets/` but the guides and fonts; an exception like the guide's lets it
+  in (the APKs carried it already).
+- [?] The runtime checks (the shadows' frames, the menus' B on each controller, the sprint toggle, the touch
+  SPRINT circle, the CONTROLS pages on a device, a body held as a shield, WORLD SCALE in a headset, a PC VR
+  smoke run): not run, the owner's call for Test73 ("just skip the running checks and provide the builds if
+  possible. i will test it all myself"), kept for Test73b.
+- [x] The APKs, the Steam Frame bundle, the Windows zip, the build and source zips: TEST73B-DELIVERY-STATUS.md.
