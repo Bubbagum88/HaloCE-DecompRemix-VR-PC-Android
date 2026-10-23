@@ -12,7 +12,7 @@ This is a large cumulative update from public **1.0.37**, bringing the interveni
 | Meta Quest — standalone VR | [HaloCE-Quest-1.0.41.apk](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/releases/download/v1.0.41/HaloCE-Quest-1.0.41.apk) |
 | PICO headset — standalone VR | Use the same [universal VR APK](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/releases/download/v1.0.41/HaloCE-Quest-1.0.41.apk) |
 | Windows — flat PC and PC VR | [HaloCE-Windows-1.0.41.zip](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/releases/download/v1.0.41/HaloCE-Windows-1.0.41.zip) |
-| Steam Frame — headset-side installer | [HaloCE-SteamFrame-1.0.41.zip](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/releases/download/v1.0.41/HaloCE-SteamFrame-1.0.41.zip) |
+| Steam Frame — the universal VR APK also works; optional Steam-library installer bundle | [HaloCE-Quest-1.0.41.apk](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/releases/download/v1.0.41/HaloCE-Quest-1.0.41.apk) or [HaloCE-SteamFrame-1.0.41.zip](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android/releases/download/v1.0.41/HaloCE-SteamFrame-1.0.41.zip) |
 
 ### Android phone/tablet
 1. Download the Android APK on the device.
@@ -44,9 +44,11 @@ This is a large cumulative update from public **1.0.37**, bringing the interveni
 PC VR is built, but this exact release has not had a PC-headset runtime test; results depend on headset, runtime and GPU setup.
 
 ### Steam Frame
-1. In Desktop Mode, download the Steam Frame ZIP on the headset.
-2. Extract it in Downloads with the file manager.
-3. Run **Install HaloCE Quest VR.desktop** (or install.sh) to add the app to the Steam library. Return to Gaming Mode and launch it.
+The regular **HaloCE-Quest-1.0.41.apk** is the same universal VR APK and is compatible with Steam Frame too. The separate Steam Frame ZIP is optional; it bundles that APK with scripts and a desktop shortcut that add it to the Steam library.
+
+1. For the convenience bundle, in Desktop Mode download HaloCE-SteamFrame-1.0.41.zip on the headset and extract it in Downloads with the file manager.
+2. Run **Install HaloCE Quest VR.desktop** (or install.sh) to install the APK and add the library entry. Return to Gaming Mode and launch it.
+3. You can also install the regular Quest VR APK on Frame using the usual Android APK installation method; use the ZIP when you want its Steam-library integration.
 4. Import your own game image in the launcher. No computer-side installer is needed.
 
 ### Updating
