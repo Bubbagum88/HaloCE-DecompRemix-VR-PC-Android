@@ -1056,9 +1056,10 @@ def main():
     edition_docs=( ["RELEASE-"+args.label+".md", "RELEASE-PROVENANCE-"+args.label+".md"] if args.stable else
                    [] if candidate_at_least(args.label, 42) else
                    [args.label.upper()+"-DELIVERY.md", args.label.upper()+"-PROGRESS.md"] )
-    # a lettered candidate (test21b) ships its base candidate's notes too
+    # a lettered candidate (test21b) ships its base candidate's notes too (Test73b: before Test42 only, which had
+    # these two; from Test42 on a candidate's documents, its base's with them, are candidate_document_prefix's)
     base_label = re.sub(r"[a-z]$", "", args.label)
-    if not args.stable and base_label != args.label:
+    if not args.stable and base_label != args.label and not candidate_at_least(args.label, 42):
         edition_docs += [base_label.upper()+"-DELIVERY.md", base_label.upper()+"-PROGRESS.md"]
     active_candidate_docs = (["TEST51-DELIVERY-STATUS.md", "TEST51-PLAYER-NOTES.md", "TEST51-FIELD-GUIDE.md", "TEST51-CRASH-ANALYSIS.md", "TEST51-DEVICE-CHECKLIST.md", "TEST50-DELIVERY-STATUS.md", "TEST50-PLAYER-NOTES.md", "TEST50-FIELD-GUIDE.md", "TEST50-VOICE-DIAGNOSTICS.md", "TEST50-DEVICE-CHECKLIST.md", "TEST49-DELIVERY-STATUS.md", "TEST49-PLAYER-NOTES.md", "TEST49-FIELD-GUIDE.md", "TEST49-REGRESSION-AUDIT.md", "TEST49-DEVICE-CHECKLIST.md", "TEST48-REGRESSION-AUDIT.md", "TEST47-REQUIREMENT-DISPOSITION.md", "TEST47-OPENCE177-INTEGRATION.md"]
                              if candidate_at_least(args.label, 51) else

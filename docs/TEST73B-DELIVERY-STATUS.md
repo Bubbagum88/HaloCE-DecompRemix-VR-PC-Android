@@ -16,6 +16,12 @@ Folder: `D:\HaloQuest\builds\test73b-20261023-v1.0.41-test73b`
 Every package was built from runtime source `a29762e0480412ebf7f550e30beb6a047965e801`, the tree clean after
 it. This record follows it in a commit of its own and changes no runtime file.
 
+The first packaging run stopped after its checks, before the build zip: `tools/package-quest.py` asked a
+lettered candidate for its base's `TEST73-DELIVERY.md`, a document candidates have not had since Test42 (their
+base's documents come in with their own: Test73's four). The commit after this record limits that rule to the
+candidates before Test42 (tools only, no runtime file); the packages above, unchanged, were then packaged again
+from it with `--runtime-source a29762e0`.
+
 | Package | Bytes | SHA-256 |
 |---|---:|---|
 | `HaloCE-Quest-VR-test73b.apk` (Quest, Pico, Steam Frame) | 76,069,753 | `8f7a10ddf25d89f20598f6526782606a7fd452677ffb6bc0877e6bb329255a1f` |
