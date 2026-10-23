@@ -103,7 +103,7 @@ The USA Original, Rev 1 and Rev 2 images compared for this port contain identica
 The launcher scans/imports supported images and switches between imported sets. Custom Edition maps/campaigns need matching content and supported network versions. SPV1 and Project Lumoria have guided setup paths. Altheros Experience and MCC maps remain experimental. Import success does not guarantee every mod/map/script/mission will run.
 
 ## 8. Known issues and test status
-- Test73b passed **203/203 automated suites**, Android VR/flat build/ABI checks, Gradle packaging and Windows flat/VR builds. SHA256SUMS.txt contains hashes for the posted binaries and source archive.
+- Test73b passed **203/203 automated suites**, Android VR/flat build/ABI checks, Gradle packaging and Windows flat/VR builds. SHA256SUMS.txt records the four platform-download hashes. GitHub also provides source-code ZIP and tar.gz archives for this tag.
 - This exact build was **not launched in-game or tested on a headset** during packaging. Quest/Android, PICO, Steam Frame and PC VR runtime feedback is requested. Third-person VR and the new body shadow need visual confirmation.
 - Fist combat/deflection, parkour/sliding, manual reload, physical grenades, NPC/world handling, ragdoll behavior and immersive vehicles remain WIP. First-person vehicle view is not recommended yet.
 - Four reports lacked logs needed for diagnosis: Windows graphics settings, camera after the Flood introduction cutscene, a possible Wrist HUD report, and The Maw bridge countdown.
