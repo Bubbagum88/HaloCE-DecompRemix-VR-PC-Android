@@ -49,7 +49,7 @@ for needle in ('android:name="pvr.app.type"\n            android:value="vr"', 'a
                '<category android:name="com.picovr.intent.category.VR" />',
                '<category android:name="com.oculus.intent.category.VR" />',
                '<category android:name="org.khronos.openxr.intent.category.IMMERSIVE_HMD" />',
-               'android:value="quest|quest2|questpro|quest3|quest3s"'):
+               'android:value="quest"'):
     assert needle in manifest, needle
 for absent in ("oculus.software.eye_tracking", "enable_shared_context", "pvr.supportedDevices"):
     assert absent not in manifest, absent
