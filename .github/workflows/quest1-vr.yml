@@ -1,0 +1,61 @@
+name: Quest 1 VR APK
+
+# The VR APK (com.halo.decomp.vr) for the first Quest, built by the repo's
+# own tools/build-quest.sh vr, uploaded as an artifact.
+on:
+  push:
+    branches: [quest1]
+    paths-ignore: ['**.md', 'docs/**']
+  workflow_dispatch:
+
+concurrency:
+  group: quest1-vr-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  vr-apk:
+    # The runner image has the Android SDK, a JDK 17, CMake and clang 18.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Install ninja
+        run: |
+          mkdir -p "$RUNNER_TEMP/tools"
+          curl -fsSL -o ninja.zip https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip
+          unzip -q ninja.zip -d "$RUNNER_TEMP/tools" && rm ninja.zip
+          echo "$RUNNER_TEMP/tools" >> "$GITHUB_PATH"
+
+      # the regression checks read older commits and the v1.0.18 tag
+      # (upstream's: the fork has no tags)
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch the v1.0.18 tag
+        run: git fetch https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android refs/tags/v1.0.18:refs/tags/v1.0.18
+
+      # the regression checks build with -fsanitize=address,undefined
+      - name: Install clang's sanitizer runtimes
+        run: sudo apt-get install -y libclang-rt-18-dev
+
+      # the NDK build-quest.sh asks for
+      - name: Install NDK 27.2.12479018
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.2.12479018" > /dev/null
+
+      # musl, SDL and the OpenXR loader, which configure.py fetches
+      - uses: actions/cache@v4
+        with:
+          path: build/android/third_party
+          key: android-third-party-${{ hashFiles('tools/android_build.py') }}
+
+      - name: Build
+        run: bash tools/build-quest.sh vr
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: halo-quest1-vr
+          path: port/android/app/build/outputs/apk/vr/debug/*.apk
+          retention-days: 14
