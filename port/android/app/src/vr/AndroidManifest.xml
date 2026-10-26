@@ -27,7 +27,7 @@
         <!-- the Quest headsets the app is offered on -->
         <meta-data
             android:name="com.oculus.supportedDevices"
-            android:value="quest|quest2|questpro|quest3|quest3s" />
+            android:value="quest" />
         <!-- Test72: PICO (pull request #4, adapted). pvr.app.type=vr is PICO's
              documented key for a VR app. The two input keys are the PR's
              finding on PICO OS 5 (a controller-only app, so the system's hand
